@@ -1,0 +1,91 @@
+{
+  "schema_version": "transition-profile-simulator-metrics-v0.1",
+  "status": "passed",
+  "source_episode_count": 150,
+  "source_topology_distribution": {
+    "[32760.0, 32760.0]": 55,
+    "[24576.0, 24576.0]": 50,
+    "[32760.0, 24576.0]": 45
+  },
+  "paired_filter": {
+    "gpu_topology_mb": [32760.0, 32760.0],
+    "selected_episode_count": 55,
+    "source_order_preserved": true
+  },
+  "paired_conditions": {
+    "episodes_per_condition": 55,
+    "policies": ["round_robin", "myopic", "predopt_h5", "oracle"],
+    "rows_per_condition": 220,
+    "completed_jobs_per_condition": 2320,
+    "failed_jobs": 0,
+    "capacity_violations": 0,
+    "max_gpu_peak_memory_mb": 32756.0
+  },
+  "diagnostic_full_profile_off": {
+    "status": "passed",
+    "episodes": 150,
+    "result_rows": 600,
+    "failed_jobs": 0,
+    "capacity_violations": 0
+  },
+  "mean_completion_ms": {
+    "round_robin": {
+      "transition_off": 842352.0451166193,
+      "transition_on": 864688.3621394886,
+      "delta_ms": 22336.317022869247,
+      "delta_pct": 2.651660567854014
+    },
+    "myopic": {
+      "transition_off": 840401.1042889205,
+      "transition_on": 850267.7507204546,
+      "delta_ms": 9866.646431534085,
+      "delta_pct": 1.174040155490091
+    },
+    "predopt_h5": {
+      "transition_off": 840395.2869471591,
+      "transition_on": 850381.3410232954,
+      "delta_ms": 9986.054076136323,
+      "delta_pct": 1.1882567919213245
+    },
+    "oracle": {
+      "transition_off": 590630.3342924716,
+      "transition_on": 599920.3188633523,
+      "delta_ms": 9289.984570880653,
+      "delta_pct": 1.572893234819935
+    }
+  },
+  "transition_on_cost_totals": {
+    "load_ms": 30751273.87700001,
+    "evict_ms": 982906.7729999998,
+    "load_hits": 7229,
+    "evict_hits": 6466,
+    "by_policy": {
+      "round_robin": {"load_ms": 11179215.624, "evict_ms": 386941.1770000002, "load_hits": 2754, "evict_hits": 2577},
+      "myopic": {"load_ms": 6064691.445000004, "evict_ms": 179806.59399999992, "load_hits": 1341, "evict_hits": 1166},
+      "predopt_h5": {"load_ms": 6087779.360000003, "evict_ms": 180598.78699999992, "load_hits": 1355, "evict_hits": 1174},
+      "oracle": {"load_ms": 7419587.448000002, "evict_ms": 235560.215, "load_hits": 1779, "evict_hits": 1549}
+    }
+  },
+  "event_audit": {
+    "episodes": 10,
+    "rows": 40,
+    "raw_event_lines_remote": 102722,
+    "model_load_start_events": 1773,
+    "model_evict_events": 736,
+    "transition_profile_load_source_events": 1773,
+    "event_load_ms": 7255094.403000104,
+    "event_evict_ms": 242695.3199999977,
+    "event_load_hits": 1773,
+    "event_evict_hits": 1608,
+    "summary_load_ms": 7255094.403,
+    "summary_evict_ms": 242695.32,
+    "costs_reconcile": true,
+    "raw_event_samples_local_copy": false
+  },
+  "scope": {
+    "single_node_multi_gpu": false,
+    "checkpoint_restore": "unsupported",
+    "t_final": "untouched",
+    "r7_inputs": "read_only"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "artifact_sha256": {
+    "B1:seed11": "4402375732d25b66e3039f0f6fc49c994fe3e55088d636a9b69a1312437d3bc8",
+    "J3:seed11": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+    "J3:seed22": "f70389e42be479495d5b5250e730f8652d3d590034fd1f6dfb54791848349403",
+    "J3:seed33": "91865417b78a4cc674934c2ab942b6bc89cdf022b2a93b4aa40c144ae1929a8b"
+  },
+  "fallback": "B1:seed11",
+  "primary": "J3:seed11",
+  "robustness": [
+    "J3:seed22",
+    "J3:seed33"
+  ],
+  "selection_rule": "validation argmin RuntimeQScore across {J0,B1,J1,J2,J3} x seeds {11,22,33}; tie-break by seed order",
+  "tier": "validation official; test exploratory second look only"
+}

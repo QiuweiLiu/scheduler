@@ -1,0 +1,60 @@
+{
+  "canonical_dataset_root": "/Volumes/Lenovo/scheduler/results/processed/j_series_dataset_h10",
+  "counts": {
+    "length_histogram": {
+      "0": 2608,
+      "1": 1350,
+      "10": 4370,
+      "2": 1240,
+      "3": 1164,
+      "4": 1102,
+      "5": 1145,
+      "6": 1083,
+      "7": 1110,
+      "8": 1066,
+      "9": 1065
+    },
+    "load_accounting": {
+      "missing": 429,
+      "positive": 8076,
+      "zero": 85031
+    },
+    "rows_by_split": {
+      "test": 1520,
+      "train": 13754,
+      "validation": 2029
+    },
+    "slots_by_split": {
+      "test": 8329,
+      "train": 74124,
+      "validation": 11083
+    },
+    "supervision_instances_total": 93536,
+    "unique_resource_nodes_referenced": 14413
+  },
+  "dataset_root": "F:\\scheduler\\results\\processed\\j_series_dataset_h10",
+  "files_sha256": {
+    "j_test.jsonl.gz": {
+      "bytes": 136229,
+      "sha256": "95223b44d70eca39fe39941ed26601a39eb4577e531538b668d63887dae97c02"
+    },
+    "j_train.jsonl.gz": {
+      "bytes": 1229998,
+      "sha256": "4b4ef14202ec038cf79fa4920b6f94f319f5a5ddc5cd980f92089d6eba773719"
+    },
+    "j_validation.jsonl.gz": {
+      "bytes": 180874,
+      "sha256": "ea388a131b53121a56f5390cc43de8fae1b8f69a2219ff91f2736f9a24a54ef7"
+    }
+  },
+  "holdout_policy": {
+    "nonconfirmatory_holdout_included": false
+  },
+  "schema_version": "j-series-dataset-h10-v1",
+  "source": {
+    "builder": "scripts/build_j_dataset.py (config horizon=10)",
+    "resource_table": "experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+    "v3_dataset_h10": "results/processed/topology_predictor_p9d_v3_h10"
+  },
+  "status": "generated"
+}

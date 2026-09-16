@@ -1,0 +1,36 @@
+{
+  "operation_id": "video_delete_pdev_20260817",
+  "schema_version": "video-deletion-audit-v0.1",
+  "status": "pre_delete_verified",
+  "authorized_scope": "user explicitly authorized deleting old P_dev videos and waived local archive requirement; source URLs and provenance must be retained",
+  "target_split": "P_dev",
+  "target_count": 300,
+  "target_bytes": 28436477904,
+  "successful_trace_video_count": 300,
+  "active_r7_video_count": 160,
+  "active_r7_overlap_count": 0,
+  "collector_pid": 187515,
+  "collector_alive_before": true,
+  "collector_cmdline_before": "/root/miniconda3/envs/finetooling/bin/python -B src/tracing/collectors/videotool_phase2_batch.py --manifest data/manifests/r7_trace_manifest_v1.jsonl --output-root results/raw/r7_trace_full_20260817 --videotool-root third_party/videotool --planner-mode local_qwen --model-name Qwen3-VL-8B-Instruct --max-iterations 6 --yolo-batch 8 --qwen-max-new-tokens 256 --planner-max-new-tokens 96 --answer-max-new-tokens 96 ",
+  "r7_summary_rows_before": 545,
+  "retain": [
+    "trace.jsonl",
+    "run_manifest.json",
+    "run_status.json",
+    "phase2_batch_summary.jsonl",
+    "video_id",
+    "source_url",
+    "official_archive",
+    "original.sha256",
+    "original.size_bytes",
+    "original.width",
+    "original.height",
+    "original.duration_s"
+  ],
+  "archive_gate": {
+    "waived": true,
+    "archive_path": null,
+    "archive_restore_tested": false
+  },
+  "started_at_epoch": 1786935701.4382625
+}

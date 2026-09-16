@@ -1,0 +1,90 @@
+{
+  "schema_version": "r8-scheduler-extensions-metrics-v0.1",
+  "episodes": 100,
+  "jobs_per_condition": 1600,
+  "all_conditions_passed": true,
+  "capacity_violations": 0,
+  "failed_jobs": 0,
+  "baseline": {
+    "myopic": {
+      "mean_completion_ms": 160957.9596878125,
+      "p95_completion_ms": 291600.0820203126,
+      "mean_job_queue_ms": 68725.089,
+      "mean_deadline_miss_rate": 0.04625,
+      "mean_gpu_evictions": 18.57
+    },
+    "oracle": {
+      "mean_completion_ms": 141575.565525,
+      "p95_completion_ms": 230444.86322500012,
+      "mean_job_queue_ms": 47297.0754703125,
+      "mean_deadline_miss_rate": 0.02,
+      "mean_gpu_evictions": 16.8
+    }
+  },
+  "conditions": {
+    "batch_myopic": {
+      "mean_completion_ms": 161529.5345003125,
+      "delta_vs_baseline_ms": 571.5748125,
+      "relative_completion_delta": 0.003551115870666345,
+      "mean_job_queue_ms": 68937.2960596875,
+      "mean_deadline_miss_rate": 0.04625,
+      "mean_gpu_evictions": 20.01,
+      "mean_batch_action_width_p50": 2.805
+    },
+    "batch_throughput": {
+      "mean_completion_ms": 161427.18844874998,
+      "delta_vs_baseline_ms": 469.22876093748,
+      "relative_completion_delta": 0.002915862425630664,
+      "mean_job_queue_ms": 69386.555306875,
+      "mean_deadline_miss_rate": 0.045625,
+      "mean_gpu_evictions": 19.92,
+      "mean_batch_action_width_p50": 2.8
+    },
+    "prefetch_myopic": {
+      "mean_completion_ms": 161421.57504999998,
+      "delta_vs_baseline_ms": 463.61536218748,
+      "relative_completion_delta": 0.002880895330645369,
+      "mean_job_queue_ms": 69196.6085571875,
+      "mean_deadline_miss_rate": 0.04625,
+      "mean_gpu_evictions": 20.42,
+      "mean_prefetch_load_ms": 9181.901860000002,
+      "mean_wasted_prefetches": 1.78
+    },
+    "myopic_preempt": {
+      "mean_completion_ms": 165792.3080303125,
+      "delta_vs_baseline_ms": 4834.3483425,
+      "relative_completion_delta": 0.03003507151086475,
+      "mean_job_queue_ms": 72668.772435625,
+      "mean_deadline_miss_rate": 0.0525,
+      "mean_gpu_evictions": 19.07,
+      "mean_preemptions": 31.73,
+      "mean_preempt_recompute_ms": 17046.531650000015
+    },
+    "combined_batch_prefetch_preempt": {
+      "mean_completion_ms": 166546.94644656248,
+      "delta_vs_baseline_ms": 5588.98675874998,
+      "relative_completion_delta": 0.03472710984277272,
+      "mean_job_queue_ms": 73351.87038875,
+      "mean_deadline_miss_rate": 0.053125,
+      "mean_gpu_evictions": 21.94,
+      "mean_preemptions": 31.73,
+      "mean_preempt_recompute_ms": 16587.661350000017,
+      "mean_prefetch_load_ms": 9181.901860000002,
+      "mean_wasted_prefetches": 1.78,
+      "mean_batch_action_width_p50": 2.77
+    }
+  },
+  "caveats": [
+    "The batch profile uses the measured YOLO11x peak-memory curve; runtime/load remain the frozen template values because this pilot's scheduler profile only freezes the validated peak-memory aggregates.",
+    "Prefetch is an explicit fixed plan, not a learned prefetch policy.",
+    "Preemption uses node-level recompute with max_preemptions=32 per episode; it is not checkpoint/resume.",
+    "These 100 validation episodes are a paired pilot, not a replacement for the sealed R7/T_final tables."
+  ],
+  "remote_reports": {
+    "baseline": "results/processed/EXP-20260821_scheduler_extensions/matrix_baseline_100/scheduler_extensions_report.json",
+    "batch": "results/processed/EXP-20260821_scheduler_extensions/matrix_batch_100/scheduler_extensions_report.json",
+    "prefetch": "results/processed/EXP-20260821_scheduler_extensions/matrix_prefetch_100/scheduler_extensions_report.json",
+    "preempt": "results/processed/EXP-20260821_scheduler_extensions/matrix_preempt_100/scheduler_extensions_report.json",
+    "combined": "results/processed/EXP-20260821_scheduler_extensions/matrix_combined_100/scheduler_extensions_report.json"
+  }
+}

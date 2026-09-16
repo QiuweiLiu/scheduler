@@ -1,0 +1,64 @@
+{
+  "canonical_dataset_root": "/Volumes/Lenovo/scheduler/results/processed/j_series_dataset_v1",
+  "counts": {
+    "length_histogram": {
+      "0": 2608,
+      "1": 1350,
+      "2": 1240,
+      "3": 1164,
+      "4": 1102,
+      "5": 9839
+    },
+    "load_accounting": {
+      "missing": 292,
+      "positive": 4886,
+      "zero": 55747
+    },
+    "memory_accounting": {
+      "available": 37553,
+      "missing": 23372
+    },
+    "rows_by_split": {
+      "test": 1520,
+      "train": 13754,
+      "validation": 2029
+    },
+    "slots_by_split": {
+      "test": 5387,
+      "train": 48343,
+      "validation": 7195
+    },
+    "supervision_instances_total": 60925,
+    "termination_by_split": {
+      "test": 745,
+      "train": 6870,
+      "validation": 994
+    },
+    "unique_resource_nodes_referenced": 14413
+  },
+  "created_at": "2026-09-11T16:37:24+0800",
+  "dataset_root": "F:\\scheduler\\results\\processed\\j_series_dataset_v1",
+  "files_sha256": {
+    "j_test.jsonl.gz": "39ecccc77e28bc06c8ff8d30fdbe79548bfb7a790b37355cd225646beae5310b",
+    "j_train.jsonl.gz": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2",
+    "j_validation.jsonl.gz": "9547d38fb3fa42e7e9c78e5885a5390204a1d7b7b2563f3533e5feee95efc279"
+  },
+  "holdout_policy": {
+    "nonconfirmatory_holdout_included": false,
+    "note": "default pipeline builds train/validation/test only; holdout requires an explicit non-confirmatory flag"
+  },
+  "policy": {
+    "scheduler_integration_started": false,
+    "t_final_unsealed": false,
+    "v1_v3_datasets_and_r0_untouched": true
+  },
+  "schema_version": "j-series-dataset-v1",
+  "source": {
+    "builder": "scripts/build_j_dataset.py",
+    "resource_table": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+    "resource_table_sha256": "4584cdc1a425b7f33756c9542623914024c16a9ce6e4a49f1d8b56d1752178b4",
+    "v3_dataset": "F:\\scheduler\\results\\processed\\topology_predictor_p9d_v3",
+    "v3_registry": "data/manifests/topology_predictor_p9d_v3.json"
+  },
+  "status": "generated"
+}

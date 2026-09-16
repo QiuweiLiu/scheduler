@@ -1,0 +1,32 @@
+{
+  "experiment_id": "EXP-20260911_p9d_r0_oracle_signature_ceiling",
+  "smoke": false,
+  "command": "scripts\\r0_oracle_signature_ceiling.py --config experiments\\EXP-20260911_p9d_r0_oracle_signature_ceiling\\config.json",
+  "python": "3.12.2 (tags/v3.12.2:6abddd9, Feb  6 2024, 21:26:36) [MSC v.1937 64 bit (AMD64)]",
+  "lightgbm_version": "4.7.0",
+  "numpy_version": "2.5.3",
+  "dataset_root": "F:/scheduler/results/processed/topology_predictor_p9d_v3",
+  "dataset_registry_sha256": "95405d0b8ce55aadc43760454e181939b9c944d67065e25612998bd5f4687f03",
+  "config_sha256": "cca9874f72f85f95aa117676f0d2ad2ccb3fcddad70250829912c42c9426f805",
+  "stage0_sha256": "273b82639ba8032b8981389805f05de35288cecb1df142d6c31da99e0ed397bd",
+  "node_table_sha256": "4584cdc1a425b7f33756c9542623914024c16a9ce6e4a49f1d8b56d1752178b4",
+  "metrics_sha256": "832ae2912df82e8d53dfd94f26f12480395af055316909228b93947c7a9f6530",
+  "nodes": 15481,
+  "splits": {
+    "train": 11429,
+    "validation": 1704,
+    "test": 1280,
+    "holdout": 1068
+  },
+  "selected_lgbm": {
+    "num_leaves": 31,
+    "min_data_in_leaf": 20
+  },
+  "prediction_files": {
+    "train": "9bcd879c70cd3a905a0353b835db93d16bf9688f2a03bcabf57687bf66274318",
+    "validation": "14ad8f3c02c7f872234d54138550c18d464bc58db759b48ff93bdbea66e571e9",
+    "test": "d59fea3e67cab57b7feb52550a33f8a9a623cc1cd00a648006270acc3a836756",
+    "holdout": "6d81a4456d48cf6568bbaa4702cb67aeae7305ad258b5f290dd7fa53771c364b"
+  },
+  "run_seconds": 36.57
+}

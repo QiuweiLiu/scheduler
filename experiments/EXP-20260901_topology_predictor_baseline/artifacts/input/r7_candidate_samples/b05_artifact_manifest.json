@@ -1,0 +1,59 @@
+{
+  "schema_version": "scheduling-future-b05-r7-manifest-v1",
+  "model_id": "B05",
+  "seeds": [
+    11,
+    22,
+    33
+  ],
+  "beam_size": 3,
+  "horizons": [
+    1,
+    3,
+    5
+  ],
+  "device": "cuda:0",
+  "rollout_mode": "fast_markov",
+  "candidate_role_rows": 9575,
+  "candidate_tool_rows": 8935,
+  "templates": 640,
+  "nodes": 8935,
+  "source_event_coverage": 1.0,
+  "selected_run_count": 640,
+  "checkpoints": [
+    {
+      "path": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/evaluation/B05/seed_11/checkpoint.pt",
+      "sha256": "6e8b376f1df1e5cf784663c8fe82e39fb8322dd0b68ae2899d367794712d640d"
+    },
+    {
+      "path": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/evaluation/B05/seed_22/checkpoint.pt",
+      "sha256": "10d85af0e3d2bfa8bffbdf862af8ef4d62ac603a6ee5317d29afaca66850bf2e"
+    },
+    {
+      "path": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/evaluation/B05/seed_33/checkpoint.pt",
+      "sha256": "fd3a66aacd67a473cab7b93d0d924dde1f04ea32b50128a7304ca367218018c0"
+    }
+  ],
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "outputs": {
+    "h1": {
+      "path": "results/processed/r7_scheduling_future_20260817/prediction_artifacts/b05_node_h1.jsonl.gz",
+      "rows": 8935
+    },
+    "h3": {
+      "path": "results/processed/r7_scheduling_future_20260817/prediction_artifacts/b05_future_h3.jsonl.gz",
+      "rows": 8935
+    },
+    "h5": {
+      "path": "results/processed/r7_scheduling_future_20260817/prediction_artifacts/b05_future_h5.jsonl.gz",
+      "rows": 8935
+    }
+  },
+  "input_contract": {
+    "fit_split": "P_dev_train_only",
+    "target_labels_used_as_features": false,
+    "future_events_used_as_features": false,
+    "video_id_used_as_feature": false,
+    "resource_truth_used_as_feature": false
+  }
+}

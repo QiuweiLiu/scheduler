@@ -1,0 +1,654 @@
+{
+  "T1": {
+    "closed_form_on_residuals": {
+      "expected_var_run_means_if_noise": 0.1755896174918071,
+      "icc_run": 0.0,
+      "icc_video": 0.0007917513534853227,
+      "sigma_eps2": 2.197882260314881,
+      "sigma_run2": 0.0,
+      "sigma_run2_raw": -0.13918992919738926,
+      "sigma_video2": 0.0017415551330394407,
+      "sigma_video2_raw": 0.0017415551330394407,
+      "total": 2.1996238154479206,
+      "var_run_means": 0.03773590881039806
+    },
+    "icc_run_cluster_bootstrap": {
+      "B": 400,
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0
+    },
+    "mixedlm_base": {
+      "converged": false,
+      "icc_run": 0.0019355138075890866,
+      "icc_video": 0.2960187716228854,
+      "sigma_eps2": 2.062088077127453,
+      "sigma_run2": 0.005685099791816698,
+      "sigma_video2": 0.8694829508983709
+    },
+    "within_run_covariance": {
+      "pairs": 111592,
+      "within_run_covariance": -0.12219098856346997
+    }
+  },
+  "T2": {
+    "A_total_min1": {
+      "count_cost_coupling": {
+        "cells": 1595,
+        "pearson": -0.17320368301158848,
+        "spearman": -0.25552833634688754
+      },
+      "pairs": [
+        {
+          "n_common": 314,
+          "pvalue": 4.69509243090524e-12,
+          "spearman": -0.37720398348387185,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "n_common": 314,
+          "pvalue": 1.4405726028188394e-05,
+          "spearman": 0.24209849015612023,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 314,
+          "pvalue": 4.651728800561591e-06,
+          "spearman": -0.2551854188288123,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 295,
+          "pvalue": 6.032531190333125e-30,
+          "spearman": -0.5975922424508044,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.24158533382388714
+    },
+    "A_total_min2": {
+      "count_cost_coupling": {
+        "cells": 1522,
+        "pearson": -0.15880864845382264,
+        "spearman": -0.2979225382929191
+      },
+      "pairs": [
+        {
+          "n_common": 309,
+          "pvalue": 1.7616934326463549e-12,
+          "spearman": -0.3870105466096696,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "n_common": 309,
+          "pvalue": 2.8814590839860583e-05,
+          "spearman": 0.2355404069779265,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 309,
+          "pvalue": 2.979820470673748e-06,
+          "spearman": -0.26219083140473676,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 253,
+          "pvalue": 1.0083160371656017e-26,
+          "spearman": -0.6057004393290679,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.23818936542417496
+    },
+    "A_total_min3": {
+      "count_cost_coupling": {
+        "cells": 1147,
+        "pearson": 0.08536218919891987,
+        "spearman": 0.2515142954138724
+      },
+      "pairs": [
+        {
+          "n_common": 304,
+          "pvalue": 7.071008255915402e-07,
+          "spearman": -0.27988920117205857,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 179,
+          "pvalue": 5.826327302148504e-27,
+          "spearman": -0.6931600862050927,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.4330475622919615
+    },
+    "B_conditional_on_video_min1": {
+      "count_cost_coupling": {
+        "cells": 1595,
+        "pearson": -0.1810093046561689,
+        "spearman": -0.25802326595878505
+      },
+      "pairs": [
+        {
+          "n_common": 314,
+          "pvalue": 0.0318407159229378,
+          "spearman": -0.12116523783360028,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "n_common": 314,
+          "pvalue": 2.933909205537385e-08,
+          "spearman": 0.3065955011865758,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 314,
+          "pvalue": 3.6349082713344654e-09,
+          "spearman": -0.3251620943039514,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 295,
+          "pvalue": 3.020397756203514e-52,
+          "spearman": -0.7392882851720626,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.2117751326146846
+    },
+    "B_conditional_on_video_min2": {
+      "count_cost_coupling": {
+        "cells": 1522,
+        "pearson": -0.16913086421971818,
+        "spearman": -0.30139632536101585
+      },
+      "pairs": [
+        {
+          "n_common": 309,
+          "pvalue": 0.058998273493353785,
+          "spearman": -0.10754043951663744,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "n_common": 309,
+          "pvalue": 7.087314157404123e-08,
+          "spearman": 0.30066256950065273,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 309,
+          "pvalue": 5.088873346933496e-09,
+          "spearman": -0.32473023374996435,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 253,
+          "pvalue": 1.11610230289407e-45,
+          "spearman": -0.743060773529791,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.19378074556501307
+    },
+    "B_conditional_on_video_min3": {
+      "count_cost_coupling": {
+        "cells": 1147,
+        "pearson": 0.07718622455551519,
+        "spearman": 0.22461928924498845
+      },
+      "pairs": [
+        {
+          "n_common": 304,
+          "pvalue": 1.3982250501979138e-09,
+          "spearman": -0.338410545109731,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 179,
+          "pvalue": 2.300632741732141e-35,
+          "spearman": -0.7629276253844705,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.49573675084301955
+    },
+    "C_position_adjusted_min1": {
+      "count_cost_coupling": {
+        "cells": 1595,
+        "pearson": -0.12515392592642008,
+        "spearman": -0.08409908589779148
+      },
+      "pairs": [
+        {
+          "n_common": 314,
+          "pvalue": 3.298405788597662e-05,
+          "spearman": 0.23202097753694176,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "n_common": 314,
+          "pvalue": 1.0608300110540567e-41,
+          "spearman": -0.6665486389505029,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 314,
+          "pvalue": 0.0004676719529001604,
+          "spearman": 0.1962971468883029,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "n_common": 295,
+          "pvalue": 9.335707871998713e-19,
+          "spearman": -0.4843282803323802,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_spearman": -0.17597512066207213
+    },
+    "D2_count_cost": {
+      "cells": 1595,
+      "pearson": -0.17320368301158848,
+      "spearman": -0.25552833634688754
+    },
+    "D3_first_occurrence": {
+      "cells": 1595,
+      "pooled_spearman": 0.6881329148581077
+    },
+    "D3_subsequent": {
+      "cells": 1522,
+      "pooled_spearman": -0.2614302927273282
+    }
+  },
+  "T3": {
+    "q80_min1": {
+      "bootstrap": {
+        "B": 200,
+        "hi": 1.1942878776985077,
+        "lo": 0.693127952858892,
+        "mean": 0.9495326066370733
+      },
+      "pairs": [
+        {
+          "lift": 1.401785714285714,
+          "n_common": 314,
+          "p_a": 0.20382165605095542,
+          "p_b": 0.20063694267515925,
+          "p_both": 0.05732484076433121,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "lift": 0.700892857142857,
+          "n_common": 314,
+          "p_a": 0.20382165605095542,
+          "p_b": 0.20063694267515925,
+          "p_both": 0.028662420382165606,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 1.1866969009826152,
+          "n_common": 314,
+          "p_a": 0.20063694267515925,
+          "p_b": 0.20063694267515925,
+          "p_both": 0.04777070063694268,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.39999999999999997,
+          "n_common": 295,
+          "p_a": 0.1694915254237288,
+          "p_b": 0.2,
+          "p_both": 0.013559322033898305,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "permutation": {
+        "n_perm": 300,
+        "null_mean": 0.99931693378977,
+        "observed": 0.9303669347915218,
+        "pvalue": 0.7366666666666667
+      },
+      "pooled_lift": 0.9303669347915218
+    },
+    "q80_min2": {
+      "pairs": [
+        {
+          "lift": 1.5030721966205836,
+          "n_common": 309,
+          "p_a": 0.20388349514563106,
+          "p_b": 0.20064724919093851,
+          "p_both": 0.061488673139158574,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "lift": 0.7119815668202765,
+          "n_common": 309,
+          "p_a": 0.20388349514563106,
+          "p_b": 0.20064724919093851,
+          "p_both": 0.02912621359223301,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 1.2861602497398543,
+          "n_common": 309,
+          "p_a": 0.20064724919093851,
+          "p_b": 0.20064724919093851,
+          "p_both": 0.05177993527508091,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.3815987933634992,
+          "n_common": 253,
+          "p_a": 0.1541501976284585,
+          "p_b": 0.2015810276679842,
+          "p_both": 0.011857707509881422,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_lift": 0.9986606989778016
+    },
+    "q80_min3": {
+      "pairs": [
+        {
+          "lift": 1.3888739586132757,
+          "n_common": 304,
+          "p_a": 0.20065789473684212,
+          "p_b": 0.20065789473684212,
+          "p_both": 0.05592105263157895,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 179,
+          "p_a": 0.11173184357541899,
+          "p_b": 0.2011173184357542,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_lift": 0.8741566944481073
+    },
+    "q90_min1": {
+      "bootstrap": {
+        "B": 200,
+        "hi": 1.2134895532674317,
+        "lo": 0.2467834459820798,
+        "mean": 0.6763446565305128
+      },
+      "pairs": [
+        {
+          "lift": 2.1464843749999996,
+          "n_common": 314,
+          "p_a": 0.10191082802547771,
+          "p_b": 0.10191082802547771,
+          "p_both": 0.022292993630573247,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "lift": 0.306640625,
+          "n_common": 314,
+          "p_a": 0.10191082802547771,
+          "p_b": 0.10191082802547771,
+          "p_both": 0.0031847133757961785,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.306640625,
+          "n_common": 314,
+          "p_a": 0.10191082802547771,
+          "p_b": 0.10191082802547771,
+          "p_both": 0.0031847133757961785,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 295,
+          "p_a": 0.08813559322033898,
+          "p_b": 0.1016949152542373,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "permutation": {
+        "n_perm": 300,
+        "null_mean": 1.0401593851841417,
+        "observed": 0.7005387277687953,
+        "pvalue": 0.9033333333333333
+      },
+      "pooled_lift": 0.7005387277687953
+    },
+    "q90_min2": {
+      "pairs": [
+        {
+          "lift": 2.1804435483870965,
+          "n_common": 309,
+          "p_a": 0.10355987055016182,
+          "p_b": 0.10032362459546926,
+          "p_both": 0.022653721682847898,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "lift": 0.31149193548387094,
+          "n_common": 309,
+          "p_a": 0.10355987055016182,
+          "p_b": 0.10032362459546926,
+          "p_both": 0.003236245954692557,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.3215400624349636,
+          "n_common": 309,
+          "p_a": 0.10032362459546926,
+          "p_b": 0.10032362459546926,
+          "p_both": 0.003236245954692557,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 253,
+          "p_a": 0.08300395256916997,
+          "p_b": 0.10276679841897234,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_lift": 0.7367491049224854
+    },
+    "q90_min3": {
+      "pairs": [
+        {
+          "lift": 0.31633714880332986,
+          "n_common": 304,
+          "p_a": 0.10197368421052631,
+          "p_b": 0.10197368421052631,
+          "p_both": 0.003289473684210526,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 179,
+          "p_a": 0.061452513966480445,
+          "p_b": 0.1005586592178771,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_lift": 0.1991024704683484
+    },
+    "q95_min1": {
+      "bootstrap": {
+        "B": 200,
+        "hi": 1.1598461932879462,
+        "lo": 0.0,
+        "mean": 0.29420554241902985
+      },
+      "pairs": [
+        {
+          "lift": 1.2265625,
+          "n_common": 314,
+          "p_a": 0.050955414012738856,
+          "p_b": 0.050955414012738856,
+          "p_both": 0.0031847133757961785,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 314,
+          "p_a": 0.050955414012738856,
+          "p_b": 0.050955414012738856,
+          "p_both": 0.0,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 314,
+          "p_a": 0.050955414012738856,
+          "p_b": 0.050955414012738856,
+          "p_both": 0.0,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 295,
+          "p_a": 0.04745762711864407,
+          "p_b": 0.05084745762711865,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "permutation": {
+        "n_perm": 300,
+        "null_mean": 1.0093302955689778,
+        "observed": 0.3113505456750202,
+        "pvalue": 0.9433333333333334
+      },
+      "pooled_lift": 0.3113505456750202
+    },
+    "q95_min2": {
+      "pairs": [
+        {
+          "lift": 2.4140625,
+          "n_common": 309,
+          "p_a": 0.05177993527508091,
+          "p_b": 0.05177993527508091,
+          "p_both": 0.006472491909385114,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "Qwen3-4B"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 309,
+          "p_a": 0.05177993527508091,
+          "p_b": 0.05177993527508091,
+          "p_both": 0.0,
+          "type_a": "Qwen2.5-VL-3B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 309,
+          "p_a": 0.05177993527508091,
+          "p_b": 0.05177993527508091,
+          "p_both": 0.0,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 253,
+          "p_a": 0.043478260869565216,
+          "p_b": 0.05138339920948617,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_lift": 0.6321570444915254
+    },
+    "q95_min3": {
+      "pairs": [
+        {
+          "lift": 0.0,
+          "n_common": 304,
+          "p_a": 0.05263157894736842,
+          "p_b": 0.05263157894736842,
+          "p_both": 0.0,
+          "type_a": "Qwen3-4B",
+          "type_b": "cpu-metadata-adapter-v1"
+        },
+        {
+          "lift": 0.0,
+          "n_common": 179,
+          "p_a": 0.0335195530726257,
+          "p_b": 0.05027932960893855,
+          "p_both": 0.0,
+          "type_a": "Qwen3-VL-8B-Instruct",
+          "type_b": "cpu-metadata-adapter-v1"
+        }
+      ],
+      "pooled_lift": 0.0
+    }
+  },
+  "dataset": {
+    "runs": 640,
+    "status_mode": "success",
+    "steps": 8663,
+    "type_field": "model_id",
+    "types": [
+      "Qwen2.5-VL-3B-Instruct",
+      "Qwen3-4B",
+      "Qwen3-VL-8B-Instruct",
+      "cpu-metadata-adapter-v1",
+      "yolo11x.pt"
+    ],
+    "videos": 160
+  }
+}

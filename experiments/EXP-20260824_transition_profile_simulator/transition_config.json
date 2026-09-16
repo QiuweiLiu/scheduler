@@ -1,0 +1,47 @@
+{
+  "schema_version": "scheduler-transition-profile-config-v0.1",
+  "transition_profile": {
+    "enabled": true,
+    "strict": true,
+    "gpu_class": "RTX 4080 SUPER",
+    "gpu_capacity_mb": 32760.0,
+    "source_experiment": "EXP-20260824_transition_profile",
+    "source_metrics": "experiments/EXP-20260824_transition_profile/metrics.json",
+    "semantics": {
+      "load_statistic": "cold_load_mean_ms_over_2_repeats",
+      "eviction_statistic": "evict_mean_ms_over_2_repeats_explicit_unload_proxy",
+      "checkpoint_restore": "unsupported",
+      "recompute": "simulator_full_node_recompute"
+    },
+    "models": {
+      "Qwen3-VL-8B-Instruct": {
+        "cold_load_ms": 12679.876,
+        "evict_proxy_ms": 183.088,
+        "checkpoint_supported": false,
+        "resident_operation_ms": 38.239,
+        "first_operation_ms": 269.746
+      },
+      "Qwen3-4B": {
+        "cold_load_ms": 3986.29,
+        "evict_proxy_ms": 138.005,
+        "checkpoint_supported": false,
+        "resident_operation_ms": 37.01,
+        "first_operation_ms": 38.694
+      },
+      "Qwen2.5-VL-3B-Instruct": {
+        "cold_load_ms": 3741.643,
+        "evict_proxy_ms": 154.996,
+        "checkpoint_supported": false,
+        "resident_operation_ms": 32.081,
+        "first_operation_ms": 33.647
+      },
+      "yolo11x.pt": {
+        "cold_load_ms": 464.209,
+        "evict_proxy_ms": 185.77,
+        "checkpoint_supported": false,
+        "resident_operation_ms": 16.542,
+        "first_operation_ms": 1543.466
+      }
+    }
+  }
+}

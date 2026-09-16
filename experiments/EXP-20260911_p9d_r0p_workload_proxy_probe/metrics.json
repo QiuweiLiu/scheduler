@@ -1,0 +1,219 @@
+{
+  "experiment_id": "EXP-20260911_p9d_r0p_workload_proxy_probe",
+  "config_sha256": "14e2cc968693618ab9fa0b1fb77f74780eba54874dcf7089d10509d911d5c406",
+  "r0_node_table": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+  "r0_metrics": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/metrics.json",
+  "holdout_used": false,
+  "stage0": {
+    "ok": true,
+    "errors": [],
+    "rows": 15481,
+    "splits": {
+      "train": 11429,
+      "validation": 1704,
+      "test": 1280,
+      "holdout": 1068
+    },
+    "coverage": {
+      "task_question_chars": 11889,
+      "task_question_tokens": 11889,
+      "task_option_chars_mean": 11889,
+      "task_option_count": 11889,
+      "video_video_duration_s": 14939,
+      "video_video_width": 14939,
+      "video_video_height": 14939,
+      "proxy_tool_input_len": 7078,
+      "proxy_frame_count_before": 7078,
+      "proxy_frame_count": 7078
+    },
+    "holdout_used": false,
+    "provenance_rows": 600
+  },
+  "feature_sets": {
+    "F0_r0_c4": [
+      "exec_class",
+      "role",
+      "planner_mode",
+      "is_retry",
+      "model_class",
+      "nested_model_class",
+      "merged_nested_call",
+      "clip_len",
+      "query_char_len",
+      "nested_api_call_count",
+      "clip_len_missing",
+      "query_char_len_missing",
+      "baseline",
+      "prefix_model_reuse"
+    ],
+    "F1_trace_proxies": [
+      "exec_class",
+      "role",
+      "planner_mode",
+      "is_retry",
+      "model_class",
+      "nested_model_class",
+      "merged_nested_call",
+      "clip_len",
+      "query_char_len",
+      "nested_api_call_count",
+      "clip_len_missing",
+      "query_char_len_missing",
+      "baseline",
+      "prefix_model_reuse",
+      "tool_input_len",
+      "frame_count_before",
+      "frame_count"
+    ],
+    "F2_full_proxies": [
+      "exec_class",
+      "role",
+      "planner_mode",
+      "is_retry",
+      "model_class",
+      "nested_model_class",
+      "merged_nested_call",
+      "clip_len",
+      "query_char_len",
+      "nested_api_call_count",
+      "clip_len_missing",
+      "query_char_len_missing",
+      "baseline",
+      "prefix_model_reuse",
+      "tool_input_len",
+      "frame_count_before",
+      "frame_count",
+      "question_chars",
+      "question_tokens",
+      "option_chars_mean",
+      "option_count",
+      "video_duration_s",
+      "video_width",
+      "video_height"
+    ]
+  },
+  "results": {
+    "F0_r0_c4": {
+      "selected": {
+        "num_leaves": 31,
+        "min_data_in_leaf": 20
+      },
+      "splits": {
+        "train": {
+          "PB_primary": 304.8934163631595,
+          "mae_q50": 845.8522019191699,
+          "max_abs_calibration_error": 0.011680811969551175
+        },
+        "validation": {
+          "PB_primary": 380.04719413943576,
+          "mae_q50": 1061.8006170232877,
+          "max_abs_calibration_error": 0.03380281690140852
+        },
+        "test": {
+          "PB_primary": 261.10645373758683,
+          "mae_q50": 810.1962256839495,
+          "max_abs_calibration_error": 0.04609374999999999
+        }
+      }
+    },
+    "F1_trace_proxies": {
+      "selected": {
+        "num_leaves": 31,
+        "min_data_in_leaf": 50
+      },
+      "splits": {
+        "train": {
+          "PB_primary": 298.39928940337325,
+          "mae_q50": 818.721182566612,
+          "max_abs_calibration_error": 0.004593577740834742
+        },
+        "validation": {
+          "PB_primary": 384.64359585285086,
+          "mae_q50": 1028.1193987043123,
+          "max_abs_calibration_error": 0.03755868544600938
+        },
+        "test": {
+          "PB_primary": 257.9804028446103,
+          "mae_q50": 777.59119402788,
+          "max_abs_calibration_error": 0.04921874999999998
+        }
+      }
+    },
+    "F2_full_proxies": {
+      "selected": {
+        "num_leaves": 31,
+        "min_data_in_leaf": 20
+      },
+      "splits": {
+        "train": {
+          "PB_primary": 243.12117928926872,
+          "mae_q50": 737.1603960771293,
+          "max_abs_calibration_error": 0.009489019161781465
+        },
+        "validation": {
+          "PB_primary": 386.04278537685144,
+          "mae_q50": 1104.880827280585,
+          "max_abs_calibration_error": 0.07840375586854464
+        },
+        "test": {
+          "PB_primary": 278.91711355568486,
+          "mae_q50": 783.5109355424872,
+          "max_abs_calibration_error": 0.0703125
+        }
+      }
+    }
+  },
+  "comparisons_vs_F0": {
+    "F0_r0_c4": {
+      "validation": {
+        "improvement_vs_F0": 0.0
+      },
+      "test": {
+        "improvement_vs_F0": 0.0
+      }
+    },
+    "F1_trace_proxies": {
+      "validation": {
+        "improvement_vs_F0": -0.012094291930829781
+      },
+      "test": {
+        "improvement_vs_F0": 0.011972323350223357
+      }
+    },
+    "F2_full_proxies": {
+      "validation": {
+        "improvement_vs_F0": -0.01577591238633369
+      },
+      "test": {
+        "improvement_vs_F0": -0.06821225428613054
+      }
+    }
+  },
+  "feature_importance_gain_F2": {
+    "exec_class": 134779.66461762786,
+    "role": 6486.448059797287,
+    "planner_mode": 3504.0449941009283,
+    "is_retry": 1131.8905317485332,
+    "model_class": 5732.397770106792,
+    "nested_model_class": 978.4238869249821,
+    "merged_nested_call": 0.0,
+    "clip_len": 0.0,
+    "query_char_len": 0.0,
+    "nested_api_call_count": 0.0,
+    "clip_len_missing": 0.0,
+    "query_char_len_missing": 0.0,
+    "baseline": 7816.759726792574,
+    "prefix_model_reuse": 8416.98231729865,
+    "tool_input_len": 5161.130937337875,
+    "frame_count_before": 128.68825733661652,
+    "frame_count": 312.3393191099167,
+    "question_chars": 2538.3251548707485,
+    "question_tokens": 879.8146940767765,
+    "option_chars_mean": 2411.8092400431633,
+    "option_count": 0.0,
+    "video_duration_s": 3210.2918091118336,
+    "video_width": 258.7704272568226,
+    "video_height": 32.12945756316185
+  },
+  "run_seconds": 63.29
+}

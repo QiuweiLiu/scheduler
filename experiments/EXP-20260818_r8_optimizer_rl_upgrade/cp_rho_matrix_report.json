@@ -1,0 +1,99 @@
+{
+  "aggregate": {
+    "cp_rho_h1": {
+      "cp_rho_fallbacks": 1866,
+      "cp_rho_timeouts": 1866,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_cp_rho_p95_solve_ms": 261.817479506135,
+      "mean_completion_ms": 223501.76902758595,
+      "mean_cp_rho_solve_ms": 54.14634356373431,
+      "mean_deadline_miss_rate": 0.1183125,
+      "mean_gpu_evictions": 42.5,
+      "p95_completion_ms": 497544.6968808587
+    },
+    "cp_rho_h3": {
+      "cp_rho_fallbacks": 1760,
+      "cp_rho_timeouts": 1760,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_cp_rho_p95_solve_ms": 262.3581327497959,
+      "mean_completion_ms": 223502.14353352343,
+      "mean_cp_rho_solve_ms": 140.76068725066176,
+      "mean_deadline_miss_rate": 0.11809375,
+      "mean_gpu_evictions": 42.564,
+      "p95_completion_ms": 497544.6968808587
+    },
+    "cp_rho_h5": {
+      "cp_rho_fallbacks": 1787,
+      "cp_rho_timeouts": 1787,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_cp_rho_p95_solve_ms": 262.04227693378925,
+      "mean_completion_ms": 223464.11910910936,
+      "mean_cp_rho_solve_ms": 54.17175616940747,
+      "mean_deadline_miss_rate": 0.11834375,
+      "mean_gpu_evictions": 42.561,
+      "p95_completion_ms": 497544.6968808587
+    },
+    "predopt_v2_h1": {
+      "cp_rho_fallbacks": 0,
+      "cp_rho_timeouts": 0,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_cp_rho_p95_solve_ms": null,
+      "mean_completion_ms": 221468.87632546874,
+      "mean_cp_rho_solve_ms": null,
+      "mean_deadline_miss_rate": 0.11659375,
+      "mean_gpu_evictions": 43.16,
+      "p95_completion_ms": 477486.9423644519
+    },
+    "predopt_v2_h3": {
+      "cp_rho_fallbacks": 0,
+      "cp_rho_timeouts": 0,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_cp_rho_p95_solve_ms": null,
+      "mean_completion_ms": 219470.2510878594,
+      "mean_cp_rho_solve_ms": null,
+      "mean_deadline_miss_rate": 0.1165625,
+      "mean_gpu_evictions": 42.291,
+      "p95_completion_ms": 469397.1466960926
+    },
+    "predopt_v2_h5": {
+      "cp_rho_fallbacks": 0,
+      "cp_rho_timeouts": 0,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_cp_rho_p95_solve_ms": null,
+      "mean_completion_ms": 217524.48152681248,
+      "mean_cp_rho_solve_ms": null,
+      "mean_deadline_miss_rate": 0.1129375,
+      "mean_gpu_evictions": 41.043,
+      "p95_completion_ms": 467059.41344726447
+    }
+  },
+  "episodes": 1000,
+  "expected_result_rows": 6000,
+  "future_artifacts_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "information_boundary": "deployable current ready nodes plus train-only resource estimates and frozen finite-horizon artifacts; execution truth remains engine-only",
+  "policies": [
+    "cp_rho_h1",
+    "cp_rho_h3",
+    "cp_rho_h5",
+    "predopt_v2_h1",
+    "predopt_v2_h3",
+    "predopt_v2_h5"
+  ],
+  "result_rows": 6000,
+  "schema_version": "r8-cp-rho-matrix-v0.1",
+  "solver": {
+    "num_workers": 1,
+    "seed": 0,
+    "solver_model": "current-ready assignment + per-GPU optional intervals/NoOverlap; predictor future cost coefficient",
+    "time_limit_s": 0.25
+  },
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed"
+}

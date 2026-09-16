@@ -1,0 +1,46 @@
+{
+  "episode_action_difference_rate": 0.944,
+  "episodes": 1000,
+  "episodes_with_action_differences": 944,
+  "future_artifacts_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "horizon": 5,
+  "information_boundary": "deployable current ready nodes plus train-only resource estimates and frozen finite-horizon artifacts; execution truth remains engine-only",
+  "legacy": {
+    "completed_jobs": 34160,
+    "episodes": 1000,
+    "failed_jobs": 0,
+    "mean_completion_ms": 210809.0991328828,
+    "mean_deadline_miss_rate": 0.10428125,
+    "mean_gpu_evictions": 39.85,
+    "mean_job_queue_ms": 120595.97976991406,
+    "p95_completion_ms": 456788.8458664064
+  },
+  "mean_completion_delta_revised_minus_legacy_ms": 6770.435250390641,
+  "objective": {
+    "current_scale_ms": 100000.0,
+    "future_information": "frozen B05 finite-horizon artifact only",
+    "future_scale_ms": 100000.0,
+    "memory_ratio_weight": 0.05,
+    "priority_weight": 0.25
+  },
+  "paired_decision_audit": "paired_decision_audit.jsonl",
+  "policies": [
+    "predopt_h5",
+    "predopt_v2_h5"
+  ],
+  "revised": {
+    "completed_jobs": 34160,
+    "episodes": 1000,
+    "failed_jobs": 0,
+    "mean_completion_ms": 217579.53438327345,
+    "mean_deadline_miss_rate": 0.1123125,
+    "mean_gpu_evictions": 40.95,
+    "mean_job_queue_ms": 127850.35628476563,
+    "p95_completion_ms": 468951.27348281204
+  },
+  "schema_version": "r8-predopt-objective-audit-v0.1",
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed",
+  "total_action_difference_count": 145127
+}

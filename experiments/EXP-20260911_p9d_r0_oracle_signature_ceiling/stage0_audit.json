@@ -1,0 +1,206 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [
+    "memory coverage 9816/15481",
+    "workload_scale descriptors are constant in this pool: {\"clip_len\": {\"distinct_non_null\": 0, \"non_null\": 0, \"total\": 15481}, \"nested_api_call_count\": {\"distinct_non_null\": 1, \"non_null\": 15481, \"total\": 15481}, \"query_char_len\": {\"distinct_non_null\": 1, \"non_null\": 15481, \"total\": 15481}}"
+  ],
+  "counts": {
+    "total": 15481,
+    "by_kind": {
+      "planner": 7211,
+      "tool": 7078,
+      "post_loop_generation": 1192
+    },
+    "by_split": {
+      "train": 11429,
+      "test": 1280,
+      "validation": 1704,
+      "holdout": 1068
+    }
+  },
+  "load_accounting": {
+    "planner": {
+      "positive": 1184,
+      "zero": 5960,
+      "missing": 67,
+      "total": 7211
+    },
+    "tool": {
+      "zero": 6742,
+      "positive": 336,
+      "total": 7078
+    },
+    "post_loop_generation": {
+      "zero": 530,
+      "positive": 653,
+      "missing": 9,
+      "total": 1192
+    }
+  },
+  "memory": {
+    "missing": 5665,
+    "available": 9816
+  },
+  "memory_coverage_by_exec_class": {
+    "answer_generation/generalist.generate": {
+      "available": 1183,
+      "total": 1192
+    },
+    "planner/planner.generate": {
+      "available": 7144,
+      "total": 7211
+    },
+    "videotool_generalist/summarization-tool": {
+      "available": 0,
+      "total": 482
+    },
+    "videotool_spatial/image-grid-qa": {
+      "available": 518,
+      "total": 518
+    },
+    "videotool_spatial/image-qa": {
+      "available": 819,
+      "total": 819
+    },
+    "videotool_spatial/patch-zoomer": {
+      "available": 0,
+      "total": 10
+    },
+    "videotool_spatial/yolo-tracker": {
+      "available": 152,
+      "total": 152
+    },
+    "videotool_temporal/frame-selector": {
+      "available": 0,
+      "total": 2630
+    },
+    "videotool_temporal/image-grid-selector": {
+      "available": 0,
+      "total": 1243
+    },
+    "videotool_temporal/temporal-grounding": {
+      "available": 0,
+      "total": 611
+    },
+    "videotool_temporal/temporal-qa": {
+      "available": 0,
+      "total": 613
+    }
+  },
+  "memory_coverage_by_model_class": {
+    "Qwen2.5-VL-3B-Instruct": {
+      "available": 756,
+      "total": 765
+    },
+    "Qwen3-4B": {
+      "available": 4664,
+      "total": 4731
+    },
+    "Qwen3-VL-8B-Instruct": {
+      "available": 4311,
+      "total": 5230
+    },
+    "cpu-metadata-adapter-v1": {
+      "available": 0,
+      "total": 4670
+    },
+    "finish_argument": {
+      "available": 64,
+      "total": 64
+    },
+    "yolo11x.pt": {
+      "available": 21,
+      "total": 21
+    }
+  },
+  "feature_roles": {
+    "pre_execution": [
+      "planner_mode",
+      "is_retry",
+      "clip_len",
+      "query_char_len",
+      "nested_api_call_count",
+      "clip_len_missing",
+      "query_char_len_missing",
+      "baseline",
+      "prefix_model_reuse"
+    ],
+    "oracle_label": [
+      "exec_class",
+      "role",
+      "model_class",
+      "nested_model_class",
+      "merged_nested_call"
+    ],
+    "target_only": [
+      "runtime_ms",
+      "load_ms",
+      "peak_allocated_mb",
+      "peak_reserved_mb",
+      "peak_memory_inclusive_mb"
+    ]
+  },
+  "feature_columns_C4": [
+    "baseline",
+    "clip_len",
+    "clip_len_missing",
+    "exec_class",
+    "is_retry",
+    "merged_nested_call",
+    "model_class",
+    "nested_api_call_count",
+    "nested_model_class",
+    "planner_mode",
+    "prefix_model_reuse",
+    "query_char_len",
+    "query_char_len_missing",
+    "role"
+  ],
+  "workload_scale_availability": {
+    "clip_len": {
+      "non_null": 0,
+      "distinct_non_null": 0,
+      "total": 15481
+    },
+    "query_char_len": {
+      "non_null": 15481,
+      "distinct_non_null": 1,
+      "total": 15481
+    },
+    "nested_api_call_count": {
+      "non_null": 15481,
+      "distinct_non_null": 1,
+      "total": 15481
+    }
+  },
+  "thresholds": {
+    "tail_q90_ms": 11687.972200000007,
+    "per_exec_class_train_median": {
+      "planner/planner.generate": 5779.093,
+      "videotool_temporal/frame-selector": 0.084,
+      "videotool_temporal/image-grid-selector": 0.083,
+      "videotool_generalist/summarization-tool": 228.201,
+      "answer_generation/generalist.generate": 10233.159,
+      "videotool_temporal/temporal-grounding": 0.093,
+      "videotool_temporal/temporal-qa": 0.027,
+      "videotool_spatial/image-qa": 8355.1025,
+      "videotool_spatial/image-grid-qa": 5162.809499999999,
+      "videotool_spatial/patch-zoomer": 0.018,
+      "videotool_spatial/yolo-tracker": 6480.117
+    }
+  },
+  "worker_source_sha256": {
+    "qwen3_vl_worker.py": "03898c3db51564a81b5cd1be6e89c4231f257cd0a11b000e05dd67df4a2b2e03",
+    "qwen_text_worker.py": "201032d3f08d4abbe5f7eec72d7e63dca04cfed4b951b37572ddf5a4f567d6d4"
+  },
+  "build": {
+    "counts": {
+      "chain_nodes": 16841,
+      "nested_merged": 482,
+      "violations": 0
+    },
+    "missing_runs": []
+  },
+  "smoke": false
+}

@@ -1,0 +1,49 @@
+{
+  "batch_size": 256,
+  "bootstrap": {
+    "B": 1000,
+    "min_valid_replicate_ratio": 0.95,
+    "seed": 20260911,
+    "unit": "video"
+  },
+  "config_sha256": "1b0e441145726440b948610d830f23719f6255798c41acfd9d69b781c9a72767",
+  "created_at": "2026-09-14T15:01:29+0800",
+  "dataset_files": {
+    "j_test.jsonl.gz": {
+      "bytes": 136229,
+      "sha256": "95223b44d70eca39fe39941ed26601a39eb4577e531538b668d63887dae97c02"
+    },
+    "j_train.jsonl.gz": {
+      "bytes": 1229998,
+      "sha256": "4b4ef14202ec038cf79fa4920b6f94f319f5a5ddc5cd980f92089d6eba773719"
+    },
+    "j_validation.jsonl.gz": {
+      "bytes": 180874,
+      "sha256": "ea388a131b53121a56f5390cc43de8fae1b8f69a2219ff91f2736f9a24a54ef7"
+    }
+  },
+  "device": "cuda",
+  "environment": {
+    "cuda": "12.4",
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "python": "3.10.21",
+    "torch": "2.6.0+cu124"
+  },
+  "experiment_id": "EXP-20260911_p9d_j_h10_predictor",
+  "max_epochs": 30,
+  "schema_version": "j-series-run-v1",
+  "seeds": [
+    11,
+    22,
+    33
+  ],
+  "variants": {
+    "J3": {
+      "attribute_gradient": "full",
+      "duration_mode": "shared",
+      "encoder": "trainable",
+      "use_attribute_distribution": true
+    }
+  },
+  "vocab_sha256": "a5306bd136a0984e5e47d360afacd545b4d97cd17e9eac8178d91c079e5e95dc"
+}

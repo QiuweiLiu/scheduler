@@ -1,0 +1,235 @@
+{
+  "alignment_report": "alignment_report.json",
+  "builder": {
+    "builder_version": "topology-predictor-p9d-v1+v3",
+    "python_dependencies": "standard_library_only",
+    "script": "scripts/build_p9d_topology_dataset.py"
+  },
+  "counts": {
+    "anchors_on_merged_nested": {
+      "holdout": 72,
+      "test": 24,
+      "train": 349,
+      "validation": 37
+    },
+    "graph_totals": {
+      "edges": 15963,
+      "explicit_parent_refs": 14736,
+      "forward_parent_refs": 0,
+      "graph_nodes": 17323,
+      "missing_parent_refs": 0,
+      "raw_events": 18683,
+      "root_nodes": 1360,
+      "same_step_fallback_edges": 1227,
+      "step_parent_dropped_edges": 16971,
+      "step_parent_last_event_expansions": 14736
+    },
+    "nested_merged_by_baseline": {
+      "langgraph_react": 272,
+      "st_fixed": 168,
+      "star": 42
+    },
+    "registry_videos_by_split": {
+      "holdout": 40,
+      "test": 30,
+      "train": 240,
+      "validation": 30
+    },
+    "rows_by_split": {
+      "holdout": 1380,
+      "test": 1520,
+      "train": 13754,
+      "validation": 2029
+    },
+    "runs_by_split": {
+      "holdout": 120,
+      "test": 108,
+      "train": 988,
+      "validation": 144
+    },
+    "v3_gates": {
+      "cross_step_transitions": 7157,
+      "intra_step_transitions": 8324,
+      "nested_merged_calls": 482,
+      "planner_tool_name_match": 6630,
+      "resource_applicable_nodes": 15481,
+      "retry_adjacent": 502,
+      "retry_events": 502,
+      "runs": 1360,
+      "terminal_marker_nodes": 1360,
+      "tool_step_id_match": 6630,
+      "tool_step_id_present": 6630,
+      "yolo_preobserve_tools": 112
+    },
+    "videos_by_split": {
+      "holdout": 40,
+      "test": 30,
+      "train": 240,
+      "validation": 30
+    },
+    "width_histogram_nonempty_layers": {
+      "1": 65275
+    }
+  },
+  "feature_contract": {
+    "execution_runtime_load_memory_status_excluded": true,
+    "forbidden_model_input_keys": [
+      "answer",
+      "answer_label",
+      "event_id",
+      "family_label",
+      "future_events",
+      "future_layers",
+      "future_state",
+      "gold",
+      "load_ms",
+      "local_runtime_ms",
+      "memory",
+      "memory_mb",
+      "next_role",
+      "node_id",
+      "peak_allocated_mb",
+      "peak_reserved_mb",
+      "predecessor_node_ids",
+      "predecessors",
+      "remaining_runtime_ms",
+      "remaining_steps",
+      "resource",
+      "run_id",
+      "runtime_ms",
+      "source_event_id",
+      "status",
+      "successor_node_ids",
+      "successors",
+      "target_source_event_id",
+      "trace_sha256",
+      "truth",
+      "video_id",
+      "video_path"
+    ],
+    "future_edges_excluded": true,
+    "future_events_excluded": true,
+    "model_input_keys": [
+      "history",
+      "current_node",
+      "task_context",
+      "stack_context"
+    ],
+    "remaining_steps_excluded": true,
+    "resource_truth_excluded": true,
+    "upstream_behavior_prediction_features": "not_included_in_v1",
+    "video_id_as_model_feature": false
+  },
+  "files": {
+    "features_holdout": "features_holdout.jsonl.gz",
+    "features_test": "features_test.jsonl.gz",
+    "features_train": "features_train.jsonl.gz",
+    "features_validation": "features_validation.jsonl.gz",
+    "labels_holdout": "labels_holdout.jsonl.gz",
+    "labels_test": "labels_test.jsonl.gz",
+    "labels_train": "labels_train.jsonl.gz",
+    "labels_validation": "labels_validation.jsonl.gz"
+  },
+  "horizon": 5,
+  "label_contract": {
+    "edge_policy": "verified_serial_control_flow",
+    "execution_lane": "unknown because absent from raw trace",
+    "future_unit": "verified_serial_control_flow_chain",
+    "layer_horizon": 5,
+    "nested_call_policy": "merged_into_enclosing_tool",
+    "node_identity_retained": true,
+    "resource_policy": "node_total_includes_merged_nested_call",
+    "retry_policy": "kept_as_chain_node",
+    "terminal_marker": "answer_run_event_excluded_from_horizon",
+    "termination": "terminated_vs_censored_explicit",
+    "width_policy": "deterministic_width_1_compatibility_field",
+    "workload_scale": "clip_len_query_char_len_nested_api_call_count_per_node"
+  },
+  "label_policy": "v3",
+  "reconstruction_policy": "v3_verified_serial_control_flow",
+  "schema_version": "topology-predictor-p9d-v1",
+  "source": {
+    "behavior_role_samples": "results\\processed\\behavior_nn_v1_r1v5_candidate\\data\\role_event_samples.jsonl",
+    "holdout_role_samples": "results\\processed\\behavior_nn_v1_r2\\final_holdout\\dataset\\role_event_samples.jsonl",
+    "raw_label_source": "trace.jsonl parent_step_ids",
+    "raw_roots": [
+      "results\\raw"
+    ],
+    "s_train_s_val_t_final_used": false,
+    "scheduler_trace_groups_used_for_fit": false,
+    "video_registry": "data\\manifests\\video_split_registry_r7_v1.json"
+  },
+  "split_policy": {
+    "P_dev": "behavior role rows retain registry train/validation/test",
+    "P_holdout_diag": "rows selected by source/source_split=final_holdout_v1 and emitted as holdout",
+    "video_level_split": true
+  },
+  "status": "generated",
+  "v2_comparison": {
+    "examples": [
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:5",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:3"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:4"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:7",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:5"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:6"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:10",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:7"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:8"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:12",
+        "node_kind": "planner",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:10"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:11"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:13",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:10"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:12"
+        ]
+      }
+    ],
+    "predecessor_changes_by_class": {
+      "generate:tool->planner": 64,
+      "generate:tool->tool": 1113,
+      "planner:tool->planner": 365,
+      "tool:generate->planner": 10,
+      "tool:tool->planner": 5565
+    },
+    "predecessor_changes_total": 7117
+  }
+}

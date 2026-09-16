@@ -1,0 +1,41 @@
+{
+  "schema_version": "r7-trace-quality-v0.1",
+  "checker_revision": 2,
+  "operation_id": "r7_trace_full_20260817_quality",
+  "status": "passed",
+  "generated_at_epoch": 1786943078.6606646,
+  "manifest_rows": 640,
+  "summary_rows": 640,
+  "run_status_files": 640,
+  "trace_files": 640,
+  "run_manifest_files": 640,
+  "status_counts": {
+    "success": 640
+  },
+  "baseline_counts": {
+    "star": 320,
+    "langgraph_react": 320
+  },
+  "stack_counts": {
+    "stack_a_qwen3_vl8b_yolo11x": 320,
+    "stack_b_qwen3_4b_qwen25vl3b_yolo26n": 320
+  },
+  "planner_modes": {
+    "local_qwen": 320,
+    "local_split": 320
+  },
+  "trace_event_counts": {
+    "run": 1280,
+    "api_call": 4688,
+    "action": 3607
+  },
+  "planner_parse_counts": {
+    "json": 3066,
+    "bare_tool_token": 541,
+    "error": 272
+  },
+  "retry_event_count": 228,
+  "source_manifest_leak_count": 0,
+  "planner_input_leak_count": 0,
+  "error_count": 0
+}

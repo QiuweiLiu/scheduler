@@ -1,0 +1,29 @@
+{
+  "description": "每个 run 的 config schema(behavior_nn_experiment_plan.md 第 13 节)",
+  "version": "v1",
+  "fields": {
+    "experiment_id": {"type": "str", "required": true},
+    "timestamp": {"type": "ISO8601", "required": true},
+    "host": {"type": "str", "required": true},
+    "environment": {"type": "object", "required": true,
+                    "fields": {"python": "str", "torch": "str", "gpu": "str"}},
+    "script_sha256": {"type": "str", "required": true},
+    "dataset_sha256": {"type": "str", "required": true},
+    "split_manifest_sha256": {"type": "str", "required": true},
+    "feature_contract_version": {"type": "str", "required": true},
+    "config": {"type": "object", "required": true, "note": "model/seed/lr/batch 等超参"},
+    "seed": {"type": "int", "required": true},
+    "counts": {"type": "object", "required": true,
+               "fields": {"train": "int", "validation": "int", "test": "int"}},
+    "class_support": {"type": "object", "required": true},
+    "best_epoch": {"type": "int", "required": true},
+    "selection_metric": {"type": "str", "required": true},
+    "metrics": {"type": "object", "required": true},
+    "predictions": {"type": "str", "required": true, "note": "predictions.jsonl 路径"},
+    "confusion_matrix": {"type": "str", "required": true},
+    "runtime": {"type": "object", "required": true,
+                "fields": {"wall_time_s": "float", "gpu_peak_allocated_mb": "int",
+                           "cpu_rss_mb": "int", "exit_status": "str"}},
+    "failure_status": {"type": "str", "required": true}
+  }
+}

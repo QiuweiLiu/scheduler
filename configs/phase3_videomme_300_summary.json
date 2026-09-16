@@ -1,0 +1,34 @@
+{
+  "schema_version": "videomme300-plan-v0.2",
+  "video_count": 300,
+  "locked_video_count": 64,
+  "expansion_video_count": 236,
+  "runtime_task_count": 300,
+  "split_counts": {
+    "expansion_train": 236,
+    "train": 48,
+    "validation": 8,
+    "test": 8
+  },
+  "duration_counts": {
+    "long": 75,
+    "medium": 84,
+    "short": 77
+  },
+  "task_type_counts": {
+    "Action Reasoning": 19,
+    "Action Recognition": 24,
+    "Attribute Perception": 24,
+    "Counting Problem": 24,
+    "Information Synopsis": 24,
+    "OCR Problems": 22,
+    "Object Reasoning": 23,
+    "Object Recognition": 23,
+    "Spatial Reasoning": 14,
+    "Temporal Perception": 7,
+    "Temporal Reasoning": 18,
+    "Spatial Perception": 14
+  },
+  "download_manifest": "/root/autodl-tmp/scheduler/configs/phase3_videomme_300_download.jsonl",
+  "runtime_manifest": "/root/autodl-tmp/scheduler/configs/phase3_videomme_300_runtime.jsonl"
+}

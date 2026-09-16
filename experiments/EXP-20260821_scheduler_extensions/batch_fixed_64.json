@@ -1,0 +1,8 @@
+{
+  "schema_version": "scheduler-extension-config-v0.1",
+  "batch_enabled": true,
+  "batch_options": [64],
+  "batch_profiles": {
+    "yolo11x.pt": {"64": {"peak_memory_mb": 5474.41, "source": "phase3_yolo11x_batch_pilot8_batch_summary.json:batch=64"}}
+  }
+}

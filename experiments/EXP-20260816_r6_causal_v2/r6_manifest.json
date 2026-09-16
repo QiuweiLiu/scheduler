@@ -1,0 +1,208 @@
+{
+  "c2_status": "pending_trace_collection",
+  "causal_prefix": {
+    "input_leakage_violations": [],
+    "rows": 4683,
+    "split_counts": {
+      "test_retrospective": 559,
+      "train": 3569,
+      "validation": 555
+    },
+    "state_present": 4011,
+    "target_rows": 4011
+  },
+  "collection_id": "trace_collection_v1_legacy_core_r6_causal_v2",
+  "derivation_version": "r6-causal-v2",
+  "files": {
+    "data/manifests/video_split_registry_r6_v1_causal_v2.jsonl": "6f90793101763162b26dc296015c980b473564afd8a956e5200af7785af9ce31",
+    "data/manifests/video_split_registry_r6_v1_causal_v2.jsonl.summary.json": "7fb1df4a51eb9c0c101f39a5be3830452bbec9f8c44d7b9cea853082de0e3aab",
+    "results/processed/r6_causal_v2_20260816_fix1/arrival_manifest.json": "8633833830938c69054c89003252070adf0efd059e21e52938ca04e94329feca",
+    "results/processed/r6_causal_v2_20260816_fix1/causal_future_h1_v2.jsonl": "445f33f8b1d48002da9f4e648db420c61e4f691cf5e233e54bee3a766201b558",
+    "results/processed/r6_causal_v2_20260816_fix1/causal_future_h3_v2.jsonl": "6412ed4f17ec042208cb9deb120c0d367379ed3d1be0835ddeb05d26a6eedbb6",
+    "results/processed/r6_causal_v2_20260816_fix1/causal_future_h5_v2.jsonl": "ae5925ede8dfd73450b922a28b53c0a3c2ebcdf62fbede496c348c8b907e6f44",
+    "results/processed/r6_causal_v2_20260816_fix1/causal_prefixes_v2.jsonl": "910b26c9f2fcc9f52ea9edce876f46e6c5adfa924eca3312e631ea48efde68ec",
+    "results/processed/r6_causal_v2_20260816_fix1/execution_truth_v2.jsonl": "1277dee45159d68c21a3a4f9c1901e74f0abd9d48febd073abb4948bef812e99",
+    "results/processed/r6_causal_v2_20260816_fix1/job_templates_causal_v2_scheduler.jsonl": "9448beb55d599a148e50e4b9164217a13c167a1d68b1ffe0a975cbd1428ed3aa",
+    "results/processed/r6_causal_v2_20260816_fix1/job_templates_causal_v2_truth.jsonl": "a85878251974f57cac4a87ef4e7707ac0bf430000aef0ab4bf6f319abed05b80",
+    "results/processed/r6_causal_v2_20260816_fix1/resource_predictions_scheduler_v2.jsonl": "98e52c754d5a4e366400148c321805c31d8bb3df6b265969e73b76803f1ba456",
+    "results/processed/r6_causal_v2_20260816_fix1/resource_profile_v2.json": "e1035ea0baeacdc6b40e38f8d33d0c2a29b9d52a59b94231832e9bfad982f7f6",
+    "results/processed/r6_causal_v2_20260816_fix1/scheduler_resource_contract_v2.json": "04808cdf697e55bc1970efa785e70e2d360ec53067e5da7ce78ef15fad159812",
+    "results/processed/r6_causal_v2_20260816_fix1/workload_test_v2.jsonl": "2a0d002a3a47c6964bc423da292df00bf4386ed1e4490e73edc1db3c5a1d76cc",
+    "results/processed/r6_causal_v2_20260816_fix1/workload_test_v2.jsonl.summary.json": "726ba8997dd3b120bcf0db7aea022896ceb0c7dfa7a2e4703375cd0794f4bc76",
+    "results/processed/r6_causal_v2_20260816_fix1/workload_train_v2.jsonl": "e0211781cf013182d34bcd3893476e05c9cb0c8f8a40332601342386c8bc6e03",
+    "results/processed/r6_causal_v2_20260816_fix1/workload_train_v2.jsonl.summary.json": "1f51ee8f0d3c3c16a9cac8515c2eaca04e348e73343850de28de2f0f61ff8f18",
+    "results/processed/r6_causal_v2_20260816_fix1/workload_validation_v2.jsonl": "7169471b4faf80c90269c9ef6d4f30500741e17234b04cd3268a391665ca801d",
+    "results/processed/r6_causal_v2_20260816_fix1/workload_validation_v2.jsonl.summary.json": "c4b75ee6fd7a7c69fcafa9d82f8dc07e089075121250e98cf9c41b2dd31d1fcd"
+  },
+  "future": {
+    "fit_split": "train",
+    "fit_template_count": 566,
+    "future_rows": {
+      "h1": 9366,
+      "h3": 9366,
+      "h5": 9366
+    },
+    "horizon_bounds_ok": true,
+    "probability_sum_errors": 0
+  },
+  "gates": {
+    "all_truth_rows_engine_only": true,
+    "c1_registry_rows": 64,
+    "c2_pending_rows": 40,
+    "c2_registry_rows": 40,
+    "causal_edge_errors": [],
+    "current_identity_violations": [],
+    "future_probability_count_errors": [],
+    "gate": true,
+    "input_hash_unique_count": 4514,
+    "prefix_duplicate_ids": 0,
+    "prefix_rows": 4683,
+    "prefix_unique_ids": 4683,
+    "train_fit_only": true,
+    "workload_source_refs_hidden": true
+  },
+  "generated_at": "2026-08-16",
+  "inputs": {
+    "arrival_source": "data/public/arrivals/alibaba_v2020/pai_job_table.csv",
+    "arrival_source_sha256": "379ecb3becaba347f44a53bf7eb53e54b185221b2a0338a3f828828d269ba96c",
+    "prefixes": "results/processed/prefix_samples_core_resource_fixed_20260804.jsonl",
+    "prefixes_sha256": "f2b2cc33e6bca36234e27fa39bfdfcf3bd48dc72965fa0a726b726146c38eccf",
+    "provenance_manifest": "data/manifests/video_provenance_v2_expanded_available.jsonl",
+    "provenance_manifest_sha256": "23bdde69d1ca94cd34d6d5dc68eb14212c8a6cb5b8ccb4efca67729361a45017",
+    "split_manifest": "configs/phase3_video_split_48_8_8.jsonl",
+    "split_manifest_sha256": "958cd869130e8d4c00ee08066f5a875e67372a00a80b5e7af7150b3299939142",
+    "templates": "results/processed/job_templates_core_resource_fixed_20260804.jsonl",
+    "templates_sha256": "638f7820caabc16586aa659322cf70f0655be18f9eaafafbbed0e863bfdd000a"
+  },
+  "legacy_policy": "all historical v1 inputs remain immutable; this directory is new derived output",
+  "registry": {
+    "c1_counts": {
+      "c1_test_retrospective": 8,
+      "c1_train": 48,
+      "c1_validation": 8
+    },
+    "c2_backup_count": 8,
+    "c2_candidate_count": 32,
+    "c2_exclusion_seen_hashes": 349,
+    "c2_exclusion_seen_ids": 341,
+    "output": "data/manifests/video_split_registry_r6_v1_causal_v2.jsonl",
+    "overlap_c1_c2": [],
+    "schema_version": "video-split-registry-r6-v1",
+    "source_c1_split_sha256": "958cd869130e8d4c00ee08066f5a875e67372a00a80b5e7af7150b3299939142",
+    "source_provenance_sha256": "23bdde69d1ca94cd34d6d5dc68eb14212c8a6cb5b8ccb4efca67729361a45017"
+  },
+  "resource": {
+    "contract_path": "results/processed/r6_causal_v2_20260816_fix1/scheduler_resource_contract_v2.json",
+    "fallback_count": 0,
+    "fit_template_count": 566,
+    "fit_truth_node_count": 6916,
+    "prediction_path": "results/processed/r6_causal_v2_20260816_fix1/resource_predictions_scheduler_v2.jsonl",
+    "prediction_rows": 9366,
+    "profile_path": "results/processed/r6_causal_v2_20260816_fix1/resource_profile_v2.json"
+  },
+  "schema_version": "r6-causal-v2-manifest",
+  "workload": {
+    "arrival_manifest": "results/processed/r6_causal_v2_20260816_fix1/arrival_manifest.json",
+    "arrival_summary": {
+      "derived_gap_time_unit": "milliseconds",
+      "replay_policy": "sample_one_contiguous_gap_block_without_replacement",
+      "schema_version": "arrival-source-v0.2",
+      "source": "data/public/arrivals/alibaba_v2020/pai_job_table.csv",
+      "source_sha256": "379ecb3becaba347f44a53bf7eb53e54b185221b2a0338a3f828828d269ba96c",
+      "source_time_unit": "seconds",
+      "split_gap_counts": {
+        "test": 210368,
+        "train": 631102,
+        "validation": 210367
+      },
+      "split_gap_medians_ms": {
+        "test": 1000.0,
+        "train": 2000.0,
+        "validation": 1000.0
+      },
+      "split_gap_p95_ms": {
+        "test": 18000.0,
+        "train": 23000.0,
+        "validation": 18000.0
+      },
+      "split_zero_gap_counts": {
+        "test": 82976,
+        "train": 151514,
+        "validation": 70525
+      },
+      "time_block_policy": "sorted_start_time_contiguous_60_20_20",
+      "usage": "arrival_intervals_only_resource_demand_not_reused"
+    },
+    "splits": {
+      "test": {
+        "deadline_policy": "fixed_relative_class_budget",
+        "episodes": 6750,
+        "forbidden_scheduler_fields_present": 0,
+        "jobs": 248400,
+        "output": "results/processed/r6_causal_v2_20260816_fix1/workload_test_v2.jsonl",
+        "scheduler_visible_contract": {
+          "allowed_job_fields": [
+            "template_id",
+            "arrival_ms",
+            "service_class",
+            "deadline_ms"
+          ],
+          "deadline_policy": "fixed_relative_class_budget",
+          "forbidden_job_fields": [
+            "predicted_job_runtime_p50_ms",
+            "predicted_job_runtime_p90_ms",
+            "predicted_gpu_runtime_p50_ms"
+          ]
+        },
+        "schema_version": "workload-episode-causal-v2",
+        "split": "test_retrospective"
+      },
+      "train": {
+        "deadline_policy": "fixed_relative_class_budget",
+        "episodes": 20000,
+        "forbidden_scheduler_fields_present": 0,
+        "jobs": 743680,
+        "output": "results/processed/r6_causal_v2_20260816_fix1/workload_train_v2.jsonl",
+        "scheduler_visible_contract": {
+          "allowed_job_fields": [
+            "template_id",
+            "arrival_ms",
+            "service_class",
+            "deadline_ms"
+          ],
+          "deadline_policy": "fixed_relative_class_budget",
+          "forbidden_job_fields": [
+            "predicted_job_runtime_p50_ms",
+            "predicted_job_runtime_p90_ms",
+            "predicted_gpu_runtime_p50_ms"
+          ]
+        },
+        "schema_version": "workload-episode-causal-v2",
+        "split": "train"
+      },
+      "validation": {
+        "deadline_policy": "fixed_relative_class_budget",
+        "episodes": 1000,
+        "forbidden_scheduler_fields_present": 0,
+        "jobs": 34160,
+        "output": "results/processed/r6_causal_v2_20260816_fix1/workload_validation_v2.jsonl",
+        "scheduler_visible_contract": {
+          "allowed_job_fields": [
+            "template_id",
+            "arrival_ms",
+            "service_class",
+            "deadline_ms"
+          ],
+          "deadline_policy": "fixed_relative_class_budget",
+          "forbidden_job_fields": [
+            "predicted_job_runtime_p50_ms",
+            "predicted_job_runtime_p90_ms",
+            "predicted_gpu_runtime_p50_ms"
+          ]
+        },
+        "schema_version": "workload-episode-causal-v2",
+        "split": "validation"
+      }
+    }
+  }
+}

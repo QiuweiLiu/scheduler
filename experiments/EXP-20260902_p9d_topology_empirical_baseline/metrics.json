@@ -1,0 +1,308 @@
+{
+  "boundary": {
+    "behavior_or_resource_targets_used_as_features": false,
+    "future_events_or_edges_used_as_features": false,
+    "model_type": "conditional_empirical_frequency_baseline",
+    "raw_traces_modified": false,
+    "resource_truth_used_as_features": false,
+    "scheduler_groups_used_for_fit": false,
+    "t_final_read": false
+  },
+  "candidate_validation_metrics": {
+    "current_full": {
+      "first_layer_width_bias": -0.7885657959586003,
+      "first_layer_width_mae": 0.9324790537210449,
+      "future_exists_accuracy": 0.9546574667323805,
+      "layer_count_bias": -1.7856086742237556,
+      "layer_count_exact_accuracy": 0.2745194677180877,
+      "layer_count_mae": 1.9295219319862,
+      "mean_condition_support_size": 1422.835879743716,
+      "mean_top3_probability_mass": 0.37465688379195766,
+      "nll_floor": 1e-12,
+      "nll_mean": 10.014573941604182,
+      "node_count_bias": -4.621981271562346,
+      "node_count_mae": 4.85657959586003,
+      "sample_count": 2029,
+      "seen_condition_key_rate": 0.35879743716116314,
+      "top1_exact_signature_coverage": 0.16658452439625432,
+      "top3_exact_signature_coverage": 0.3223262690980779,
+      "width_vector_mae": 0.9855101034992607
+    },
+    "current_structural": {
+      "first_layer_width_bias": -0.8171513060620995,
+      "first_layer_width_mae": 0.9492360768851651,
+      "future_exists_accuracy": 0.9546574667323805,
+      "layer_count_bias": -1.8689009364218827,
+      "layer_count_exact_accuracy": 0.26712666338097585,
+      "layer_count_mae": 1.9664859536717594,
+      "mean_condition_support_size": 1410.4696895022178,
+      "mean_top3_probability_mass": 0.3694450473595008,
+      "nll_floor": 1e-12,
+      "nll_mean": 10.017185526376723,
+      "node_count_bias": -4.832922621981272,
+      "node_count_mae": 4.951207491375062,
+      "sample_count": 2029,
+      "seen_condition_key_rate": 0.36569738787580086,
+      "top1_exact_signature_coverage": 0.16707737801872843,
+      "top3_exact_signature_coverage": 0.3233119763430261,
+      "width_vector_mae": 0.9973385904386397
+    },
+    "history2_full": {
+      "first_layer_width_bias": -0.6801379990142927,
+      "first_layer_width_mae": 0.8546081813701331,
+      "future_exists_accuracy": 0.9477575160177427,
+      "layer_count_bias": -1.5712173484475112,
+      "layer_count_exact_accuracy": 0.310990635781173,
+      "layer_count_mae": 1.7506160670280926,
+      "mean_condition_support_size": 1499.783637259734,
+      "mean_top3_probability_mass": 0.4039931416400005,
+      "nll_floor": 1e-12,
+      "nll_mean": 10.091488348859228,
+      "node_count_bias": -4.076392311483489,
+      "node_count_mae": 4.365204534253326,
+      "sample_count": 2029,
+      "seen_condition_key_rate": 0.3173977328733366,
+      "top1_exact_signature_coverage": 0.16313454903893543,
+      "top3_exact_signature_coverage": 0.3326761951700345,
+      "width_vector_mae": 0.8957121734844751
+    }
+  },
+  "experiment_id": "EXP-20260902_p9d_topology_empirical_baseline",
+  "fit_contract": {
+    "diagnostic_split": "test",
+    "fit_split": "train",
+    "fitted_schemes": [
+      "current_full",
+      "current_structural",
+      "history2_full"
+    ],
+    "frozen_holdout_split": "holdout",
+    "horizon": 5,
+    "max_scenarios": 3,
+    "nll_floor": 1e-12,
+    "random_seed": 0,
+    "randomness": "none_frequency_counts_only",
+    "selected_scheme": "current_full",
+    "selection_split": "validation"
+  },
+  "inputs": {
+    "config_sha256": "5102515025651836a1a3f7a31a142a1c475a4bacdf748ea14b292c6aefc77715",
+    "dataset_files_sha256": {
+      "alignment_report.json": "2bd358e32367c622987be7375f53c55db41942004e467caf6d43eb4cd860f239",
+      "dataset_manifest.json": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+      "features_holdout.jsonl.gz": "28c930ae98b1cdc04cd5f4d165c32d5e8227293df6aaefce1cde8004df07bdf3",
+      "features_test.jsonl.gz": "3e5f0b4057546ab6eb05cb49ee7e7d4dcbd67cf4d0d090e9456d00d4abb76c6e",
+      "features_train.jsonl.gz": "c3f31c85bda4b7bb09be4e0da5c0160a9ac85bb82d4fc4997350a631e7853d7a",
+      "features_validation.jsonl.gz": "473f23183640dfb2cac9695f940761f3ec493b9c7e35c960f4cfcef694878f6c",
+      "labels_holdout.jsonl.gz": "233670745f3740a3a77437be14bec2ca9b08dfa794289fcb7ab89cdf55554deb",
+      "labels_test.jsonl.gz": "40d459a80bebcb5e19c262c909c74b8106b9ab814db712c3aeb02f6e082824fd",
+      "labels_train.jsonl.gz": "18b9cdbdab930a252703bc44345759fe4ac340dd22a42035af92ed8e3ae804ed",
+      "labels_validation.jsonl.gz": "28b8eb33085d9842b2e8d0e6462ba97454fb6f8e4c98139e5f1c9eea635006e6"
+    },
+    "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "dataset_root": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1"
+  },
+  "model_summary": {
+    "current_full": {
+      "condition_key_count": 3869,
+      "condition_support_max": 522,
+      "condition_support_min": 1,
+      "global_top5": [
+        {
+          "count": 1834,
+          "signature_hash": "903db7b6b52e89073543f1bee0708bd69bd3b0001f24ac006ba16883bb1d8d76"
+        },
+        {
+          "count": 988,
+          "signature_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "count": 904,
+          "signature_hash": "2e31f4c18e5ce057984b3f01cf036de9a505da0927935188817d4bf007f0ffa0"
+        },
+        {
+          "count": 427,
+          "signature_hash": "a02b8166d632818c417ffa097b5e53c11dc870ae03902e97d0c121053199e572"
+        },
+        {
+          "count": 415,
+          "signature_hash": "d9143fc7ccdc2803abb8987e8f4b724a7969ff94a84620b1c59486ec9587f792"
+        }
+      ],
+      "signature_support_count": 2188,
+      "train_sample_count": 13754,
+      "train_video_count": 240
+    },
+    "current_structural": {
+      "condition_key_count": 3501,
+      "condition_support_max": 522,
+      "condition_support_min": 1,
+      "global_top5": [
+        {
+          "count": 1834,
+          "signature_hash": "903db7b6b52e89073543f1bee0708bd69bd3b0001f24ac006ba16883bb1d8d76"
+        },
+        {
+          "count": 988,
+          "signature_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "count": 904,
+          "signature_hash": "2e31f4c18e5ce057984b3f01cf036de9a505da0927935188817d4bf007f0ffa0"
+        },
+        {
+          "count": 427,
+          "signature_hash": "a02b8166d632818c417ffa097b5e53c11dc870ae03902e97d0c121053199e572"
+        },
+        {
+          "count": 415,
+          "signature_hash": "d9143fc7ccdc2803abb8987e8f4b724a7969ff94a84620b1c59486ec9587f792"
+        }
+      ],
+      "signature_support_count": 2188,
+      "train_sample_count": 13754,
+      "train_video_count": 240
+    },
+    "history2_full": {
+      "condition_key_count": 6774,
+      "condition_support_max": 305,
+      "condition_support_min": 1,
+      "global_top5": [
+        {
+          "count": 1834,
+          "signature_hash": "903db7b6b52e89073543f1bee0708bd69bd3b0001f24ac006ba16883bb1d8d76"
+        },
+        {
+          "count": 988,
+          "signature_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "count": 904,
+          "signature_hash": "2e31f4c18e5ce057984b3f01cf036de9a505da0927935188817d4bf007f0ffa0"
+        },
+        {
+          "count": 427,
+          "signature_hash": "a02b8166d632818c417ffa097b5e53c11dc870ae03902e97d0c121053199e572"
+        },
+        {
+          "count": 415,
+          "signature_hash": "d9143fc7ccdc2803abb8987e8f4b724a7969ff94a84620b1c59486ec9587f792"
+        }
+      ],
+      "signature_support_count": 2188,
+      "train_sample_count": 13754,
+      "train_video_count": 240
+    }
+  },
+  "prediction_artifacts": {
+    "identity_free": true,
+    "paths": {
+      "holdout": "/root/autodl-tmp/scheduler/experiments/EXP-20260902_p9d_topology_empirical_baseline/artifacts/predictions_holdout.jsonl.gz",
+      "test": "/root/autodl-tmp/scheduler/experiments/EXP-20260902_p9d_topology_empirical_baseline/artifacts/predictions_test.jsonl.gz",
+      "validation": "/root/autodl-tmp/scheduler/experiments/EXP-20260902_p9d_topology_empirical_baseline/artifacts/predictions_validation.jsonl.gz"
+    },
+    "rows": {
+      "holdout": 1380,
+      "test": 1520,
+      "validation": 2029
+    },
+    "true_edges_emitted": false,
+    "true_node_ids_emitted": false
+  },
+  "reproducibility": {
+    "command": [
+      "/root/miniconda3/envs/finetooling/bin/python",
+      "scripts/p9d_topology_empirical_baseline.py",
+      "--config",
+      "experiments/EXP-20260902_p9d_topology_empirical_baseline/config.json"
+    ],
+    "git_commit": "unavailable_uncommitted_source_mirror",
+    "machine": "x86_64",
+    "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+    "python": "3.10.20 (main, Mar 11 2026, 17:46:40) [GCC 14.3.0]",
+    "remote_host_identity": "autodl-container-41d846924e-d62d0601"
+  },
+  "schema_version": "p9d-topology-empirical-baseline-v1",
+  "selected_metrics": {
+    "holdout": {
+      "first_layer_width_bias": -0.7246376811594203,
+      "first_layer_width_mae": 0.8985507246376812,
+      "future_exists_accuracy": 0.9130434782608695,
+      "layer_count_bias": -1.7340579710144928,
+      "layer_count_exact_accuracy": 0.2427536231884058,
+      "layer_count_mae": 1.9079710144927535,
+      "mean_condition_support_size": 2188.0,
+      "mean_top3_probability_mass": 0.2709030100334487,
+      "nll_floor": 1e-12,
+      "nll_mean": 16.41093719771702,
+      "node_count_bias": -4.46304347826087,
+      "node_count_mae": 4.636956521739131,
+      "sample_count": 1380,
+      "seen_condition_key_rate": 0.0,
+      "top1_exact_signature_coverage": 0.0,
+      "top3_exact_signature_coverage": 0.32971014492753625,
+      "width_vector_mae": 0.9273913043478261
+    },
+    "test": {
+      "first_layer_width_bias": -0.8526315789473684,
+      "first_layer_width_mae": 0.9671052631578947,
+      "future_exists_accuracy": 0.9493421052631579,
+      "layer_count_bias": -1.819736842105263,
+      "layer_count_exact_accuracy": 0.2631578947368421,
+      "layer_count_mae": 1.956578947368421,
+      "mean_condition_support_size": 1621.0861842105264,
+      "mean_top3_probability_mass": 0.3292021613414326,
+      "nll_floor": 1e-12,
+      "nll_mean": 8.550569924997877,
+      "node_count_bias": -4.802631578947368,
+      "node_count_mae": 5.0,
+      "sample_count": 1520,
+      "seen_condition_key_rate": 0.26973684210526316,
+      "top1_exact_signature_coverage": 0.18881578947368421,
+      "top3_exact_signature_coverage": 0.3335526315789474,
+      "width_vector_mae": 1.0071052631578947
+    },
+    "validation": {
+      "first_layer_width_bias": -0.7885657959586003,
+      "first_layer_width_mae": 0.9324790537210449,
+      "future_exists_accuracy": 0.9546574667323805,
+      "layer_count_bias": -1.7856086742237556,
+      "layer_count_exact_accuracy": 0.2745194677180877,
+      "layer_count_mae": 1.9295219319862,
+      "mean_condition_support_size": 1422.835879743716,
+      "mean_top3_probability_mass": 0.37465688379195766,
+      "nll_floor": 1e-12,
+      "nll_mean": 10.014573941604182,
+      "node_count_bias": -4.621981271562346,
+      "node_count_mae": 4.85657959586003,
+      "sample_count": 2029,
+      "seen_condition_key_rate": 0.35879743716116314,
+      "top1_exact_signature_coverage": 0.16658452439625432,
+      "top3_exact_signature_coverage": 0.3223262690980779,
+      "width_vector_mae": 0.9855101034992607
+    }
+  },
+  "split_counts": {
+    "holdout": {
+      "runs": 120,
+      "samples": 1380,
+      "videos": 40
+    },
+    "test": {
+      "runs": 108,
+      "samples": 1520,
+      "videos": 30
+    },
+    "train": {
+      "runs": 988,
+      "samples": 13754,
+      "videos": 240
+    },
+    "validation": {
+      "runs": 144,
+      "samples": 2029,
+      "videos": 30
+    }
+  },
+  "status": "passed_empirical_baseline"
+}

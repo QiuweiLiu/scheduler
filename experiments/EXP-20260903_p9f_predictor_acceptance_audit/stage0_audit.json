@@ -1,0 +1,112 @@
+{
+  "content_collision_audit": {
+    "collision_is_not_silently_deduplicated": true,
+    "duplicate_content_layers": 5234,
+    "duplicate_content_nodes_after_first": 5397,
+    "matching_policy": "one_joint_layer_assignment_reused_across_all_content_fields"
+  },
+  "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+  "errors": [],
+  "feature_contract": {
+    "forbidden_model_input_violations": 0,
+    "future_events_edges_and_resource_truth_excluded": true
+  },
+  "layerization": {
+    "duplicate_node_ids": 0,
+    "future_unit": "event_level_dag_bfs_layer",
+    "invalid_or_noncontiguous_labels": 0,
+    "layer_count_histogram": {
+      "0": 1360,
+      "1": 4078,
+      "2": 2659,
+      "3": 2628,
+      "4": 2383,
+      "5": 5575
+    },
+    "parent_source": "raw_trace.parent_step_ids",
+    "width_histogram": {
+      "1": 15418,
+      "2": 22455,
+      "3": 14669,
+      "4": 2143,
+      "5": 2
+    }
+  },
+  "passed": true,
+  "policy": {
+    "raw_traces_modified": false,
+    "scheduler_groups_used_for_fit": false,
+    "t_final_read": false
+  },
+  "raw_action_ontology": {
+    "direct_identifier_overlaps": 0,
+    "raw_action_values": [
+      "answer",
+      "frame-selector",
+      "generalist.generate",
+      "image-grid-qa",
+      "image-grid-selector",
+      "image-qa",
+      "patch-zoomer",
+      "planner.generate",
+      "summarization-tool",
+      "temporal-grounding",
+      "temporal-qa",
+      "yolo-tracker"
+    ],
+    "unique_values_by_field": {
+      "action_family": 6,
+      "raw_action": 12,
+      "role": 3
+    },
+    "video_or_run_literal_leakage_gate": true
+  },
+  "schema_version": "p9d-future-role-family-multitask-v1",
+  "split_counts": {
+    "holdout": {
+      "rows": 1380,
+      "runs": 120,
+      "videos": 40
+    },
+    "test": {
+      "rows": 1520,
+      "runs": 108,
+      "videos": 30
+    },
+    "train": {
+      "rows": 13754,
+      "runs": 988,
+      "videos": 240
+    },
+    "validation": {
+      "rows": 2029,
+      "runs": 144,
+      "videos": 30
+    }
+  },
+  "split_source_trace_intersections": {
+    "test:holdout": 0,
+    "train:holdout": 0,
+    "train:test": 0,
+    "train:validation": 0,
+    "validation:holdout": 0,
+    "validation:test": 0
+  },
+  "split_video_intersections": {
+    "test:holdout": 0,
+    "train:holdout": 0,
+    "train:test": 0,
+    "train:validation": 0,
+    "validation:holdout": 0,
+    "validation:test": 0
+  },
+  "status": "passed",
+  "termination_truncation": {
+    "counts": {
+      "False": 15441,
+      "True": 3242
+    },
+    "explicit_flag_for_all_rows": true,
+    "flag_field": "label_summary.truncated_at_horizon"
+  }
+}

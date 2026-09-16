@@ -1,0 +1,60 @@
+{
+  "experiment_id": "EXP-20260902_p9d_topology_empirical_baseline",
+  "status": "passed_empirical_baseline",
+  "execution": {
+    "host_identity": "autodl-container-41d846924e-d62d0601",
+    "remote_root": "/root/autodl-tmp/scheduler",
+    "python": "/root/miniconda3/envs/finetooling/bin/python",
+    "command": [
+      "/root/miniconda3/envs/finetooling/bin/python",
+      "scripts/p9d_topology_empirical_baseline.py",
+      "--config",
+      "experiments/EXP-20260902_p9d_topology_empirical_baseline/config.json"
+    ],
+    "fit_split": "train",
+    "selection_split": "validation",
+    "diagnostic_split": "test",
+    "frozen_acceptance_split": "holdout"
+  },
+  "source_sha256": {
+    "scripts/p9d_topology_empirical_baseline.py": "556cbd0c646101b6ff1eb1fa6850cc761c70cf9330d0114b32b69bee69acd392",
+    "tests/test_p9d_topology_empirical_baseline.py": "66e0311974e6524647921bf8783b829fae07a58e8af9312a9659961d67539789",
+    "experiments/EXP-20260902_p9d_topology_empirical_baseline/config.json": "5102515025651836a1a3f7a31a142a1c475a4bacdf748ea14b292c6aefc77715",
+    "experiments/EXP-20260902_p9d_topology_empirical_baseline/run.sh": "1c4c09ab8e0dc631f0dcb3a76f6cc5a056018e3eafcc219c5b08a1a39c0b0331"
+  },
+  "dataset_sha256": {
+    "dataset_manifest.json": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "features_train.jsonl.gz": "c3f31c85bda4b7bb09be4e0da5c0160a9ac85bb82d4fc4997350a631e7853d7a",
+    "labels_train.jsonl.gz": "18b9cdbdab930a252703bc44345759fe4ac340dd22a42035af92ed8e3ae804ed",
+    "features_validation.jsonl.gz": "473f23183640dfb2cac9695f940761f3ec493b9c7e35c960f4cfcef694878f6c",
+    "labels_validation.jsonl.gz": "28b8eb33085d9842b2e8d0e6462ba97454fb6f8e4c98139e5f1c9eea635006e6",
+    "features_test.jsonl.gz": "3e5f0b4057546ab6eb05cb49ee7e7d4dcbd67cf4d0d090e9456d00d4abb76c6e",
+    "labels_test.jsonl.gz": "40d459a80bebcb5e19c262c909c74b8106b9ab814db712c3aeb02f6e082824fd",
+    "features_holdout.jsonl.gz": "28c930ae98b1cdc04cd5f4d165c32d5e8227293df6aaefce1cde8004df07bdf3",
+    "labels_holdout.jsonl.gz": "233670745f3740a3a77437be14bec2ca9b08b9f794289fcb7ab89cdf55554deb"
+  },
+  "verification": {
+    "local_unit_tests": "5/5 passed",
+    "remote_unit_tests": "5/5 passed",
+    "local_py_compile": "passed",
+    "remote_py_compile": "passed",
+    "prediction_rows_match_split_counts": true,
+    "top3_probability_sum_audit": "0 violations",
+    "identity_edge_resource_field_audit": "0 violations",
+    "remote_local_output_hashes_match": true
+  },
+  "boundary": {
+    "scheduler_groups_used_for_fit": false,
+    "t_final_read": false,
+    "raw_trace_modified": false,
+    "scheduler_integration_started": false,
+    "learned_model_started": false
+  },
+  "output_sha256": {
+    "metrics.json": "fa1f3856a30b1dc9f515f431760502e7e7e966773564b3926b76885785c5c528",
+    "artifacts/model_summary.json": "aaaa8dd62c7f7ce3909eb7f5fbf7f21b96e9c15003d9b918047a96007f19e7c2",
+    "artifacts/predictions_validation.jsonl.gz": "1e4e6cfff1516064c4d8d6d09749934ba905465a41b2feaef67f68b0c48adb9b",
+    "artifacts/predictions_test.jsonl.gz": "06d1d689a8de38bfdb049060be9200418605a0022a4e6bc2bebc6209a6063701",
+    "artifacts/predictions_holdout.jsonl.gz": "bade7e1fa64e4a3575884fe449f5494d99577a55649236d33cd838a5a0f392e7"
+  }
+}

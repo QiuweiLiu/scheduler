@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Serial Qwen3-VL-8B worker used by the Phase 2 visual adapters.
+
+The parent trace collector intentionally stays in the lightweight
+``videotool_phase1`` environment.  This process is launched with the remote
+``finetooling`` Python environment, loads Qwen3-VL once, and exchanges bounded
+JSON requests over stdin/stdout.  No credentials or video bytes cross this
+protocol; only extracted frame paths and short prompts are sent.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+from pathlib import Path
+from typing import Any, Iterable
+
+
+def _json_line(payload: dict[str, Any]) -> None:
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    sys.stdout.flush()
+
+
+def _worker(model_path: Path, max_new_tokens: int) -> int:
+    # Heavy imports are deliberately inside the worker entry point so importing
+    # the parent-side client does not require torch or transformers.
+    import torch
+    from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
+
+    model_load_started = time.perf_counter()
+    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+    model = Qwen3VLForConditionalGeneration.from_pretrained(
+        str(model_path),
+        dtype=dtype,
+        device_map="auto",
+        local_files_only=True,
+    )
+    processor = AutoProcessor.from_pretrained(str(model_path), local_files_only=True)
+    initial_load_ms = round((time.perf_counter() - model_load_started) * 1000.0, 3)
+    model_device = getattr(model, "device", None)
+    if model_device is None:
+        model_device = next(model.parameters()).device
+
+    for line in sys.stdin:
+        if not line.strip():
+            continue
+        try:
+            request = json.loads(line)
+            if request.get("op") == "health":
+                _json_line(
+                    {
+                        "ok": True,
+                        "model_path": str(model_path),
+                        "initial_load_ms": initial_load_ms,
+                        "device": str(model_device),
+                    }
+                )
+                continue
+            prompt = str(request.get("prompt", "Describe the visible evidence."))[:4000]
+            operation = request.get("op")
+            if operation == "describe":
+                image_paths = [str(Path(item)) for item in request.get("image_paths", [])]
+                if not image_paths or any(not Path(item).is_file() for item in image_paths):
+                    raise FileNotFoundError("describe requires existing image_paths")
+                content = [{"type": "image", "image": item} for item in image_paths]
+                content.append({"type": "text", "text": prompt})
+            elif operation == "generate":
+                image_paths = []
+                content = [{"type": "text", "text": prompt}]
+            else:
+                raise ValueError(f"unknown worker operation: {operation!r}")
+            messages = [{"role": "user", "content": content}]
+            inputs = processor.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_dict=True,
+                return_tensors="pt",
+            )
+            inputs = inputs.to(model_device)
+            started = time.perf_counter()
+            with torch.inference_mode():
+                generated_ids = model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,
+                )
+            generated_ids_trimmed = [
+                output_ids[len(input_ids) :]
+                for input_ids, output_ids in zip(inputs.input_ids, generated_ids)
+            ]
+            output_text = processor.batch_decode(
+                generated_ids_trimmed,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=False,
+            )
+            inference_ms = round((time.perf_counter() - started) * 1000.0, 3)
+            payload: dict[str, Any] = {
+                "ok": True,
+                "text": str(output_text[0] if output_text else "").strip()[:4000],
+                "model_load_ms": initial_load_ms,
+                "inference_ms": inference_ms,
+                "model_resident": True,
+                "image_count": len(image_paths),
+            }
+            if torch.cuda.is_available():
+                payload.update(
+                    {
+                        "peak_allocated_mb": round(torch.cuda.max_memory_allocated() / 1024**2, 3),
+                        "peak_reserved_mb": round(torch.cuda.max_memory_reserved() / 1024**2, 3),
+                    }
+                )
+                torch.cuda.reset_peak_memory_stats()
+            _json_line(payload)
+        except Exception as exc:  # keep the protocol alive for the next request
+            _json_line(
+                {
+                    "ok": False,
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
+    return 0
+
+
+class QwenVLClient:
+    """Parent-side JSON-line client; the model stays serially resident."""
+
+    def __init__(
+        self,
+        *,
+        python_bin: str,
+        model_path: Path,
+        log_path: Path,
+        max_new_tokens: int = 96,
+        timeout_seconds: float = 300.0,
+    ) -> None:
+        self.python_bin = python_bin
+        self.model_path = model_path.expanduser().resolve()
+        self.log_path = log_path
+        self.max_new_tokens = max(1, int(max_new_tokens))
+        self.timeout_seconds = max(1.0, float(timeout_seconds))
+        self._process: Any = None
+        self._startup_ms: float | None = None
+        self._request_count = 0
+
+    @property
+    def request_count(self) -> int:
+        return self._request_count
+
+    def _ensure_process(self) -> None:
+        if self._process is not None and self._process.poll() is None:
+            return
+        import subprocess
+
+        if not self.model_path.is_dir():
+            raise FileNotFoundError(f"Qwen3-VL model directory does not exist: {self.model_path}")
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_file = self.log_path.open("a", encoding="utf-8")
+        started = time.perf_counter()
+        self._process = subprocess.Popen(
+            [
+                self.python_bin,
+                str(Path(__file__).resolve()),
+                "--worker",
+                "--model-path",
+                str(self.model_path),
+                "--max-new-tokens",
+                str(self.max_new_tokens),
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=log_file,
+            text=True,
+            bufsize=1,
+        )
+        self._process._phase2_log_file = log_file
+        # A health response includes model load time and prevents the first
+        # visual request from hiding model-residency cost.
+        self._send({"op": "health"})
+        response = self._read_response()
+        if not response.get("ok"):
+            raise RuntimeError(f"Qwen worker health check failed: {response.get('error')}")
+        self._startup_ms = round((time.perf_counter() - started) * 1000.0, 3)
+        self._health = response
+
+    def _send(self, request: dict[str, Any]) -> None:
+        if self._process is None or self._process.stdin is None:
+            raise RuntimeError("Qwen worker is not running")
+        self._process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
+        self._process.stdin.flush()
+
+    def _read_response(self) -> dict[str, Any]:
+        import select
+
+        if self._process is None or self._process.stdout is None:
+            raise RuntimeError("Qwen worker is not running")
+        ready, _, _ = select.select([self._process.stdout], [], [], self.timeout_seconds)
+        if not ready:
+            raise TimeoutError("timed out waiting for Qwen3-VL worker")
+        line = self._process.stdout.readline()
+        if not line:
+            raise RuntimeError(f"Qwen worker exited with code {self._process.poll()}")
+        payload = json.loads(line)
+        if not isinstance(payload, dict):
+            raise ValueError("Qwen worker response is not a JSON object")
+        return payload
+
+    def describe(self, image_paths: Iterable[Path], prompt: str) -> dict[str, Any]:
+        self._ensure_process()
+        paths = [str(Path(item).resolve()) for item in image_paths]
+        self._send({"op": "describe", "image_paths": paths, "prompt": str(prompt)[:4000]})
+        response = self._read_response()
+        self._request_count += 1
+        if not response.get("ok"):
+            raise RuntimeError(response.get("error", "Qwen worker request failed"))
+        response["worker_startup_ms"] = self._startup_ms
+        response["request_index"] = self._request_count
+        return response
+
+    def generate(self, prompt: str) -> dict[str, Any]:
+        """Run one text-only generation while keeping the visual model resident.
+
+        Planner and answer calls deliberately use the same serial worker as the
+        visual adapters.  This makes local-Qwen traces comparable to API traces
+        without loading another model or exposing credentials in the protocol.
+        """
+        self._ensure_process()
+        self._send({"op": "generate", "prompt": str(prompt)[:4000]})
+        response = self._read_response()
+        self._request_count += 1
+        if not response.get("ok"):
+            raise RuntimeError(response.get("error", "Qwen worker request failed"))
+        response["worker_startup_ms"] = self._startup_ms
+        response["request_index"] = self._request_count
+        return response
+
+    def close(self) -> None:
+        process = self._process
+        self._process = None
+        if process is None:
+            return
+        try:
+            if process.stdin is not None:
+                process.stdin.close()
+            process.wait(timeout=10)
+        except Exception:
+            try:
+                process.terminate()
+                process.wait(timeout=5)
+            except Exception:
+                process.kill()
+        log_file = getattr(process, "_phase2_log_file", None)
+        if log_file is not None:
+            log_file.close()
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--worker", action="store_true")
+    parser.add_argument("--model-path", type=Path, required=True)
+    parser.add_argument("--max-new-tokens", type=int, default=96)
+    return parser
+
+
+def main(argv: Iterable[str] | None = None) -> int:
+    args = _build_parser().parse_args(list(argv) if argv is not None else None)
+    if not args.worker:
+        raise SystemExit("qwen3_vl_worker.py is an internal worker; use --worker")
+    return _worker(args.model_path.expanduser().resolve(), args.max_new_tokens)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,93 @@
+{
+  "duration_seconds": 3.8,
+  "epochs": 2,
+  "max_train_rows": 512,
+  "max_val_rows": 512,
+  "runs": {
+    "B1:11": {
+      "duration_seconds": 0.26,
+      "selected_epoch": 2,
+      "selection_score": 3479.9503838464793,
+      "status": "ok",
+      "train_loss_first": {
+        "behavior": 3.4497032165527344,
+        "content": 1.4756116271018982,
+        "resource": 11.464182376861572,
+        "structure": 2.3023122549057007
+      },
+      "train_loss_last": {
+        "behavior": 3.4502280950546265,
+        "content": 1.4777364134788513,
+        "resource": 11.2621431350708,
+        "structure": 2.302312135696411
+      },
+      "val": {
+        "content_accuracy": 0.36726726726726727,
+        "length_mae": 1.626953125,
+        "load_brier": 0.2187315883903589,
+        "load_dur_qscore": 3218.5608010005462,
+        "next_family_acc": 0.32657657657657657,
+        "next_role_acc": 0.33783783783783783,
+        "runtime_qscore": 3479.9503838464793,
+        "termination_bce": 0.7000771678285673
+      }
+    },
+    "J2:11": {
+      "duration_seconds": 0.47,
+      "selected_epoch": 1,
+      "selection_score": 3479.981807009525,
+      "status": "ok",
+      "train_loss_first": {
+        "behavior": 3.415977954864502,
+        "content": 1.460493266582489,
+        "resource": 11.460778713226318,
+        "structure": 2.2910358905792236
+      },
+      "train_loss_last": {
+        "behavior": 3.2832449674606323,
+        "content": 1.40249502658844,
+        "resource": 11.242908954620361,
+        "structure": 2.2456250190734863
+      },
+      "val": {
+        "content_accuracy": 0.5078489203489204,
+        "length_mae": 1.5390625,
+        "load_brier": 0.2148068679851663,
+        "load_dur_qscore": 3218.550233618382,
+        "next_family_acc": 0.4617117117117117,
+        "next_role_acc": 0.43018018018018017,
+        "runtime_qscore": 3479.9425031447395,
+        "termination_bce": 0.6955296878004447
+      }
+    },
+    "backbone:11": {
+      "duration_seconds": 0.82,
+      "selected_epoch": 2,
+      "selection_score": 7.108074724674225,
+      "status": "ok",
+      "train_loss_first": {
+        "behavior": 3.703563094139099,
+        "content": 1.585878610610962,
+        "resource": 11.504125595092773,
+        "structure": 2.3905075788497925
+      },
+      "train_loss_last": {
+        "behavior": 3.5560646057128906,
+        "content": 1.5238648056983948,
+        "resource": 11.497865676879883,
+        "structure": 2.338889002799988
+      },
+      "val": {
+        "content_accuracy": 0.36726726726726727,
+        "length_mae": 1.626953125,
+        "load_brier": 0.26160947452841593,
+        "load_dur_qscore": 3218.6981712225383,
+        "next_family_acc": 0.32657657657657657,
+        "next_role_acc": 0.33783783783783783,
+        "runtime_qscore": 3480.010844523522,
+        "termination_bce": 0.7000771678285673
+      }
+    }
+  },
+  "stage": "smoke"
+}

@@ -1,0 +1,774 @@
+{
+  "experiments": {
+    "EXP-20260911_forecast_aware_scheduling": {
+      "active": true,
+      "baselines_required": {
+        "high_value": [
+          "Parrot-like known-DAG oracle",
+          "SOLA/SlackFit-style state-aware"
+        ],
+        "minimal": [
+          "FCFS",
+          "SJF/LTR-style",
+          "E0",
+          "E2",
+          "q95",
+          "STS-style termination-aware",
+          "Oracle-H5/H10"
+        ],
+        "real_replay_min": [
+          "FCFS",
+          "current-state",
+          "LTR-like",
+          "q95"
+        ]
+      },
+      "conclusion": "q95 consumer is the champion (dev -17,229; confirm -18,765 ms vs E2); scenario sampling+CVaR, comonotone, adaptive risk, chance-constrained, survival, cache-aware and content all lose; gain comes from the runtime tail only (rt95 == q95).",
+      "consumption_code_review_20260915": {
+        "bugs": [
+          "_SCEN_COST_CACHE key lacks artifact/stats version (stale results across perturbed artifacts)",
+          "_JRES_COST_CACHE uses id(cost_fn) and omits train_stats",
+          "table lookup mixes exact/model_lane/lane granularities via prefix search + median of medians",
+          "scenario sampling can only shorten chains (min(sampled_length, len(steps)))",
+          "inverse-CDF fabrication: 0->p50 lower ramp and p95+9*(p95-p90) upper extension",
+          "comonotone couples runtime only",
+          "adaptive lambda ignores the current cold-load while the final score includes it",
+          "no quantile monotonicity/fallback validation"
+        ],
+        "change_likely": [
+          "E2 vs q95 absolute gap",
+          "'CVaR worse than q95' (withdraw until fixed)",
+          "q95 as a tail-risk mechanism may become 'right future-weight scaling'"
+        ],
+        "confounded": "E2 vs q95 mixes source (table->predicted) and statistic (p50->p95); pred-p50 is +16.0s vs E2, so 'predicted resource > table' does not hold",
+        "doc": "docs/research/2026-09-15_fas_consumption_code_review_gpt.md",
+        "keep_likely": [
+          "future > myopic",
+          "p50->p90->p95 monotone trend",
+          "load-tail worthless",
+          "length/continuation valuable",
+          "high-load gains"
+        ],
+        "p0_rerun": "runtime-only orthogonal family: Pred50-R, Pred90-R, Pred95-R, ScaledPred50-R (k frozen on dev), ShuffledTail",
+        "status": "provisional_claims_paused"
+      },
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "event_chain_theory_20260916": {
+        "closest_recent": "LLMSched (ICDCS 2025) uncertain-DAG scheduling with Bayesian networks and inter-stage correlation; does not compare aggregation rules",
+        "doc": "docs/research/2026-09-16_fas_event_chain_literature_gpt.md",
+        "must_cite": [
+          "Dhaene et al. 2002 (IME) comonotonicity theory",
+          "Kaas et al. 2002 (ASTIN) convex-largest sum",
+          "Hua & Joe 2012 (IME) tail comonotonicity"
+        ],
+        "novelty_phrasing": "to our knowledge, the first systematic evaluation of dependence-aware multi-step uncertainty aggregation for dynamic agent-workflow scheduling",
+        "theory_frame": "r95 = comonotonic upper-tail aggregation = sum of per-stage VaR_0.95 = VaR_0.95 of the aggregate under comonotonic coupling",
+        "writing_rules": [
+          "do not say 'worst cases happen simultaneously' (p95 is not max); say 'all stages at the same high quantile rank'",
+          "do not claim positive correlation always lengthens the mean (serial sums: variance/tail only; parallel max: can reduce expected max)",
+          "emphasize correlation is amplified into system-level differences through scheduling order/contention"
+        ]
+      },
+      "experiment_table": {
+        "baseline_matrix_status": {
+          "caveat": "predopt_h5_surv degenerates to E2 with the current dist artifacts (no survival_probability field) - do not report as a separate baseline",
+          "headline": "q95 beats all classic/state-aware baselines by 33-35s and also beats both oracle arms on completion (-3.5k vs truth-resource oracle, -4.2k vs known-DAG oracle; miss +0.35pp worse vs known-DAG)",
+          "leaderboard_completion_ms": {
+            "fcfs": 213281.7,
+            "myopic": 215116.4,
+            "oracle_topology_h5_tab": 184513.7,
+            "predopt_h5": 198051.7,
+            "predopt_h5_q95": 180361.6,
+            "sjf_pred": 215107.8,
+            "state_aware": 215657.9,
+            "trueopt_h5": 183845.1
+          },
+          "new_baselines": [
+            "fcfs",
+            "sjf_pred",
+            "state_aware"
+          ],
+          "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE9_BASELINE_MATRIX_REPORT.md",
+          "status": "done_1000_episodes"
+        },
+        "doc": "docs/research/2026-09-15_fas_experiment_table_gpt.md",
+        "industrial_case": {
+          "decision": "do it, but as second workload / external case study, not main benchmark",
+          "priority": "2nd after the 2-GPU replay; best combined as the second workload inside the same replay",
+          "rules": "freeze the Future-Action interface and q95 consumer; regenerate only prediction artifacts; publish desensitized traces + schema + replay driver; 4-arm minimal experiment (E0/E2/q95/known-future oracle)"
+        },
+        "pressure_sweep_status": {
+          "result": {
+            "by_deadline_ms": {
+              "loose": [
+                -17666,
+                -19611,
+                -15828
+              ],
+              "tight": [
+                -17738,
+                -20756,
+                -14917
+              ]
+            },
+            "by_load_ms": {
+              "high": [
+                -28918,
+                -32115,
+                -25716
+              ],
+              "low": [
+                -8552,
+                -10029,
+                -7190
+              ],
+              "mid": [
+                -13972,
+                -16513,
+                -11706
+              ]
+            },
+            "cells_significantly_positive": "6/6",
+            "note": "gain grows monotonically with offered load (~3.4x low->high); deadline split neutral; report PHASE8_CELL_SWEEP_REPORT.md"
+          },
+          "status": "partially_done_with_existing_runs"
+        },
+        "replay_protocol": {
+          "acceptance": "q95 significantly better than E0/E2 on real hardware; no policy-ranking inversion; sim-real error <10-15%",
+          "hardware": "2 x same-model >=24GB GPUs preferred; fixed representative 3-5 model stack (planner/LLM + VLM + detector/segmenter + CPU tool); freeze stack before run",
+          "scale": "100-200 episodes, E0/E2/q95/Oracle-H5, 3 repeats",
+          "single_gpu_note": "1x3060 6GB can only do node-level latency/replay fidelity, not multi-GPU scheduler evidence",
+          "unit": "episode (multi-workflow arrival + dependencies + deadlines + scheduler decision points)"
+        },
+        "sensitivity_status": {
+          "content_corrupt_ms": {
+            "e10": [
+              57,
+              0,
+              119
+            ],
+            "e50": [
+              12,
+              -78,
+              95
+            ]
+          },
+          "headline": "strong monotone dose-response for the runtime tail (load-bearing), weak monotone for length, no measurable effect for content/lane",
+          "length_noise_ms": {
+            "e10": [
+              835,
+              636,
+              1028
+            ],
+            "e25": [
+              3102,
+              2677,
+              3562
+            ],
+            "e50": [
+              5311,
+              4711,
+              5889
+            ]
+          },
+          "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE10_SENSITIVITY_REPORT.md",
+          "status": "done_1000_episodes",
+          "tail_shrink_ms": {
+            "a025": [
+              31611,
+              28958,
+              34506
+            ],
+            "a050": [
+              13431,
+              12101,
+              14765
+            ],
+            "a075": [
+              4184,
+              3709,
+              4689
+            ]
+          }
+        },
+        "tiers": {
+          "complete": [
+            "recommended + H10-lite + elevator second workload + one-shot T_final"
+          ],
+          "minimum_publishable": [
+            "main experiments",
+            "FCFS/SJF/state-aware/termination-aware baselines",
+            "6-cell pressure sweep",
+            "forecast-quality sensitivity"
+          ],
+          "recommended": [
+            "minimum + 2-GPU replay + sim-real fidelity + q95 correlated-tail mechanism"
+          ]
+        }
+      },
+      "formal_problem_v2": {
+        "claim_tiers": [
+          "theory: local ranking lemma",
+          "mechanism: ranking-preserving Phi improves local decisions",
+          "system: multi-GPU effects by paired simulation/replay, no optimality claim"
+        ],
+        "doc": "docs/research/2026-09-16_fas_formal_problem_v2.md",
+        "propositions": {
+          "A": "fixed-length comonotone exactness (VaR additivity); random length needs (Y_1..Y_H) comonotone",
+          "B": "dependence-robust ES upper bound (convex order); VaR has no such bound - use union bound alpha_h = 1-(1-alpha)/n",
+          "C": "upper-comonotonicity gives finite-threshold additivity; tail-comonotonicity only asymptotic (rho(q) -> 1)",
+          "D": "local ranking lemma (single machine, two simultaneously ready jobs); not global optimality"
+        },
+        "test_design_rho": {
+          "bootstrap": "cluster bootstrap over whole workflows/videos, B>=2000, pointwise 95% CI, optional sup-norm band",
+          "inference": "equivalence test with delta=5% band on high q; no NHST of rho=1",
+          "q_grid": [
+            0.5,
+            0.75,
+            0.9,
+            0.925,
+            0.95,
+            0.975
+          ],
+          "statistic": "rho(q) = Q_q(sum R_h) / sum_h Q_q(R_h)"
+        },
+        "unified_consumer": "Phi_{theta,rho}(F,s) = rho_s(sum_h I_h R_h; C_theta(s)); r95 = comonotonic copula + VaR_0.95 with N=N_hat",
+        "v1_review_fixes": [
+          "stochastic unfolding graph G_j with observed prefix only (not a fixed template)",
+          "symbol fixes: D_load for load time, N_v for remaining-node count",
+          "J* is a remaining-work oracle surrogate, not the system action value Q*(s,a)",
+          "propositions A/C must handle random length via Y_h = 1{N>=h} R_h",
+          "state must include ready set, residency, memory, queue; CPU lane is dispatched by an independent executor",
+          "priority class is a shared lexicographic constraint for all policies"
+        ]
+      },
+      "formalization_20260916": {
+        "doc": "docs/research/2026-09-16_fas_formalization_gpt.md",
+        "immediate_experiment": "ratio curve VaR_q(sum)/sum VaR_q(R_h) vs q = .5/.75/.9/.95/.99 on measured step runtimes",
+        "novelty_statement": "To our knowledge, we provide the first systematic study of dependence-aware aggregation of per-stage predictive uncertainty for scheduling dynamically unfolding agent workflows.",
+        "proposed_next_methods": {
+          "dependence_adaptive": "estimate upper-tail dependence, t-copula joint sampling, score = VaR_0.95(sum)",
+          "dependence_ambiguity_dro": "fix marginals, constrain dependence within empirical CI, worst-case ES",
+          "upper_tail_hybrid": "sum p50 + beta * sum(p95-p50) with beta from measured tail co-exceedance"
+        },
+        "propositions": {
+          "A_exactness": "common U ⇒ comonotone ⇒ VaR of sum = sum of VaR (theorem, not approximation)",
+          "B_bound_discipline": "only ES/CVaR has the comonotone upper bound; VaR is not subadditive so r95 must NOT be claimed as a dependence-robust bound; union bound needs per-step alpha ~99% for H=5 overall 95%",
+          "C_upper_tail_only": "upper-comonotonicity / tail-comonotonicity suffices above thresholds; testable via the ratio curve VaR_q(sum)/sum VaR_q",
+          "D_ranking_lemma": "only pairwise ranking needs to be right; local interchange argument; do not claim global optimality"
+        }
+      },
+      "literature_scan_20260915": {
+        "closest_prior": {
+          "FATE": "arXiv 2026, future-state-aware planning for heterogeneous LLM workflows",
+          "PBKV": "arXiv 2026, predicts future agent invocation sequence for KV-cache management",
+          "TIE": "ICML 2026, uncertainty-aware output length (log-t + Tail Inflated Expectation) for SJF"
+        },
+        "doc": "docs/research/2026-09-15_fas_future_term_literature_gpt.md",
+        "learning_scheduler_trend": "RL is usually restricted (RLTune: RL priority + MILP placement) or stabilized with imitation (ILETS); no mature future-prediction-conditioned learned policy line",
+        "positioning": "first systematic study of how multi-step future-action uncertainty should be consumed for scheduling dynamically unfolding agent workflows",
+        "recommendation": {
+          "bc_rerun": "worth doing on the new interface (same artifacts teacher+student, episode-level split, 200-300k decisions, 3 seeds, paired eval vs E0/E2/q95/expert)",
+          "ppo_rerun": "not required; keep as exploratory negative result"
+        }
+      },
+      "paper_planning": {
+        "doc": "docs/research/2026-09-15_fas_system_story_gpt.md",
+        "novelty_boundary": "Parrot (OSDI 2024) exposes a known DAG; we predict the latent future control flow of dynamically unfolding agents",
+        "positioning": "future-action-aware scheduling system; main contribution C1, mechanism C2, pipeline C3 (supporting)",
+        "story_sentence": "The missing scheduling signal is not how expensive the current node is, but what the request will do next and how far it will go; we predict the not-yet-generated future control flow and show a risk-aware scheduler converts it into end-to-end gains.",
+        "venue": "pure simulation -> ICPP/CCGrid/Cluster; with real replay + fidelity + pressure sweep -> MLSys attempt, ATC/EuroSys worth trying",
+        "venue_probability": {
+          "conferences": {
+            "ATC": [
+              0.1,
+              0.28
+            ],
+            "CCGrid/Cluster": [
+              0.45,
+              0.6
+            ],
+            "EuroSys": [
+              0.06,
+              0.18
+            ],
+            "ICPP": [
+              0.35,
+              0.5
+            ],
+            "MLSys": [
+              0.12,
+              0.35
+            ],
+            "NSDI": [
+              0.04,
+              0.12
+            ],
+            "OSDI/SOSP": [
+              0.03,
+              0.08
+            ]
+          },
+          "journals": {
+            "FGCS": [
+              0.55,
+              0.7
+            ],
+            "JPDC": [
+              0.45,
+              0.6
+            ],
+            "TC": [
+              0.15,
+              0.3
+            ],
+            "TCC": [
+              0.3,
+              0.5
+            ],
+            "TPDS": [
+              0.25,
+              0.45
+            ]
+          },
+          "note": "range = simulation-only -> with a 2-GPU real replay; subjective GPT estimates, verify CCF/CAS ranking at submission time"
+        }
+      },
+      "phase11_runtime_orthogonal": {
+        "conclusion": "C2 holds on the runtime dimension: the gain is tail shape + state alignment, not magnitude; q95 should be renamed runtime-tail sum (load is irrelevant); the old E2 number was inflated by the lookup bug; predicted p50 is worse than the static table.",
+        "frozen_scale_k": 6.2293,
+        "key_stats": {
+          "Pred90R_minus_Pred50R": [
+            -26581,
+            -29108,
+            -24108
+          ],
+          "Pred95R_minus_E2": [
+            -7208,
+            -7953,
+            -6464
+          ],
+          "Pred95R_minus_Pred90R": [
+            -7371,
+            -8042,
+            -6662
+          ],
+          "Pred95R_minus_ScaledPred50R": [
+            -12963,
+            -14250,
+            -11818
+          ],
+          "Pred95R_minus_ShuffledTail": [
+            -7016,
+            -7767,
+            -6292
+          ],
+          "Pred95R_minus_q95": [
+            46,
+            -61,
+            150
+          ]
+        },
+        "leaderboard_ms": {
+          "E2_fixed_lookup": 187614.9,
+          "Pred50-R": 214359.2,
+          "Pred90-R": 187778.3,
+          "Pred95-R": 180407.2,
+          "ScaledPred50-R": 193370.6,
+          "ShuffledTail": 187423.7,
+          "q95": 180361.6
+        },
+        "p0_fixes": [
+          "cache keys carry artifact/stats context",
+          "hierarchical train lookup (model_lane -> lane -> global)",
+          "runtime-only orthogonal family",
+          "Stage0 quantile audit"
+        ],
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE11_RUNTIME_ORTHOGONAL_REPORT.md",
+        "stage0_audit": {
+          "load_nonmonotone_rate": 0.0804,
+          "occ_all_valid": true,
+          "runtime_nonmonotone_rate": 0.0012
+        },
+        "status": "done_1000_episodes"
+      },
+      "phase12_cvar_rewrite": {
+        "conclusion": "with a fair implementation the scenario/CVaR family still loses to the per-step p95 sum by 14-19s; C2 passes its strictest test; sjf_pred numbers are invalidated (built on dropped fields)",
+        "fixes": [
+          "full-slot sidecar artifacts (main chain = argmax length, future_h*_full = all slots)",
+          "loader bug: non-future_h* fields were dropped -> length_probabilities/predicted_future_length never reached consumers",
+          "lognormal quantile reconstruction + real length sampling + comonotone coupling + N=128 + convex objective"
+        ],
+        "invalid_runs": [
+          "outputs/phase12_* (full chains degraded point consumers)",
+          "outputs/phase12b_* (empty artifacts from the normalizer bug)"
+        ],
+        "key_stats": {
+          "comon_minus_scen_k100": [
+            -5144,
+            -5939,
+            -4370
+          ],
+          "q95_minus_r95": [
+            -46,
+            -152,
+            64
+          ],
+          "r95_minus_comon128_k100": [
+            -14141,
+            -15437,
+            -12883
+          ],
+          "r95_minus_scen128_k100": [
+            -19284,
+            -21179,
+            -17600
+          ],
+          "scen_k100_minus_k0": [
+            -13146,
+            -14456,
+            -11880
+          ]
+        },
+        "leaderboard_ms": {
+          "comon128_k100": 194548.0,
+          "q95": 180361.6,
+          "r95": 180407.2,
+          "scen128_k0": 212837.5,
+          "scen128_k100": 199691.5,
+          "scen128_k50": 210355.3
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE12_CVAR_REWRITE_REPORT.md",
+        "status": "done_1000_episodes"
+      },
+      "phase13_optimizer_reference": {
+        "conclusion": "exploratory negative; cannot be used as 'greedy > optimization' evidence; a clean 2x2 needs parameterized r95 consumption + rebalanced CP-SAT objective",
+        "diagnosis": "both optimizer references use the E2-style future coefficient; CP-SAT V1 objective is flow-time dominated (≈1000x ms) and executes only the first window action; historical R8 run reproduced the same ~223k behaviour",
+        "key_stats": {
+          "r95_minus_cp_rho_h5": [
+            -42128,
+            -45740,
+            -38834
+          ],
+          "r95_minus_pred_mpc_h5": [
+            -43398,
+            -47392,
+            -39748
+          ]
+        },
+        "leaderboard_ms": {
+          "cp_rho_h3": 223033.0,
+          "cp_rho_h5": 222535.2,
+          "pred_mpc_h5": 223805.0,
+          "r95": 180407.2
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE13_OPTIMIZER_REFERENCE_REPORT.md",
+        "status": "done_1000_episodes_exploratory_negative"
+      },
+      "phase14_learned_consumption": {
+        "doc": "docs/research/2026-09-16_fas_learned_consumption_gpt.md",
+        "pitfalls": [
+          "dev700 reuse -> freeze model classes/budget/objective",
+          "reward hacking -> fixed J = completion + lambda*max(0, miss - delta)",
+          "interpretability -> q95 + sparse residual"
+        ],
+        "plan_ranked": [
+          "low-dim parametric consumer + CMA-ES",
+          "q95 + learned residual scorer",
+          "counterfactual learning-to-rank",
+          "iterative policy improvement (DAgger-style)",
+          "offline RL (deferred)"
+        ],
+        "preregistered_success": [
+          "strong: learned vs q95 confirm CI upper < 0 and miss non-inferior",
+          "partial: beats BC/CP-SAT only",
+          "neutral: par with q95 and parameters degenerate to tau≈0.95 -> q95 near-optimal in a broader family"
+        ],
+        "status": "planned"
+      },
+      "planned_next": {
+        "P0_real_gpu_replay": {
+          "acceptance": "q95 beats current-node baseline on real replay; no policy-ranking inversion vs simulator",
+          "design": "2-GPU (or best available) replay of tens-hundreds of workflows; E0 / E2 / q95 / oracle; report sim-vs-real latency error",
+          "status": "planned_blocked_on_hardware"
+        },
+        "P1_forecast_quality_sensitivity": {
+          "acceptance": "continuous explainable degradation, not a checkpoint fluke",
+          "design": "perturb frozen artifacts (length error / runtime quantile calibration / content corruption) -> gain vs quality curve + oracle endpoints",
+          "status": "planned"
+        },
+        "P1_pressure_sweep": {
+          "acceptance": "future-aware not worse in >=5/6 cells; q95 significantly better than plain future-cost in >=4/6",
+          "design": "reuse 600-video pool; arrival rate x deadline multiplier x contention x model mix -> ~6 cells; E0/E2/q95/oracle",
+          "status": "planned"
+        },
+        "P2_h10_lite": {
+          "acceptance": "first-5-step metrics within 2% of H5; >=3% better than H5 q95 on confirm with CI<0; else negative finding",
+          "design": "H5 backbone + coarse auxiliary head for steps 6-10",
+          "status": "backlog"
+        }
+      },
+      "repo_review_20260917": {
+        "P0": [
+          "CP-RHO objective unit bug: end_cost uses 1000x scale vs future_cost -> future term ~1000x down-weighted; fallback scaling inconsistent; fix and rerun cp_rho baselines",
+          "runner resume lacks fingerprints (git SHA / input / artifact hashes) -> silent mixing of stale results",
+          "normalize_full5_artifacts.py copies stale manifest hashes",
+          "tail-shuffle generation script not published (.scratch only)",
+          "configs/requirements.txt referenced by README but missing"
+        ],
+        "P1": [
+          "bootstrap/permutation >=2000 with two-sided/lower-tail p",
+          "rich fixed-effect T1 sensitivity",
+          "fixed-argmax-L scenario/comon control",
+          "publish confirm300 ids + paired-bootstrap script"
+        ],
+        "P2": [
+          "LICENSE",
+          "seed/provenance table",
+          "reproduce_main.sh",
+          "README data-regeneration wording"
+        ],
+        "T123_verdict": "all 6 fixes landed correctly; residual issues: MOM is approximate (descriptive only), bootstrap counts small (400/200/300 -> need >=2000), permutation p-value one-sided only",
+        "consumer_verdict": "r50/r90/r95/r50k clean runtime-only family with frozen k; scenario family mostly fixed but lognormal reconstruction caveat and conditional-comonotone (length sampled independently)",
+        "doc": "docs/research/2026-09-17_fas_repo_review_gpt.md",
+        "repo": "https://github.com/QiuweiLiu/scheduler",
+        "verdict": "auditable repo but not submission-frozen; statistics credible; r95 family clean"
+      },
+      "repo_review_fixes_20260917": {
+        "P0": {
+          "cp_rho_rerun": {
+            "cp_rho_h3_executed_275eps": 181286.4,
+            "cp_rho_h5_executed_281eps": 181617.5,
+            "cp_rho_h5_old_300": 203695.0,
+            "cp_rho_h5_unit_fix_only_300": 204152.5,
+            "executed_minus_earliest_100eps": [
+              -2937,
+              -4852,
+              -1259
+            ],
+            "pre_specified_subset": "first 300 validation episodes (paired)",
+            "r95_300": 169064.4,
+            "r95_minus_executed_h5": [
+              -17410,
+              -20928,
+              -14264
+            ],
+            "solver_diagnostics": {
+              "fallback_rate": 0.0,
+              "feasible": 13000,
+              "mean_gap": 0.103,
+              "mean_solve_ms": 47.6,
+              "optimal": 56448,
+              "p95_solve_ms": 150.8,
+              "time_limit_hit_rate": 0.154
+            },
+            "status": "exploratory (window-limited V1 boundary; not full 1,000 episodes)"
+          },
+          "cp_rho_structure": "future/memory cost charged only to the executed (earliest) action; previously constant across GPUs",
+          "cp_rho_units": "all three objective terms now share the ms x OBJECTIVE_SCALE unit; fallback harmonised",
+          "executed_variable_fix": "unique executed boolean (sum==1, executed<=selected, executed => earliest start) and the executed candidate is returned",
+          "normalizer_manifest": "hashes recomputed",
+          "requirements": "configs/requirements.txt added",
+          "runner_fingerprint": "implemented and verified (mismatch refuses to resume)",
+          "tail_shuffle_script": "published (scripts/perturb_future_artifacts.py) + scripts/analysis/"
+        },
+        "P1": {
+          "D3_bootstrap": {
+            "first_occurrence": [
+              0.688,
+              0.652,
+              0.717
+            ],
+            "subsequent": [
+              -0.261,
+              -0.298,
+              -0.227
+            ]
+          },
+          "T1_sigma_run2_raw_ci": [
+            -0.1392,
+            -0.1557,
+            -0.1233
+          ],
+          "T1_within_run_cov": -0.1222,
+          "T2_first_vs_subsequent": [
+            0.688,
+            -0.261
+          ],
+          "T3_lifts": {
+            "q80": [
+              0.93,
+              0.537
+            ],
+            "q90": [
+              0.701,
+              0.2
+            ],
+            "q95": [
+              0.311,
+              0.246
+            ]
+          },
+          "fixed_L_control": {
+            "comon_fixedL": 195484.1,
+            "r95": 180407.2,
+            "scen_fixedL": 197921.4
+          },
+          "publish_confirm_ids": true,
+          "rich_fixed_T1": true,
+          "two_sided_tests": "bootstrap/permutation defaults 2000; two-sided p reported",
+          "wording_fixes": [
+            "no 'significantly negative variance' (it is an unconstrained MOM contrast; report as no evidence of a positive run-level effect)",
+            "first-call correlation is descriptive (hypothesis: cold start), not causal",
+            "the CP-SAT comparison is exploratory (300-episode pre-specified subset, 0.25s budget, 15% limit hits)",
+            "fixed-L arms are a retrospective sensitivity, not confirmatory"
+          ]
+        },
+        "P2": [
+          "LICENSE (MIT)",
+          "docs/PROVENANCE.md",
+          "scripts/reproduce_main.sh",
+          "README data-availability wording"
+        ],
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/POSTFIX_REPORT.md"
+      },
+      "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE0..PHASE7BC reports",
+      "review_actions_20260915": {
+        "code_fixes": {
+          "pool_fallback": "document that dispatch-level admission/eviction backstops the fitting fallback (0 capacity violations observed)",
+          "sjf_pred": "use train-only lane-average per-step cost instead of the current-node cost",
+          "state_aware": "laxity-first ordering instead of miss_flag then current-cost"
+        },
+        "naming": {
+          "fcfs": "Priority-FCFS",
+          "oracle_topology_h5_tab": "OracleTopo-H5-Table",
+          "sjf_pred": "Length-SJF",
+          "trueopt_h5": "OracleInfo-H5-Point"
+        },
+        "new_controls": {
+          "oracle_topology_plus_q95": {
+            "purpose": "separate information accuracy from decision-rule design",
+            "status": "planned"
+          },
+          "scale_matched_p50": {
+            "purpose": "exclude the 'just larger future weight' explanation",
+            "status": "planned"
+          },
+          "tail_shuffle": {
+            "purpose": "tail magnitude must align with the specific future state",
+            "status": "planned"
+          }
+        }
+      },
+      "status": "phase7bc_done_consumer_champion_q95",
+      "trace_dependence_20260916": {
+        "T1": {
+          "mixedlm_converged": false,
+          "mixedlm_icc_video": 0.296,
+          "mom_icc_run": 0.0,
+          "mom_icc_video": 0.0008,
+          "mom_sigma_run2_raw": -0.1392,
+          "var_run_means_vs_noise": [
+            0.0377,
+            0.1756
+          ],
+          "within_run_covariance": -0.1222
+        },
+        "T2": {
+          "A_total": -0.242,
+          "B_cond_video": -0.212,
+          "C_position_adjusted": -0.176,
+          "D2_count_cost_spearman": -0.256,
+          "D3_subsequent": -0.261
+        },
+        "T3": {
+          "q80": 0.93,
+          "q90": 0.701,
+          "q95": 0.311
+        },
+        "conclusion": "no positive common slowdown factor; mild negative association (composition/position/count-cost coupling); tail co-movement negative -> abandon the comonotone mechanism narrative and pivot to forecast-error-aware ranking surrogate",
+        "dataset": {
+          "runs": 640,
+          "status_mode": "success",
+          "steps": 8663,
+          "type_field": "model_id",
+          "types": [
+            "Qwen2.5-VL-3B-Instruct",
+            "Qwen3-4B",
+            "Qwen3-VL-8B-Instruct",
+            "cpu-metadata-adapter-v1",
+            "yolo11x.pt"
+          ],
+          "videos": 160
+        },
+        "raw_json": "experiments/EXP-20260911_forecast_aware_scheduling/trace_dependence_report.json",
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/TRACE_DEPENDENCE_REPORT.md",
+        "status": "done_common_factor_rejected"
+      },
+      "verification_design_20260916": {
+        "citations": [
+          "Werner 2021 (Frontiers)",
+          "Yang 2007 (CACAIE)",
+          "Ledford & Tawn 1997 (JRSS-B)",
+          "Asimit et al. 2016"
+        ],
+        "doc": "docs/research/2026-09-16_fas_verification_design_gpt.md",
+        "fallback_mechanisms": [
+          "ranking margin amplification",
+          "heteroscedastic difficulty signal",
+          "implicit future-importance weighting"
+        ],
+        "narrative_fix": "risk in main experiments = conditional predictive uncertainty (forecast error + cross-sample heterogeneity), not aleatoric repeated-execution noise",
+        "optional_extension": "correlated resampling: Z_rt = lambda_t F_r + sqrt(1-lambda_t^2) eps; verify synthetic reproduces ICC/Spearman/co-exceedance; then rho-strength {0,0.5,1} x (independent-CVaR vs r95)",
+        "tests": {
+          "T1_mixed_effects_icc": "log1p(runtime) ~ type + stack + baseline + stack*base + (1|video) + (1|run:video); report ICC_video, ICC_run; bootstrap by video",
+          "T2_residual_comovement": "remove type+stack+baseline (and optionally video), never the run random effect; aggregate to run x type summaries; type-pair Spearman/Kendall",
+          "T3_tail_lift": "chi_q = P(A>Q_A(q)|B>Q_B(q)); lift = P(both)/(1-q)^2; q=.8/.9 primary; video-cluster bootstrap + stratified permutation null"
+        }
+      }
+    },
+    "EXP-20260911_p9d_j4_duration_branch": {
+      "conclusion": "decoupling did not fix load-duration; root cause = in-distribution fit re-allocation.",
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "report": "experiments/EXP-20260911_p9d_j4_duration_branch/RESULT.md",
+      "status": "completed_negative"
+    },
+    "EXP-20260911_p9d_j_h10_predictor": {
+      "active": true,
+      "conclusion": "naive horizon extension degrades first-5-step quality (family 0.803->0.640, runtime pinball +62%); scheduler worse; needs H10-lite recipe.",
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "report": "experiments/EXP-20260911_p9d_j_h10_predictor/",
+      "status": "completed_negative_transfer"
+    },
+    "EXP-20260911_p9d_j_predictor_acceptance": {
+      "conclusion": "J3:seed11 frozen (the H5 predictor used by all scheduler phases); memory head untrained (never expose).",
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "report": "experiments/EXP-20260911_p9d_j_predictor_acceptance/CANDIDATE.md",
+      "status": "frozen_candidate_in_use"
+    },
+    "EXP-20260911_p9d_j_series_joint_resource": {
+      "conclusion": "runtime endpoint significantly better than B1 (J2/J3, 3/3 seeds) but load-duration marginally out of the NI band; J line closed by user decision A.",
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "report": "experiments/EXP-20260911_p9d_j_series_joint_resource/RESULT.md",
+      "status": "completed_no_core_go"
+    },
+    "EXP-20260911_p9d_r0_oracle_signature_ceiling": {
+      "conclusion": "runtime/load identifiable (runtime val +74.9%); memory descriptive-only.",
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "report": "experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/RESULT.md",
+      "status": "completed_core_go_pass"
+    },
+    "EXP-20260911_p9d_r0p_workload_proxy_probe": {
+      "conclusion": "workload size is not recoverable from existing records.",
+      "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
+      "report": "experiments/EXP-20260911_p9d_r0p_workload_proxy_probe/RESULT.md",
+      "status": "completed_no_gain"
+    }
+  },
+  "notes": [
+    "Active entries keep a one-line conclusion + report pointer; full pre-compaction entries are in the archive copy.",
+    "Add new experiments here before formal runs (gate + registration)."
+  ],
+  "schema": "experiment-gate-v1",
+  "updated_at": "2026-09-17"
+}

@@ -1,0 +1,145 @@
+{
+  "best_epoch": 22,
+  "best_selection_score": 0.12745194677180877,
+  "best_train_losses": {
+    "content": 0.3176544296701616,
+    "family": 0.0,
+    "layer": 0.15165804521547288,
+    "next": 0.0,
+    "role": 0.0,
+    "structure": 0.2412486095466256,
+    "total": 0.5589030390651104,
+    "width": 0.3308391725668575
+  },
+  "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/A/seed_22/checkpoint.pt",
+  "conditioning_gradient": null,
+  "elapsed_seconds": 120.56974029541016,
+  "holdout": {
+    "behavior_family_accuracy": 0.27756653992395436,
+    "behavior_family_coverage": 0.38115942028985506,
+    "behavior_family_macro_f1": 0.09594849594849596,
+    "behavior_joint_accuracy": 0.05289855072463768,
+    "behavior_role_accuracy": 0.20434782608695654,
+    "behavior_role_macro_f1": 0.09245901639344263,
+    "content_observations_predicted_structure": {
+      "action_family": 8068,
+      "model_id": 8068,
+      "node_type": 8068,
+      "raw_action": 8068
+    },
+    "future_exists_accuracy": 1.0,
+    "layer_count_bias": 0.08550724637681159,
+    "layer_count_mae": 0.1608695652173913,
+    "node_count_bias": 0.018115942028985508,
+    "node_count_mae": 0.4543478260869565,
+    "oracle_structure_attr_macro_f1": 0.440059791447379,
+    "oracle_structure_attr_macro_f1_by_field": {
+      "action_family": 0.43289081250314193,
+      "model_id": 0.223012563657841,
+      "node_type": 0.6925826579260057,
+      "raw_action": 0.4117531317025275
+    },
+    "predicted_structure_attr_macro_f1": 0.4083390902084485,
+    "predicted_structure_attr_macro_f1_by_field": {
+      "action_family": 0.4037240052720115,
+      "model_id": 0.208438008952942,
+      "node_type": 0.6442715187599436,
+      "raw_action": 0.3769228278488969
+    },
+    "sample_count": 1380,
+    "structure_error_amplification_gap": 0.031720701238930504,
+    "structure_exact_coverage": 0.8050724637681159,
+    "top1_exact_content_signature_coverage": 0.08695652173913043,
+    "top3_exact_content_signature_coverage": 0.08695652173913043,
+    "topology_metrics_valid": true,
+    "width_vector_mae": 0.14971014492753623
+  },
+  "prediction_rows": {
+    "holdout": 1380,
+    "test": 1520,
+    "validation": 2029
+  },
+  "seed": 22,
+  "soft_topology_conditioning": false,
+  "test": {
+    "behavior_family_accuracy": 0.24377224199288255,
+    "behavior_family_coverage": 0.36973684210526314,
+    "behavior_family_macro_f1": 0.13117567703614216,
+    "behavior_joint_accuracy": 0.04144736842105263,
+    "behavior_role_accuracy": 0.14605263157894738,
+    "behavior_role_macro_f1": 0.07537414561516946,
+    "content_observations_predicted_structure": {
+      "action_family": 9812,
+      "model_id": 9812,
+      "node_type": 9812,
+      "raw_action": 9812
+    },
+    "future_exists_accuracy": 1.0,
+    "layer_count_bias": 0.11315789473684211,
+    "layer_count_mae": 0.11842105263157894,
+    "node_count_bias": -0.01118421052631579,
+    "node_count_mae": 0.5164473684210527,
+    "oracle_structure_attr_macro_f1": 0.6817813067616211,
+    "oracle_structure_attr_macro_f1_by_field": {
+      "action_family": 0.5237229323585679,
+      "model_id": 0.9694438428550771,
+      "node_type": 0.7661485903564993,
+      "raw_action": 0.46780986147633974
+    },
+    "predicted_structure_attr_macro_f1": 0.6597540723697042,
+    "predicted_structure_attr_macro_f1_by_field": {
+      "action_family": 0.5018141670076075,
+      "model_id": 0.9445180367051365,
+      "node_type": 0.738178511025245,
+      "raw_action": 0.4545055747408275
+    },
+    "sample_count": 1520,
+    "structure_error_amplification_gap": 0.022027234391916894,
+    "structure_exact_coverage": 0.7611842105263158,
+    "top1_exact_content_signature_coverage": 0.07105263157894737,
+    "top3_exact_content_signature_coverage": 0.07105263157894737,
+    "topology_metrics_valid": true,
+    "width_vector_mae": 0.12223684210526316
+  },
+  "validation": {
+    "behavior_family_accuracy": 0.22764227642276422,
+    "behavior_family_coverage": 0.30310497782158696,
+    "behavior_family_macro_f1": 0.1250962987751633,
+    "behavior_joint_accuracy": 0.07097092163627403,
+    "behavior_role_accuracy": 0.14736323311976343,
+    "behavior_role_macro_f1": 0.07990592360929635,
+    "content_observations_predicted_structure": {
+      "action_family": 12653,
+      "model_id": 12653,
+      "node_type": 12653,
+      "raw_action": 12653
+    },
+    "future_exists_accuracy": 1.0,
+    "layer_count_bias": 0.037456875308033516,
+    "layer_count_mae": 0.045342533267619514,
+    "node_count_bias": -0.12764908822079843,
+    "node_count_mae": 0.34647609659931,
+    "oracle_structure_attr_macro_f1": 0.6919406813130197,
+    "oracle_structure_attr_macro_f1_by_field": {
+      "action_family": 0.5352752078450366,
+      "model_id": 0.9554620273282278,
+      "node_type": 0.7636987944048498,
+      "raw_action": 0.5133266956739642
+    },
+    "predicted_structure_attr_macro_f1": 0.6722208855581895,
+    "predicted_structure_attr_macro_f1_by_field": {
+      "action_family": 0.5208196138435582,
+      "model_id": 0.9198762166910214,
+      "node_type": 0.7485860328911069,
+      "raw_action": 0.4996016788070717
+    },
+    "sample_count": 2029,
+    "structure_error_amplification_gap": 0.019719795754830183,
+    "structure_exact_coverage": 0.7964514539181863,
+    "top1_exact_content_signature_coverage": 0.07097092163627403,
+    "top3_exact_content_signature_coverage": 0.07097092163627403,
+    "topology_metrics_valid": true,
+    "width_vector_mae": 0.08210941350418925
+  },
+  "variant": "A"
+}

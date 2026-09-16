@@ -1,0 +1,42 @@
+{
+  "formal_topology_predictor": false,
+  "input_contract": {
+    "future_events_used_as_features": false,
+    "resource_truth_used_as_feature": false,
+    "target_node_ids_copied": false,
+    "target_template_suffix_used": false
+  },
+  "layer_rows": 8935,
+  "layer_schema_version": "scheduling-future-h5-layer-v1",
+  "output_files": {
+    "b05_artifact_manifest.json": "1ca2c8f9906bf3703dde6d529268df7372fdf050e7ca199f00590a5f9a4998de",
+    "b05_future_h3.jsonl.gz": "6d105fc3d0ae4cd975da1f44c1a728ac7b3a0e06cd11a95febb00d99642d783b",
+    "b05_future_h5.jsonl.gz": "38366adc39eed389620d73c97a794d33375b1a727abe319c566b4c463b0cabc2",
+    "b05_future_h5_layers.jsonl.gz": "e78ef23acfbf8dabca40392749128048398ca9e98b0aa6c21da5cb89671f3d5e",
+    "b05_node_h1.jsonl.gz": "1f98b6872bd8838ba11d2f30d0b1c433ecac795c99564993d69f0c13e01b411a"
+  },
+  "predicted_node_count": {
+    "max": 5,
+    "mean": 5.0,
+    "min": 5
+  },
+  "scenario_count": 26805,
+  "schema_version": "h5-layer-contract-repair-manifest-v0.1",
+  "source_files": {
+    "b05_future_h3.jsonl.gz": {
+      "path": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts/b05_future_h3.jsonl.gz",
+      "sha256": "6d105fc3d0ae4cd975da1f44c1a728ac7b3a0e06cd11a95febb00d99642d783b"
+    },
+    "b05_future_h5.jsonl.gz": {
+      "path": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts/b05_future_h5.jsonl.gz",
+      "sha256": "38366adc39eed389620d73c97a794d33375b1a727abe319c566b4c463b0cabc2"
+    },
+    "b05_node_h1.jsonl.gz": {
+      "path": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts/b05_node_h1.jsonl.gz",
+      "sha256": "1f98b6872bd8838ba11d2f30d0b1c433ecac795c99564993d69f0c13e01b411a"
+    }
+  },
+  "source_root": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts",
+  "source_rows": 8935,
+  "topology_source": "legacy_event_to_unary_layer_projection"
+}

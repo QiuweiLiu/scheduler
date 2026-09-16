@@ -1,0 +1,55 @@
+{
+  "schema_version": "stress-pilot-metrics-v0.1",
+  "status": "passed",
+  "remote_report": "results/processed/EXP-20260821_stress_pilot/pilot_report.json",
+  "design": {
+    "cells": 5,
+    "episodes_per_cell": 30,
+    "total_episodes": 150,
+    "jobs": 5120,
+    "policies": ["round_robin", "myopic", "predopt_h5", "oracle"],
+    "result_rows": 600,
+    "event_audit_episodes_per_cell": 2
+  },
+  "gates": {
+    "matrix_status_passed": true,
+    "all_jobs_completed": true,
+    "failed_jobs": 0,
+    "capacity_violations": 0,
+    "r7_untouched": true,
+    "t_final_read": false
+  },
+  "source_sha256": {
+    "templates": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+    "source_episodes": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "stress_script": "9382656901146b53c0380ac7969911d04e85862bce7b757f0e370b76c158d90b",
+    "stress_manifest": "0785196ee0390a70c696d964ed61c1d76c329a84206484631142c66f8da39e66",
+    "matrix_report": "b87571d0d761f2db12a1afd59a8bc266cb1f83421d7fc51b785c07034e0dfb44"
+  },
+  "overall_mean_completion_ms": {
+    "round_robin": 681707.4805,
+    "myopic": 670549.8893,
+    "predopt_h5": 670532.6793,
+    "oracle": 482385.0564
+  },
+  "overall_deadline_miss_rate": {
+    "round_robin": 0.5488542,
+    "myopic": 0.5282292,
+    "predopt_h5": 0.5280208,
+    "oracle": 0.3998958
+  },
+  "cell_mean_completion_ms": {
+    "S0_baseline": {"round_robin": 210513.2170, "myopic": 214668.0171, "predopt_h5": 214624.9920, "oracle": 170352.3676},
+    "S1_ready_width": {"round_robin": 1138056.6000, "myopic": 1097550.3851, "predopt_h5": 1097550.3851, "oracle": 800609.7368},
+    "S2_tight_deadline": {"round_robin": 210513.2170, "myopic": 214668.0171, "predopt_h5": 214624.9920, "oracle": 170352.3676},
+    "S3_offered_load": {"round_robin": 711397.7685, "myopic": 728312.6420, "predopt_h5": 728312.6420, "oracle": 470001.0732},
+    "S4_combined": {"round_robin": 1138056.6000, "myopic": 1097550.3851, "predopt_h5": 1097550.3851, "oracle": 800609.7368}
+  },
+  "event_action_width_p50": {
+    "S0_baseline": {"round_robin": 3, "myopic": 2, "predopt_h5": 2, "oracle": 2},
+    "S1_ready_width": {"round_robin": 15, "myopic": 12, "predopt_h5": 12, "oracle": 8},
+    "S2_tight_deadline": {"round_robin": 3, "myopic": 2, "predopt_h5": 2, "oracle": 2},
+    "S3_offered_load": {"round_robin": 6, "myopic": 6, "predopt_h5": 6, "oracle": 3},
+    "S4_combined": {"round_robin": 15, "myopic": 12, "predopt_h5": 12, "oracle": 8}
+  }
+}

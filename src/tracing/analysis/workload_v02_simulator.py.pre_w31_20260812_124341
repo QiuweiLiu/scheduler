@@ -1,0 +1,646 @@
+#!/usr/bin/env python3
+"""Run a node-level event simulator for workload-episode-v0.2.
+
+This is a controlled Phase 4 simulator, not a physical multi-GPU benchmark.
+GPU nodes use one active node per GPU; CPU/API nodes can overlap.  Policies
+receive train-only empirical estimates while the simulator keeps measured
+template runtime/memory as hidden execution truth.
+"""
+
+from __future__ import annotations
+
+import argparse
+import heapq
+import json
+import math
+import statistics
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Iterable, Mapping, Sequence
+
+
+POLICIES = ("round_robin", "myopic", "oracle")
+EVENT_ORDER = {"finish": 0, "arrival": 1}
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, 1):
+            if not line.strip():
+                continue
+            value = json.loads(line)
+            if not isinstance(value, dict):
+                raise ValueError(f"{path}:{line_number} is not an object")
+            rows.append(value)
+    return rows
+
+
+def write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def write_json(path: Path, value: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def text(value: Any, default: str = "unknown") -> str:
+    result = str(value or "").strip()
+    return result or default
+
+
+def number(value: Any, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    return result if math.isfinite(result) else default
+
+
+def optional_number(value: Any) -> float | None:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    return result if math.isfinite(result) and result >= 0.0 else None
+
+
+def quantile(values: Sequence[float], q: float) -> float | None:
+    clean = sorted(float(value) for value in values if math.isfinite(float(value)) and float(value) >= 0.0)
+    if not clean:
+        return None
+    position = (len(clean) - 1) * q
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return clean[int(lower)]
+    fraction = position - lower
+    return clean[int(lower)] * (1.0 - fraction) + clean[int(upper)] * fraction
+
+
+@dataclass(frozen=True)
+class Node:
+    node_id: str
+    sequence_index: int
+    predecessors: tuple[str, ...]
+    successors: tuple[str, ...]
+    lane: str
+    model_id: str
+    runtime_ms: float
+    load_ms: float | None
+    workspace_peak_mb: float | None
+    resident_model_mb: float | None
+    status: str
+
+    @property
+    def workspace_incremental_mb(self) -> float:
+        if self.lane != "gpu" or self.workspace_peak_mb is None:
+            return 0.0
+        if self.resident_model_mb is None:
+            return self.workspace_peak_mb
+        return max(0.0, self.workspace_peak_mb - self.resident_model_mb)
+
+    @property
+    def compute_ms(self) -> float:
+        return max(0.1, self.runtime_ms - number(self.load_ms))
+
+
+@dataclass(frozen=True)
+class Template:
+    template_id: str
+    video_id: str
+    split: str
+    baseline: str
+    nodes: tuple[Node, ...]
+    by_id: Mapping[str, Node]
+
+
+@dataclass
+class Job:
+    job_instance_id: str
+    template: Template
+    arrival_ms: float
+    deadline_ms: float | None
+    service_class: str
+    node_state: dict[str, str] = field(default_factory=dict)
+    ready_since: dict[str, float] = field(default_factory=dict)
+    started: set[str] = field(default_factory=set)
+    completed: set[str] = field(default_factory=set)
+    failed: set[str] = field(default_factory=set)
+    finish_ms: float | None = None
+    queue_ms: float = 0.0
+    load_ms: float = 0.0
+    assigned_gpus: list[int] = field(default_factory=list)
+
+
+@dataclass
+class GPU:
+    index: int
+    capacity_mb: float
+    busy_until: float = 0.0
+    active_node: tuple[int, str] | None = None
+    resident: dict[str, float] = field(default_factory=dict)
+    peak_memory_mb: float = 0.0
+    evictions: int = 0
+    busy_time_ms: float = 0.0
+
+
+def load_templates(path: Path) -> dict[str, Template]:
+    result: dict[str, Template] = {}
+    for row in read_jsonl(path):
+        raw_nodes = row.get("nodes") or []
+        nodes_by_id: dict[str, Node] = {}
+        for raw in raw_nodes:
+            node_id = text(raw.get("node_id"), "")
+            if not node_id or node_id in nodes_by_id:
+                raise ValueError(f"duplicate/empty node_id in template {row.get('template_id')}")
+            predecessors = tuple(str(value) for value in raw.get("predecessor_node_ids") or [])
+            nodes_by_id[node_id] = Node(
+                node_id=node_id,
+                sequence_index=int(raw.get("sequence_index") or 0),
+                predecessors=predecessors,
+                successors=(),
+                lane=text(raw.get("execution_lane")),
+                model_id=text(raw.get("model_id")),
+                runtime_ms=max(0.0, number(raw.get("runtime_ms"))),
+                load_ms=optional_number(raw.get("load_ms")),
+                workspace_peak_mb=optional_number(raw.get("workspace_peak_mb")),
+                resident_model_mb=optional_number(raw.get("resident_model_mb")),
+                status=text(raw.get("status")),
+            )
+        successors: dict[str, list[str]] = defaultdict(list)
+        for node in nodes_by_id.values():
+            for predecessor in node.predecessors:
+                if predecessor not in nodes_by_id:
+                    raise ValueError(f"missing predecessor {predecessor} in template {row.get('template_id')}")
+                successors[predecessor].append(node.node_id)
+        final_nodes = {
+            node_id: Node(**{**node.__dict__, "successors": tuple(sorted(successors.get(node_id, []), key=lambda value: nodes_by_id[value].sequence_index))})
+            for node_id, node in nodes_by_id.items()
+        }
+        roots = [node for node in final_nodes.values() if not node.predecessors]
+        if not roots:
+            raise ValueError(f"template has no root: {row.get('template_id')}")
+        result[str(row["template_id"])] = Template(
+            template_id=str(row["template_id"]),
+            video_id=text(row.get("video_id")),
+            split=text(row.get("split")),
+            baseline=text(row.get("baseline")),
+            nodes=tuple(sorted(final_nodes.values(), key=lambda node: node.sequence_index)),
+            by_id=final_nodes,
+        )
+    if not result:
+        raise ValueError(f"no templates in {path}")
+    return result
+
+
+def train_resource_stats(templates: Mapping[str, Template]) -> dict[str, dict[str, Any]]:
+    groups: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    for template in templates.values():
+        if template.split != "train":
+            continue
+        for node in template.nodes:
+            for key in resource_keys(node):
+                groups[key]["runtime"].append(node.runtime_ms)
+                if node.load_ms is not None and node.load_ms > 0.0:
+                    groups[key]["load"].append(node.load_ms)
+                if node.workspace_peak_mb is not None:
+                    groups[key]["memory"].append(node.workspace_peak_mb)
+    return {
+        key: {
+            "runtime_p50_ms": quantile(values["runtime"], 0.50),
+            "runtime_p90_ms": quantile(values["runtime"], 0.90),
+            "load_p50_ms": quantile(values["load"], 0.50),
+            "memory_p95_mb": quantile(values["memory"], 0.95),
+            "count": len(values["runtime"]),
+        }
+        for key, values in groups.items()
+    }
+
+
+def resource_keys(node: Node) -> tuple[str, ...]:
+    return (
+        "|".join((node.model_id, node.lane, str(node.sequence_index), "exact")),
+        "|".join((node.model_id, node.lane, "*", "model_lane")),
+        "|".join(("*", node.lane, "*", "lane")),
+    )
+
+
+def estimate(node: Node, stats: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    found = None
+    for key in resource_keys(node):
+        candidate = stats.get(key)
+        if candidate and int(candidate.get("count") or 0) >= 3:
+            found = candidate
+            break
+    if found is None:
+        # A causal estimator may use a training global only when available.
+        # Missing resource estimates are a gate failure, not a zero label.
+        raise ValueError(f"no train-only estimate for node {node.node_id} model={node.model_id} lane={node.lane}")
+    return {
+        "runtime_p50_ms": float(found["runtime_p50_ms"]),
+        "runtime_p90_ms": float(found["runtime_p90_ms"]),
+        "load_p50_ms": float(found["load_p50_ms"] or 0.0),
+        "memory_p95_mb": float(found["memory_p95_mb"] or 0.0),
+        "uncertainty": "train_only_empirical_quantile",
+    }
+
+
+def model_memory(node: Node, estimate_row: Mapping[str, Any]) -> float:
+    value = node.resident_model_mb
+    if value is None:
+        # The template gate rejects unknown GPU resident memory before formal
+        # generation.  This error prevents silent zero replacement.
+        if node.lane == "gpu":
+            raise ValueError(f"unknown resident model memory for GPU node {node.node_id}")
+        return 0.0
+    return max(0.0, float(value))
+
+
+def fits_gpu(gpu: GPU, node: Node, estimate_row: Mapping[str, Any]) -> bool:
+    model_mb = model_memory(node, estimate_row)
+    workspace_mb = max(0.0, float(estimate_row["memory_p95_mb"]) - model_mb)
+    # Other resident models may be evicted before this node starts.  The
+    # physical feasibility test is therefore this node's model plus its
+    # workspace; cache reuse is a policy cost, not a capacity exemption.
+    return model_mb + workspace_mb <= gpu.capacity_mb + 1e-9
+
+
+def roots(template: Template) -> list[str]:
+    return [node.node_id for node in template.nodes if not node.predecessors]
+
+
+def build_jobs(episode: Mapping[str, Any], templates: Mapping[str, Template]) -> list[Job]:
+    jobs: list[Job] = []
+    for raw in episode.get("jobs") or []:
+        template_id = str(raw["template_id"])
+        if template_id not in templates:
+            raise ValueError(f"episode references unknown template {template_id}")
+        template = templates[template_id]
+        if template.split != str(episode.get("split")):
+            raise ValueError(f"episode split leak: {episode.get('episode_id')} -> {template_id}")
+        jobs.append(Job(
+            job_instance_id=str(raw["job_instance_id"]),
+            template=template,
+            arrival_ms=number(raw.get("arrival_ms")),
+            deadline_ms=optional_number(raw.get("deadline_ms")),
+            service_class=text(raw.get("service_class"), "normal"),
+            node_state={node.node_id: "pending" for node in template.nodes},
+        ))
+    return jobs
+
+
+def ready_nodes(job: Job, now: float) -> list[str]:
+    if now + 1e-9 < job.arrival_ms:
+        return []
+    ready: list[str] = []
+    for node in job.template.nodes:
+        if job.node_state.get(node.node_id) != "pending":
+            continue
+        if all(job.node_state.get(predecessor) == "complete" for predecessor in node.predecessors):
+            ready.append(node.node_id)
+    return ready
+
+
+def future_truth_cost(job: Job, node_id: str, gpu: GPU, train_stats: Mapping[str, Mapping[str, Any]]) -> float:
+    node = job.template.by_id[node_id]
+    resident = dict(gpu.resident)
+    total = 0.0
+    for candidate in job.template.nodes[node.sequence_index:]:
+        memory = model_memory(candidate, estimate(candidate, train_stats)) if candidate.lane == "gpu" else 0.0
+        if candidate.lane == "gpu" and candidate.model_id not in resident:
+            if sum(resident.values()) + memory + candidate.workspace_incremental_mb > gpu.capacity_mb:
+                resident.clear()
+            resident[candidate.model_id] = memory
+            total += number(candidate.load_ms)
+        total += candidate.compute_ms
+    return total
+
+
+def choose_gpu(policy: str, job: Job, node: Node, gpus: Sequence[GPU], train_stats: Mapping[str, Mapping[str, Any]], round_robin_cursor: int) -> int:
+    estimate_row = estimate(node, train_stats)
+    candidates = [gpu for gpu in gpus if gpu.busy_until <= 1e-9 or gpu.active_node is None]
+    if not candidates:
+        raise RuntimeError("choose_gpu called without a free GPU")
+
+    fitting = [gpu for gpu in candidates if fits_gpu(gpu, node, estimate_row)]
+    if not fitting:
+        fitting = candidates
+    if policy == "round_robin":
+        return min(fitting, key=lambda gpu: ((gpu.index - round_robin_cursor) % len(gpus), gpu.index)).index
+    if policy == "oracle":
+        return min(fitting, key=lambda gpu: (future_truth_cost(job, node.node_id, gpu, train_stats), gpu.index)).index
+
+    def myopic_score(gpu: GPU) -> tuple[float, float, int]:
+        load = 0.0 if node.model_id in gpu.resident else estimate_row["load_p50_ms"]
+        reuse = 0 if node.model_id in gpu.resident else 1
+        return (estimate_row["runtime_p50_ms"] + load, reuse, gpu.index)
+
+    return min(fitting, key=myopic_score).index
+
+
+def simulator_view(node: Node, estimate_row: Mapping[str, Any], now: float, gpu_index: int | None) -> dict[str, Any]:
+    return {
+        "node_id": node.node_id,
+        "lane": node.lane,
+        "model_id": node.model_id,
+        "runtime_p50_ms": estimate_row["runtime_p50_ms"],
+        "runtime_p90_ms": estimate_row["runtime_p90_ms"],
+        "load_p50_ms": estimate_row["load_p50_ms"],
+        "peak_memory_p95_mb": estimate_row["memory_p95_mb"],
+        "decision_time_ms": now,
+        "gpu_index": gpu_index,
+    }
+
+
+def simulate_episode(episode: Mapping[str, Any], templates: Mapping[str, Template], policy: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    jobs = build_jobs(episode, templates)
+    train_stats = train_resource_stats(templates)
+    capacities = [float(value) for value in episode.get("gpu_topology_mb") or []]
+    gpus = [GPU(index, capacity) for index, capacity in enumerate(capacities)]
+    for gpu, resident_models in zip(gpus, episode.get("initial_residency_hint") or []):
+        for model in resident_models:
+            memory = None
+            for template in templates.values():
+                for node in template.nodes:
+                    if node.model_id == model and node.resident_model_mb is not None:
+                        memory = node.resident_model_mb
+                        break
+                if memory is not None:
+                    break
+            if memory is None:
+                raise ValueError(f"unknown initial resident model {model}")
+            if sum(gpu.resident.values()) + memory > gpu.capacity_mb:
+                raise ValueError(f"initial residency exceeds GPU capacity {gpu.index}")
+            gpu.resident[model] = memory
+    arrival_heap = [(job.arrival_ms, index) for index, job in enumerate(jobs)]
+    heapq.heapify(arrival_heap)
+    finish_heap: list[tuple[float, int, int, str, int | None, str]] = []
+    ready: list[tuple[float, int, int, str]] = []
+    events: list[dict[str, Any]] = []
+    now = 0.0
+    sequence = 0
+    rr_cursor = 0
+    active_jobs: set[int] = set()
+
+    def log(event_type: str, job: Job, node: Node | None = None, **extra: Any) -> None:
+        row = {
+            "schema_version": "simulation-event-v0.2",
+            "episode_id": episode["episode_id"],
+            "policy": policy,
+            "event_type": event_type,
+            "time_ms": round(now, 3),
+            "job_instance_id": job.job_instance_id,
+        }
+        if node is not None:
+            row.update({"node_id": node.node_id, "lane": node.lane, "model_id": node.model_id})
+        row.update(extra)
+        events.append(row)
+
+    def release_ready(job_index: int) -> None:
+        job = jobs[job_index]
+        for node_id in ready_nodes(job, now):
+            if job.node_state[node_id] == "pending":
+                job.node_state[node_id] = "ready"
+                job.ready_since[node_id] = now
+                node = job.template.by_id[node_id]
+                priority = 0 if job.service_class == "priority" else 1
+                heapq.heappush(ready, (priority, now, job_index, node_id))
+                log("node_ready", job, node, predecessor_count=len(node.predecessors))
+
+    def complete_job_if_done(job: Job) -> None:
+        if job.finish_ms is None and all(state == "complete" for state in job.node_state.values()):
+            job.finish_ms = now
+            log("job_finish", job, deadline_met=(job.deadline_ms is None or now <= job.deadline_ms))
+
+    def process_finish() -> None:
+        nonlocal now
+        while finish_heap and finish_heap[0][0] <= now + 1e-9:
+            finish, _order, job_index, lane, gpu_index, node_id = heapq.heappop(finish_heap)
+            job = jobs[job_index]
+            node = job.template.by_id[node_id]
+            job.node_state[node_id] = "complete"
+            job.completed.add(node_id)
+            if gpu_index is not None:
+                gpu = gpus[gpu_index]
+                gpu.busy_until = finish
+                gpu.active_node = None
+            log("node_finish", job, node, finish_ms=round(finish, 3), gpu_index=gpu_index, observed_status=node.status)
+            release_ready(job_index)
+            complete_job_if_done(job)
+
+    while arrival_heap or finish_heap or ready:
+        if not ready and not finish_heap and arrival_heap:
+            now = max(now, arrival_heap[0][0])
+        while arrival_heap and arrival_heap[0][0] <= now + 1e-9:
+            arrival, job_index = heapq.heappop(arrival_heap)
+            job = jobs[job_index]
+            active_jobs.add(job_index)
+            log("job_arrive", job, arrival_ms=round(arrival, 3))
+            release_ready(job_index)
+        process_finish()
+
+        made_progress = True
+        while made_progress:
+            made_progress = False
+            # CPU/API work does not consume a GPU slot in this first model.
+            deferred: list[tuple[float, int, int, str]] = []
+            while ready:
+                item = heapq.heappop(ready)
+                _priority, ready_time, job_index, node_id = item
+                job = jobs[job_index]
+                node = job.template.by_id[node_id]
+                if node.lane == "gpu":
+                    deferred.append(item)
+                    continue
+                if job.node_state[node_id] != "ready":
+                    continue
+                row = estimate(node, train_stats)
+                job.node_state[node_id] = "running"
+                job.started.add(node_id)
+                job.queue_ms += max(0.0, now - ready_time)
+                duration = node.runtime_ms
+                sequence += 1
+                event_key = int(sequence)
+                heapq.heappush(finish_heap, (now + duration, event_key, job_index, node.lane, None, node_id))
+                log("node_start", job, node, scheduler_view=simulator_view(node, row, now, None), start_ms=round(now, 3), queue_ms=round(max(0.0, now - ready_time), 3))
+                made_progress = True
+            for item in deferred:
+                heapq.heappush(ready, item)
+
+            free_gpu = [gpu for gpu in gpus if gpu.active_node is None and gpu.busy_until <= now + 1e-9]
+            if free_gpu:
+                deferred_gpu: list[tuple[float, int, int, str]] = []
+                while ready and free_gpu:
+                    item = heapq.heappop(ready)
+                    _priority, ready_time, job_index, node_id = item
+                    job = jobs[job_index]
+                    node = job.template.by_id[node_id]
+                    if node.lane != "gpu" or job.node_state[node_id] != "ready":
+                        deferred_gpu.append(item)
+                        continue
+                    row = estimate(node, train_stats)
+                    gpu_index = choose_gpu(policy, job, node, free_gpu, train_stats, rr_cursor)
+                    gpu = next(gpu for gpu in free_gpu if gpu.index == gpu_index)
+                    memory = model_memory(node, row)
+                    predicted_workspace = max(0.0, float(row["memory_p95_mb"]) - memory)
+                    if memory + predicted_workspace > gpu.capacity_mb:
+                        job.node_state[node_id] = "failed"
+                        job.failed.add(node_id)
+                        log("node_fail", job, node, reason="simulated_oom", gpu_index=gpu_index, scheduler_view=simulator_view(node, row, now, gpu_index))
+                        complete_job_if_done(job)
+                        made_progress = True
+                        continue
+                    load = 0.0
+                    evicted: list[str] = []
+                    projected_memory = sum(gpu.resident.values()) + predicted_workspace
+                    if projected_memory > gpu.capacity_mb:
+                        evicted = sorted(gpu.resident)
+                        gpu.resident = {}
+                        gpu.evictions += len(evicted)
+                    if node.model_id not in gpu.resident:
+                        gpu.resident[node.model_id] = memory
+                        load = max(number(node.load_ms), float(row["load_p50_ms"]))
+                        log("model_evict", job, node, gpu_index=gpu_index, models=evicted) if evicted else None
+                        log("model_load_start", job, node, gpu_index=gpu_index, load_ms=round(load, 3))
+                    total_memory = sum(gpu.resident.values()) + predicted_workspace
+                    if total_memory > gpu.capacity_mb + 1e-9:
+                        raise RuntimeError(f"memory ledger exceeded GPU {gpu.index}: {total_memory} > {gpu.capacity_mb}; node={node.node_id}; model={node.model_id}; resident={gpu.resident}; predicted_workspace={predicted_workspace}; model_memory={memory}; evicted={evicted}")
+                    gpu.peak_memory_mb = max(gpu.peak_memory_mb, total_memory)
+                    job.node_state[node_id] = "running"
+                    job.started.add(node_id)
+                    job.queue_ms += max(0.0, now - ready_time)
+                    job.load_ms += load
+                    duration = node.compute_ms + load
+                    start = now
+                    finish = start + duration
+                    gpu.active_node = (job_index, node_id)
+                    gpu.busy_until = finish
+                    gpu.busy_time_ms += duration
+                    job.assigned_gpus.append(gpu_index)
+                    sequence += 1
+                    event_key = int(sequence)
+                    heapq.heappush(finish_heap, (finish, event_key, job_index, "gpu", gpu_index, node_id))
+                    log("node_start", job, node, scheduler_view=simulator_view(node, row, now, gpu_index), start_ms=round(start, 3), queue_ms=round(max(0.0, now - ready_time), 3), load_ms=round(load, 3), truth_runtime_ms=round(node.runtime_ms, 3), resident_memory_mb=round(sum(gpu.resident.values()), 3), workspace_memory_mb=round(predicted_workspace, 3), total_memory_mb=round(total_memory, 3), gpu_capacity_mb=gpu.capacity_mb)
+                    rr_cursor = (gpu_index + 1) % max(1, len(gpus))
+                    free_gpu = [candidate for candidate in free_gpu if candidate.index != gpu_index]
+                    made_progress = True
+                for item in deferred_gpu:
+                    heapq.heappush(ready, item)
+
+        process_finish()
+        if ready and not any(gpu.active_node is None for gpu in gpus) and not finish_heap:
+            raise RuntimeError("ready queue is blocked without a future completion")
+        if finish_heap:
+            next_finish = finish_heap[0][0]
+        else:
+            next_finish = math.inf
+        next_arrival = arrival_heap[0][0] if arrival_heap else math.inf
+        if not ready or (next_finish < math.inf and next_finish <= next_arrival):
+            now = max(now, min(next_finish, next_arrival))
+        elif next_arrival < math.inf and not any(gpu.active_node is None for gpu in gpus):
+            now = max(now, min(next_finish, next_arrival))
+        elif not finish_heap and not arrival_heap and ready:
+            raise RuntimeError("simulation deadlock")
+
+    completed = [job for job in jobs if job.finish_ms is not None and not job.failed]
+    durations = [float(job.finish_ms) - job.arrival_ms for job in completed]
+    makespan = max((job.finish_ms or 0.0 for job in jobs), default=0.0)
+    summary = {
+        "schema_version": "simulation-result-v0.2",
+        "episode_id": episode["episode_id"],
+        "policy": policy,
+        "jobs": len(jobs),
+        "completed_jobs": len(completed),
+        "failed_jobs": sum(1 for job in jobs if job.failed),
+        "nodes": sum(len(job.template.nodes) for job in jobs),
+        "completed_nodes": sum(len(job.completed) for job in jobs),
+        "mean_completion_ms": statistics.fmean(durations) if durations else None,
+        "p95_completion_ms": quantile(durations, 0.95),
+        "makespan_ms": makespan,
+        "mean_job_queue_ms": statistics.fmean(job.queue_ms for job in jobs) if jobs else 0.0,
+        "deadline_miss_rate": statistics.fmean(1.0 if job.finish_ms is None or (job.deadline_ms is not None and job.finish_ms > job.deadline_ms) else 0.0 for job in jobs) if jobs else 0.0,
+        "gpu_evictions": sum(gpu.evictions for gpu in gpus),
+        "gpu_peak_memory_mb": [gpu.peak_memory_mb for gpu in gpus],
+        "gpu_utilization": [gpu.busy_time_ms / makespan if makespan > 0 else 0.0 for gpu in gpus],
+    }
+    return summary, events
+
+
+def run(templates_path: Path, episodes_path: Path, output_dir: Path, policies: Sequence[str]) -> dict[str, Any]:
+    templates = load_templates(templates_path)
+    episodes = read_jsonl(episodes_path)
+    summaries: list[dict[str, Any]] = []
+    all_events: list[dict[str, Any]] = []
+    for episode in episodes:
+        for policy in policies:
+            summary, events = simulate_episode(episode, templates, policy)
+            summaries.append(summary)
+            all_events.extend(events)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(output_dir / "simulation_results.jsonl", summaries)
+    write_jsonl(output_dir / "simulation_events.jsonl", all_events)
+    by_policy: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    for row in summaries:
+        by_policy[str(row["policy"])].append(row)
+    aggregate: list[dict[str, Any]] = []
+    for policy, rows in sorted(by_policy.items()):
+        aggregate.append({
+            "policy": policy,
+            "episodes": len(rows),
+            "mean_completion_ms": statistics.fmean(number(row.get("mean_completion_ms")) for row in rows),
+            "p95_completion_ms": statistics.fmean(number(row.get("p95_completion_ms")) for row in rows),
+            "mean_job_queue_ms": statistics.fmean(number(row.get("mean_job_queue_ms")) for row in rows),
+            "deadline_miss_rate": statistics.fmean(number(row.get("deadline_miss_rate")) for row in rows),
+            "mean_gpu_evictions": statistics.fmean(number(row.get("gpu_evictions")) for row in rows),
+            "completed_jobs": min(number(row.get("completed_jobs")) for row in rows),
+        })
+    oracle = next((row for row in aggregate if row["policy"] == "oracle"), None)
+    myopic = next((row for row in aggregate if row["policy"] == "myopic"), None)
+    oracle_gap = None
+    if oracle and myopic:
+        oracle_gap = {
+            "myopic_minus_oracle_mean_completion_ms": myopic["mean_completion_ms"] - oracle["mean_completion_ms"],
+            "myopic_relative_gap": (myopic["mean_completion_ms"] - oracle["mean_completion_ms"]) / max(1e-9, oracle["mean_completion_ms"]),
+        }
+    report = {
+        "schema_version": "simulation-report-v0.2",
+        "templates": len(templates),
+        "episodes": len(episodes),
+        "policies": list(policies),
+        "aggregate": aggregate,
+        "oracle_gap": oracle_gap,
+        "event_invariants": {
+            "checked": True,
+            "scheduler_truth_separated": True,
+            "queue_generated_by_events": True,
+            "oom_labels": "simulator_outcome_only",
+        },
+    }
+    write_json(output_dir / "simulation_report.json", report)
+    return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--templates", type=Path, required=True)
+    parser.add_argument("--episodes", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--policies", default=",".join(POLICIES))
+    args = parser.parse_args()
+    policies = tuple(value.strip() for value in args.policies.split(",") if value.strip())
+    unknown = sorted(set(policies) - set(POLICIES))
+    if unknown:
+        raise ValueError(f"unknown policies: {unknown}")
+    report = run(args.templates, args.episodes, args.output_dir, policies)
+    print(json.dumps({"episodes": report["episodes"], "templates": report["templates"], "oracle_gap": report["oracle_gap"], "output_dir": str(args.output_dir)}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,84 @@
+{
+  "schema_version": "p9d-future-content-multitask-v1",
+  "experiment_id": "EXP-20260903_p9d_future_content_multitask",
+  "question": "Can a shared causal GRU predict all future-node content while preserving next-step behavior, and does soft topology conditioning help?",
+  "scope": "P_dev_train_fit_validation_epoch_selection_test_diagnostic_holdout_frozen_acceptance_only",
+  "execution_environment": "remote_finetooling_cuda_only",
+  "dataset_root": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1",
+  "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+  "experiment_root": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask",
+  "p_dev_role_samples": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r1v5_candidate/data/role_event_samples.jsonl",
+  "p_holdout_role_samples": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/dataset/role_event_samples.jsonl",
+  "p_dev_family_samples": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r1v5_candidate/data/semantic_tool_samples.jsonl",
+  "p_holdout_family_samples": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/dataset/semantic_tool_samples.jsonl",
+  "test_path": "/root/autodl-tmp/scheduler/tests/test_p9d_future_content_multitask.py",
+  "run_script_path": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/run.sh",
+  "device": "cuda:0",
+  "horizon": 5,
+  "max_width": 5,
+  "max_scenarios": 3,
+  "max_history": 64,
+  "hidden": 128,
+  "history_embedding_dim": 16,
+  "context_embedding_dim": 12,
+  "slot_embedding_dim": 16,
+  "dropout": 0.1,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "batch_size": 256,
+  "max_epochs": 30,
+  "patience": 6,
+  "seeds": [11, 22, 33],
+  "variants": ["N0", "A", "B", "D"],
+  "variant_configs": {
+    "N0": {
+      "use_soft_topology_conditioning": false,
+      "loss_weights": {"next": 1.0, "structure": 0.0, "content": 0.0}
+    },
+    "A": {
+      "use_soft_topology_conditioning": false,
+      "loss_weights": {"next": 0.0, "structure": 1.0, "content": 1.0}
+    },
+    "B": {
+      "use_soft_topology_conditioning": false,
+      "loss_weights": {"next": 1.0, "structure": 1.0, "content": 1.0}
+    },
+    "D": {
+      "use_soft_topology_conditioning": true,
+      "loss_weights": {"next": 1.0, "structure": 1.0, "content": 1.0}
+    }
+  },
+  "selection": {
+    "N0_primary_metric": "negative_validation_next_role_macro_f1_plus_family_macro_f1",
+    "future_primary_metric": "validation_layer_count_mae_plus_active_width_vector_mae",
+    "test_selection_allowed": false,
+    "holdout_selection_allowed": false,
+    "conditioning_gradient": "joint_for_D"
+  },
+  "target": {
+    "content_fields": ["node_type", "raw_action", "model_id", "action_family"],
+    "structure_heads": ["layer_count", "width_1", "width_2", "width_3", "width_4", "width_5"],
+    "next_step_heads": ["next_role", "execute_gated_family"],
+    "node_mask": "derived_from_layer_count_and_width_prefix",
+    "node_identity_used": false,
+    "edges_used_as_feature": false,
+    "resource_truth_used_as_feature": false,
+    "matching": "one_joint_bipartite_assignment_per_active_layer_reused_across_content_fields"
+  },
+  "data_boundary": {
+    "fit": "P_dev/train",
+    "selection": "P_dev/validation",
+    "diagnostic": "P_dev/test",
+    "frozen_acceptance": "P_holdout_diag/holdout",
+    "scheduler_groups_used": false,
+    "t_final_read": false,
+    "t_final_sealed": true
+  },
+  "git_commit": "unavailable_uncommitted_source_mirror",
+  "remote_host_identity": "autodl-container-41d846924e-d62d0601",
+  "source_scripts": [
+    "scripts/p9d_future_content_multitask.py",
+    "scripts/p9d_shared_causal_gru.py",
+    "tests/test_p9d_future_content_multitask.py"
+  ]
+}

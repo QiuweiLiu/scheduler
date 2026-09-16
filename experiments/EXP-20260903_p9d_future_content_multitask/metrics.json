@@ -1,0 +1,2826 @@
+{
+  "aggregate": {
+    "A": {
+      "holdout": {
+        "behavior_family_accuracy": {
+          "mean": 0.18187579214195182,
+          "std": 0.08084257848701906
+        },
+        "behavior_family_coverage": {
+          "mean": 0.381159420289855,
+          "std": 5.551115123125783e-17
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.07826856042015838,
+          "std": 0.01960514021822249
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.062318840579710134,
+          "std": 0.036992026139420923
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.14589371980676327,
+          "std": 0.08011826423829296
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.08911584392395792,
+          "std": 0.04314489516690378
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.0922705314009662,
+          "std": 0.017812269627619923
+        },
+        "layer_count_mae": {
+          "mean": 0.1497584541062802,
+          "std": 0.007945354687632137
+        },
+        "node_count_bias": {
+          "mean": 0.028502415458937197,
+          "std": 0.04410313178279913
+        },
+        "node_count_mae": {
+          "mean": 0.4178743961352657,
+          "std": 0.025792306272386874
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.44377736706455656,
+          "std": 0.0052707082624430385
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.4157765339329118,
+          "std": 0.006051734473449165
+        },
+        "sample_count": {
+          "mean": 1380.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.028000833131644826,
+          "std": 0.0030653765529312107
+        },
+        "structure_exact_coverage": {
+          "mean": 0.8149758454106278,
+          "std": 0.011074293126905946
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.08695652173913043,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.08695652173913043,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.14260869565217393,
+          "std": 0.005576729236990684
+        }
+      },
+      "seed_count": 3,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "test": {
+        "behavior_family_accuracy": {
+          "mean": 0.18920521945432978,
+          "std": 0.09532821163873995
+        },
+        "behavior_family_coverage": {
+          "mean": 0.36973684210526314,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.10011161446399108,
+          "std": 0.03631635404933702
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.04342105263157895,
+          "std": 0.019656268280961897
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.14605263157894735,
+          "std": 0.0923930341576111
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.0841740796236961,
+          "std": 0.04644091535846163
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.1105263157894737,
+          "std": 0.0021486752129677013
+        },
+        "layer_count_mae": {
+          "mean": 0.11929824561403508,
+          "std": 0.001240538212607982
+        },
+        "node_count_bias": {
+          "mean": -0.012280701754385963,
+          "std": 0.005693313590239986
+        },
+        "node_count_mae": {
+          "mean": 0.5214912280701754,
+          "std": 0.0038109971923207717
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.6804030466792712,
+          "std": 0.0011649163930346693
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.6601667207424635,
+          "std": 0.0018309092313369007
+        },
+        "sample_count": {
+          "mean": 1520.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.020236325936807686,
+          "std": 0.001723684333640322
+        },
+        "structure_exact_coverage": {
+          "mean": 0.7594298245614035,
+          "std": 0.0013518451760896832
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.07105263157894737,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.07105263157894737,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.12315789473684209,
+          "std": 0.0010360536676331307
+        }
+      },
+      "validation": {
+        "behavior_family_accuracy": {
+          "mean": 0.18807588075880757,
+          "std": 0.10151285479269744
+        },
+        "behavior_family_coverage": {
+          "mean": 0.30310497782158696,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.09409655843789377,
+          "std": 0.02985140840315408
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.0645638245441104,
+          "std": 0.032311056487104514
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.14818465582388696,
+          "std": 0.09758695324378
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.08363287915641775,
+          "std": 0.04626453992310274
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.039756858879579436,
+          "std": 0.0016753801588936358
+        },
+        "layer_count_mae": {
+          "mean": 0.04567110234926893,
+          "std": 0.0012293929314190696
+        },
+        "node_count_bias": {
+          "mean": -0.11992771480203712,
+          "std": 0.005493101198390174
+        },
+        "node_count_mae": {
+          "mean": 0.34138327583374406,
+          "std": 0.0036067846886972486
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.692394058142581,
+          "std": 0.004801003714691589
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.6715167935764499,
+          "std": 0.004516372444017475
+        },
+        "sample_count": {
+          "mean": 2029.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.02087726456613115,
+          "std": 0.000872200579206187
+        },
+        "structure_exact_coverage": {
+          "mean": 0.7990800065713817,
+          "std": 0.0019017310502366153
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.07097092163627403,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.07097092163627403,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.08148513224905536,
+          "std": 0.000443263925192443
+        }
+      }
+    },
+    "B": {
+      "holdout": {
+        "behavior_family_accuracy": {
+          "mean": 0.6837769328263624,
+          "std": 0.007657190097334962
+        },
+        "behavior_family_coverage": {
+          "mean": 0.381159420289855,
+          "std": 5.551115123125783e-17
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.5461917152027059,
+          "std": 0.0025305253107616547
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8420289855072464,
+          "std": 0.0030743773095067107
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.96256038647343,
+          "std": 0.0003415974788340615
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9640331074824804,
+          "std": 0.0002111966299851265
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.11497584541062804,
+          "std": 0.014179381759844612
+        },
+        "layer_count_mae": {
+          "mean": 0.14444444444444446,
+          "std": 0.005985271349451145
+        },
+        "node_count_bias": {
+          "mean": 0.07898550724637682,
+          "std": 0.04693206257468904
+        },
+        "node_count_mae": {
+          "mean": 0.3978260869565218,
+          "std": 0.00738988335303303
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.43814683309050206,
+          "std": 0.0014246878362189125
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.41170347465532325,
+          "std": 0.002818651439316255
+        },
+        "sample_count": {
+          "mean": 1380.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.026443358435178754,
+          "std": 0.0018343080353808825
+        },
+        "structure_exact_coverage": {
+          "mean": 0.8190821256038646,
+          "std": 0.002977977779212083
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.08695652173913043,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.08695652173913043,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.14082125603864734,
+          "std": 0.0015757977227343182
+        }
+      },
+      "seed_count": 3,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "test": {
+        "behavior_family_accuracy": {
+          "mean": 0.8113879003558719,
+          "std": 0.009526914830491692
+        },
+        "behavior_family_coverage": {
+          "mean": 0.36973684210526314,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.6122153114663661,
+          "std": 0.011810989942553491
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8708333333333332,
+          "std": 0.0039595329134359016
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9403508771929824,
+          "std": 0.0016410778012166658
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.953657709706197,
+          "std": 0.0017857097681254262
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.10614035087719298,
+          "std": 0.0018864748392637344
+        },
+        "layer_count_mae": {
+          "mean": 0.1175438596491228,
+          "std": 0.0027565362039422186
+        },
+        "node_count_bias": {
+          "mean": -0.02258771929824561,
+          "std": 0.0044728241347305134
+        },
+        "node_count_mae": {
+          "mean": 0.518640350877193,
+          "std": 0.0052995815673660416
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.6864003405216336,
+          "std": 0.0015173685373508256
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.6658842478012293,
+          "std": 0.00032184840467168864
+        },
+        "sample_count": {
+          "mean": 1520.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.02051609272040437,
+          "std": 0.0018119308618017394
+        },
+        "structure_exact_coverage": {
+          "mean": 0.7576754385964913,
+          "std": 0.002958495079656171
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.07105263157894737,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.07105263157894737,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.1225,
+          "std": 0.001408980561772721
+        }
+      },
+      "validation": {
+        "behavior_family_accuracy": {
+          "mean": 0.8211382113821138,
+          "std": 0.007025193169005794
+        },
+        "behavior_family_coverage": {
+          "mean": 0.30310497782158696,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.7903933637305317,
+          "std": 0.01117661102535148
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8894365040249713,
+          "std": 0.003469477917191219
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9431575488746509,
+          "std": 0.0026793997749794637
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9553537890889828,
+          "std": 0.001754304362549692
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.03926400525710531,
+          "std": 0.0006146964657095342
+        },
+        "layer_count_mae": {
+          "mean": 0.04583538689009364,
+          "std": 0.0024477845286268018
+        },
+        "node_count_bias": {
+          "mean": -0.12551338919007723,
+          "std": 0.00604066906878602
+        },
+        "node_count_mae": {
+          "mean": 0.3423689830786923,
+          "std": 0.0016753801588936473
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.6953136170671271,
+          "std": 0.0034920388881003518
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.6748447393784951,
+          "std": 0.0031172475220806067
+        },
+        "sample_count": {
+          "mean": 2029.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.020468877688631926,
+          "std": 0.00037730760818655934
+        },
+        "structure_exact_coverage": {
+          "mean": 0.8008871365204534,
+          "std": 0.001207239892943901
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.07097092163627403,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.07097092163627403,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.08155084606538525,
+          "std": 0.0004917571725676315
+        }
+      }
+    },
+    "D": {
+      "holdout": {
+        "behavior_family_accuracy": {
+          "mean": 0.6926489226869453,
+          "std": 0.01301814865917245
+        },
+        "behavior_family_coverage": {
+          "mean": 0.381159420289855,
+          "std": 5.551115123125783e-17
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.5511630642441682,
+          "std": 0.009233640060367749
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.844927536231884,
+          "std": 0.006233569034088871
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9620772946859902,
+          "std": 0.002463294451011005
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9636673652204489,
+          "std": 0.0025813081189379732
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.1142512077294686,
+          "std": 0.014179381759844612
+        },
+        "layer_count_mae": {
+          "mean": 0.14371980676328502,
+          "std": 0.0038496080798331436
+        },
+        "node_count_bias": {
+          "mean": 0.08140096618357488,
+          "std": 0.04693330572580706
+        },
+        "node_count_mae": {
+          "mean": 0.38816425120772946,
+          "std": 0.01745492924168085
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.4378834421675241,
+          "std": 0.00423955580662692
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.4126829669791154,
+          "std": 0.0034661462893952563
+        },
+        "sample_count": {
+          "mean": 1380.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.02520047518840877,
+          "std": 0.002058042862912778
+        },
+        "structure_exact_coverage": {
+          "mean": 0.8243961352657004,
+          "std": 0.002977977779212077
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.08695652173913043,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.08695652173913043,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.1371497584541063,
+          "std": 0.0022648711439093726
+        }
+      },
+      "seed_count": 3,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "test": {
+        "behavior_family_accuracy": {
+          "mean": 0.8107947805456702,
+          "std": 0.008757309051146755
+        },
+        "behavior_family_coverage": {
+          "mean": 0.36973684210526314,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.6131633648372388,
+          "std": 0.013713359609352582
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8706140350877193,
+          "std": 0.0044728241347305265
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9403508771929824,
+          "std": 0.0021709418720639666
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9535395574903841,
+          "std": 0.002593312036587009
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.10811403508771929,
+          "std": 0.004962152850431908
+        },
+        "layer_count_mae": {
+          "mean": 0.11907894736842105,
+          "std": 0.003223012819451549
+        },
+        "node_count_bias": {
+          "mean": -0.023464912280701754,
+          "std": 0.012015462747195373
+        },
+        "node_count_mae": {
+          "mean": 0.5212719298245614,
+          "std": 0.00622590770463963
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.6844565701154615,
+          "std": 0.002805316891065452
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.6642427680324466,
+          "std": 0.002980439591019499
+        },
+        "sample_count": {
+          "mean": 1520.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.02021380208301493,
+          "std": 0.0034996191550476317
+        },
+        "structure_exact_coverage": {
+          "mean": 0.7618421052631579,
+          "std": 0.0019367896636684
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.07105263157894737,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.07105263157894737,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.1219736842105263,
+          "std": 0.0014533369759456955
+        }
+      },
+      "validation": {
+        "behavior_family_accuracy": {
+          "mean": 0.816260162601626,
+          "std": 0.00398291015086696
+        },
+        "behavior_family_coverage": {
+          "mean": 0.30310497782158696,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.7829224673725483,
+          "std": 0.010726152430672306
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8861508132084771,
+          "std": 0.0004024132976479821
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.941350418925579,
+          "std": 0.0010646855098419056
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9537359366293106,
+          "std": 0.0011118918287003217
+        },
+        "future_exists_accuracy": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "layer_count_bias": {
+          "mean": 0.037456875308033516,
+          "std": 0.0008048265952959358
+        },
+        "layer_count_mae": {
+          "mean": 0.046656809594217176,
+          "std": 0.001229392931419072
+        },
+        "node_count_bias": {
+          "mean": -0.131263348118942,
+          "std": 0.005174311072128683
+        },
+        "node_count_mae": {
+          "mean": 0.3418761294562182,
+          "std": 0.0020254358478623054
+        },
+        "oracle_structure_attr_macro_f1": {
+          "mean": 0.6928626798810433,
+          "std": 0.005382398305586152
+        },
+        "predicted_structure_attr_macro_f1": {
+          "mean": 0.6737617029883842,
+          "std": 0.0027856489915071164
+        },
+        "sample_count": {
+          "mean": 2029.0,
+          "std": 0.0
+        },
+        "structure_error_amplification_gap": {
+          "mean": 0.019100976892659143,
+          "std": 0.00289647398158783
+        },
+        "structure_exact_coverage": {
+          "mean": 0.803351404632824,
+          "std": 0.002513070238340453
+        },
+        "top1_exact_content_signature_coverage": {
+          "mean": 0.07097092163627403,
+          "std": 0.0
+        },
+        "top3_exact_content_signature_coverage": {
+          "mean": 0.07097092163627403,
+          "std": 0.0
+        },
+        "topology_metrics_valid": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 0.08105799244291112,
+          "std": 0.0010473058945627877
+        }
+      }
+    },
+    "N0": {
+      "holdout": {
+        "behavior_family_accuracy": {
+          "mean": 0.6653992395437262,
+          "std": 0.0026886189398728014
+        },
+        "behavior_family_coverage": {
+          "mean": 0.381159420289855,
+          "std": 5.551115123125783e-17
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.5452915763346026,
+          "std": 0.0043199530675672
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8340579710144927,
+          "std": 0.0005916641890780287
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9615942028985507,
+          "std": 0.000591664189078074
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9629097347744358,
+          "std": 0.0007989197013339829
+        },
+        "future_exists_accuracy": {
+          "mean": 0.755072463768116,
+          "std": 0.06801050530232797
+        },
+        "layer_count_bias": {
+          "mean": -0.02874396135265696,
+          "std": 0.8581750665867657
+        },
+        "layer_count_mae": {
+          "mean": 2.057729468599034,
+          "std": 0.004280204141707538
+        },
+        "node_count_bias": {
+          "mean": 2.6439613526570045,
+          "std": 2.5812481392997513
+        },
+        "node_count_mae": {
+          "mean": 6.148309178743962,
+          "std": 1.0063100526437447
+        },
+        "sample_count": {
+          "mean": 1380.0,
+          "std": 0.0
+        },
+        "structure_exact_coverage": {
+          "mean": 0.020531400966183572,
+          "std": 0.01562411751574515
+        },
+        "topology_metrics_valid": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 1.556231884057971,
+          "std": 0.21922457272971207
+        }
+      },
+      "seed_count": 3,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "test": {
+        "behavior_family_accuracy": {
+          "mean": 0.8102016607354686,
+          "std": 0.005500366841931021
+        },
+        "behavior_family_coverage": {
+          "mean": 0.36973684210526314,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.6140826173420791,
+          "std": 0.008145638262944857
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8712719298245615,
+          "std": 0.0020336882665560477
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9412280701754385,
+          "std": 0.0003101345531519824
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9545637566806585,
+          "std": 0.0003582921778795527
+        },
+        "future_exists_accuracy": {
+          "mean": 0.7986842105263158,
+          "std": 0.07680386876124383
+        },
+        "layer_count_bias": {
+          "mean": -0.033771929824561404,
+          "std": 0.876446557424313
+        },
+        "layer_count_mae": {
+          "mean": 2.0850877192982455,
+          "std": 0.062029236595936454
+        },
+        "node_count_bias": {
+          "mean": 2.250219298245614,
+          "std": 2.9657658476256086
+        },
+        "node_count_mae": {
+          "mean": 6.383991228070175,
+          "std": 1.12916081046411
+        },
+        "sample_count": {
+          "mean": 1520.0,
+          "std": 0.0
+        },
+        "structure_exact_coverage": {
+          "mean": 0.015789473684210523,
+          "std": 0.0023414645289542347
+        },
+        "topology_metrics_valid": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 1.6003947368421052,
+          "std": 0.20547467172433098
+        }
+      },
+      "validation": {
+        "behavior_family_accuracy": {
+          "mean": 0.8319783197831979,
+          "std": 0.006274166342975748
+        },
+        "behavior_family_coverage": {
+          "mean": 0.30310497782158696,
+          "std": 0.0
+        },
+        "behavior_family_macro_f1": {
+          "mean": 0.807536916547853,
+          "std": 0.007389523704582122
+        },
+        "behavior_joint_accuracy": {
+          "mean": 0.8922293412189913,
+          "std": 0.001229392931419066
+        },
+        "behavior_role_accuracy": {
+          "mean": 0.9426646952521768,
+          "std": 0.0015235121563160225
+        },
+        "behavior_role_macro_f1": {
+          "mean": 0.9552570968717863,
+          "std": 0.0010547013775945519
+        },
+        "future_exists_accuracy": {
+          "mean": 0.7719730573353046,
+          "std": 0.08385016013612964
+        },
+        "layer_count_bias": {
+          "mean": -0.1269919500574996,
+          "std": 0.8782194580046414
+        },
+        "layer_count_mae": {
+          "mean": 2.1168063085263675,
+          "std": 0.09791386197634087
+        },
+        "node_count_bias": {
+          "mean": 2.308526367668802,
+          "std": 3.065181876860786
+        },
+        "node_count_mae": {
+          "mean": 6.480039428289797,
+          "std": 1.2152975529458143
+        },
+        "sample_count": {
+          "mean": 2029.0,
+          "std": 0.0
+        },
+        "structure_exact_coverage": {
+          "mean": 0.017742730409068506,
+          "std": 0.00707378023381337
+        },
+        "topology_metrics_valid": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "width_vector_mae": {
+          "mean": 1.6126170527353378,
+          "std": 0.21299548436015964
+        }
+      }
+    }
+  },
+  "boundary": {
+    "raw_traces_modified": false,
+    "scheduler_groups_used_for_fit": false,
+    "scheduler_integration_started": false,
+    "t_final_read": false
+  },
+  "data_contract": {
+    "behavior_join": {
+      "coverage": {
+        "holdout": {
+          "family_coverage": 0.38115942028985506,
+          "family_joined": 526,
+          "p9d_rows": 1380,
+          "role_joined": 1380
+        },
+        "test": {
+          "family_coverage": 0.36973684210526314,
+          "family_joined": 562,
+          "p9d_rows": 1520,
+          "role_joined": 1520
+        },
+        "train": {
+          "family_coverage": 0.3425912461829286,
+          "family_joined": 4712,
+          "p9d_rows": 13754,
+          "role_joined": 13754
+        },
+        "validation": {
+          "family_coverage": 0.30310497782158696,
+          "family_joined": 615,
+          "p9d_rows": 2029,
+          "role_joined": 2029
+        }
+      },
+      "family_target_semantics": "execute_gated semantic_tool target_source_event_id join",
+      "source_rows": {
+        "p_dev_family": 5889,
+        "p_dev_role": 17303,
+        "p_holdout_family": 5853,
+        "p_holdout_role": 17163
+      }
+    },
+    "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "future_events_or_edges_used_as_feature": false,
+    "resource_truth_used_as_feature": false,
+    "split_counts": {
+      "holdout": {
+        "rows": 1380,
+        "runs": 120,
+        "videos": 40
+      },
+      "test": {
+        "rows": 1520,
+        "runs": 108,
+        "videos": 30
+      },
+      "train": {
+        "rows": 13754,
+        "runs": 988,
+        "videos": 240
+      },
+      "validation": {
+        "rows": 2029,
+        "runs": 144,
+        "videos": 30
+      }
+    },
+    "upstream_behavior_or_resource_predictions_used_as_feature": false,
+    "video_id_used_as_feature": false
+  },
+  "experiment_id": "EXP-20260903_p9d_future_content_multitask",
+  "fit_contract": {
+    "diagnostic_split": "P_dev/test",
+    "fit_split": "P_dev/train",
+    "frozen_holdout_split": "P_holdout_diag/holdout",
+    "seeds": [
+      11,
+      22,
+      33
+    ],
+    "selected_variant_by_validation_structure_score": "A",
+    "selection_split": "P_dev/validation",
+    "variants": [
+      "N0",
+      "A",
+      "B",
+      "D"
+    ]
+  },
+  "inputs": {
+    "config_sha256": "22948295bd07981469e14a4ed2fb068f2d03a3a3595d4038fdc2474d2cd28859",
+    "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "p_dev_family_samples_sha256": "2aef9470c5118708138c2e6d4bad3af2729849fc91eac4774906ec56ed029a94",
+    "p_dev_role_samples_sha256": "bdc52d5accd8a769fc5ae4fd20bb462da0f558018f523a81d65e4377f6405e0c",
+    "p_holdout_family_samples_sha256": "f1ff5e1631fda6982d85b08c923297b835691438871317bd1dec0bbea60ffaae",
+    "p_holdout_role_samples_sha256": "31349ffa3e5ccc4bdd2ea3556f4323c1cc50c54801188a71a69adb6001c708a6",
+    "stage0_audit_sha256": "950b87e9c82dd50cfceabb72b78c4a18cdefe612694c8bef3587e2705d946bdc"
+  },
+  "model_contract": {
+    "content_decoder": "fixed_layerwise_unordered_slots_one_joint_assignment_per_layer",
+    "content_fields": [
+      "node_type",
+      "raw_action",
+      "model_id",
+      "action_family"
+    ],
+    "encoder": "single_unidirectional_causal_GRU",
+    "next_step_heads": [
+      "next_role",
+      "execute_gated_family"
+    ],
+    "node_ids_or_edges_emitted": false,
+    "node_mask": "derived_from_layer_count_and_width_prefix",
+    "soft_conditioning_gradient": "joint_for_D",
+    "structure_heads": [
+      "layer_count",
+      "width_1",
+      "width_2",
+      "width_3",
+      "width_4",
+      "width_5"
+    ],
+    "variants": {
+      "A": "future_structure_plus_all_future_node_content",
+      "B": "A_plus_next_step_behavior_auxiliary",
+      "D": "B_plus_soft_topology_probability_content_conditioning",
+      "N0": "next_step_behavior_only_reference"
+    }
+  },
+  "reproducibility": {
+    "command": [
+      "/root/miniconda3/envs/finetooling/bin/python",
+      "scripts/p9d_future_content_multitask.py",
+      "--config",
+      "experiments/EXP-20260903_p9d_future_content_multitask/config.json",
+      "--resume"
+    ],
+    "cuda": "13.0",
+    "device": "cuda:0",
+    "elapsed_seconds": 1102.4638929367065,
+    "gpu_name": "NVIDIA GeForce RTX 4080 SUPER",
+    "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+    "python": "3.10.20 (main, Mar 11 2026, 17:46:40) [GCC 14.3.0]",
+    "torch": "2.12.0+cu130"
+  },
+  "schema_version": "p9d-future-content-multitask-v1",
+  "stage0": {
+    "content_collision_audit": {
+      "collision_is_not_silently_deduplicated": true,
+      "duplicate_content_layers": 4815,
+      "duplicate_content_nodes_after_first": 4956,
+      "matching_policy": "one_joint_layer_assignment_reused_across_all_content_fields"
+    },
+    "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "errors": [],
+    "feature_contract": {
+      "forbidden_model_input_violations": 0,
+      "future_events_edges_and_resource_truth_excluded": true
+    },
+    "layerization": {
+      "duplicate_node_ids": 0,
+      "future_unit": "event_level_dag_bfs_layer",
+      "invalid_or_noncontiguous_labels": 0,
+      "layer_count_histogram": {
+        "0": 1360,
+        "1": 4078,
+        "2": 2659,
+        "3": 2628,
+        "4": 2383,
+        "5": 5575
+      },
+      "parent_source": "raw_trace.parent_step_ids",
+      "width_histogram": {
+        "1": 15418,
+        "2": 22455,
+        "3": 14669,
+        "4": 2143,
+        "5": 2
+      }
+    },
+    "passed": true,
+    "policy": {
+      "raw_traces_modified": false,
+      "scheduler_groups_used_for_fit": false,
+      "t_final_read": false
+    },
+    "raw_action_ontology": {
+      "direct_identifier_overlaps": 0,
+      "raw_action_values": [
+        "answer",
+        "frame-selector",
+        "generalist.generate",
+        "image-grid-qa",
+        "image-grid-selector",
+        "image-qa",
+        "patch-zoomer",
+        "planner.generate",
+        "summarization-tool",
+        "temporal-grounding",
+        "temporal-qa",
+        "yolo-tracker"
+      ],
+      "unique_values_by_field": {
+        "action_family": 6,
+        "model_id": 6,
+        "node_type": 5,
+        "raw_action": 12
+      },
+      "video_or_run_literal_leakage_gate": true
+    },
+    "schema_version": "p9d-future-content-multitask-v1",
+    "split_counts": {
+      "holdout": {
+        "rows": 1380,
+        "runs": 120,
+        "videos": 40
+      },
+      "test": {
+        "rows": 1520,
+        "runs": 108,
+        "videos": 30
+      },
+      "train": {
+        "rows": 13754,
+        "runs": 988,
+        "videos": 240
+      },
+      "validation": {
+        "rows": 2029,
+        "runs": 144,
+        "videos": 30
+      }
+    },
+    "split_source_trace_intersections": {
+      "test:holdout": 0,
+      "train:holdout": 0,
+      "train:test": 0,
+      "train:validation": 0,
+      "validation:holdout": 0,
+      "validation:test": 0
+    },
+    "split_video_intersections": {
+      "test:holdout": 0,
+      "train:holdout": 0,
+      "train:test": 0,
+      "train:validation": 0,
+      "validation:holdout": 0,
+      "validation:test": 0
+    },
+    "status": "passed",
+    "termination_truncation": {
+      "counts": {
+        "False": 15441,
+        "True": 3242
+      },
+      "explicit_flag_for_all_rows": true,
+      "flag_field": "label_summary.truncated_at_horizon"
+    }
+  },
+  "status": "passed_p1_future_content_experiment",
+  "variant_runs": {
+    "A": [
+      {
+        "best_epoch": 22,
+        "best_selection_score": 0.12853622474125184,
+        "best_train_losses": {
+          "content": 0.31356333721614915,
+          "family": 0.0,
+          "layer": 0.15317477734608587,
+          "next": 0.0,
+          "role": 0.0,
+          "structure": 0.24331776300488264,
+          "total": 0.55688109994368,
+          "width": 0.33346074797029984
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/A/seed_11/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 122.1149172782898,
+        "holdout": {
+          "behavior_family_accuracy": 0.07984790874524715,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.050932452673560356,
+          "behavior_joint_accuracy": 0.02246376811594203,
+          "behavior_role_accuracy": 0.03260869565217391,
+          "behavior_role_macro_f1": 0.03468214659778808,
+          "content_observations_predicted_structure": {
+            "action_family": 7995,
+            "model_id": 7995,
+            "node_type": 7995,
+            "raw_action": 7995
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.0746376811594203,
+          "layer_count_mae": 0.14565217391304347,
+          "node_count_bias": -0.01956521739130435,
+          "node_count_mae": 0.3992753623188406,
+          "oracle_structure_attr_macro_f1": 0.4400410434328251,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.45186468542158376,
+            "model_id": 0.1788638851746292,
+            "node_type": 0.6826240624146542,
+            "raw_action": 0.44681154072043316
+          },
+          "predicted_structure_attr_macro_f1": 0.41582802818565673,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.4315556509942599,
+            "model_id": 0.16848240331730027,
+            "node_type": 0.6492173657695154,
+            "raw_action": 0.41405669266155126
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.024213015247168346,
+          "structure_exact_coverage": 0.8304347826086956,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.13608695652173913
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 11,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.26868327402135234,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.11999969567830589,
+          "behavior_joint_accuracy": 0.020394736842105264,
+          "behavior_role_accuracy": 0.03289473684210526,
+          "behavior_role_macro_f1": 0.03220864234410921,
+          "content_observations_predicted_structure": {
+            "action_family": 9807,
+            "model_id": 9807,
+            "node_type": 9807,
+            "raw_action": 9807
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.10789473684210527,
+          "layer_count_mae": 0.11842105263157894,
+          "node_count_bias": -0.019736842105263157,
+          "node_count_mae": 0.5223684210526316,
+          "oracle_structure_attr_macro_f1": 0.6804954821588252,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5196380808555796,
+            "model_id": 0.966624895310215,
+            "node_type": 0.7642546735107976,
+            "raw_action": 0.4714642789587082
+          },
+          "predicted_structure_attr_macro_f1": 0.6625867824721027,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5052553592770893,
+            "model_id": 0.9416812315176859,
+            "node_type": 0.7449310964408669,
+            "raw_action": 0.45847944265276847
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.017908699686722485,
+          "structure_exact_coverage": 0.7592105263157894,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12263157894736842
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.28780487804878047,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.10341446314422002,
+          "behavior_joint_accuracy": 0.022178413011335635,
+          "behavior_role_accuracy": 0.029078363725973385,
+          "behavior_role_macro_f1": 0.028926101201310516,
+          "content_observations_predicted_structure": {
+            "action_family": 12661,
+            "model_id": 12661,
+            "node_type": 12661,
+            "raw_action": 12661
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.041399704287826515,
+          "layer_count_mae": 0.04731394775751602,
+          "node_count_bias": -0.1153277476589453,
+          "node_count_mae": 0.33908329226219813,
+          "oracle_structure_attr_macro_f1": 0.6984876275081341,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5359491261311465,
+            "model_id": 0.9564832585885494,
+            "node_type": 0.7738480366287617,
+            "raw_action": 0.5276700886840788
+          },
+          "predicted_structure_attr_macro_f1": 0.6766624399142356,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5217982461851062,
+            "model_id": 0.9172236911341678,
+            "node_type": 0.7556035581747068,
+            "raw_action": 0.5120242641629617
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.02182518759389851,
+          "structure_exact_coverage": 0.8008871365204534,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08122227698373582
+        },
+        "variant": "A"
+      },
+      {
+        "best_epoch": 22,
+        "best_selection_score": 0.12745194677180877,
+        "best_train_losses": {
+          "content": 0.3176544296701616,
+          "family": 0.0,
+          "layer": 0.15165804521547288,
+          "next": 0.0,
+          "role": 0.0,
+          "structure": 0.2412486095466256,
+          "total": 0.5589030390651104,
+          "width": 0.3308391725668575
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/A/seed_22/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 120.56974029541016,
+        "holdout": {
+          "behavior_family_accuracy": 0.27756653992395436,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.09594849594849596,
+          "behavior_joint_accuracy": 0.05289855072463768,
+          "behavior_role_accuracy": 0.20434782608695654,
+          "behavior_role_macro_f1": 0.09245901639344263,
+          "content_observations_predicted_structure": {
+            "action_family": 8068,
+            "model_id": 8068,
+            "node_type": 8068,
+            "raw_action": 8068
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.08550724637681159,
+          "layer_count_mae": 0.1608695652173913,
+          "node_count_bias": 0.018115942028985508,
+          "node_count_mae": 0.4543478260869565,
+          "oracle_structure_attr_macro_f1": 0.440059791447379,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.43289081250314193,
+            "model_id": 0.223012563657841,
+            "node_type": 0.6925826579260057,
+            "raw_action": 0.4117531317025275
+          },
+          "predicted_structure_attr_macro_f1": 0.4083390902084485,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.4037240052720115,
+            "model_id": 0.208438008952942,
+            "node_type": 0.6442715187599436,
+            "raw_action": 0.3769228278488969
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.031720701238930504,
+          "structure_exact_coverage": 0.8050724637681159,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.14971014492753623
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 22,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.24377224199288255,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.13117567703614216,
+          "behavior_joint_accuracy": 0.04144736842105263,
+          "behavior_role_accuracy": 0.14605263157894738,
+          "behavior_role_macro_f1": 0.07537414561516946,
+          "content_observations_predicted_structure": {
+            "action_family": 9812,
+            "model_id": 9812,
+            "node_type": 9812,
+            "raw_action": 9812
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.11315789473684211,
+          "layer_count_mae": 0.11842105263157894,
+          "node_count_bias": -0.01118421052631579,
+          "node_count_mae": 0.5164473684210527,
+          "oracle_structure_attr_macro_f1": 0.6817813067616211,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5237229323585679,
+            "model_id": 0.9694438428550771,
+            "node_type": 0.7661485903564993,
+            "raw_action": 0.46780986147633974
+          },
+          "predicted_structure_attr_macro_f1": 0.6597540723697042,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5018141670076075,
+            "model_id": 0.9445180367051365,
+            "node_type": 0.738178511025245,
+            "raw_action": 0.4545055747408275
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.022027234391916894,
+          "structure_exact_coverage": 0.7611842105263158,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12223684210526316
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.22764227642276422,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.1250962987751633,
+          "behavior_joint_accuracy": 0.07097092163627403,
+          "behavior_role_accuracy": 0.14736323311976343,
+          "behavior_role_macro_f1": 0.07990592360929635,
+          "content_observations_predicted_structure": {
+            "action_family": 12653,
+            "model_id": 12653,
+            "node_type": 12653,
+            "raw_action": 12653
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.037456875308033516,
+          "layer_count_mae": 0.045342533267619514,
+          "node_count_bias": -0.12764908822079843,
+          "node_count_mae": 0.34647609659931,
+          "oracle_structure_attr_macro_f1": 0.6919406813130197,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5352752078450366,
+            "model_id": 0.9554620273282278,
+            "node_type": 0.7636987944048498,
+            "raw_action": 0.5133266956739642
+          },
+          "predicted_structure_attr_macro_f1": 0.6722208855581895,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5208196138435582,
+            "model_id": 0.9198762166910214,
+            "node_type": 0.7485860328911069,
+            "raw_action": 0.4996016788070717
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.019719795754830183,
+          "structure_exact_coverage": 0.7964514539181863,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08210941350418925
+        },
+        "variant": "A"
+      },
+      {
+        "best_epoch": 23,
+        "best_selection_score": 0.12548053228191228,
+        "best_train_losses": {
+          "content": 0.3138075876421441,
+          "family": 0.0,
+          "layer": 0.15655728767253432,
+          "next": 0.0,
+          "role": 0.0,
+          "structure": 0.24539751780185656,
+          "total": 0.559205111192551,
+          "width": 0.33423774973396575
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/A/seed_33/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 123.6866283416748,
+        "holdout": {
+          "behavior_family_accuracy": 0.188212927756654,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.08792473263841884,
+          "behavior_joint_accuracy": 0.11159420289855072,
+          "behavior_role_accuracy": 0.20072463768115942,
+          "behavior_role_macro_f1": 0.14020636878064305,
+          "content_observations_predicted_structure": {
+            "action_family": 8089,
+            "model_id": 8089,
+            "node_type": 8089,
+            "raw_action": 8089
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.11666666666666667,
+          "layer_count_mae": 0.1427536231884058,
+          "node_count_bias": 0.08695652173913043,
+          "node_count_mae": 0.4,
+          "oracle_structure_attr_macro_f1": 0.45123126631346566,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.4205536702511227,
+            "model_id": 0.29669979143663355,
+            "node_type": 0.6747919771711692,
+            "raw_action": 0.412879626394937
+          },
+          "predicted_structure_attr_macro_f1": 0.42316248340463003,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.39884911542547985,
+            "model_id": 0.27702784871701325,
+            "node_type": 0.6383370332865511,
+            "raw_action": 0.37843593618947585
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.028068782908835632,
+          "structure_exact_coverage": 0.8094202898550724,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.14202898550724638
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 33,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.05516014234875445,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.049159470677525206,
+          "behavior_joint_accuracy": 0.06842105263157895,
+          "behavior_role_accuracy": 0.25921052631578945,
+          "behavior_role_macro_f1": 0.1449394509118096,
+          "content_observations_predicted_structure": {
+            "action_family": 9825,
+            "model_id": 9825,
+            "node_type": 9825,
+            "raw_action": 9825
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.11052631578947368,
+          "layer_count_mae": 0.12105263157894737,
+          "node_count_bias": -0.0059210526315789476,
+          "node_count_mae": 0.5256578947368421,
+          "oracle_structure_attr_macro_f1": 0.6789323511173675,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5199561558108166,
+            "model_id": 0.961441672108711,
+            "node_type": 0.7730003443141168,
+            "raw_action": 0.46133123223582523
+          },
+          "predicted_structure_attr_macro_f1": 0.6581593073855838,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.4957576283644302,
+            "model_id": 0.9378504457626888,
+            "node_type": 0.7506875647398427,
+            "raw_action": 0.4483415906753736
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.02077304373178368,
+          "structure_exact_coverage": 0.7578947368421053,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12460526315789473
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.04878048780487805,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.05377891339429801,
+          "behavior_joint_accuracy": 0.10054213898472154,
+          "behavior_role_accuracy": 0.2681123706259241,
+          "behavior_role_macro_f1": 0.14206661265864637,
+          "content_observations_predicted_structure": {
+            "action_family": 12659,
+            "model_id": 12659,
+            "node_type": 12659,
+            "raw_action": 12659
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.040413997042878264,
+          "layer_count_mae": 0.04435682602267127,
+          "node_count_bias": -0.11680630852636767,
+          "node_count_mae": 0.338590438639724,
+          "oracle_structure_attr_macro_f1": 0.6867538656065892,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5162671525981423,
+            "model_id": 0.9556384852789497,
+            "node_type": 0.7652726023760905,
+            "raw_action": 0.5098372221731748
+          },
+          "predicted_structure_attr_macro_f1": 0.6656670552569245,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5016281368452468,
+            "model_id": 0.9137773763415407,
+            "node_type": 0.7495479319514674,
+            "raw_action": 0.497714775889443
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.021086810349664753,
+          "structure_exact_coverage": 0.7999014292755052,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08112370625924101
+        },
+        "variant": "A"
+      }
+    ],
+    "B": [
+      {
+        "best_epoch": 23,
+        "best_selection_score": 0.13149334647609662,
+        "best_train_losses": {
+          "content": 0.3122497181724597,
+          "family": 0.3967353857385223,
+          "layer": 0.15560624822031643,
+          "next": 0.27563800520288123,
+          "role": 0.15454062682321743,
+          "structure": 0.24568180376938717,
+          "total": 0.8335695297665698,
+          "width": 0.33575736099556985
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/B/seed_11/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 123.08654427528381,
+        "holdout": {
+          "behavior_family_accuracy": 0.6730038022813688,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5444715929850201,
+          "behavior_joint_accuracy": 0.8376811594202899,
+          "behavior_role_accuracy": 0.9623188405797102,
+          "behavior_role_macro_f1": 0.9639140271493213,
+          "content_observations_predicted_structure": {
+            "action_family": 8031,
+            "model_id": 8031,
+            "node_type": 8031,
+            "raw_action": 8031
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.09492753623188406,
+          "layer_count_mae": 0.1398550724637681,
+          "node_count_bias": 0.015217391304347827,
+          "node_count_mae": 0.39057971014492754,
+          "oracle_structure_attr_macro_f1": 0.4372405756226776,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.44802608369362185,
+            "model_id": 0.17859611573654546,
+            "node_type": 0.6805454236737345,
+            "raw_action": 0.44179467938680866
+          },
+          "predicted_structure_attr_macro_f1": 0.41225018130613905,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.42699342558035797,
+            "model_id": 0.16866562068279287,
+            "node_type": 0.6440582631414248,
+            "raw_action": 0.4092834158199805
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.024990394316538544,
+          "structure_exact_coverage": 0.8195652173913044,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.13956521739130434
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 11,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.798932384341637,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.5983087189827792,
+          "behavior_joint_accuracy": 0.8671052631578947,
+          "behavior_role_accuracy": 0.9407894736842105,
+          "behavior_role_macro_f1": 0.9540650735686809,
+          "content_observations_predicted_structure": {
+            "action_family": 9816,
+            "model_id": 9816,
+            "node_type": 9816,
+            "raw_action": 9816
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.10592105263157894,
+          "layer_count_mae": 0.12039473684210526,
+          "node_count_bias": -0.01644736842105263,
+          "node_count_mae": 0.5230263157894737,
+          "oracle_structure_attr_macro_f1": 0.6849067066220551,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.531810773234631,
+            "model_id": 0.9683340093441647,
+            "node_type": 0.7726910114673888,
+            "raw_action": 0.4667910324420357
+          },
+          "predicted_structure_attr_macro_f1": 0.6660249544935114,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.515108209114057,
+            "model_id": 0.9438087125017102,
+            "node_type": 0.7519658392669026,
+            "raw_action": 0.453217057091376
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.018881752128543705,
+          "structure_exact_coverage": 0.7539473684210526,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12434210526315789
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8276422764227642,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.8005044645641968,
+          "behavior_joint_accuracy": 0.8886150813208477,
+          "behavior_role_accuracy": 0.9403647116806308,
+          "behavior_role_macro_f1": 0.9531625339432934,
+          "content_observations_predicted_structure": {
+            "action_family": 12663,
+            "model_id": 12663,
+            "node_type": 12663,
+            "raw_action": 12663
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.03942828979793001,
+          "layer_count_mae": 0.04928536224741252,
+          "node_count_bias": -0.11828486939379004,
+          "node_count_mae": 0.3440118284869394,
+          "oracle_structure_attr_macro_f1": 0.6997071530496873,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5450388028667978,
+            "model_id": 0.9533079960165342,
+            "node_type": 0.7729860739553996,
+            "raw_action": 0.5274957393600176
+          },
+          "predicted_structure_attr_macro_f1": 0.6787929300661499,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.530769936535693,
+            "model_id": 0.9158157253221271,
+            "node_type": 0.7554368218000302,
+            "raw_action": 0.5131492366067493
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.0209142229835374,
+          "structure_exact_coverage": 0.8023656973878758,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08220798422868408
+        },
+        "variant": "B"
+      },
+      {
+        "best_epoch": 24,
+        "best_selection_score": 0.12538196155741743,
+        "best_train_losses": {
+          "content": 0.3118340621962526,
+          "family": 0.3836760428108863,
+          "layer": 0.15076838210019258,
+          "next": 0.2662655947703131,
+          "role": 0.14885514949025744,
+          "structure": 0.24047448290318307,
+          "total": 0.8185741384829895,
+          "width": 0.3301805821428192
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/B/seed_22/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 126.87994456291199,
+        "holdout": {
+          "behavior_family_accuracy": 0.688212927756654,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5443340158015377,
+          "behavior_joint_accuracy": 0.8442028985507246,
+          "behavior_role_accuracy": 0.9630434782608696,
+          "behavior_role_macro_f1": 0.9643298625947667,
+          "content_observations_predicted_structure": {
+            "action_family": 8120,
+            "model_id": 8120,
+            "node_type": 8120,
+            "raw_action": 8120
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.12536231884057972,
+          "layer_count_mae": 0.15289855072463768,
+          "node_count_bias": 0.12681159420289856,
+          "node_count_mae": 0.40797101449275364,
+          "oracle_structure_attr_macro_f1": 0.43704155680725265,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.41791717395197064,
+            "model_id": 0.22232044198895026,
+            "node_type": 0.6858722563846779,
+            "raw_action": 0.422056354903412
+          },
+          "predicted_structure_attr_macro_f1": 0.40801061437963665,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.3936174182958898,
+            "model_id": 0.20805149465415668,
+            "node_type": 0.6435143630828795,
+            "raw_action": 0.38685918148562065
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.029030942427616002,
+          "structure_exact_coverage": 0.822463768115942,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.14304347826086958
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 22,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.8220640569395018,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.6271813624938891,
+          "behavior_joint_accuracy": 0.8763157894736842,
+          "behavior_role_accuracy": 0.9421052631578948,
+          "behavior_role_macro_f1": 0.9556124253464474,
+          "content_observations_predicted_structure": {
+            "action_family": 9800,
+            "model_id": 9800,
+            "node_type": 9800,
+            "raw_action": 9800
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.10394736842105264,
+          "layer_count_mae": 0.11842105263157894,
+          "node_count_bias": -0.026973684210526316,
+          "node_count_mae": 0.5217105263157895,
+          "oracle_structure_attr_macro_f1": 0.6884814753674791,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.525174822033518,
+            "model_id": 0.973089982742831,
+            "node_type": 0.7866768043230028,
+            "raw_action": 0.4689842923705645
+          },
+          "predicted_structure_attr_macro_f1": 0.6654390200581967,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5027030943411329,
+            "model_id": 0.9461196393876173,
+            "node_type": 0.7572643663169976,
+            "raw_action": 0.45566898018703883
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.023042455309282395,
+          "structure_exact_coverage": 0.7611842105263158,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12223684210526316
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8113821138211382,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.774816445485959,
+          "behavior_joint_accuracy": 0.8856579595860029,
+          "behavior_role_accuracy": 0.9423361261705273,
+          "behavior_role_macro_f1": 0.9554418570558696,
+          "content_observations_predicted_structure": {
+            "action_family": 12650,
+            "model_id": 12650,
+            "node_type": 12650,
+            "raw_action": 12650
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.03844258255298177,
+          "layer_count_mae": 0.04435682602267127,
+          "node_count_bias": -0.1251848201084278,
+          "node_count_mae": 0.34006899950714636,
+          "oracle_structure_attr_macro_f1": 0.6950698300208303,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5318670114505119,
+            "model_id": 0.9566769712358887,
+            "node_type": 0.774618003906235,
+            "raw_action": 0.5171173334906859
+          },
+          "predicted_structure_attr_macro_f1": 0.6745690818143091,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5188066467652359,
+            "model_id": 0.9175755329156663,
+            "node_type": 0.7579957515046308,
+            "raw_action": 0.5038983960717031
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.020500748206521258,
+          "structure_exact_coverage": 0.8008871365204534,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08102513553474618
+        },
+        "variant": "B"
+      },
+      {
+        "best_epoch": 23,
+        "best_selection_score": 0.12528339083292261,
+        "best_train_losses": {
+          "content": 0.31217762844340996,
+          "family": 0.388848176750659,
+          "layer": 0.15730120255509591,
+          "next": 0.27076803985482056,
+          "role": 0.1526879022656025,
+          "structure": 0.24629177342273129,
+          "total": 0.8292374409647447,
+          "width": 0.33528234089930703
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/B/seed_33/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 125.82334852218628,
+        "holdout": {
+          "behavior_family_accuracy": 0.6901140684410646,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5497695368215599,
+          "behavior_joint_accuracy": 0.8442028985507246,
+          "behavior_role_accuracy": 0.9623188405797102,
+          "behavior_role_macro_f1": 0.9638554327033533,
+          "content_observations_predicted_structure": {
+            "action_family": 8087,
+            "model_id": 8087,
+            "node_type": 8087,
+            "raw_action": 8087
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.1246376811594203,
+          "layer_count_mae": 0.14057971014492754,
+          "node_count_bias": 0.09492753623188406,
+          "node_count_mae": 0.39492753623188404,
+          "oracle_structure_attr_macro_f1": 0.4401583668415759,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.4290806208279215,
+            "model_id": 0.22391627472914594,
+            "node_type": 0.6793964562142601,
+            "raw_action": 0.428240115594976
+          },
+          "predicted_structure_attr_macro_f1": 0.41484962828019417,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.40884637285690406,
+            "model_id": 0.20922445693927086,
+            "node_type": 0.6451357560665002,
+            "raw_action": 0.3961919272581014
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.025308738561381716,
+          "structure_exact_coverage": 0.8152173913043478,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.1398550724637681
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 33,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.8131672597864769,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.6111558529224299,
+          "behavior_joint_accuracy": 0.8690789473684211,
+          "behavior_role_accuracy": 0.9381578947368421,
+          "behavior_role_macro_f1": 0.9512956302034625,
+          "content_observations_predicted_structure": {
+            "action_family": 9797,
+            "model_id": 9797,
+            "node_type": 9797,
+            "raw_action": 9797
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.10855263157894737,
+          "layer_count_mae": 0.11381578947368422,
+          "node_count_bias": -0.024342105263157894,
+          "node_count_mae": 0.5111842105263158,
+          "oracle_structure_attr_macro_f1": 0.6858128395753669,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5316859410272715,
+            "model_id": 0.9684168926330956,
+            "node_type": 0.7773590395712224,
+            "raw_action": 0.4657894850698781
+          },
+          "predicted_structure_attr_macro_f1": 0.6661887688519799,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5088730138763105,
+            "model_id": 0.9448306322525968,
+            "node_type": 0.7568758773974535,
+            "raw_action": 0.45417555188155884
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.01962407072338701,
+          "structure_exact_coverage": 0.7578947368421053,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12092105263157894
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.824390243902439,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.7958591811414392,
+          "behavior_joint_accuracy": 0.8940364711680631,
+          "behavior_role_accuracy": 0.9467718087727944,
+          "behavior_role_macro_f1": 0.9574569762677857,
+          "content_observations_predicted_structure": {
+            "action_family": 12644,
+            "model_id": 12644,
+            "node_type": 12644,
+            "raw_action": 12644
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.03992114342040414,
+          "layer_count_mae": 0.04386397240019714,
+          "node_count_bias": -0.1330704780680138,
+          "node_count_mae": 0.3430261212419911,
+          "oracle_structure_attr_macro_f1": 0.6911638681308634,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5257010617907654,
+            "model_id": 0.9554833482999159,
+            "node_type": 0.7690356848840759,
+            "raw_action": 0.5144353775486968
+          },
+          "predicted_structure_attr_macro_f1": 0.6711722062550263,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5117001794837785,
+            "model_id": 0.9178403248359743,
+            "node_type": 0.7527727469212416,
+            "raw_action": 0.5023755737791104
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.01999166187583712,
+          "structure_exact_coverage": 0.799408575653031,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08141941843272547
+        },
+        "variant": "B"
+      }
+    ],
+    "D": [
+      {
+        "best_epoch": 19,
+        "best_selection_score": 0.13060620995564318,
+        "best_train_losses": {
+          "content": 0.32520059314477195,
+          "family": 0.40437271368526106,
+          "layer": 0.1661510036983895,
+          "next": 0.2840273480082869,
+          "role": 0.16368198520558785,
+          "structure": 0.25626440200197914,
+          "total": 0.8654923431052013,
+          "width": 0.34637780072159663
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/D/seed_11/checkpoint.pt",
+        "conditioning_gradient": "joint",
+        "elapsed_seconds": 108.59656882286072,
+        "holdout": {
+          "behavior_family_accuracy": 0.6825095057034221,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5498247852571096,
+          "behavior_joint_accuracy": 0.8376811594202899,
+          "behavior_role_accuracy": 0.9586956521739131,
+          "behavior_role_macro_f1": 0.9600526247145222,
+          "content_observations_predicted_structure": {
+            "action_family": 8024,
+            "model_id": 8024,
+            "node_type": 8024,
+            "raw_action": 8024
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.09420289855072464,
+          "layer_count_mae": 0.14347826086956522,
+          "node_count_bias": 0.015217391304347827,
+          "node_count_mae": 0.4036231884057971,
+          "oracle_structure_attr_macro_f1": 0.44108099337566664,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.43478006065342845,
+            "model_id": 0.22164377492246345,
+            "node_type": 0.6813117160219562,
+            "raw_action": 0.4265884219048187
+          },
+          "predicted_structure_attr_macro_f1": 0.4169718099782174,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.41568795475673825,
+            "model_id": 0.20938375350140057,
+            "node_type": 0.6486166667301361,
+            "raw_action": 0.394198864924595
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.02410918339744922,
+          "structure_exact_coverage": 0.8210144927536231,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.13753623188405797
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 11,
+        "soft_topology_conditioning": true,
+        "test": {
+          "behavior_family_accuracy": 0.800711743772242,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.598807654004837,
+          "behavior_joint_accuracy": 0.8644736842105263,
+          "behavior_role_accuracy": 0.9375,
+          "behavior_role_macro_f1": 0.9501350639136164,
+          "content_observations_predicted_structure": {
+            "action_family": 9801,
+            "model_id": 9801,
+            "node_type": 9801,
+            "raw_action": 9801
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.10460526315789474,
+          "layer_count_mae": 0.12302631578947368,
+          "node_count_bias": -0.03355263157894737,
+          "node_count_mae": 0.5282894736842105,
+          "oracle_structure_attr_macro_f1": 0.685662567744339,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5360179453371859,
+            "model_id": 0.9646931130769852,
+            "node_type": 0.7691416674015119,
+            "raw_action": 0.4727975451616726
+          },
+          "predicted_structure_attr_macro_f1": 0.6684550048765963,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5194141780400342,
+            "model_id": 0.9400521528659441,
+            "node_type": 0.7525079010192228,
+            "raw_action": 0.4618457875811839
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.01720756286774272,
+          "structure_exact_coverage": 0.7592105263157894,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12381578947368421
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.816260162601626,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.7834869657171728,
+          "behavior_joint_accuracy": 0.8866436668309512,
+          "behavior_role_accuracy": 0.9418432725480532,
+          "behavior_role_macro_f1": 0.953324415733477,
+          "content_observations_predicted_structure": {
+            "action_family": 12655,
+            "model_id": 12655,
+            "node_type": 12655,
+            "raw_action": 12655
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.03844258255298177,
+          "layer_count_mae": 0.04829965500246427,
+          "node_count_bias": -0.12666338097585017,
+          "node_count_mae": 0.3445046821094135,
+          "oracle_structure_attr_macro_f1": 0.692235158096911,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.534471846881612,
+            "model_id": 0.9506625131518189,
+            "node_type": 0.7626498724485511,
+            "raw_action": 0.5211563999056626
+          },
+          "predicted_structure_attr_macro_f1": 0.6747378006027691,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5195814896134751,
+            "model_id": 0.9173343099829699,
+            "node_type": 0.7501654623411496,
+            "raw_action": 0.5118699404734819
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.01749735749414194,
+          "structure_exact_coverage": 0.8023656973878758,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.0823065549531789
+        },
+        "variant": "D"
+      },
+      {
+        "best_epoch": 27,
+        "best_selection_score": 0.12646623952686054,
+        "best_train_losses": {
+          "content": 0.30328049721439787,
+          "family": 0.37664155027834123,
+          "layer": 0.14823322249361123,
+          "next": 0.2611854225028752,
+          "role": 0.1457292940968671,
+          "structure": 0.23717608181381877,
+          "total": 0.8016420028420127,
+          "width": 0.3261189409574312
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/D/seed_22/checkpoint.pt",
+        "conditioning_gradient": "joint",
+        "elapsed_seconds": 127.7361695766449,
+        "holdout": {
+          "behavior_family_accuracy": 0.6844106463878327,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5405828961962866,
+          "behavior_joint_accuracy": 0.8442028985507246,
+          "behavior_role_accuracy": 0.9644927536231884,
+          "behavior_role_macro_f1": 0.9659162846931513,
+          "content_observations_predicted_structure": {
+            "action_family": 8103,
+            "model_id": 8103,
+            "node_type": 8103,
+            "raw_action": 8103
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.12391304347826088,
+          "layer_count_mae": 0.14855072463768115,
+          "node_count_bias": 0.11884057971014493,
+          "node_count_mae": 0.39710144927536234,
+          "oracle_structure_attr_macro_f1": 0.4406769893953648,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.43911658089473654,
+            "model_id": 0.22442748875911694,
+            "node_type": 0.6875416647841781,
+            "raw_action": 0.41162222314342767
+          },
+          "predicted_structure_attr_macro_f1": 0.41259417785088515,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.41127941956568925,
+            "model_id": 0.21060603522493765,
+            "node_type": 0.6484424816085502,
+            "raw_action": 0.38004877500436346
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.02808281154447967,
+          "structure_exact_coverage": 0.8239130434782609,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.13971014492753622
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 22,
+        "soft_topology_conditioning": true,
+        "test": {
+          "behavior_family_accuracy": 0.8096085409252669,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.6090487660234911,
+          "behavior_joint_accuracy": 0.8723684210526316,
+          "behavior_role_accuracy": 0.9427631578947369,
+          "behavior_role_macro_f1": 0.9564228921641393,
+          "content_observations_predicted_structure": {
+            "action_family": 9796,
+            "model_id": 9796,
+            "node_type": 9796,
+            "raw_action": 9796
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.10460526315789474,
+          "layer_count_mae": 0.11907894736842105,
+          "node_count_bias": -0.030263157894736843,
+          "node_count_mae": 0.5223684210526316,
+          "oracle_structure_attr_macro_f1": 0.6871267779211894,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5234092379704159,
+            "model_id": 0.974903852947455,
+            "node_type": 0.7795466356674784,
+            "raw_action": 0.47064738509940846
+          },
+          "predicted_structure_attr_macro_f1": 0.6620050220670314,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.49863840648625796,
+            "model_id": 0.946623076812962,
+            "node_type": 0.7486848771842699,
+            "raw_action": 0.45407372778463523
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.02512175585415799,
+          "structure_exact_coverage": 0.7638157894736842,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12184210526315789
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8113821138211382,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.7695125175194918,
+          "behavior_joint_accuracy": 0.8856579595860029,
+          "behavior_role_accuracy": 0.9423361261705273,
+          "behavior_role_macro_f1": 0.9552560193635464,
+          "content_observations_predicted_structure": {
+            "action_family": 12647,
+            "model_id": 12647,
+            "node_type": 12647,
+            "raw_action": 12647
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.037456875308033516,
+          "layer_count_mae": 0.045342533267619514,
+          "node_count_bias": -0.12863479546574666,
+          "node_count_mae": 0.34154756037456874,
+          "oracle_structure_attr_macro_f1": 0.6997460663018437,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5433338049546985,
+            "model_id": 0.9547889839365762,
+            "node_type": 0.7795354184856242,
+            "raw_action": 0.5213260578304754
+          },
+          "predicted_structure_attr_macro_f1": 0.6765789810245193,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5245028302720309,
+            "model_id": 0.9199122503138565,
+            "node_type": 0.753418351929003,
+            "raw_action": 0.5084824915831869
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.023167085277324362,
+          "structure_exact_coverage": 0.8008871365204534,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.08112370625924101
+        },
+        "variant": "D"
+      },
+      {
+        "best_epoch": 22,
+        "best_selection_score": 0.1260719566288812,
+        "best_train_losses": {
+          "content": 0.32475520807573127,
+          "family": 0.39087434063405685,
+          "layer": 0.15598560024854036,
+          "next": 0.2727156261449916,
+          "role": 0.15455691352155088,
+          "structure": 0.24630212786630332,
+          "total": 0.8437729683902802,
+          "width": 0.336618654097307
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/D/seed_33/checkpoint.pt",
+        "conditioning_gradient": "joint",
+        "elapsed_seconds": 121.27412843704224,
+        "holdout": {
+          "behavior_family_accuracy": 0.7110266159695817,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5630815112791081,
+          "behavior_joint_accuracy": 0.8528985507246377,
+          "behavior_role_accuracy": 0.9630434782608696,
+          "behavior_role_macro_f1": 0.9650331862536734,
+          "content_observations_predicted_structure": {
+            "action_family": 8078,
+            "model_id": 8078,
+            "node_type": 8078,
+            "raw_action": 8078
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.1246376811594203,
+          "layer_count_mae": 0.1391304347826087,
+          "node_count_bias": 0.11014492753623188,
+          "node_count_mae": 0.36376811594202896,
+          "oracle_structure_attr_macro_f1": 0.4318923437315408,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.4164612120384146,
+            "model_id": 0.22272786545378317,
+            "node_type": 0.6813887586497573,
+            "raw_action": 0.40699153878420796
+          },
+          "predicted_structure_attr_macro_f1": 0.40848291310824336,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.3972543922150262,
+            "model_id": 0.20944237377305577,
+            "node_type": 0.6501932927908765,
+            "raw_action": 0.3770415936540151
+          },
+          "sample_count": 1380,
+          "structure_error_amplification_gap": 0.023409430623297423,
+          "structure_exact_coverage": 0.8282608695652174,
+          "top1_exact_content_signature_coverage": 0.08695652173913043,
+          "top3_exact_content_signature_coverage": 0.08695652173913043,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.13420289855072465
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 33,
+        "soft_topology_conditioning": true,
+        "test": {
+          "behavior_family_accuracy": 0.8220640569395018,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.6316336744833881,
+          "behavior_joint_accuracy": 0.875,
+          "behavior_role_accuracy": 0.9407894736842105,
+          "behavior_role_macro_f1": 0.9540607163933965,
+          "content_observations_predicted_structure": {
+            "action_family": 9808,
+            "model_id": 9808,
+            "node_type": 9808,
+            "raw_action": 9808
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.11513157894736842,
+          "layer_count_mae": 0.11513157894736842,
+          "node_count_bias": -0.006578947368421052,
+          "node_count_mae": 0.5131578947368421,
+          "oracle_structure_attr_macro_f1": 0.6805803646808563,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5168113275657454,
+            "model_id": 0.9688089003444891,
+            "node_type": 0.7743584973535288,
+            "raw_action": 0.46234273345966187
+          },
+          "predicted_structure_attr_macro_f1": 0.6622682771537122,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5017839348559919,
+            "model_id": 0.9441694577341646,
+            "node_type": 0.7533308810904475,
+            "raw_action": 0.44978883493424465
+          },
+          "sample_count": 1520,
+          "structure_error_amplification_gap": 0.018312087527144083,
+          "structure_exact_coverage": 0.7625,
+          "top1_exact_content_signature_coverage": 0.07105263157894737,
+          "top3_exact_content_signature_coverage": 0.07105263157894737,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.12026315789473684
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8211382113821138,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.7957679188809803,
+          "behavior_joint_accuracy": 0.8861508132084771,
+          "behavior_role_accuracy": 0.9398718580581568,
+          "behavior_role_macro_f1": 0.9526273747909082,
+          "content_observations_predicted_structure": {
+            "action_family": 12630,
+            "model_id": 12630,
+            "node_type": 12630,
+            "raw_action": 12630
+          },
+          "future_exists_accuracy": 1.0,
+          "layer_count_bias": 0.036471168063085264,
+          "layer_count_mae": 0.046328240512567766,
+          "node_count_bias": -0.1384918679152292,
+          "node_count_mae": 0.3395761458846723,
+          "oracle_structure_attr_macro_f1": 0.6866068152443755,
+          "oracle_structure_attr_macro_f1_by_field": {
+            "action_family": 0.5160551561335035,
+            "model_id": 0.9539416480008123,
+            "node_type": 0.7627367441057062,
+            "raw_action": 0.5136937127374797
+          },
+          "predicted_structure_attr_macro_f1": 0.6699683273378644,
+          "predicted_structure_attr_macro_f1_by_field": {
+            "action_family": 0.505799426294299,
+            "model_id": 0.9184571233185007,
+            "node_type": 0.7520899190898103,
+            "raw_action": 0.5035268406488475
+          },
+          "sample_count": 2029,
+          "structure_error_amplification_gap": 0.016638487906511124,
+          "structure_exact_coverage": 0.8068013799901429,
+          "top1_exact_content_signature_coverage": 0.07097092163627403,
+          "top3_exact_content_signature_coverage": 0.07097092163627403,
+          "topology_metrics_valid": true,
+          "width_vector_mae": 0.07974371611631345
+        },
+        "variant": "D"
+      }
+    ],
+    "N0": [
+      {
+        "best_epoch": 15,
+        "best_selection_score": -1.7711750311418413,
+        "best_train_losses": {
+          "content": 0.0,
+          "family": 0.41285283912297716,
+          "layer": 0.0,
+          "next": 0.290270737728373,
+          "role": 0.16768863939763987,
+          "structure": 0.0,
+          "total": 0.290270737728373,
+          "width": 0.0
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/N0/seed_11/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 30.140385150909424,
+        "holdout": {
+          "behavior_family_accuracy": 0.6673003802281369,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5513039508714249,
+          "behavior_joint_accuracy": 0.8347826086956521,
+          "behavior_role_accuracy": 0.9615942028985507,
+          "behavior_role_macro_f1": 0.9629287493158702,
+          "future_exists_accuracy": 0.7891304347826087,
+          "layer_count_bias": 0.1391304347826087,
+          "layer_count_mae": 2.055072463768116,
+          "node_count_bias": 3.8528985507246376,
+          "node_count_mae": 6.929710144927537,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 1380,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.016666666666666666,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.6430434782608696
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 11,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.8149466192170819,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.615693583702463,
+          "behavior_joint_accuracy": 0.8730263157894737,
+          "behavior_role_accuracy": 0.9407894736842105,
+          "behavior_role_macro_f1": 0.9540570550234091,
+          "future_exists_accuracy": 0.9032894736842105,
+          "layer_count_bias": 0.9796052631578948,
+          "layer_count_mae": 2.0269736842105264,
+          "node_count_bias": 6.091447368421052,
+          "node_count_mae": 7.8296052631578945,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 1520,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.017763157894736842,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.8532894736842105
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8406504065040651,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.8169325529372786,
+          "behavior_joint_accuracy": 0.893543617545589,
+          "behavior_role_accuracy": 0.9413504189255791,
+          "behavior_role_macro_f1": 0.9542424782045626,
+          "future_exists_accuracy": 0.8876293740758995,
+          "layer_count_bias": 0.8674223755544603,
+          "layer_count_mae": 2.0029571217348447,
+          "node_count_bias": 6.273533760473139,
+          "node_count_mae": 8.005421389847216,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 2029,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.011335633316904879,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.8762937407589946
+        },
+        "variant": "N0"
+      },
+      {
+        "best_epoch": 17,
+        "best_selection_score": -1.7555881342015591,
+        "best_train_losses": {
+          "content": 0.0,
+          "family": 0.40079590284288735,
+          "layer": 0.0,
+          "next": 0.2796568110990406,
+          "role": 0.15851771799335304,
+          "structure": 0.0,
+          "total": 0.2796568110990406,
+          "width": 0.0
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/N0/seed_22/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 30.6632661819458,
+        "holdout": {
+          "behavior_family_accuracy": 0.6673003802281369,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5432242746186968,
+          "behavior_joint_accuracy": 0.8340579710144927,
+          "behavior_role_accuracy": 0.9608695652173913,
+          "behavior_role_macro_f1": 0.9619218932718835,
+          "future_exists_accuracy": 0.6601449275362319,
+          "layer_count_bias": -1.153623188405797,
+          "layer_count_mae": 2.063768115942029,
+          "node_count_bias": -0.9434782608695652,
+          "node_count_mae": 4.727536231884058,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 1380,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.041304347826086954,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.2550724637681159
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 22,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.8131672597864769,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.6231554297945058,
+          "behavior_joint_accuracy": 0.8723684210526316,
+          "behavior_role_accuracy": 0.9414473684210526,
+          "behavior_role_macro_f1": 0.9548171075092833,
+          "future_exists_accuracy": 0.7210526315789474,
+          "layer_count_bias": -1.1585526315789474,
+          "layer_count_mae": 2.0572368421052634,
+          "node_count_bias": -1.1289473684210527,
+          "node_count_mae": 5.073684210526316,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 1520,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.017105263157894738,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.35
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8260162601626017,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.7988768889317255,
+          "behavior_joint_accuracy": 0.8925579103006407,
+          "behavior_role_accuracy": 0.944800394282898,
+          "behavior_role_macro_f1": 0.9567112452698335,
+          "future_exists_accuracy": 0.6914736323311976,
+          "layer_count_bias": -1.2686052242483983,
+          "layer_count_mae": 2.105470675209463,
+          "node_count_bias": -1.1912272055199606,
+          "node_count_mae": 5.031542631838344,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 2029,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.02759980285855101,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.3546574667323805
+        },
+        "variant": "N0"
+      },
+      {
+        "best_epoch": 13,
+        "best_selection_score": -1.7616188749155182,
+        "best_train_losses": {
+          "content": 0.0,
+          "family": 0.4208016100405815,
+          "layer": 0.0,
+          "next": 0.293923540787588,
+          "role": 0.16704547229081163,
+          "structure": 0.0,
+          "total": 0.293923540787588,
+          "width": 0.0
+        },
+        "checkpoint": "/root/autodl-tmp/scheduler/experiments/EXP-20260903_p9d_future_content_multitask/artifacts/N0/seed_33/checkpoint.pt",
+        "conditioning_gradient": null,
+        "elapsed_seconds": 25.78510046005249,
+        "holdout": {
+          "behavior_family_accuracy": 0.6615969581749049,
+          "behavior_family_coverage": 0.38115942028985506,
+          "behavior_family_macro_f1": 0.5413465035136862,
+          "behavior_joint_accuracy": 0.8333333333333334,
+          "behavior_role_accuracy": 0.9623188405797102,
+          "behavior_role_macro_f1": 0.9638785617355532,
+          "future_exists_accuracy": 0.8159420289855073,
+          "layer_count_bias": 0.9282608695652174,
+          "layer_count_mae": 2.0543478260869565,
+          "node_count_bias": 5.022463768115942,
+          "node_count_mae": 6.7876811594202895,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 1380,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.0036231884057971015,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.7705797101449274
+        },
+        "prediction_rows": {
+          "holdout": 1380,
+          "test": 1520,
+          "validation": 2029
+        },
+        "seed": 33,
+        "soft_topology_conditioning": false,
+        "test": {
+          "behavior_family_accuracy": 0.802491103202847,
+          "behavior_family_coverage": 0.36973684210526314,
+          "behavior_family_macro_f1": 0.6033988385292687,
+          "behavior_joint_accuracy": 0.868421052631579,
+          "behavior_role_accuracy": 0.9414473684210526,
+          "behavior_role_macro_f1": 0.9548171075092833,
+          "future_exists_accuracy": 0.7717105263157895,
+          "layer_count_bias": 0.07763157894736843,
+          "layer_count_mae": 2.1710526315789473,
+          "node_count_bias": 1.7881578947368422,
+          "node_count_mae": 6.248684210526315,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 1520,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.0125,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.5978947368421053
+        },
+        "validation": {
+          "behavior_family_accuracy": 0.8292682926829268,
+          "behavior_family_coverage": 0.30310497782158696,
+          "behavior_family_macro_f1": 0.8068013077745549,
+          "behavior_joint_accuracy": 0.8905864958107442,
+          "behavior_role_accuracy": 0.9418432725480532,
+          "behavior_role_macro_f1": 0.9548175671409631,
+          "future_exists_accuracy": 0.7368161655988171,
+          "layer_count_bias": 0.020206998521439132,
+          "layer_count_mae": 2.2419911286347953,
+          "node_count_bias": 1.8432725480532282,
+          "node_count_mae": 6.4031542631838345,
+          "oracle_structure_attr_macro_f1": null,
+          "oracle_structure_attr_macro_f1_by_field": null,
+          "predicted_structure_attr_macro_f1": null,
+          "predicted_structure_attr_macro_f1_by_field": null,
+          "sample_count": 2029,
+          "structure_error_amplification_gap": null,
+          "structure_exact_coverage": 0.01429275505174963,
+          "top1_exact_content_signature_coverage": null,
+          "top3_exact_content_signature_coverage": null,
+          "topology_metrics_valid": false,
+          "width_vector_mae": 1.6068999507146378
+        },
+        "variant": "N0"
+      }
+    ]
+  }
+}

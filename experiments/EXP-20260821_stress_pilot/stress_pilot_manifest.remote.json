@@ -1,0 +1,63 @@
+{
+  "cell_counts": {
+    "S0_baseline": 30,
+    "S1_ready_width": 30,
+    "S2_tight_deadline": 30,
+    "S3_offered_load": 30,
+    "S4_combined": 30
+  },
+  "cells": [
+    {
+      "arrival_mode": "preserve",
+      "deadline_mode": "preserve",
+      "description": "unchanged R7 validation timing",
+      "id": "S0_baseline"
+    },
+    {
+      "arrival_mode": "align",
+      "deadline_mode": "preserve",
+      "description": "all jobs released at the first arrival",
+      "id": "S1_ready_width"
+    },
+    {
+      "arrival_mode": "preserve",
+      "deadline_mode": "tight_p90",
+      "description": "same arrivals with 1.1x predicted P90 deadline",
+      "id": "S2_tight_deadline"
+    },
+    {
+      "arrival_mode": "scale_035",
+      "deadline_mode": "preserve",
+      "description": "arrival span compressed to 35 percent",
+      "id": "S3_offered_load"
+    },
+    {
+      "arrival_mode": "align",
+      "deadline_mode": "tight_p90",
+      "description": "ready-width pressure plus 1.1x predicted P90 deadline",
+      "id": "S4_combined"
+    }
+  ],
+  "changes": [
+    "arrival_ms",
+    "deadline_ms",
+    "episode metadata",
+    "job_instance_id"
+  ],
+  "combined_output": "results/processed/EXP-20260821_stress_pilot/episodes_all.jsonl",
+  "common_random_numbers": true,
+  "episodes_per_cell": 30,
+  "schema_version": "stress-pilot-v0.1",
+  "script_sha256": "9382656901146b53c0380ac7969911d04e85862bce7b757f0e370b76c158d90b",
+  "source": "results/processed/r7_workload_20260817/episodes/workload_validation_r7.jsonl",
+  "source_episodes": 1000,
+  "source_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "total_episodes": 150,
+  "unchanged": [
+    "template_id",
+    "source_video_ids",
+    "source_trace_sha256",
+    "scheduler_visible",
+    "node DAG"
+  ]
+}

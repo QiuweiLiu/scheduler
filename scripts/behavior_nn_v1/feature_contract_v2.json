@@ -1,0 +1,55 @@
+{
+  "version": "v2",
+  "date": "2026-08-09",
+  "supersedes": "v1(2026-08-09 旧版,未定义双视图)",
+  "plan_section": "behavior_nn_experiment_plan.md 3.2/3.3",
+  "views": {
+    "role_event_samples": {
+      "path": "data/role_event_samples.jsonl",
+      "axis": "17,303 role events",
+      "label": "next_role(plan/execute/aggregate/terminate)",
+      "cutoff": "cutoff_event_index = event_index(预测点=当前事件,标签=下一事件)",
+      "fields": {
+        "run_id/video_id/event_index": "分组与审计,不作为模型输入",
+        "task_id": "审计(64 video 冲突已报告)",
+        "cutoff_event_index": "序列接口输入",
+        "source_event_id/target_source_event_id/source_trace_sha256": "审计键(compute 派生;无 compute 事件标 no_compute_event)",
+        "status": "输入(compute 派生,9,924 success/210 error)",
+        "current_role/current_raw_action/model_id/baseline/question_type": "输入",
+        "domain/temporal_scope/answer_type/required_modalities": "输入(prefix join,空值不覆盖)",
+        "next_role": "标签",
+        "runtime_ms": "资源审计,不作为行为输入(仅 resource-history 消融)"
+      }
+    },
+    "semantic_tool_samples": {
+      "path": "data/semantic_tool_samples.jsonl",
+      "axis": "5,889 prefix(exact join,全部 execute 目标)",
+      "label": "family_label(execute-gated)",
+      "cutoff": "cutoff_event_index = target_event_index - 1",
+      "fields": {
+        "current_role": "输入(目标前一事件角色;首步为 None)",
+        "target_role/target_raw_action/family_label/family_raw": "标签",
+        "target_model_id": "禁止作为输入(与 family 强相关,73.6% 多数类基线);仅审计",
+        "target_baseline": "审计(输入用历史/当前 baseline)",
+        "vision_available/cutoff_event/missing_reason/visual_context": "输入(帧级验证见 tests/visual_cutoff_audit_report.json)",
+        "input_contract": "审计",
+        "features": "输入(仅 categorical/numeric 统计;text.question/options 不直接输入)"
+      }
+    }
+  },
+  "forbidden": [
+    "video_id / run_id / task_id 数值或 embedding",
+    "answer / answer label / correct option(features.text.answer_excluded=True)",
+    "next / future action / future state / remaining steps",
+    "target_model_id / target_runtime / target_VRAM / target_status",
+    "test 视频拟合的 scaler / vocab / class prior / transition graph",
+    "目标事件及其未来事件的帧(帧→事件审计见 visual_cutoff_audit_report)",
+    "无法证明 prefix cutoff 的完整 trace 表示"
+  ],
+  "join_keys": ["run_id + target_source_event_id", "run_id + event_index(审计确认兼容键)"],
+  "authority_split": "role_dataset.split(rd_split);prefix.split 在 340 run 不一致,禁用",
+  "deprecated": {
+    "canonical_samples.jsonl": "v1 产物(role=target_role=next_role 标签别名版本),废弃不用",
+    "canonical_samples_old 字段 role": "以 current_role/target_role 取代"
+  }
+}

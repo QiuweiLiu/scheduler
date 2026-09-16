@@ -1,0 +1,774 @@
+{
+  "action_definition": "(job_instance_id, node_id, gpu_index)",
+  "decisions": 15364,
+  "episodes": 100,
+  "failed_jobs": 0,
+  "future_horizon": 5,
+  "information_boundary": "reference scheduler state is scheduler-safe; true suffix values are audit-only and never passed to policy",
+  "metrics": {
+    "by_strict_width": {
+      "10": {
+        "decisions": 106,
+        "mean_first_second_true_value_gap_ms": 5786.876537735849,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 16429.56666981132,
+            "true_top1_agreement_rate": 0.36792452830188677
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 14530.305349056605,
+            "true_top1_agreement_rate": 0.4811320754716981
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 18800.441188679244,
+            "true_top1_agreement_rate": 0.41509433962264153
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 18987.5894245283,
+            "true_top1_agreement_rate": 0.33962264150943394
+          }
+        }
+      },
+      "11": {
+        "decisions": 65,
+        "mean_first_second_true_value_gap_ms": 5254.544923076923,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 13971.057184615385,
+            "true_top1_agreement_rate": 0.4
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 10115.922123076924,
+            "true_top1_agreement_rate": 0.5692307692307692
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 16111.516446153846,
+            "true_top1_agreement_rate": 0.4461538461538462
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 14428.02716923077,
+            "true_top1_agreement_rate": 0.38461538461538464
+          }
+        }
+      },
+      "12+": {
+        "decisions": 51,
+        "mean_first_second_true_value_gap_ms": 10275.661960784313,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 9141.181549019608,
+            "true_top1_agreement_rate": 0.39215686274509803
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 8561.524745098039,
+            "true_top1_agreement_rate": 0.43137254901960786
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 9738.995137254902,
+            "true_top1_agreement_rate": 0.35294117647058826
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 10795.840941176471,
+            "true_top1_agreement_rate": 0.3137254901960784
+          }
+        }
+      },
+      "2": {
+        "decisions": 8781,
+        "mean_first_second_true_value_gap_ms": 4955.133338913563,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 2753.5677584557566,
+            "true_top1_agreement_rate": 0.8518391982689899
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 2470.8263047488895,
+            "true_top1_agreement_rate": 0.8754128231408723
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 2687.005406445735,
+            "true_top1_agreement_rate": 0.8666438902175151
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 2663.998539004669,
+            "true_top1_agreement_rate": 0.8550279011502107
+          }
+        }
+      },
+      "4": {
+        "decisions": 4022,
+        "mean_first_second_true_value_gap_ms": 9175.986693684734,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 11762.778954251615,
+            "true_top1_agreement_rate": 0.4684236698160119
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 9779.81276031825,
+            "true_top1_agreement_rate": 0.5440079562406763
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 11139.705420437593,
+            "true_top1_agreement_rate": 0.5355544505221282
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 11890.147213575334,
+            "true_top1_agreement_rate": 0.46892093485827946
+          }
+        }
+      },
+      "8": {
+        "decisions": 2153,
+        "mean_first_second_true_value_gap_ms": 6568.778973989783,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 19901.66131769624,
+            "true_top1_agreement_rate": 0.30701346957733394
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 16306.53286437529,
+            "true_top1_agreement_rate": 0.40780306549001394
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 19088.46518160706,
+            "true_top1_agreement_rate": 0.36182071528100324
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 20353.85325034835,
+            "true_top1_agreement_rate": 0.2954017649790989
+          }
+        }
+      },
+      "9": {
+        "decisions": 186,
+        "mean_first_second_true_value_gap_ms": 7047.054231182795,
+        "policies": {
+          "aligned_predopt_h5": {
+            "mean_true_regret_ms": 27592.209483870967,
+            "true_top1_agreement_rate": 0.20967741935483872
+          },
+          "aligned_predopt_h5_layer": {
+            "mean_true_regret_ms": 21267.885586021504,
+            "true_top1_agreement_rate": 0.3118279569892473
+          },
+          "aligned_trueopt_h5": {
+            "mean_true_regret_ms": 0.0,
+            "true_top1_agreement_rate": 1.0
+          },
+          "myopic": {
+            "mean_true_regret_ms": 24965.319752688174,
+            "true_top1_agreement_rate": 0.26881720430107525
+          },
+          "predopt_h5": {
+            "mean_true_regret_ms": 28925.205951612905,
+            "true_top1_agreement_rate": 0.20430107526881722
+          }
+        }
+      }
+    },
+    "policies": {
+      "aligned_predopt_h5": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "decisions": 15364,
+        "mean_spearman_predicted_vs_true": 0.29631421146530573,
+        "mean_true_regret_ms": 7978.733159658943,
+        "p95_true_regret_ms": 54561.89664999998,
+        "predicted_score_top1_agreement_rate": 0.6605701640197865,
+        "priority_violation_rate": 0.0,
+        "strata": {
+          "cache_hit": {
+            "False": {
+              "decisions": 2387,
+              "error_count": 803,
+              "error_rate": 0.33640552995391704,
+              "mean_true_regret_ms": 11300.693309593633,
+              "true_top1_agreement_rate": 0.663594470046083
+            },
+            "True": {
+              "decisions": 12977,
+              "error_count": 4412,
+              "error_rate": 0.3399861293056947,
+              "mean_true_regret_ms": 7367.689091084226,
+              "true_top1_agreement_rate": 0.6600138706943053
+            }
+          },
+          "deadline_sign": {
+            "nonnegative": {
+              "decisions": 15319,
+              "error_count": 5194,
+              "error_rate": 0.33905607415627653,
+              "mean_true_regret_ms": 7982.1863384032895,
+              "true_top1_agreement_rate": 0.6609439258437235
+            },
+            "overdue": {
+              "decisions": 45,
+              "error_count": 21,
+              "error_rate": 0.4666666666666667,
+              "mean_true_regret_ms": 6803.194377777776,
+              "true_top1_agreement_rate": 0.5333333333333333
+            }
+          },
+          "model": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "decisions": 1557,
+              "error_count": 375,
+              "error_rate": 0.24084778420038536,
+              "mean_true_regret_ms": 5600.416164418754,
+              "true_top1_agreement_rate": 0.7591522157996147
+            },
+            "Qwen3-4B": {
+              "decisions": 5199,
+              "error_count": 2520,
+              "error_rate": 0.4847085978072706,
+              "mean_true_regret_ms": 18242.687178111177,
+              "true_top1_agreement_rate": 0.5152914021927294
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "decisions": 8479,
+              "error_count": 2296,
+              "error_rate": 0.27078664936902935,
+              "mean_true_regret_ms": 2209.9345014742303,
+              "true_top1_agreement_rate": 0.7292133506309706
+            },
+            "yolo11x.pt": {
+              "decisions": 129,
+              "error_count": 24,
+              "error_rate": 0.18604651162790697,
+              "mean_true_regret_ms": 2198.783100775194,
+              "true_top1_agreement_rate": 0.813953488372093
+            }
+          },
+          "role": {
+            "answer_generation": {
+              "decisions": 3072,
+              "error_count": 533,
+              "error_rate": 0.17350260416666666,
+              "mean_true_regret_ms": 3110.367229817708,
+              "true_top1_agreement_rate": 0.8264973958333334
+            },
+            "planner": {
+              "decisions": 9867,
+              "error_count": 4062,
+              "error_rate": 0.4116752812404986,
+              "mean_true_regret_ms": 10681.188487990272,
+              "true_top1_agreement_rate": 0.5883247187595013
+            },
+            "videotool_spatial": {
+              "decisions": 2425,
+              "error_count": 620,
+              "error_rate": 0.2556701030927835,
+              "mean_true_regret_ms": 3150.070649072165,
+              "true_top1_agreement_rate": 0.7443298969072165
+            }
+          },
+          "service_class": {
+            "normal": {
+              "decisions": 11189,
+              "error_count": 4270,
+              "error_rate": 0.38162481008132987,
+              "mean_true_regret_ms": 10570.737234784163,
+              "true_top1_agreement_rate": 0.6183751899186701
+            },
+            "priority": {
+              "decisions": 4175,
+              "error_count": 945,
+              "error_rate": 0.22634730538922157,
+              "mean_true_regret_ms": 1032.1622383233532,
+              "true_top1_agreement_rate": 0.7736526946107785
+            }
+          }
+        },
+        "true_top1_agreement_rate": 0.6605701640197865
+      },
+      "aligned_predopt_h5_layer": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "decisions": 15364,
+        "mean_spearman_predicted_vs_true": 0.35435899640099666,
+        "mean_true_regret_ms": 6686.3388275839625,
+        "p95_true_regret_ms": 45452.470999999954,
+        "predicted_score_top1_agreement_rate": 0.7108174954438948,
+        "priority_violation_rate": 0.0,
+        "strata": {
+          "cache_hit": {
+            "False": {
+              "decisions": 2855,
+              "error_count": 1167,
+              "error_rate": 0.40875656742556915,
+              "mean_true_regret_ms": 9912.813171978984,
+              "true_top1_agreement_rate": 0.5912434325744308
+            },
+            "True": {
+              "decisions": 12509,
+              "error_count": 3276,
+              "error_rate": 0.26189143816452154,
+              "mean_true_regret_ms": 5949.942292829163,
+              "true_top1_agreement_rate": 0.7381085618354785
+            }
+          },
+          "deadline_sign": {
+            "nonnegative": {
+              "decisions": 15298,
+              "error_count": 4406,
+              "error_rate": 0.2880115047718656,
+              "mean_true_regret_ms": 6681.712504183553,
+              "true_top1_agreement_rate": 0.7119884952281343
+            },
+            "overdue": {
+              "decisions": 66,
+              "error_count": 37,
+              "error_rate": 0.5606060606060606,
+              "mean_true_regret_ms": 7758.664515151514,
+              "true_top1_agreement_rate": 0.4393939393939394
+            }
+          },
+          "model": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "decisions": 2494,
+              "error_count": 1171,
+              "error_rate": 0.46952686447473935,
+              "mean_true_regret_ms": 9364.20808500401,
+              "true_top1_agreement_rate": 0.5304731355252607
+            },
+            "Qwen3-4B": {
+              "decisions": 3973,
+              "error_count": 1538,
+              "error_rate": 0.3871130128366474,
+              "mean_true_regret_ms": 15157.522791593254,
+              "true_top1_agreement_rate": 0.6128869871633527
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "decisions": 8785,
+              "error_count": 1718,
+              "error_rate": 0.19556061468412067,
+              "mean_true_regret_ms": 2156.9192305065453,
+              "true_top1_agreement_rate": 0.8044393853158793
+            },
+            "yolo11x.pt": {
+              "decisions": 112,
+              "error_count": 16,
+              "error_rate": 0.14285714285714285,
+              "mean_true_regret_ms": 1832.1543928571434,
+              "true_top1_agreement_rate": 0.8571428571428571
+            }
+          },
+          "role": {
+            "answer_generation": {
+              "decisions": 4513,
+              "error_count": 1354,
+              "error_rate": 0.30002215820961664,
+              "mean_true_regret_ms": 5415.695016618657,
+              "true_top1_agreement_rate": 0.6999778417903834
+            },
+            "planner": {
+              "decisions": 8721,
+              "error_count": 2764,
+              "error_rate": 0.31693613117761726,
+              "mean_true_regret_ms": 8186.682774567136,
+              "true_top1_agreement_rate": 0.6830638688223828
+            },
+            "videotool_spatial": {
+              "decisions": 2130,
+              "error_count": 325,
+              "error_rate": 0.15258215962441316,
+              "mean_true_regret_ms": 3235.5951455399063,
+              "true_top1_agreement_rate": 0.8474178403755869
+            }
+          },
+          "service_class": {
+            "normal": {
+              "decisions": 11189,
+              "error_count": 3815,
+              "error_rate": 0.34095987130217176,
+              "mean_true_regret_ms": 8959.869639020466,
+              "true_top1_agreement_rate": 0.6590401286978282
+            },
+            "priority": {
+              "decisions": 4175,
+              "error_count": 628,
+              "error_rate": 0.1504191616766467,
+              "mean_true_regret_ms": 593.2762529341319,
+              "true_top1_agreement_rate": 0.8495808383233533
+            }
+          }
+        },
+        "true_top1_agreement_rate": 0.7108174954438948
+      },
+      "aligned_trueopt_h5": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "decisions": 15364,
+        "mean_spearman_predicted_vs_true": 0.9999999999999999,
+        "mean_true_regret_ms": 0.0,
+        "p95_true_regret_ms": 0.0,
+        "predicted_score_top1_agreement_rate": 1.0,
+        "priority_violation_rate": 0.0,
+        "strata": {
+          "cache_hit": {
+            "False": {
+              "decisions": 3302,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "True": {
+              "decisions": 12062,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            }
+          },
+          "deadline_sign": {
+            "nonnegative": {
+              "decisions": 15188,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "overdue": {
+              "decisions": 176,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            }
+          },
+          "model": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "decisions": 1899,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "Qwen3-4B": {
+              "decisions": 3518,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "decisions": 9817,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "yolo11x.pt": {
+              "decisions": 130,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            }
+          },
+          "role": {
+            "answer_generation": {
+              "decisions": 5801,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "planner": {
+              "decisions": 7299,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "videotool_spatial": {
+              "decisions": 2264,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            }
+          },
+          "service_class": {
+            "normal": {
+              "decisions": 11189,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            },
+            "priority": {
+              "decisions": 4175,
+              "error_count": 0,
+              "error_rate": 0.0,
+              "mean_true_regret_ms": 0.0,
+              "true_top1_agreement_rate": 1.0
+            }
+          }
+        },
+        "true_top1_agreement_rate": 1.0
+      },
+      "myopic": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "decisions": 15364,
+        "mean_spearman_predicted_vs_true": 0.2987323920018041,
+        "mean_true_regret_ms": 7659.222127831294,
+        "p95_true_regret_ms": 50521.18894999991,
+        "predicted_score_top1_agreement_rate": 0.6953918250455611,
+        "priority_violation_rate": 0.0,
+        "strata": {
+          "cache_hit": {
+            "False": {
+              "decisions": 2198,
+              "error_count": 744,
+              "error_rate": 0.33848953594176523,
+              "mean_true_regret_ms": 10579.713282984532,
+              "true_top1_agreement_rate": 0.6615104640582348
+            },
+            "True": {
+              "decisions": 13166,
+              "error_count": 3936,
+              "error_rate": 0.29895184566307154,
+              "mean_true_regret_ms": 7171.660259456175,
+              "true_top1_agreement_rate": 0.7010481543369285
+            }
+          },
+          "deadline_sign": {
+            "nonnegative": {
+              "decisions": 15302,
+              "error_count": 4645,
+              "error_rate": 0.30355509083779897,
+              "mean_true_regret_ms": 7653.594400209123,
+              "true_top1_agreement_rate": 0.696444909162201
+            },
+            "overdue": {
+              "decisions": 62,
+              "error_count": 35,
+              "error_rate": 0.5645161290322581,
+              "mean_true_regret_ms": 9048.181612903225,
+              "true_top1_agreement_rate": 0.43548387096774194
+            }
+          },
+          "model": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "decisions": 1730,
+              "error_count": 554,
+              "error_rate": 0.3202312138728324,
+              "mean_true_regret_ms": 8257.056919075143,
+              "true_top1_agreement_rate": 0.6797687861271676
+            },
+            "Qwen3-4B": {
+              "decisions": 4954,
+              "error_count": 2285,
+              "error_rate": 0.4612434396447315,
+              "mean_true_regret_ms": 16778.437429350022,
+              "true_top1_agreement_rate": 0.5387565603552684
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "decisions": 8551,
+              "error_count": 1817,
+              "error_rate": 0.21248976727868085,
+              "mean_true_regret_ms": 2335.248187346509,
+              "true_top1_agreement_rate": 0.7875102327213191
+            },
+            "yolo11x.pt": {
+              "decisions": 129,
+              "error_count": 24,
+              "error_rate": 0.18604651162790697,
+              "mean_true_regret_ms": 2344.9149379844966,
+              "true_top1_agreement_rate": 0.813953488372093
+            }
+          },
+          "role": {
+            "answer_generation": {
+              "decisions": 3597,
+              "error_count": 700,
+              "error_rate": 0.19460661662496526,
+              "mean_true_regret_ms": 4253.818995551848,
+              "true_top1_agreement_rate": 0.8053933833750347
+            },
+            "planner": {
+              "decisions": 9524,
+              "error_count": 3543,
+              "error_rate": 0.372007559848803,
+              "mean_true_regret_ms": 9887.936930701386,
+              "true_top1_agreement_rate": 0.6279924401511969
+            },
+            "videotool_spatial": {
+              "decisions": 2243,
+              "error_count": 437,
+              "error_rate": 0.19482835488185465,
+              "mean_true_regret_ms": 3656.973034774855,
+              "true_top1_agreement_rate": 0.8051716451181453
+            }
+          },
+          "service_class": {
+            "normal": {
+              "decisions": 11189,
+              "error_count": 3966,
+              "error_rate": 0.35445526856734294,
+              "mean_true_regret_ms": 10209.926717401018,
+              "true_top1_agreement_rate": 0.6455447314326571
+            },
+            "priority": {
+              "decisions": 4175,
+              "error_count": 714,
+              "error_rate": 0.1710179640718563,
+              "mean_true_regret_ms": 823.3338277844312,
+              "true_top1_agreement_rate": 0.8289820359281437
+            }
+          }
+        },
+        "true_top1_agreement_rate": 0.6953918250455611
+      },
+      "predopt_h5": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "decisions": 15364,
+        "mean_spearman_predicted_vs_true": 0.3219657041873615,
+        "mean_true_regret_ms": 8065.462884144754,
+        "p95_true_regret_ms": 56014.92959999996,
+        "predicted_score_top1_agreement_rate": 0.6603098151523041,
+        "priority_violation_rate": 0.0,
+        "strata": {
+          "cache_hit": {
+            "False": {
+              "decisions": 2452,
+              "error_count": 815,
+              "error_rate": 0.3323817292006525,
+              "mean_true_regret_ms": 11218.287859298533,
+              "true_top1_agreement_rate": 0.6676182707993474
+            },
+            "True": {
+              "decisions": 12912,
+              "error_count": 4404,
+              "error_rate": 0.34107806691449816,
+              "mean_true_regret_ms": 7466.738686570632,
+              "true_top1_agreement_rate": 0.6589219330855018
+            }
+          },
+          "deadline_sign": {
+            "nonnegative": {
+              "decisions": 15305,
+              "error_count": 5190,
+              "error_rate": 0.3391048676902973,
+              "mean_true_regret_ms": 8069.498623456387,
+              "true_top1_agreement_rate": 0.6608951323097028
+            },
+            "overdue": {
+              "decisions": 59,
+              "error_count": 29,
+              "error_rate": 0.4915254237288136,
+              "mean_true_regret_ms": 7018.564745762711,
+              "true_top1_agreement_rate": 0.5084745762711864
+            }
+          },
+          "model": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "decisions": 1342,
+              "error_count": 189,
+              "error_rate": 0.14083457526080476,
+              "mean_true_regret_ms": 2792.4228397913557,
+              "true_top1_agreement_rate": 0.8591654247391952
+            },
+            "Qwen3-4B": {
+              "decisions": 5299,
+              "error_count": 2614,
+              "error_rate": 0.49330062275901115,
+              "mean_true_regret_ms": 18771.599913002454,
+              "true_top1_agreement_rate": 0.5066993772409889
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "decisions": 8592,
+              "error_count": 2390,
+              "error_rate": 0.2781657355679702,
+              "mean_true_regret_ms": 2372.8726596834267,
+              "true_top1_agreement_rate": 0.7218342644320298
+            },
+            "yolo11x.pt": {
+              "decisions": 131,
+              "error_count": 26,
+              "error_rate": 0.1984732824427481,
+              "mean_true_regret_ms": 2380.9959541984736,
+              "true_top1_agreement_rate": 0.8015267175572519
+            }
+          },
+          "role": {
+            "answer_generation": {
+              "decisions": 3060,
+              "error_count": 431,
+              "error_rate": 0.14084967320261438,
+              "mean_true_regret_ms": 1820.2372767973854,
+              "true_top1_agreement_rate": 0.8591503267973856
+            },
+            "planner": {
+              "decisions": 9854,
+              "error_count": 4144,
+              "error_rate": 0.42053988228130706,
+              "mean_true_regret_ms": 11153.282029632637,
+              "true_top1_agreement_rate": 0.5794601177186929
+            },
+            "videotool_spatial": {
+              "decisions": 2450,
+              "error_count": 644,
+              "error_rate": 0.26285714285714284,
+              "mean_true_regret_ms": 3446.28757755102,
+              "true_top1_agreement_rate": 0.7371428571428571
+            }
+          },
+          "service_class": {
+            "normal": {
+              "decisions": 11189,
+              "error_count": 4267,
+              "error_rate": 0.3813566896058629,
+              "mean_true_regret_ms": 10673.076513361337,
+              "true_top1_agreement_rate": 0.6186433103941371
+            },
+            "priority": {
+              "decisions": 4175,
+              "error_count": 952,
+              "error_rate": 0.2280239520958084,
+              "mean_true_regret_ms": 1077.0583578443116,
+              "true_top1_agreement_rate": 0.7719760479041916
+            }
+          }
+        },
+        "true_top1_agreement_rate": 0.6603098151523041
+      }
+    }
+  },
+  "missing_future_artifact_nodes": {},
+  "policies": [
+    "myopic",
+    "predopt_h5",
+    "aligned_predopt_h5",
+    "aligned_predopt_h5_layer",
+    "aligned_trueopt_h5"
+  ],
+  "q_definition": "Q_aligned_H5 = aligned_h5_score(truth): current action plus next H DAG layers under shared cache contract; lower is better",
+  "reference_policy": "myopic",
+  "schema_version": "action-value-audit-v0.1",
+  "status": "passed",
+  "truth_contract": "aligned_h5"
+}

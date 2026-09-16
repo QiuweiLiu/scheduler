@@ -1,0 +1,112 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [
+    "smoke mode: full-pool count equality skipped (nodes=932)",
+    "memory coverage 543/932"
+  ],
+  "counts": {
+    "total": 932,
+    "by_kind": {
+      "planner": 452,
+      "tool": 411,
+      "post_loop_generation": 69
+    },
+    "by_split": {
+      "train": 271,
+      "test": 241,
+      "validation": 251,
+      "holdout": 169
+    }
+  },
+  "load_accounting": {
+    "planner": {
+      "positive": 69,
+      "zero": 352,
+      "missing": 31,
+      "total": 452
+    },
+    "tool": {
+      "zero": 399,
+      "positive": 12,
+      "total": 411
+    },
+    "post_loop_generation": {
+      "zero": 28,
+      "positive": 41,
+      "total": 69
+    }
+  },
+  "memory": {
+    "missing": 389,
+    "available": 543
+  },
+  "feature_roles": {
+    "pre_execution": [
+      "planner_mode",
+      "is_retry",
+      "clip_len",
+      "query_char_len",
+      "nested_api_call_count",
+      "clip_len_missing",
+      "query_char_len_missing",
+      "baseline",
+      "prefix_model_reuse"
+    ],
+    "oracle_label": [
+      "exec_class",
+      "role",
+      "model_class",
+      "nested_model_class",
+      "merged_nested_call"
+    ],
+    "target_only": [
+      "runtime_ms",
+      "load_ms",
+      "peak_allocated_mb",
+      "peak_reserved_mb",
+      "peak_memory_inclusive_mb"
+    ]
+  },
+  "feature_columns_C4": [
+    "baseline",
+    "clip_len",
+    "clip_len_missing",
+    "exec_class",
+    "is_retry",
+    "merged_nested_call",
+    "model_class",
+    "nested_api_call_count",
+    "nested_model_class",
+    "planner_mode",
+    "prefix_model_reuse",
+    "query_char_len",
+    "query_char_len_missing",
+    "role"
+  ],
+  "thresholds": {
+    "tail_q90_ms": 19851.959,
+    "per_exec_class_train_median": {
+      "planner/planner.generate": 6319.807000000001,
+      "videotool_temporal/frame-selector": 0.085,
+      "videotool_temporal/image-grid-selector": 0.083,
+      "videotool_generalist/summarization-tool": 10411.0355,
+      "answer_generation/generalist.generate": 10411.5405,
+      "videotool_temporal/temporal-grounding": 0.094,
+      "videotool_temporal/temporal-qa": 0.027
+    }
+  },
+  "worker_source_sha256": {
+    "qwen3_vl_worker.py": "03898c3db51564a81b5cd1be6e89c4231f257cd0a11b000e05dd67df4a2b2e03",
+    "qwen_text_worker.py": "201032d3f08d4abbe5f7eec72d7e63dca04cfed4b951b37572ddf5a4f567d6d4"
+  },
+  "build": {
+    "counts": {
+      "chain_nodes": 1012,
+      "nested_merged": 37,
+      "violations": 0
+    },
+    "missing_runs": []
+  },
+  "smoke": true
+}

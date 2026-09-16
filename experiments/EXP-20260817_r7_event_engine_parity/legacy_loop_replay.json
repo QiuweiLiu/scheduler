@@ -1,0 +1,27 @@
+{
+  "schema_version": "r7-event-engine-legacy-loop-replay-v1",
+  "runs": [
+    {
+      "episodes": 10,
+      "policies": [
+        "myopic"
+      ],
+      "templates": 768,
+      "dispatch_events": 1332,
+      "state_events": 1332,
+      "output_scope": "/tmp legacy replay; no formal workload"
+    },
+    {
+      "episodes": 50,
+      "policies": [
+        "myopic"
+      ],
+      "templates": 768,
+      "dispatch_events": 6744,
+      "state_events": 6744,
+      "output_scope": "/tmp legacy replay; no formal workload"
+    }
+  ],
+  "pass": true,
+  "formal_scheduler_workload_started": false
+}\n

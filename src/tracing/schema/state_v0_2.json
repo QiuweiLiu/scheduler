@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dynamic-video-agent/state_v0_2.json",
+  "title": "Dynamic Video Agent structured prefix state v0.2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "state_id",
+    "run_id",
+    "task_id",
+    "video_id",
+    "baseline",
+    "step_id",
+    "task",
+    "video",
+    "prefix",
+    "evidence",
+    "leakage_guard"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.2"},
+    "state_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "video_id": {"type": "string", "minLength": 1},
+    "baseline": {"type": "string", "minLength": 1},
+    "step_id": {"type": "integer", "minimum": 0},
+    "task": {
+      "type": "object",
+      "required": [
+        "question_type",
+        "answer_type",
+        "temporal_scope",
+        "required_modalities",
+        "option_count",
+        "domain",
+        "sub_category"
+      ],
+      "properties": {
+        "question_type": {"type": "string", "minLength": 1},
+        "answer_type": {"type": "string", "minLength": 1},
+        "temporal_scope": {"type": "string", "minLength": 1},
+        "required_modalities": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "option_count": {"type": "integer", "minimum": 0},
+        "question_chars": {"type": "integer", "minimum": 0},
+        "question_tokens": {"type": "integer", "minimum": 0},
+        "option_chars_mean": {"type": "number", "minimum": 0},
+        "domain": {"type": "string", "minLength": 1},
+        "sub_category": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "video": {
+      "type": "object",
+      "properties": {
+        "duration_s": {"type": ["number", "null"], "minimum": 0},
+        "fps": {"type": ["number", "null"], "minimum": 0},
+        "width": {"type": ["integer", "null"], "minimum": 1},
+        "height": {"type": ["integer", "null"], "minimum": 1},
+        "subtitle_available": {"type": ["boolean", "null"]},
+        "shot_count": {"type": ["integer", "null"], "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "prefix": {
+      "type": "object",
+      "required": [
+        "observed_step_count",
+        "raw_actions",
+        "canonical_actions",
+        "action_histogram",
+        "last_actions",
+        "max_steps",
+        "progress_ratio",
+        "local_runtime_ms",
+        "api_wait_ms",
+        "retry_count",
+        "error_count"
+      ],
+      "properties": {
+        "observed_step_count": {"type": "integer", "minimum": 0},
+        "raw_actions": {"type": "array", "items": {"type": "string"}},
+        "canonical_actions": {"type": "array", "items": {"type": "string"}},
+        "action_histogram": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0}},
+        "last_actions": {"type": "array", "maxItems": 2, "items": {"type": "string"}},
+        "max_steps": {"type": "integer", "minimum": 1},
+        "progress_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "local_runtime_ms": {"type": "number", "minimum": 0},
+        "api_wait_ms": {"type": "number", "minimum": 0},
+        "retry_count": {"type": "integer", "minimum": 0},
+        "error_count": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "coverage_bins",
+        "coverage_ratio",
+        "observed_intervals",
+        "frames_seen",
+        "modality_counts",
+        "object_counts",
+        "ocr_chars",
+        "temporal_relation_count",
+        "confidence_mean",
+        "source_event_ids",
+        "future_events_included",
+        "ground_truth_included"
+      ],
+      "properties": {
+        "coverage_bins": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "coverage_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "observed_intervals": {
+          "type": "array",
+          "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}}
+        },
+        "frames_seen": {"type": "integer", "minimum": 0},
+        "modality_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "object_counts": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0}},
+        "ocr_chars": {"type": "integer", "minimum": 0},
+        "temporal_relation_count": {"type": "integer", "minimum": 0},
+        "confidence_mean": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "source_event_ids": {"type": "array", "items": {"type": "string"}},
+        "future_events_included": {"const": false},
+        "ground_truth_included": {"const": false}
+      },
+      "additionalProperties": true
+    },
+    "leakage_guard": {
+      "type": "object",
+      "required": [
+        "future_events_excluded",
+        "ground_truth_excluded",
+        "video_id_used_as_feature",
+        "answer_text_used_as_feature"
+      ],
+      "properties": {
+        "future_events_excluded": {"const": true},
+        "ground_truth_excluded": {"const": true},
+        "video_id_used_as_feature": {"const": false},
+        "answer_text_used_as_feature": {"const": false}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

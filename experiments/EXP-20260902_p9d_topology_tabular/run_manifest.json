@@ -1,0 +1,60 @@
+{
+  "experiment_id": "EXP-20260902_p9d_topology_tabular",
+  "status": "passed_tabular_comparator",
+  "execution": {
+    "host_identity": "autodl-container-41d846924e-d62d0601",
+    "remote_root": "/root/autodl-tmp/scheduler",
+    "python": "/root/miniconda3/envs/finetooling/bin/python",
+    "lightgbm_version": "4.7.0",
+    "command": [
+      "/root/miniconda3/envs/finetooling/bin/python",
+      "scripts/p9d_topology_tabular.py",
+      "--config",
+      "experiments/EXP-20260902_p9d_topology_tabular/config.json"
+    ],
+    "fit_split": "train",
+    "selection_split": "validation",
+    "diagnostic_split": "test",
+    "frozen_acceptance_split": "holdout"
+  },
+  "source_sha256": {
+    "scripts/p9d_topology_tabular.py": "4df77cb11bcdf7a73cf99fed754f93b2e309e1af55959bab65aadb0a3ea57d76",
+    "tests/test_p9d_topology_tabular.py": "e724c6d703933eeaac6a2177fa81caa635ec5ca4a5fa343e7ab1a85a2f6d16fc",
+    "experiments/EXP-20260902_p9d_topology_tabular/config.json": "fce8066d814b6d052021b52a25298605523a6eaeee39964a86d2f135e7a98bfe",
+    "experiments/EXP-20260902_p9d_topology_tabular/run.sh": "d0c82e661268136ad0be0f20f5cd6b291fa278457583811c23bf1f8a6ad91d9c"
+  },
+  "dataset_sha256": {
+    "dataset_manifest.json": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "features_train.jsonl.gz": "c3f31c85bda4b7bb09be4e0da5c0160a9ac85bb82d4fc4997350a631e7853d7a",
+    "labels_train.jsonl.gz": "18b9cdbdab930a252703bc44345759fe4ac340dd22a42035af92ed8e3ae804ed",
+    "features_validation.jsonl.gz": "473f23183640dfb2cac9695f940761f3ec493b9c7e35c960f4cfcef694878f6c",
+    "labels_validation.jsonl.gz": "28b8eb33085d9842b2e8d0e6462ba97454fb6f8e4c98139e5f1c9eea635006e6",
+    "features_test.jsonl.gz": "3e5f0b4057546ab6eb05cb49ee7e7d4dcbd67cf4d0d090e9456d00d4abb76c6e",
+    "labels_test.jsonl.gz": "40d459a80bebcb5e19c262c909c74b8106b9ab814db712c3aeb02f6e082824fd",
+    "features_holdout.jsonl.gz": "28c930ae98b1cdc04cd5f4d165c32d5e8227293df6aaefce1cde8004df07bdf3",
+    "labels_holdout.jsonl.gz": "233670745f3740a3a77437be14bec2ca9b08b9f794289fcb7ab89cdf55554deb"
+  },
+  "verification": {
+    "local_unit_tests": "4/4 passed",
+    "remote_unit_tests": "4/4 passed",
+    "local_py_compile": "passed",
+    "remote_py_compile": "passed",
+    "prediction_rows_match_split_counts": true,
+    "top3_probability_sum_audit": "0 violations",
+    "identity_edge_resource_field_audit": "0 violations",
+    "remote_local_output_hashes_match": true
+  },
+  "boundary": {
+    "scheduler_groups_used_for_fit": false,
+    "t_final_read": false,
+    "raw_trace_modified": false,
+    "scheduler_integration_started": false,
+    "shared_gru_started": false
+  },
+  "output_sha256": {
+    "metrics.json": "7c77079ea364144267c871135d62b68cdb003f6e648fd7cf0db9305b9586f077",
+    "artifacts/predictions_validation.jsonl.gz": "258d15c4e6ec4e839ec561aa4e873e5f2b774352b8c823479cabd9b944682922",
+    "artifacts/predictions_test.jsonl.gz": "37406a1888050caa3d7077db64b9610f84bcc66b40901323dd243eaf3f45be4a",
+    "artifacts/predictions_holdout.jsonl.gz": "c6b4e7e1813b8db0124569a859c1884b249555e73b2e8162618b140aed545cba"
+  }
+}

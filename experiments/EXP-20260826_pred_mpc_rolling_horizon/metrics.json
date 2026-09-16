@@ -1,0 +1,35 @@
+{
+  "schema_version": "r8-pred-mpc-matrix-v0.1",
+  "status": "passed",
+  "stage": "visible_window_smoke_10",
+  "episodes": 10,
+  "result_rows": 60,
+  "expected_result_rows": 60,
+  "failed_jobs": 0,
+  "completed_jobs_per_policy": 160,
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "future_artifacts_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "mean_completion_ms": {
+    "myopic": 176937.06589687505,
+    "predopt_h5": 175859.96912187504,
+    "cp_rho_h5": 183881.27524062502,
+    "pred_mpc_h3": 186010.24122812506,
+    "pred_mpc_h5": 187089.48779062502,
+    "pred_mpc_h5_no_terminal": 185218.13961250003
+  },
+  "paired_delta_vs_myopic_ms": {
+    "predopt_h5": -1077.0967749999982,
+    "cp_rho_h5": 6944.209343749999,
+    "pred_mpc_h3": 9073.175331249991,
+    "pred_mpc_h5": 10152.421893749994,
+    "pred_mpc_h5_no_terminal": 8281.073715624985
+  },
+  "pred_mpc_mean_rollout_ms": {
+    "pred_mpc_h3": 25.410008109893642,
+    "pred_mpc_h5": 25.597335775155816,
+    "pred_mpc_h5_no_terminal": 25.34771941705383
+  },
+  "information_boundary": "rollout uses only known jobs and current ready-node candidates; future continuation cost comes from frozen artifacts, with no execution truth, future arrivals, or template suffix graph passed to policy",
+  "t_final": "sealed"
+}

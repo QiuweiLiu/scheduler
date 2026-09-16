@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dynamic-video-agent/causal_v2_contract_v0_1.json",
+  "title": "VideoSeek R6 causal-v2 data contract",
+  "description": "Contract for decision-time prefix, future-provider, resource prediction and workload boundaries. Measured execution truth is engine-only.",
+  "type": "object",
+  "required": ["schema_version", "collection_id", "fit_split", "truth_visibility", "input_visibility"],
+  "properties": {
+    "schema_version": {"const": "r6-causal-v2"},
+    "collection_id": {"type": "string", "minLength": 1},
+    "fit_split": {"const": "train"},
+    "truth_visibility": {"const": "execution_engine_only"},
+    "input_visibility": {"const": "scheduler_state_view_only"},
+    "horizons": {"type": "array", "items": {"enum": [1, 3, 5]}},
+    "forbidden_scheduler_fields": {
+      "type": "array",
+      "items": {"type": "string"},
+      "contains": {"const": "remaining_runtime_ms"}
+    },
+    "workload_job_fields": {
+      "type": "array",
+      "items": {"type": "string"},
+      "contains": {"const": "template_id"}
+    }
+  },
+  "additionalProperties": true
+}

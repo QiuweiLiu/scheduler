@@ -1,0 +1,266 @@
+{
+  "context": {
+    "answer_type": {
+      "size": 4,
+      "values": [
+        "multiple_choice",
+        "unknown"
+      ]
+    },
+    "baseline": {
+      "size": 5,
+      "values": [
+        "langgraph_react",
+        "st_fixed",
+        "star"
+      ]
+    },
+    "domain": {
+      "size": 9,
+      "values": [
+        "Artistic Performance",
+        "Film & Television",
+        "Knowledge",
+        "Life Record",
+        "Multilingual",
+        "Sports Competition",
+        "unknown"
+      ]
+    },
+    "model_stack_id": {
+      "size": 11,
+      "values": [
+        "Qwen2.5-VL-3B-Instruct",
+        "Qwen3-4B",
+        "Qwen3-VL-8B-Instruct",
+        "cpu-metadata-adapter-v1",
+        "finish_argument",
+        "stack_a_qwen3_vl8b",
+        "stack_b_qwen3_4b_qwen25vl3b_yolo11x",
+        "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+        "yolo11x.pt"
+      ]
+    },
+    "official_task_type": {
+      "size": 15,
+      "values": [
+        "Action Reasoning",
+        "Action Recognition",
+        "Attribute Perception",
+        "Counting Problem",
+        "Information Synopsis",
+        "OCR Problems",
+        "Object Reasoning",
+        "Object Recognition",
+        "Spatial Perception",
+        "Spatial Reasoning",
+        "Temporal Perception",
+        "Temporal Reasoning",
+        "unknown"
+      ]
+    },
+    "planner_model_id": {
+      "size": 3,
+      "values": [
+        "unknown"
+      ]
+    },
+    "question_type": {
+      "size": 10,
+      "values": [
+        "causal",
+        "comparison",
+        "count",
+        "identification",
+        "spatial",
+        "summary",
+        "temporal",
+        "unknown"
+      ]
+    },
+    "sub_category": {
+      "size": 33,
+      "values": [
+        "Acrobatics",
+        "Animation",
+        "Astronomy",
+        "Athletics",
+        "Basketball",
+        "Biology & Medicine",
+        "Daily Life",
+        "Documentary",
+        "Esports",
+        "Exercise",
+        "Fashion",
+        "Finance & Commerce",
+        "Food",
+        "Football",
+        "Geography",
+        "Handicraft",
+        "Humanity & History",
+        "Law",
+        "Life Tip",
+        "Literature & Art",
+        "Magic Show",
+        "Movie & TV Show",
+        "Multilingual",
+        "News Report",
+        "Other Sports",
+        "Pet & Animal",
+        "Stage Play",
+        "Technology",
+        "Travel",
+        "Variety Show",
+        "unknown"
+      ]
+    },
+    "temporal_scope": {
+      "size": 6,
+      "values": [
+        "duration",
+        "global",
+        "ordered_events",
+        "unspecified"
+      ]
+    }
+  },
+  "history": {
+    "action_family": {
+      "size": 8,
+      "values": [
+        "detect",
+        "other",
+        "select_frames",
+        "summarize",
+        "temporal_ops",
+        "visual_qa"
+      ]
+    },
+    "event_type": {
+      "size": 5,
+      "values": [
+        "action",
+        "api_call",
+        "run"
+      ]
+    },
+    "model_id": {
+      "size": 11,
+      "values": [
+        "Qwen2.5-VL-3B-Instruct",
+        "Qwen3-4B",
+        "Qwen3-VL-8B-Instruct",
+        "cpu-metadata-adapter-v1",
+        "finish_argument",
+        "stack_a_qwen3_vl8b",
+        "stack_b_qwen3_4b_qwen25vl3b_yolo11x",
+        "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+        "yolo11x.pt"
+      ]
+    },
+    "node_type": {
+      "size": 8,
+      "values": [
+        "answer_generation",
+        "planner",
+        "run_control",
+        "videotool_generalist",
+        "videotool_spatial",
+        "videotool_temporal"
+      ]
+    },
+    "raw_action": {
+      "size": 15,
+      "values": [
+        "answer",
+        "baseline_start",
+        "frame-selector",
+        "generalist.generate",
+        "image-grid-qa",
+        "image-grid-selector",
+        "image-qa",
+        "patch-zoomer",
+        "planner.generate",
+        "summarization-tool",
+        "temporal-grounding",
+        "temporal-qa",
+        "yolo-tracker"
+      ]
+    },
+    "role": {
+      "size": 6,
+      "values": [
+        "aggregate",
+        "execute",
+        "init",
+        "plan"
+      ]
+    }
+  },
+  "modalities": {
+    "size": 12,
+    "values": [
+      "k",
+      "n",
+      "o",
+      "object",
+      "scene",
+      "temporal",
+      "text",
+      "u",
+      "unknown",
+      "w"
+    ]
+  },
+  "nested": {
+    "size": 6,
+    "values": [
+      "Qwen2.5-VL-3B-Instruct",
+      "Qwen3-VL-8B-Instruct",
+      "__NONE__",
+      "finish_argument"
+    ]
+  },
+  "slot": {
+    "action_family": {
+      "size": 8,
+      "values": [
+        "detect",
+        "other",
+        "select_frames",
+        "summarize",
+        "temporal_ops",
+        "visual_qa"
+      ]
+    },
+    "model_class": {
+      "size": 8,
+      "values": [
+        "Qwen2.5-VL-3B-Instruct",
+        "Qwen3-4B",
+        "Qwen3-VL-8B-Instruct",
+        "cpu-metadata-adapter-v1",
+        "finish_argument",
+        "yolo11x.pt"
+      ]
+    },
+    "node_type": {
+      "size": 7,
+      "values": [
+        "answer_generation",
+        "planner",
+        "videotool_generalist",
+        "videotool_spatial",
+        "videotool_temporal"
+      ]
+    },
+    "role": {
+      "size": 5,
+      "values": [
+        "aggregate",
+        "execute",
+        "plan"
+      ]
+    }
+  }
+}

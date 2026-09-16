@@ -1,0 +1,94 @@
+{
+  "schema_version": "scheduler-extension-config-v0.1",
+  "batch_enabled": true,
+  "batch_options": [1, 8, 16, 32, 64],
+  "batch_profiles": {
+    "yolo11x.pt": {
+      "1": {
+        "runtime_ms": 5914.539,
+        "runtime_p90_ms": 6041.2185,
+        "load_ms": 232.1235,
+        "load_p90_ms": 239.0265,
+        "peak_memory_mb": 512.0,
+        "measured_peak_allocated_mb": 372.672,
+        "sample_runs": 16,
+        "sample_yolo_actions": 16,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b01_clean/*/trace.jsonl:yolo-tracker.resource"
+      },
+      "2": {
+        "runtime_ms": 5966.688,
+        "runtime_p90_ms": 6169.4402,
+        "load_ms": 228.74,
+        "load_p90_ms": 241.2872,
+        "peak_memory_mb": 419.535,
+        "measured_peak_allocated_mb": 419.535,
+        "sample_runs": 16,
+        "sample_yolo_actions": 22,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b02_clean/*/trace.jsonl:yolo-tracker.resource"
+      },
+      "4": {
+        "runtime_ms": 6145.279,
+        "runtime_p90_ms": 6430.3004,
+        "load_ms": 232.497,
+        "load_p90_ms": 237.0525,
+        "peak_memory_mb": 581.66,
+        "measured_peak_allocated_mb": 581.66,
+        "sample_runs": 16,
+        "sample_yolo_actions": 18,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b04_clean/*/trace.jsonl:yolo-tracker.resource"
+      },
+      "8": {
+        "runtime_ms": 6795.8755,
+        "runtime_p90_ms": 6934.3175,
+        "load_ms": 234.315,
+        "load_p90_ms": 242.9495,
+        "peak_memory_mb": 906.91,
+        "measured_peak_allocated_mb": 906.91,
+        "sample_runs": 16,
+        "sample_yolo_actions": 16,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b08_clean/*/trace.jsonl:yolo-tracker.resource"
+      },
+      "16": {
+        "runtime_ms": 7335.0265,
+        "runtime_p90_ms": 7629.979,
+        "load_ms": 228.744,
+        "load_p90_ms": 232.5855,
+        "peak_memory_mb": 1560.41,
+        "measured_peak_allocated_mb": 1560.41,
+        "sample_runs": 16,
+        "sample_yolo_actions": 16,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b16_clean/*/trace.jsonl:yolo-tracker.resource"
+      },
+      "32": {
+        "runtime_ms": 9076.894,
+        "runtime_p90_ms": 9264.0475,
+        "load_ms": 230.394,
+        "load_p90_ms": 238.41,
+        "peak_memory_mb": 2864.41,
+        "measured_peak_allocated_mb": 2864.41,
+        "sample_runs": 16,
+        "sample_yolo_actions": 16,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b32_clean/*/trace.jsonl:yolo-tracker.resource"
+      },
+      "64": {
+        "runtime_ms": 12181.9655,
+        "runtime_p90_ms": 12580.136,
+        "load_ms": 229.954,
+        "load_p90_ms": 234.6495,
+        "peak_memory_mb": 5474.41,
+        "measured_peak_allocated_mb": 5474.41,
+        "sample_runs": 16,
+        "sample_yolo_actions": 16,
+        "source": "results/raw/phase3_yolo11x_batch_pilot8_b64_clean/*/trace.jsonl:yolo-tracker.resource"
+      }
+    }
+  },
+  "profile_semantics": {
+    "runtime_ms": "p50 of resource.runtime_ms per yolo-tracker event; used as the deterministic profiled batch runtime",
+    "runtime_p90_ms": "p90 of resource.runtime_ms; exposed to the scheduler estimate",
+    "load_ms": "p50 of resource.load_ms per yolo-tracker event",
+    "load_p90_ms": "audit-only p90 of resource.load_ms",
+    "peak_memory_mb": "existing conservative scheduler memory profile; raw measured peak is retained separately",
+    "selection": "Only batch_options are selectable. Batch 2 and 4 are measured and retained but not activated in this extension pilot."
+  }
+}

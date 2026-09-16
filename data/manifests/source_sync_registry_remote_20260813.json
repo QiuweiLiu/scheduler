@@ -1,0 +1,22 @@
+{
+  "schema_version": "source-sync-registry-v0.1",
+  "observed_at": "2026-08-13T15:03:00+08:00",
+  "host": "root@connect.westc.seetacloud.com:12469",
+  "project_root": "/root/autodl-tmp/scheduler",
+  "source_root": "src/tracing",
+  "python_import_name": "tracing",
+  "runtime_path_contract": "PYTHONPATH=/root/autodl-tmp/scheduler/src",
+  "file_count_including_backups": 57,
+  "content_relation_to_local": "remote_superset_or_variant; not a byte-for-byte mirror",
+  "common_file_hashes": {
+    "src/tracing/collectors/videotool_phase1.py": "2d9d1f8f60489e296a8279f8ad0ef4a06adac09c5c3a1956db4e60bbc0ab245a",
+    "src/tracing/analysis/phase4_trace_simulator.py": "43d7a566604cc929a71985a45cd4b4437479b3159121c0a8b8bd5c9ff2f7a236",
+    "src/tracing/collectors/structured_state.py": "7f162c8d93fbf539a539f0adbe8d13bbbec08d21e8f19d66c4ac25821843af66",
+    "src/tracing/analysis/resource_predictor_v1.py": "9a064f59923c04fc44f5ec0117586765a272e69b657979b9bab06bf33e5297cb"
+  },
+  "notes": [
+    "The remote tree contains additional neural predictor, resource, workload-v02 and backup files absent from the local partial mirror.",
+    "This registry records the path migration and sampled hashes; it is not a claim that local and remote source contents are identical.",
+    "Remote shell syntax and finetooling import smoke passed after migration."
+  ]
+}

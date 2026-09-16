@@ -1,0 +1,55 @@
+{
+  "schema_version": "p9d-topology-empirical-baseline-v1",
+  "experiment_id": "EXP-20260902_p9d_topology_empirical_baseline",
+  "question": "Can a causal conditional empirical baseline predict identity-free future DAG layers on the predictor-aligned P9d data?",
+  "scope": "P_dev_train_fit_validation_selection_test_diagnostic_holdout_frozen_acceptance_only",
+  "execution_environment": "remote_finetooling_cpu_only",
+  "dataset_root": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1",
+  "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+  "experiment_root": "/root/autodl-tmp/scheduler/experiments/EXP-20260902_p9d_topology_empirical_baseline",
+  "horizon": 5,
+  "max_scenarios": 3,
+  "seed": 0,
+  "seed_semantics": "deterministic_frequency_counts_only",
+  "nll_floor": 1e-12,
+  "candidate_schemes": [
+    "current_full",
+    "current_structural",
+    "history2_full"
+  ],
+  "selection": {
+    "split": "validation",
+    "primary_metric": "nll_mean",
+    "tie_break_1": "higher_top3_exact_signature_coverage",
+    "tie_break_2": "lower_layer_count_mae",
+    "tie_break_3": "lexicographic_scheme_name"
+  },
+  "target": {
+    "future_unit": "event_level_dag_bfs_layer",
+    "identity_free_signature_fields": [
+      "node_type",
+      "raw_action",
+      "model_id",
+      "execution_lane",
+      "action_family"
+    ],
+    "node_identity_used": false,
+    "edges_used_as_features": false,
+    "resource_truth_used_as_features": false
+  },
+  "data_boundary": {
+    "fit": "P_dev/train",
+    "selection": "P_dev/validation",
+    "diagnostic": "P_dev/test",
+    "frozen_acceptance": "P_holdout_diag/holdout",
+    "scheduler_groups_used": false,
+    "s_train_s_val_t_final_t_backup_used": false,
+    "t_final_sealed": true
+  },
+  "git_commit": "unavailable_uncommitted_source_mirror",
+  "remote_host_identity": "autodl-container-41d846924e-d62d0601",
+  "source_scripts": [
+    "scripts/p9d_topology_empirical_baseline.py",
+    "tests/test_p9d_topology_empirical_baseline.py"
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "aggregate": {
+    "myopic": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 215116.398537625,
+      "mean_deadline_miss_rate": 0.109796875,
+      "mean_gpu_evictions": 41.062,
+      "mean_gpu_utilization": 0.7373178913871812,
+      "mean_job_queue_ms": 123365.32861342187,
+      "p95_completion_ms": 465787.51797343744
+    },
+    "optimizer_0": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 215646.79003551565,
+      "mean_deadline_miss_rate": 0.109765625,
+      "mean_gpu_evictions": 44.638,
+      "mean_gpu_utilization": 0.7396062504042908,
+      "mean_job_queue_ms": 123494.73854287501,
+      "p95_completion_ms": 468111.4413496093
+    },
+    "oracle": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 172732.8980286641,
+      "mean_deadline_miss_rate": 0.06084375,
+      "mean_gpu_evictions": 39.81,
+      "mean_gpu_utilization": 0.7352747449753092,
+      "mean_job_queue_ms": 78938.06365785938,
+      "p95_completion_ms": 311026.7775976562
+    },
+    "predopt_h1": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 213049.75589503904,
+      "mean_deadline_miss_rate": 0.10675,
+      "mean_gpu_evictions": 41.208,
+      "mean_gpu_utilization": 0.7369464596703634,
+      "mean_job_queue_ms": 122116.322491,
+      "p95_completion_ms": 464737.1950933588
+    },
+    "predopt_h3": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 212387.91914376564,
+      "mean_deadline_miss_rate": 0.106984375,
+      "mean_gpu_evictions": 41.154,
+      "mean_gpu_utilization": 0.7369568841295514,
+      "mean_job_queue_ms": 121549.71290667188,
+      "p95_completion_ms": 460512.08256210916
+    },
+    "predopt_h5": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 210635.09533896093,
+      "mean_deadline_miss_rate": 0.1046875,
+      "mean_gpu_evictions": 39.912,
+      "mean_gpu_utilization": 0.7367705660148355,
+      "mean_job_queue_ms": 120369.82145792188,
+      "p95_completion_ms": 455764.26735234394
+    },
+    "round_robin": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 213001.5397498516,
+      "mean_deadline_miss_rate": 0.116625,
+      "mean_gpu_evictions": 74.223,
+      "mean_gpu_utilization": 0.741990082074843,
+      "mean_job_queue_ms": 153558.2630961797,
+      "p95_completion_ms": 462956.81044726545
+    },
+    "trueopt_h1": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 209217.7560006797,
+      "mean_deadline_miss_rate": 0.10384375,
+      "mean_gpu_evictions": 51.926,
+      "mean_gpu_utilization": 0.7378568290916945,
+      "mean_job_queue_ms": 222444.34778132814,
+      "p95_completion_ms": 432228.1940550784
+    },
+    "trueopt_h3": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 195021.86466696876,
+      "mean_deadline_miss_rate": 0.085609375,
+      "mean_gpu_evictions": 50.819,
+      "mean_gpu_utilization": 0.7372142678692963,
+      "mean_job_queue_ms": 126669.9687513672,
+      "p95_completion_ms": 387747.4606269527
+    },
+    "trueopt_h5": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 183845.14709510157,
+      "mean_deadline_miss_rate": 0.073,
+      "mean_gpu_evictions": 46.22,
+      "mean_gpu_utilization": 0.736420147511078,
+      "mean_job_queue_ms": 110661.42647452345,
+      "p95_completion_ms": 346070.1587300776
+    }
+  },
+  "capacity_violation_count": 0,
+  "capacity_violation_examples": [],
+  "duplicate_keys": [],
+  "episodes": 1000,
+  "event_logging": "disabled_in_matrix_runner; event invariants covered by sim_smoke_50",
+  "expected_result_rows": 10000,
+  "future_artifacts_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "information_boundary": {
+    "myopic_optimizer": "current ready nodes plus train-only resource estimates",
+    "oracle": "full suffix truth reference only",
+    "predopt_h": "B05 current-prefix artifact and P_dev-train-only finite-horizon rollout",
+    "trueopt_h": "actual DAG successor identities and engine truth for reference only"
+  },
+  "oracle_gaps": {
+    "myopic": {
+      "minus_oracle_mean_completion_ms": 42383.50050896092,
+      "relative_gap": 0.24537016973991604
+    },
+    "optimizer_0": {
+      "minus_oracle_mean_completion_ms": 42913.89200685156,
+      "relative_gap": 0.24844075735781512
+    },
+    "predopt_h1": {
+      "minus_oracle_mean_completion_ms": 40316.85786637495,
+      "relative_gap": 0.23340578619646957
+    },
+    "predopt_h3": {
+      "minus_oracle_mean_completion_ms": 39655.021115101554,
+      "relative_gap": 0.22957422452624524
+    },
+    "predopt_h5": {
+      "minus_oracle_mean_completion_ms": 37902.19731029685,
+      "relative_gap": 0.21942662771747848
+    },
+    "round_robin": {
+      "minus_oracle_mean_completion_ms": 40268.64172118751,
+      "relative_gap": 0.23312664918355708
+    },
+    "trueopt_h1": {
+      "minus_oracle_mean_completion_ms": 36484.85797201563,
+      "relative_gap": 0.21122124614594937
+    },
+    "trueopt_h3": {
+      "minus_oracle_mean_completion_ms": 22288.96663830467,
+      "relative_gap": 0.12903718337780645
+    },
+    "trueopt_h5": {
+      "minus_oracle_mean_completion_ms": 11112.249066437478,
+      "relative_gap": 0.06433197840861479
+    }
+  },
+  "policies": [
+    "round_robin",
+    "myopic",
+    "optimizer_0",
+    "oracle",
+    "predopt_h1",
+    "predopt_h3",
+    "predopt_h5",
+    "trueopt_h1",
+    "trueopt_h3",
+    "trueopt_h5"
+  ],
+  "policy_row_counts": {
+    "myopic": 1000,
+    "optimizer_0": 1000,
+    "oracle": 1000,
+    "predopt_h1": 1000,
+    "predopt_h3": 1000,
+    "predopt_h5": 1000,
+    "round_robin": 1000,
+    "trueopt_h1": 1000,
+    "trueopt_h3": 1000,
+    "trueopt_h5": 1000
+  },
+  "result_rows": 10000,
+  "schema_version": "r7-scheduler-matrix-v0.1",
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed"
+}

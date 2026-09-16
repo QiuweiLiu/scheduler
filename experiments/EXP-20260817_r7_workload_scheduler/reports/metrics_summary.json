@@ -1,0 +1,70 @@
+{
+  "aggregate": {
+    "myopic": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 215116.398537625,
+      "mean_deadline_miss_rate": 0.109796875,
+      "mean_gpu_evictions": 41.062,
+      "mean_gpu_utilization": 0.7373178913871812,
+      "mean_job_queue_ms": 123365.32861342187,
+      "p95_completion_ms": 465787.51797343744,
+      "total_gpu_evictions": 41062
+    },
+    "oracle": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 172732.8980286641,
+      "mean_deadline_miss_rate": 0.06084375,
+      "mean_gpu_evictions": 39.81,
+      "mean_gpu_utilization": 0.7352747449753092,
+      "mean_job_queue_ms": 78938.06365785938,
+      "p95_completion_ms": 311026.7775976562,
+      "total_gpu_evictions": 39810
+    },
+    "round_robin": {
+      "completed_jobs": 34160,
+      "episodes": 1000,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 213001.5397498516,
+      "mean_deadline_miss_rate": 0.116625,
+      "mean_gpu_evictions": 74.223,
+      "mean_gpu_utilization": 0.741990082074843,
+      "mean_job_queue_ms": 153558.2630961797,
+      "p95_completion_ms": 462956.81044726545,
+      "total_gpu_evictions": 74223
+    }
+  },
+  "capacity_violation_count": 0,
+  "capacity_violation_examples": [],
+  "episodes": 1000,
+  "event_audit_note": "full simulation_results are complete; simulation_events.jsonl was interrupted during write and retained only as compressed incomplete evidence; event invariants are accepted from sim_smoke_50.",
+  "failed_jobs_total": 0,
+  "missing_episode_rows": [],
+  "oracle_gap": {
+    "myopic_minus_oracle_mean_completion_ms": 42383.50050896092,
+    "myopic_relative_gap": 0.24537016973991604,
+    "round_robin_minus_oracle_mean_completion_ms": 40268.64172118751,
+    "round_robin_relative_gap": 0.23312664918355708
+  },
+  "policy_row_counts": {
+    "myopic": 1000,
+    "oracle": 1000,
+    "round_robin": 1000
+  },
+  "required_policies": [
+    "round_robin",
+    "myopic",
+    "oracle"
+  ],
+  "result_rows": 3000,
+  "schema_version": "r7-workload-simulation-metrics-v0.1",
+  "source_results_sha256": "5c9f5a670a379a4b802112dd4ce5aa72a2e5f4e5b31cb489a42f38f999c6beba",
+  "status": "passed",
+  "workload_split": "validation"
+}

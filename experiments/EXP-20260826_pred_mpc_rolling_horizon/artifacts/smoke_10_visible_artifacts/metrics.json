@@ -1,0 +1,95 @@
+{
+  "aggregate": {
+    "cp_rho_h5": {
+      "completed_jobs": 160,
+      "episodes": 10,
+      "failed_jobs": 0,
+      "mean_completion_ms": 183881.27524062502,
+      "mean_deadline_miss_rate": 0.01875,
+      "mean_gpu_evictions": 19.7,
+      "mean_job_queue_ms": 92832.52178437503,
+      "mean_pred_mpc_rollout_ms": null,
+      "mean_pred_mpc_terminal_ms": null,
+      "p95_completion_ms": 331386.175621875
+    },
+    "myopic": {
+      "completed_jobs": 160,
+      "episodes": 10,
+      "failed_jobs": 0,
+      "mean_completion_ms": 176937.06589687505,
+      "mean_deadline_miss_rate": 0.00625,
+      "mean_gpu_evictions": 18.2,
+      "mean_job_queue_ms": 85629.48593750001,
+      "mean_pred_mpc_rollout_ms": null,
+      "mean_pred_mpc_terminal_ms": null,
+      "p95_completion_ms": 309850.74971093755
+    },
+    "pred_mpc_h3": {
+      "completed_jobs": 160,
+      "episodes": 10,
+      "failed_jobs": 0,
+      "mean_completion_ms": 185303.76614687504,
+      "mean_deadline_miss_rate": 0.00625,
+      "mean_gpu_evictions": 19.0,
+      "mean_job_queue_ms": 91999.12632187502,
+      "mean_pred_mpc_rollout_ms": 25.350474079943737,
+      "mean_pred_mpc_terminal_ms": 108037.0569420656,
+      "p95_completion_ms": 333467.49750937504
+    },
+    "pred_mpc_h5": {
+      "completed_jobs": 160,
+      "episodes": 10,
+      "failed_jobs": 0,
+      "mean_completion_ms": 186034.045090625,
+      "mean_deadline_miss_rate": 0.00625,
+      "mean_gpu_evictions": 19.6,
+      "mean_job_queue_ms": 92528.85367500002,
+      "mean_pred_mpc_rollout_ms": 25.262825791952142,
+      "mean_pred_mpc_terminal_ms": 134292.69902461162,
+      "p95_completion_ms": 334197.67894375
+    },
+    "pred_mpc_h5_no_terminal": {
+      "completed_jobs": 160,
+      "episodes": 10,
+      "failed_jobs": 0,
+      "mean_completion_ms": 185218.13961250003,
+      "mean_deadline_miss_rate": 0.00625,
+      "mean_gpu_evictions": 18.4,
+      "mean_job_queue_ms": 92134.228878125,
+      "mean_pred_mpc_rollout_ms": 25.157579215059503,
+      "mean_pred_mpc_terminal_ms": 0.0,
+      "p95_completion_ms": 332226.375115625
+    },
+    "predopt_h5": {
+      "completed_jobs": 160,
+      "episodes": 10,
+      "failed_jobs": 0,
+      "mean_completion_ms": 175859.96912187504,
+      "mean_deadline_miss_rate": 0.0125,
+      "mean_gpu_evictions": 19.8,
+      "mean_job_queue_ms": 85730.78276562502,
+      "mean_pred_mpc_rollout_ms": null,
+      "mean_pred_mpc_terminal_ms": null,
+      "p95_completion_ms": 306255.659603125
+    }
+  },
+  "episodes": 10,
+  "expected_result_rows": 60,
+  "future_artifacts_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "information_boundary": "current ready GPU nodes plus train-only resource estimates and frozen finite-horizon artifacts; execution truth remains engine-only",
+  "objective": "mean job completion time; active-job-area identity is the diagnostic global objective",
+  "policies": [
+    "myopic",
+    "predopt_h5",
+    "cp_rho_h5",
+    "pred_mpc_h3",
+    "pred_mpc_h5",
+    "pred_mpc_h5_no_terminal"
+  ],
+  "result_rows": 60,
+  "rollout_boundary": "PredMPC simulates only the current ready-node candidate window for known jobs; continuation cost comes from frozen future artifacts, not template suffix nodes",
+  "schema_version": "r8-pred-mpc-matrix-v0.1",
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed"
+}

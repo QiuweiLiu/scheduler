@@ -1,0 +1,73 @@
+{
+  "schema_version": "j4-config-v1",
+  "experiment_id": "EXP-20260911_p9d_j4_duration_branch",
+  "design_doc": "docs/p9d_j4_duration_branch_design.md",
+  "dataset_root": "F:/scheduler/results/processed/topology_predictor_p9d_v3",
+  "dataset_registry": "F:/scheduler/data/manifests/topology_predictor_p9d_v3.json",
+  "resource_table": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+  "output_root": "F:/scheduler/results/processed/j_series_dataset_v1",
+  "run_root_name": "j4_duration_branch",
+  "init_run_root": "F:/scheduler/outputs/j_series_joint_resource",
+  "reference_run_root": "F:/scheduler/outputs/j_series_joint_resource",
+  "splits": ["train", "validation", "test"],
+  "include_holdout_default": false,
+  "horizon": 5,
+  "expected": {
+    "rows_by_split": {"train": 13754, "validation": 2029, "test": 1520},
+    "r0_unique_resource_nodes": 15481
+  },
+  "model": {
+    "hidden": 128,
+    "history_embedding_dim": 16,
+    "context_embedding_dim": 12,
+    "slot_embedding_dim": 16,
+    "dropout": 0.1,
+    "duration_branch_hidden": 64
+  },
+  "training": {
+    "batch_size": 256,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "max_history": 64,
+    "max_epochs": 30,
+    "early_stopping": false,
+    "optimizer": "AdamW",
+    "seeds": [11, 22, 33]
+  },
+  "variants": {
+    "J4a": {"encoder": "trainable", "use_attribute_distribution": true, "attribute_gradient": "stopgrad", "duration_mode": "decoupled", "duration_gate": true},
+    "J4b": {"encoder": "trainable", "use_attribute_distribution": true, "attribute_gradient": "stopgrad", "duration_mode": "decoupled_shared_frozen", "duration_gate": true}
+  },
+  "run_variants": ["J4a", "J4b"],
+  "test_variants": ["J4a", "J4b"],
+  "smoke_variants": ["J4a", "J4b"],
+  "regression_check": {
+    "run_root": "F:/scheduler/outputs/j_series_joint_resource",
+    "variant": "J3",
+    "seeds": [11, 22, 33],
+    "tolerance": 1e-06
+  },
+  "loss_weights": {"structure": 1.0, "content": 1.0, "behavior": 1.0, "resource": 1.0},
+  "ni_manifest": [
+    {"endpoint": "future_length", "metric": "MAE(argmax L_H, L_H_GT)", "direction": "lower_is_better", "delta": 0.02},
+    {"endpoint": "termination", "metric": "BCE", "direction": "lower_is_better", "delta": 0.02},
+    {"endpoint": "future_content", "metric": "accuracy", "direction": "higher_is_better", "delta": 0.02},
+    {"endpoint": "next_role", "metric": "accuracy", "direction": "higher_is_better", "delta": 0.01},
+    {"endpoint": "next_family", "metric": "accuracy", "direction": "higher_is_better", "delta": 0.02}
+  ],
+  "core_success": {
+    "tier": "validation (official); test = exploratory second look only",
+    "primary": "RuntimeQScore = mean(PB_0.50, PB_0.90, PB_0.95) on raw ms",
+    "comparison": "H1 vs B1: CI_upper(Delta_runtime) < 0 and load NI (Brier CI_upper < +0.005; duration CI_upper < +5% of B1)",
+    "h2_repair": "H2 vs J3 (val): CI_upper(Delta_load_duration) < 0",
+    "load_noninferiority": {"brier": "CI_upper(Delta) < +0.005", "duration": "CI_upper(Delta) < +5% of B1 reference mean"}
+  },
+  "bootstrap": {"B": 1000, "seed": 20260911, "unit": "video", "min_valid_replicate_ratio": 0.95},
+  "environment": {
+    "conda_env": "scheduler",
+    "python": "D:/anaconda/envs/scheduler/python.exe",
+    "torch": "2.6.0+cu124",
+    "device": "cuda",
+    "unified_batch_required": true
+  }
+}

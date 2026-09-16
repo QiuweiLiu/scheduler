@@ -1,0 +1,54 @@
+{
+  "behavior_role_samples": "results\\processed\\behavior_nn_v1_r1v5_candidate\\data\\role_event_samples.jsonl",
+  "behavior_target_columns_not_copied": [
+    "next_role",
+    "target_source_event_id",
+    "family_label"
+  ],
+  "holdout_role_samples": "results\\processed\\behavior_nn_v1_r2\\final_holdout\\dataset\\role_event_samples.jsonl",
+  "join_key": [
+    "video_id",
+    "run_id",
+    "current_node_id"
+  ],
+  "produced_registry_videos": {
+    "holdout": 40,
+    "test": 30,
+    "train": 240,
+    "validation": 30
+  },
+  "produced_rows": {
+    "holdout": 1380,
+    "test": 1520,
+    "train": 13754,
+    "validation": 2029
+  },
+  "produced_runs": {
+    "holdout": 120,
+    "test": 108,
+    "train": 988,
+    "validation": 144
+  },
+  "produced_videos": {
+    "holdout": 40,
+    "test": 30,
+    "train": 240,
+    "validation": 30
+  },
+  "schema_version": "topology-predictor-p9d-v1",
+  "selection": {
+    "duplicate_anchor_rows": {
+      "P_dev": 0,
+      "P_holdout_diag": 0
+    },
+    "source_rows": {
+      "P_dev": 17303,
+      "P_holdout_diag": 1380
+    },
+    "unique_anchors": {
+      "P_dev": 17303,
+      "P_holdout_diag": 1380
+    }
+  },
+  "unmatched_behavior_anchors": []
+}

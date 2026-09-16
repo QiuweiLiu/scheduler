@@ -1,0 +1,57 @@
+{
+  "fit": {
+    "condition_key_count": 42,
+    "condition_key_fields": [
+      "model_stack_id",
+      "baseline",
+      "node_type",
+      "raw_action",
+      "model_id",
+      "execution_lane"
+    ],
+    "node_count": 6735,
+    "support_count_max": 797,
+    "support_count_min": 3,
+    "task_prefix": "r7_s_train_",
+    "template_count": 480,
+    "video_count": 120
+  },
+  "formal_topology_predictor": false,
+  "horizon": 5,
+  "input": {
+    "base_artifact_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+    "base_artifact_root": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts",
+    "future_events_used_as_features": false,
+    "model_checkpoints_used": false,
+    "resource_truth_used_as_feature": false,
+    "target_successor_ids_copied": false,
+    "templates": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/job_templates_r7_v02.jsonl",
+    "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464"
+  },
+  "max_scenarios": 3,
+  "output_contract": "future_h5_layers with identity-free scheduler-visible node prototypes",
+  "outputs": {
+    "layer_rows": 2200,
+    "legacy_files": {
+      "b05_future_h3.jsonl.gz": "6d105fc3d0ae4cd975da1f44c1a728ac7b3a0e06cd11a95febb00d99642d783b",
+      "b05_future_h5.jsonl.gz": "38366adc39eed389620d73c97a794d33375b1a727abe319c566b4c463b0cabc2",
+      "b05_node_h1.jsonl.gz": "1f98b6872bd8838ba11d2f30d0b1c433ecac795c99564993d69f0c13e01b411a"
+    },
+    "overlay_manifest": "/Users/liuqiuwei/Documents/调度/experiments/EXP-20260901_topology_predictor_baseline/artifacts/prediction_artifacts/b05_artifact_manifest.json"
+  },
+  "prediction": {
+    "layer_sidecar": "/Users/liuqiuwei/Documents/调度/experiments/EXP-20260901_topology_predictor_baseline/artifacts/prediction_artifacts/b05_future_h5_layers.jsonl.gz",
+    "layer_sidecar_sha256": "4f1ed76671c8c6f7db9d012a923fbf48cf932225470d231a45b56de82702aa12",
+    "node_count": 2200,
+    "predicted_layer_count_mean": 2.032324840764331,
+    "predicted_node_count_mean": 3.9399681528662422,
+    "task_prefix": "r7_s_val_",
+    "template_count": 160,
+    "unseen_condition_key_count": 0,
+    "video_count": 40
+  },
+  "predictor_type": "conditional_empirical_baseline",
+  "schema_version": "r8-topology-predictor-baseline-v0.1",
+  "status": "generated",
+  "training_target": "successor DAG layers reconstructed from r7_s_train predecessor_node_ids"
+}

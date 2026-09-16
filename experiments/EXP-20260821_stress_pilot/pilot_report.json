@@ -1,0 +1,644 @@
+{
+  "cell_aggregate": {
+    "S0_baseline": {
+      "myopic": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.1140625,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 214668.01713307286,
+        "mean_gpu_evictions": 42.63333333333333,
+        "mean_gpu_utilization": 0.7366231827080656,
+        "mean_job_queue_ms": 121443.21331484368,
+        "oracle_relative_gap": 0.2601410835361464,
+        "p95_completion_ms": 533301.6724016664
+      },
+      "oracle": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.05572916666666667,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 170352.3676338541,
+        "mean_gpu_evictions": 38.833333333333336,
+        "mean_gpu_utilization": 0.7352453542751078,
+        "mean_job_queue_ms": 76209.45919218747,
+        "oracle_relative_gap": 0.0,
+        "p95_completion_ms": 415545.67964499985
+      },
+      "predopt_h5": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.1140625,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 214624.99204687495,
+        "mean_gpu_evictions": 43.233333333333334,
+        "mean_gpu_utilization": 0.7368684582914239,
+        "mean_job_queue_ms": 121368.65875390619,
+        "oracle_relative_gap": 0.2598885182986007,
+        "p95_completion_ms": 532766.9468041664
+      },
+      "round_robin": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.13020833333333334,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 210513.216995052,
+        "mean_gpu_evictions": 69.9,
+        "mean_gpu_utilization": 0.7409568122518576,
+        "mean_job_queue_ms": 148168.7191604166,
+        "oracle_relative_gap": 0.23575163597090357,
+        "p95_completion_ms": 410849.78210166655
+      }
+    },
+    "S1_ready_width": {
+      "myopic": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.8109375,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 1097550.3851468752,
+        "mean_gpu_evictions": 8.6,
+        "mean_gpu_utilization": 0.9881832974212837,
+        "mean_job_queue_ms": 1011855.5274773438,
+        "oracle_relative_gap": 0.37089312652209155,
+        "p95_completion_ms": 1704250.9216041667
+      },
+      "oracle": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.6421875,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 800609.7367570312,
+        "mean_gpu_evictions": 23.033333333333335,
+        "mean_gpu_utilization": 0.9812196058649836,
+        "mean_job_queue_ms": 708168.7039971354,
+        "oracle_relative_gap": 0.0,
+        "p95_completion_ms": 1681954.6608591666
+      },
+      "predopt_h5": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.8109375,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 1097550.3851468752,
+        "mean_gpu_evictions": 8.6,
+        "mean_gpu_utilization": 0.9881832974212837,
+        "mean_job_queue_ms": 1011855.5274773438,
+        "oracle_relative_gap": 0.37089312652209155,
+        "p95_completion_ms": 1704250.9216041667
+      },
+      "round_robin": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.8109375,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 1138056.5999614585,
+        "mean_gpu_evictions": 76.43333333333334,
+        "mean_gpu_utilization": 0.9864235508472965,
+        "mean_job_queue_ms": 1302032.418489323,
+        "oracle_relative_gap": 0.4214873336056311,
+        "p95_completion_ms": 1753330.3272758333
+      }
+    },
+    "S2_tight_deadline": {
+      "myopic": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.2359375,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 214668.01713307286,
+        "mean_gpu_evictions": 42.63333333333333,
+        "mean_gpu_utilization": 0.7366231827080656,
+        "mean_job_queue_ms": 121443.21331484368,
+        "oracle_relative_gap": 0.2601410835361464,
+        "p95_completion_ms": 533301.6724016664
+      },
+      "oracle": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.159375,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 170352.3676338541,
+        "mean_gpu_evictions": 38.833333333333336,
+        "mean_gpu_utilization": 0.7352453542751078,
+        "mean_job_queue_ms": 76209.45919218747,
+        "oracle_relative_gap": 0.0,
+        "p95_completion_ms": 415545.67964499985
+      },
+      "predopt_h5": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.23489583333333333,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 214624.99204687495,
+        "mean_gpu_evictions": 43.233333333333334,
+        "mean_gpu_utilization": 0.7368684582914239,
+        "mean_job_queue_ms": 121368.65875390619,
+        "oracle_relative_gap": 0.2598885182986007,
+        "p95_completion_ms": 532766.9468041664
+      },
+      "round_robin": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.2682291666666667,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 210513.216995052,
+        "mean_gpu_evictions": 69.9,
+        "mean_gpu_utilization": 0.7409568122518576,
+        "mean_job_queue_ms": 148168.7191604166,
+        "oracle_relative_gap": 0.23575163597090357,
+        "p95_completion_ms": 410849.78210166655
+      }
+    },
+    "S3_offered_load": {
+      "myopic": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.5744791666666667,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 728312.6420093752,
+        "mean_gpu_evictions": 28.666666666666668,
+        "mean_gpu_utilization": 0.9761141945270037,
+        "mean_job_queue_ms": 641843.3866377604,
+        "oracle_relative_gap": 0.54959782761311,
+        "p95_completion_ms": 1419215.7831041666
+      },
+      "oracle": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.33229166666666665,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 470001.07320182293,
+        "mean_gpu_evictions": 29.666666666666668,
+        "mean_gpu_utilization": 0.9672057086795612,
+        "mean_job_queue_ms": 380407.7969557292,
+        "oracle_relative_gap": 0.0,
+        "p95_completion_ms": 1331588.3575083332
+      },
+      "predopt_h5": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.5744791666666667,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 728312.6420093752,
+        "mean_gpu_evictions": 28.666666666666668,
+        "mean_gpu_utilization": 0.9761141945270037,
+        "mean_job_queue_ms": 641843.3866377604,
+        "oracle_relative_gap": 0.54959782761311,
+        "p95_completion_ms": 1419215.7831041666
+      },
+      "round_robin": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.6130208333333333,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 711397.7684645834,
+        "mean_gpu_evictions": 82.9,
+        "mean_gpu_utilization": 0.9751600609039633,
+        "mean_job_queue_ms": 829360.3032333335,
+        "oracle_relative_gap": 0.5136088171422163,
+        "p95_completion_ms": 1124718.3473475003
+      }
+    },
+    "S4_combined": {
+      "myopic": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.9057291666666667,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 1097550.3851468752,
+        "mean_gpu_evictions": 8.6,
+        "mean_gpu_utilization": 0.9881832974212837,
+        "mean_job_queue_ms": 1011855.5274773438,
+        "oracle_relative_gap": 0.37089312652209155,
+        "p95_completion_ms": 1704250.9216041667
+      },
+      "oracle": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.8098958333333334,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 800609.7367570312,
+        "mean_gpu_evictions": 23.033333333333335,
+        "mean_gpu_utilization": 0.9812196058649836,
+        "mean_job_queue_ms": 708168.7039971354,
+        "oracle_relative_gap": 0.0,
+        "p95_completion_ms": 1681954.6608591666
+      },
+      "predopt_h5": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.9057291666666667,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 1097550.3851468752,
+        "mean_gpu_evictions": 8.6,
+        "mean_gpu_utilization": 0.9881832974212837,
+        "mean_job_queue_ms": 1011855.5274773438,
+        "oracle_relative_gap": 0.37089312652209155,
+        "p95_completion_ms": 1704250.9216041667
+      },
+      "round_robin": {
+        "completed_jobs": 1024,
+        "deadline_miss_rate": 0.921875,
+        "episodes": 30,
+        "failed_jobs": 0,
+        "mean_completion_ms": 1138056.5999614585,
+        "mean_gpu_evictions": 76.43333333333334,
+        "mean_gpu_utilization": 0.9864235508472965,
+        "mean_job_queue_ms": 1302032.418489323,
+        "oracle_relative_gap": 0.4214873336056311,
+        "p95_completion_ms": 1753330.3272758333
+      }
+    }
+  },
+  "design": {
+    "cells": 5,
+    "common_random_numbers": true,
+    "episodes_per_cell": 30,
+    "event_audit_episodes_per_cell": 2,
+    "jobs": 5120,
+    "policies": [
+      "round_robin",
+      "myopic",
+      "predopt_h5",
+      "oracle"
+    ],
+    "total_episodes": 150
+  },
+  "event_audit": {
+    "S0_baseline|myopic": {
+      "action_width_p50": 2.0,
+      "action_width_p90": 8.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.054313099041533544,
+      "feasible_width_p50": 2.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 17,
+      "model_load_rate_per_gpu_start": 0.10862619808306709,
+      "model_load_starts": 34,
+      "node_wait_events": 125
+    },
+    "S0_baseline|oracle": {
+      "action_width_p50": 2.0,
+      "action_width_p90": 6.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.04472843450479233,
+      "feasible_width_p50": 2.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 14,
+      "model_load_rate_per_gpu_start": 0.11501597444089456,
+      "model_load_starts": 36,
+      "node_wait_events": 104
+    },
+    "S0_baseline|predopt_h5": {
+      "action_width_p50": 2.0,
+      "action_width_p90": 8.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.054313099041533544,
+      "feasible_width_p50": 2.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 17,
+      "model_load_rate_per_gpu_start": 0.10862619808306709,
+      "model_load_starts": 34,
+      "node_wait_events": 125
+    },
+    "S0_baseline|round_robin": {
+      "action_width_p50": 3.0,
+      "action_width_p90": 8.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.08306709265175719,
+      "feasible_width_p50": 3.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 26,
+      "model_load_rate_per_gpu_start": 0.15654952076677317,
+      "model_load_starts": 49,
+      "node_wait_events": 184
+    },
+    "S1_ready_width|myopic": {
+      "action_width_p50": 12.0,
+      "action_width_p90": 16.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.022364217252396165,
+      "feasible_width_p50": 12.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 7,
+      "model_load_rate_per_gpu_start": 0.0670926517571885,
+      "model_load_starts": 21,
+      "node_wait_events": 177
+    },
+    "S1_ready_width|oracle": {
+      "action_width_p50": 8.0,
+      "action_width_p90": 15.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.04472843450479233,
+      "feasible_width_p50": 8.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 14,
+      "model_load_rate_per_gpu_start": 0.09904153354632587,
+      "model_load_starts": 31,
+      "node_wait_events": 143
+    },
+    "S1_ready_width|predopt_h5": {
+      "action_width_p50": 12.0,
+      "action_width_p90": 16.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.022364217252396165,
+      "feasible_width_p50": 12.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 7,
+      "model_load_rate_per_gpu_start": 0.0670926517571885,
+      "model_load_starts": 21,
+      "node_wait_events": 177
+    },
+    "S1_ready_width|round_robin": {
+      "action_width_p50": 15.0,
+      "action_width_p90": 19.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.12779552715654952,
+      "feasible_width_p50": 15.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 40,
+      "model_load_rate_per_gpu_start": 0.19808306709265175,
+      "model_load_starts": 62,
+      "node_wait_events": 308
+    },
+    "S2_tight_deadline|myopic": {
+      "action_width_p50": 2.0,
+      "action_width_p90": 8.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.054313099041533544,
+      "feasible_width_p50": 2.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 17,
+      "model_load_rate_per_gpu_start": 0.10862619808306709,
+      "model_load_starts": 34,
+      "node_wait_events": 125
+    },
+    "S2_tight_deadline|oracle": {
+      "action_width_p50": 2.0,
+      "action_width_p90": 6.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.04472843450479233,
+      "feasible_width_p50": 2.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 14,
+      "model_load_rate_per_gpu_start": 0.11501597444089456,
+      "model_load_starts": 36,
+      "node_wait_events": 104
+    },
+    "S2_tight_deadline|predopt_h5": {
+      "action_width_p50": 2.0,
+      "action_width_p90": 8.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.054313099041533544,
+      "feasible_width_p50": 2.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 17,
+      "model_load_rate_per_gpu_start": 0.10862619808306709,
+      "model_load_starts": 34,
+      "node_wait_events": 125
+    },
+    "S2_tight_deadline|round_robin": {
+      "action_width_p50": 3.0,
+      "action_width_p90": 8.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.08306709265175719,
+      "feasible_width_p50": 3.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 26,
+      "model_load_rate_per_gpu_start": 0.15654952076677317,
+      "model_load_starts": 49,
+      "node_wait_events": 184
+    },
+    "S3_offered_load|myopic": {
+      "action_width_p50": 6.0,
+      "action_width_p90": 9.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.0670926517571885,
+      "feasible_width_p50": 6.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 21,
+      "model_load_rate_per_gpu_start": 0.134185303514377,
+      "model_load_starts": 42,
+      "node_wait_events": 166
+    },
+    "S3_offered_load|oracle": {
+      "action_width_p50": 3.0,
+      "action_width_p90": 7.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.04153354632587859,
+      "feasible_width_p50": 3.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 13,
+      "model_load_rate_per_gpu_start": 0.09904153354632587,
+      "model_load_starts": 31,
+      "node_wait_events": 142
+    },
+    "S3_offered_load|predopt_h5": {
+      "action_width_p50": 6.0,
+      "action_width_p90": 9.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.0670926517571885,
+      "feasible_width_p50": 6.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 21,
+      "model_load_rate_per_gpu_start": 0.134185303514377,
+      "model_load_starts": 42,
+      "node_wait_events": 166
+    },
+    "S3_offered_load|round_robin": {
+      "action_width_p50": 6.0,
+      "action_width_p90": 11.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.1501597444089457,
+      "feasible_width_p50": 6.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 47,
+      "model_load_rate_per_gpu_start": 0.23003194888178913,
+      "model_load_starts": 72,
+      "node_wait_events": 253
+    },
+    "S4_combined|myopic": {
+      "action_width_p50": 12.0,
+      "action_width_p90": 16.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.022364217252396165,
+      "feasible_width_p50": 12.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 7,
+      "model_load_rate_per_gpu_start": 0.0670926517571885,
+      "model_load_starts": 21,
+      "node_wait_events": 177
+    },
+    "S4_combined|oracle": {
+      "action_width_p50": 8.0,
+      "action_width_p90": 15.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.04472843450479233,
+      "feasible_width_p50": 8.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 14,
+      "model_load_rate_per_gpu_start": 0.09904153354632587,
+      "model_load_starts": 31,
+      "node_wait_events": 143
+    },
+    "S4_combined|predopt_h5": {
+      "action_width_p50": 12.0,
+      "action_width_p90": 16.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.022364217252396165,
+      "feasible_width_p50": 12.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 7,
+      "model_load_rate_per_gpu_start": 0.0670926517571885,
+      "model_load_starts": 21,
+      "node_wait_events": 177
+    },
+    "S4_combined|round_robin": {
+      "action_width_p50": 15.0,
+      "action_width_p90": 19.0,
+      "dispatches": 313,
+      "evictions_per_dispatch": 0.12779552715654952,
+      "feasible_width_p50": 15.0,
+      "gpu_truth_runtime_p50_ms": 6365.086,
+      "gpu_truth_runtime_p90_ms": 24629.36000000001,
+      "model_evict_events": 40,
+      "model_load_rate_per_gpu_start": 0.19808306709265175,
+      "model_load_starts": 62,
+      "node_wait_events": 308
+    }
+  },
+  "gates": {
+    "action_width_ready_cell_gt_baseline": true,
+    "all_jobs_completed": true,
+    "combined_deadline_miss_gt_baseline": true,
+    "matrix_status_passed": true,
+    "offered_load_wait_gt_baseline": true,
+    "r7_untouched": true,
+    "result_rows_exact": true,
+    "t_final_read": false,
+    "tight_deadline_miss_gt_baseline": true
+  },
+  "matrix": {
+    "aggregate": {
+      "myopic": {
+        "completed_jobs": 5120,
+        "episodes": 150,
+        "failed_jobs": 0,
+        "max_gpu_peak_memory_mb": 32756.0,
+        "mean_completion_ms": 670549.8893138542,
+        "mean_deadline_miss_rate": 0.5282291666666666,
+        "mean_gpu_evictions": 26.226666666666667,
+        "mean_gpu_utilization": 0.8851454309571405,
+        "mean_job_queue_ms": 581688.1736444271,
+        "p95_completion_ms": 1969160.1481460934
+      },
+      "oracle": {
+        "completed_jobs": 5120,
+        "episodes": 150,
+        "failed_jobs": 0,
+        "max_gpu_peak_memory_mb": 32756.0,
+        "mean_completion_ms": 482385.0563967187,
+        "mean_deadline_miss_rate": 0.39989583333333334,
+        "mean_gpu_evictions": 30.68,
+        "mean_gpu_utilization": 0.8800271257919489,
+        "mean_job_queue_ms": 389832.824666875,
+        "p95_completion_ms": 1413686.5370109375
+      },
+      "predopt_h5": {
+        "completed_jobs": 5120,
+        "episodes": 150,
+        "failed_jobs": 0,
+        "max_gpu_peak_memory_mb": 32756.0,
+        "mean_completion_ms": 670532.679279375,
+        "mean_deadline_miss_rate": 0.5280208333333334,
+        "mean_gpu_evictions": 26.466666666666665,
+        "mean_gpu_utilization": 0.8852435411904839,
+        "mean_job_queue_ms": 581658.351820052,
+        "p95_completion_ms": 1969160.1481460934
+      },
+      "round_robin": {
+        "completed_jobs": 5120,
+        "episodes": 150,
+        "failed_jobs": 0,
+        "max_gpu_peak_memory_mb": 32756.0,
+        "mean_completion_ms": 681707.4804755208,
+        "mean_deadline_miss_rate": 0.5488541666666666,
+        "mean_gpu_evictions": 75.11333333333333,
+        "mean_gpu_utilization": 0.8859841574204542,
+        "mean_job_queue_ms": 745952.5157065626,
+        "p95_completion_ms": 2091987.078601953
+      }
+    },
+    "capacity_violation_count": 0,
+    "capacity_violation_examples": [],
+    "episodes": 150,
+    "event_logging": "disabled_in_matrix_runner; event invariants covered by sim_smoke_50",
+    "expected_result_rows": 600,
+    "future_artifacts_manifest_sha256": "cf608b254ad17156c65f1f034840c4b0295970c3bd6a15bd65f68ba8a375f396",
+    "information_boundary": {
+      "myopic_optimizer": "current ready nodes plus train-only resource estimates",
+      "oracle": "full suffix truth reference only",
+      "predopt_h": "B05 current-prefix artifact and train-only finite-horizon rollout",
+      "trueopt_h": "actual DAG successor identities and engine truth for reference only"
+    },
+    "oracle_gaps": {
+      "myopic": {
+        "minus_oracle_mean_completion_ms": 188164.83291713544,
+        "relative_gap": 0.39007185322587323
+      },
+      "predopt_h5": {
+        "minus_oracle_mean_completion_ms": 188147.6228826563,
+        "relative_gap": 0.39003617626148357
+      },
+      "round_robin": {
+        "minus_oracle_mean_completion_ms": 199322.4240788021,
+        "relative_gap": 0.41320190465203216
+      }
+    },
+    "policies": [
+      "round_robin",
+      "myopic",
+      "predopt_h5",
+      "oracle"
+    ],
+    "result_rows": 600,
+    "schema_version": "r7-scheduler-matrix-v0.1",
+    "source_episodes_sha256": "5b60ae7425d8642a3aefb54dec2d915d24d3e460dd893818d52aede9f6a8a928",
+    "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+    "status": "passed"
+  },
+  "remote_root": "/root/autodl-tmp/scheduler",
+  "schema_version": "stress-pilot-report-v0.1",
+  "source": {
+    "episodes": "results/processed/r7_workload_20260817/episodes/workload_validation_r7.jsonl",
+    "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "future_artifacts": "results/processed/scheduling_future_v1_20260812/prediction_artifacts",
+    "matrix_report_sha256": "b87571d0d761f2db12a1afd59a8bc266cb1f83421d7fc51b785c07034e0dfb44",
+    "stress_manifest_sha256": "0785196ee0390a70c696d964ed61c1d76c329a84206484631142c66f8da39e66",
+    "stress_script": "experiments/EXP-20260821_stress_pilot/build_stress_pilot.py",
+    "stress_script_sha256": "9382656901146b53c0380ac7969911d04e85862bce7b757f0e370b76c158d90b",
+    "templates": "results/processed/r7_workload_20260817/job_templates_r7_v02.jsonl",
+    "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464"
+  },
+  "status": "passed"
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": "topology-predictor-p9d-v1",
+  "status": "generated_remote_verified",
+  "created_at": "2026-09-02",
+  "local_project_root": "/Users/liuqiuwei/Documents/调度",
+  "remote_output_root": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1",
+  "builder": {
+    "local_script": "scripts/build_p9d_topology_dataset.py",
+    "remote_script": "/root/autodl-tmp/scheduler/scripts/build_p9d_topology_dataset.py",
+    "sha256": "38279d13baba262e93c23facc06183c1e57e92275ef499944f256ca04937d03e",
+    "dependencies": "standard_library_only"
+  },
+  "source": {
+    "video_registry": "/root/autodl-tmp/scheduler/data/manifests/video_split_registry_r7_v1.json",
+    "p_dev_behavior_role_samples": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r1v5_candidate/data/role_event_samples.jsonl",
+    "p_dev_behavior_row_identity_check": {
+      "rows": 17303,
+      "same_order_keys_as_legacy_behavior_nn_v1": true,
+      "same_behavior_labels_and_split": true,
+      "legacy_rows_missing_source_event_id": 7169,
+      "enriched_rows_with_source_event_id": 17303
+    },
+    "p_holdout_behavior_role_samples": "/root/autodl-tmp/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/dataset/role_event_samples.jsonl",
+    "raw_trace_root": "/root/autodl-tmp/scheduler/results/raw",
+    "future_label_source": "raw trace parent_step_ids",
+    "scheduler_groups_used_for_fit_or_labels": false
+  },
+  "split_counts": {
+    "train": {"videos": 240, "runs": 988, "anchors": 13754},
+    "validation": {"videos": 30, "runs": 144, "anchors": 2029},
+    "test": {"videos": 30, "runs": 108, "anchors": 1520},
+    "holdout": {"videos": 40, "runs": 120, "anchors": 1380}
+  },
+  "graph_reconstruction": {
+    "raw_events": 18683,
+    "future_graph_nodes": 17323,
+    "edges": 32934,
+    "explicit_parent_refs": 14736,
+    "same_step_fallback_edges": 1227,
+    "root_nodes": 1360,
+    "missing_parent_refs": 0,
+    "forward_parent_refs": 0,
+    "run_control_anchors_joined": true,
+    "execution_lane": "unknown because absent from raw trace"
+  },
+  "causal_audit": {
+    "features_and_labels_same_sample_ids_per_split": true,
+    "duplicate_feature_ids": 0,
+    "duplicate_label_ids": 0,
+    "forbidden_model_input_key_violations": 0,
+    "empty_or_noncontiguous_future_layers": 0,
+    "selected_registry_videos": 340,
+    "intersection_with_S_train_S_val_T_final_T_backup": 0,
+    "unmatched_behavior_anchors": 0
+  },
+  "remote_files": {
+    "dataset_manifest": {
+      "path": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1/dataset_manifest.json",
+      "sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630"
+    },
+    "alignment_report": {
+      "path": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1/alignment_report.json",
+      "sha256": "2bd358e32367c622987be7375f53c55db41942004e467caf6d43eb4cd860f239"
+    },
+    "features_train.jsonl.gz": "c3f31c85bda4b7bb09be4e0da5c0160a9ac85bb82d4fc4997350a631e7853d7a",
+    "labels_train.jsonl.gz": "18b9cdbdab930a252703bc44345759fe4ac340dd22a42035af92ed8e3ae804ed",
+    "features_validation.jsonl.gz": "473f23183640dfb2cac9695f940761f3ec493b9c7e35c960f4cfcef694878f6c",
+    "labels_validation.jsonl.gz": "28b8eb33085d9842b2e8d0e6462ba97454fb6f8e4c98139e5f1c9eea635006e6",
+    "features_test.jsonl.gz": "3e5f0b4057546ab6eb05cb49ee7e7d4dcbd67cf4d0d090e9456d00d4abb76c6e",
+    "labels_test.jsonl.gz": "40d459a80bebcb5e19c262c909c74b8106b9ab814db712c3aeb02f6e082824fd",
+    "features_holdout.jsonl.gz": "28c930ae98b1cdc04cd5f4d165c32d5e8227293df6aaefce1cde8004df07bdf3",
+    "labels_holdout.jsonl.gz": "233670745f3740a3a77437be14bec2ca9b08b9f794289fcb7ab89cdf55554deb"
+  },
+  "policy": {
+    "full_compressed_dataset_is_remote_canonical": true,
+    "raw_video_trace_and_existing_r7_artifacts_untouched": true,
+    "training_started": false,
+    "scheduler_integration_started": false,
+    "T_final_unsealed": false
+  }
+}

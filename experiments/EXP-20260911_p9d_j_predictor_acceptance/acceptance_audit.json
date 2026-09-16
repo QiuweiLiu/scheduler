@@ -1,0 +1,488 @@
+{
+  "experiment_id": "EXP-20260911_p9d_j_predictor_acceptance",
+  "identifiability": {
+    "residency_by_model_class": {
+      "Qwen2.5-VL-3B-Instruct": {
+        "cold_median_ms": 3966.335,
+        "cold_n": 70,
+        "warm_median_ms": null,
+        "warm_n": 0
+      },
+      "Qwen3-4B": {
+        "cold_median_ms": 4159.9169999999995,
+        "cold_n": 74,
+        "warm_median_ms": null,
+        "warm_n": 0
+      },
+      "Qwen3-VL-8B-Instruct": {
+        "cold_median_ms": 6764.347,
+        "cold_n": 70,
+        "warm_median_ms": 7229.108,
+        "warm_n": 28
+      }
+    },
+    "residency_note": "load events are almost all cold-start; prefix_model_reuse=True typically means NO load at all. The naive warm/cold split is class-confounded; use the per-class table. Warm reload events exist only for VL-8B (n=28).",
+    "residency_oracle_proxy": {
+      "cold_load_events": 214,
+      "cold_load_ms_mean": 4154.743238317757,
+      "cold_load_ms_median": 4122.6455000000005,
+      "note": "oracle proxy (prefix_model_reuse) is not a deployable feature; used only to quantify the missing variable",
+      "warm_load_events": 28,
+      "warm_load_ms_mean": 7189.868821428571,
+      "warm_load_ms_median": 7229.108,
+      "workload_proxy_missing_rate": {
+        "clip_len": 1.0,
+        "query_char_len": 0.0
+      }
+    }
+  },
+  "models": {
+    "B1:seed11": {
+      "checkpoint": "F:\\scheduler\\outputs\\j_series_joint_resource\\runs\\B1\\seed11\\checkpoint.pt",
+      "checkpoint_sha256": "4402375732d25b66e3039f0f6fc49c994fe3e55088d636a9b69a1312437d3bc8",
+      "metrics": {
+        "behavior": {
+          "next_family_acc": 0.834973943254198,
+          "next_role_acc": 0.9438332368268674
+        },
+        "content": {
+          "mean_of_fields": 0.9014593467685893,
+          "per_field_accuracy": {
+            "action_family": 0.7735927727588603,
+            "merged": 0.9812369701181376,
+            "model_class": 0.8943710910354413,
+            "nested": 1.0,
+            "node_type": 0.8126476719944405,
+            "retry": 0.9651146629603892,
+            "role": 0.8832522585128562
+          }
+        },
+        "identifiability": {
+          "runtime_pinball_by_model_class": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "n": 371,
+              "runtime_pb": 1167.4479557437178
+            },
+            "Qwen3-4B": {
+              "n": 1985,
+              "runtime_pb": 1142.0668836337431
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "n": 2792,
+              "runtime_pb": 1022.9770546802238
+            },
+            "cpu-metadata-adapter-v1": {
+              "n": 2013,
+              "runtime_pb": 476.57489336229895
+            },
+            "finish_argument": {
+              "n": 34,
+              "runtime_pb": 566.3730557271323
+            }
+          }
+        },
+        "resource": {
+          "load_duration_coverage_by_tau": [
+            0.3333333333333333,
+            0.989010989010989,
+            1.0
+          ],
+          "load_duration_pinball_by_tau": [
+            452.87651773730823,
+            288.0519477986206,
+            239.5747746304804
+          ],
+          "load_duration_pinball_mean": 326.83441338880306,
+          "load_occurrence": {
+            "base_rate": 0.07645987956868786,
+            "brier": 0.02070159956538682,
+            "ece": 0.0326707911452164
+          },
+          "memory": "head not trained (absent from L_R); do not expose; availability 37,553/60,925 slots",
+          "runtime_coverage_by_tau": [
+            0.5070187630298819,
+            0.9020152883947186,
+            0.9684503127171648
+          ],
+          "runtime_pinball_by_tau": [
+            1303.5724439787716,
+            857.231487869397,
+            563.9548602967017
+          ],
+          "runtime_pinball_mean": 908.2529307149567
+        },
+        "rows": 2029,
+        "structure": {
+          "length_mae": 0.05372104484967965,
+          "length_mae_by_gt_length": {
+            "0": {
+              "length_mae": 0.0,
+              "n": 302
+            },
+            "1": {
+              "length_mae": 0.13071895424836602,
+              "n": 153
+            },
+            "2": {
+              "length_mae": 0.1527777777777778,
+              "n": 144
+            },
+            "3": {
+              "length_mae": 0.20149253731343283,
+              "n": 134
+            },
+            "4": {
+              "length_mae": 0.1015625,
+              "n": 128
+            },
+            "5": {
+              "length_mae": 0.023116438356164382,
+              "n": 1168
+            }
+          },
+          "termination_acc": 0.9778215869886644,
+          "termination_bce": 0.08987668157687712
+        }
+      },
+      "role": "fallback",
+      "selected_epoch": 30
+    },
+    "J3:seed11": {
+      "checkpoint": "F:\\scheduler\\outputs\\j_series_joint_resource\\runs\\J3\\seed11\\checkpoint.pt",
+      "checkpoint_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+      "metrics": {
+        "behavior": {
+          "next_family_acc": 0.8396062536189924,
+          "next_role_acc": 0.9444122756224667
+        },
+        "content": {
+          "mean_of_fields": 0.9012550662046257,
+          "per_field_accuracy": {
+            "action_family": 0.7737317581653926,
+            "merged": 0.9776233495482974,
+            "model_class": 0.8967338429464906,
+            "nested": 0.9932885906040269,
+            "node_type": 0.8165392633773454,
+            "retry": 0.9651146629603892,
+            "role": 0.8857539958304378
+          }
+        },
+        "identifiability": {
+          "runtime_pinball_by_model_class": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "n": 371,
+              "runtime_pb": 919.1153983819366
+            },
+            "Qwen3-4B": {
+              "n": 1985,
+              "runtime_pb": 1086.9740782948074
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "n": 2792,
+              "runtime_pb": 932.3767517749801
+            },
+            "cpu-metadata-adapter-v1": {
+              "n": 2013,
+              "runtime_pb": 480.1574096732283
+            },
+            "finish_argument": {
+              "n": 34,
+              "runtime_pb": 342.84200793241615
+            }
+          }
+        },
+        "resource": {
+          "load_duration_coverage_by_tau": [
+            0.5531135531135531,
+            0.9835164835164835,
+            1.0
+          ],
+          "load_duration_pinball_by_tau": [
+            431.9837364640568,
+            321.23732539921014,
+            227.56387102399574
+          ],
+          "load_duration_pinball_mean": 326.9283109624209,
+          "load_occurrence": {
+            "base_rate": 0.07645987956868786,
+            "brier": 0.013503872531943146,
+            "ece": 0.02891509008549906
+          },
+          "memory": "head not trained (absent from L_R); do not expose; availability 37,553/60,925 slots",
+          "runtime_coverage_by_tau": [
+            0.5555246699096595,
+            0.9166087560806115,
+            0.9680333564975677
+          ],
+          "runtime_pinball_by_tau": [
+            1194.32744243396,
+            797.8593130983702,
+            542.9257155361393
+          ],
+          "runtime_pinball_mean": 845.0374903561565
+        },
+        "rows": 2029,
+        "structure": {
+          "length_mae": 0.04731394775751602,
+          "length_mae_by_gt_length": {
+            "0": {
+              "length_mae": 0.0,
+              "n": 302
+            },
+            "1": {
+              "length_mae": 0.0784313725490196,
+              "n": 153
+            },
+            "2": {
+              "length_mae": 0.1527777777777778,
+              "n": 144
+            },
+            "3": {
+              "length_mae": 0.20149253731343283,
+              "n": 134
+            },
+            "4": {
+              "length_mae": 0.109375,
+              "n": 128
+            },
+            "5": {
+              "length_mae": 0.01797945205479452,
+              "n": 1168
+            }
+          },
+          "termination_acc": 0.9788072942336126,
+          "termination_bce": 0.08219315226848938
+        }
+      },
+      "role": "primary",
+      "selected_epoch": 30
+    },
+    "J3:seed22": {
+      "checkpoint": "F:\\scheduler\\outputs\\j_series_joint_resource\\runs\\J3\\seed22\\checkpoint.pt",
+      "checkpoint_sha256": "f70389e42be479495d5b5250e730f8652d3d590034fd1f6dfb54791848349403",
+      "metrics": {
+        "behavior": {
+          "next_family_acc": 0.8459756803705848,
+          "next_role_acc": 0.9426751592356688
+        },
+        "content": {
+          "mean_of_fields": 0.9019557232204904,
+          "per_field_accuracy": {
+            "action_family": 0.7781792911744266,
+            "merged": 0.9762334954829743,
+            "model_class": 0.8965948575399583,
+            "nested": 1.0,
+            "node_type": 0.8147324530924253,
+            "retry": 0.9651146629603892,
+            "role": 0.8828353022932592
+          }
+        },
+        "identifiability": {
+          "runtime_pinball_by_model_class": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "n": 371,
+              "runtime_pb": 832.891865866395
+            },
+            "Qwen3-4B": {
+              "n": 1985,
+              "runtime_pb": 1117.2960713886048
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "n": 2792,
+              "runtime_pb": 934.3586727434005
+            },
+            "cpu-metadata-adapter-v1": {
+              "n": 2013,
+              "runtime_pb": 476.85936062502367
+            },
+            "finish_argument": {
+              "n": 34,
+              "runtime_pb": 350.0865785506903
+            }
+          }
+        },
+        "resource": {
+          "load_duration_coverage_by_tau": [
+            0.3626373626373626,
+            0.9706959706959707,
+            1.0
+          ],
+          "load_duration_pinball_by_tau": [
+            458.6565660020318,
+            286.4179402329441,
+            201.57221379206743
+          ],
+          "load_duration_pinball_mean": 315.5489066756811,
+          "load_occurrence": {
+            "base_rate": 0.07645987956868786,
+            "brier": 0.014805064250252081,
+            "ece": 0.024238654644344722
+          },
+          "memory": "head not trained (absent from L_R); do not expose; availability 37,553/60,925 slots",
+          "runtime_coverage_by_tau": [
+            0.5302293259207783,
+            0.8910354412786657,
+            0.9523280055594162
+          ],
+          "runtime_pinball_by_tau": [
+            1207.3533662112923,
+            798.3904858502743,
+            540.7686572579397
+          ],
+          "runtime_pinball_mean": 848.837503106502
+        },
+        "rows": 2029,
+        "structure": {
+          "length_mae": 0.051256776737309016,
+          "length_mae_by_gt_length": {
+            "0": {
+              "length_mae": 0.0,
+              "n": 302
+            },
+            "1": {
+              "length_mae": 0.0784313725490196,
+              "n": 153
+            },
+            "2": {
+              "length_mae": 0.1527777777777778,
+              "n": 144
+            },
+            "3": {
+              "length_mae": 0.23134328358208955,
+              "n": 134
+            },
+            "4": {
+              "length_mae": 0.1015625,
+              "n": 128
+            },
+            "5": {
+              "length_mae": 0.02226027397260274,
+              "n": 1168
+            }
+          },
+          "termination_acc": 0.9797930014785609,
+          "termination_bce": 0.07047153395431387
+        }
+      },
+      "role": "robustness",
+      "selected_epoch": 30
+    },
+    "J3:seed33": {
+      "checkpoint": "F:\\scheduler\\outputs\\j_series_joint_resource\\runs\\J3\\seed33\\checkpoint.pt",
+      "checkpoint_sha256": "91865417b78a4cc674934c2ab942b6bc89cdf022b2a93b4aa40c144ae1929a8b",
+      "metrics": {
+        "behavior": {
+          "next_family_acc": 0.855819339895773,
+          "next_role_acc": 0.9513607411696584
+        },
+        "content": {
+          "mean_of_fields": 0.9051722426288097,
+          "per_field_accuracy": {
+            "action_family": 0.7823488533703961,
+            "merged": 0.9816539263377345,
+            "model_class": 0.8975677553856845,
+            "nested": 1.0,
+            "node_type": 0.8202918693537179,
+            "retry": 0.9651146629603892,
+            "role": 0.8892286309937456
+          }
+        },
+        "identifiability": {
+          "runtime_pinball_by_model_class": {
+            "Qwen2.5-VL-3B-Instruct": {
+              "n": 371,
+              "runtime_pb": 881.2773724326199
+            },
+            "Qwen3-4B": {
+              "n": 1985,
+              "runtime_pb": 1211.0833443327565
+            },
+            "Qwen3-VL-8B-Instruct": {
+              "n": 2792,
+              "runtime_pb": 1003.1590646804261
+            },
+            "cpu-metadata-adapter-v1": {
+              "n": 2013,
+              "runtime_pb": 481.5647284405119
+            },
+            "finish_argument": {
+              "n": 34,
+              "runtime_pb": 306.6432379158769
+            }
+          }
+        },
+        "resource": {
+          "load_duration_coverage_by_tau": [
+            0.4633699633699634,
+            0.9981684981684982,
+            1.0
+          ],
+          "load_duration_pinball_by_tau": [
+            389.6993870442708,
+            280.89302356270025,
+            195.782745866601
+          ],
+          "load_duration_pinball_mean": 288.791718824524,
+          "load_occurrence": {
+            "base_rate": 0.07645987956868786,
+            "brier": 0.01602468702541496,
+            "ece": 0.02868766522436954
+          },
+          "memory": "head not trained (absent from L_R); do not expose; availability 37,553/60,925 slots",
+          "runtime_coverage_by_tau": [
+            0.5125781792911744,
+            0.881862404447533,
+            0.9444058373870744
+          ],
+          "runtime_pinball_by_tau": [
+            1274.4788869051433,
+            866.5731639662823,
+            573.9959494207203
+          ],
+          "runtime_pinball_mean": 905.016000097382
+        },
+        "rows": 2029,
+        "structure": {
+          "length_mae": 0.046821094135041895,
+          "length_mae_by_gt_length": {
+            "0": {
+              "length_mae": 0.0,
+              "n": 302
+            },
+            "1": {
+              "length_mae": 0.0784313725490196,
+              "n": 153
+            },
+            "2": {
+              "length_mae": 0.1527777777777778,
+              "n": 144
+            },
+            "3": {
+              "length_mae": 0.20149253731343283,
+              "n": 134
+            },
+            "4": {
+              "length_mae": 0.109375,
+              "n": 128
+            },
+            "5": {
+              "length_mae": 0.017123287671232876,
+              "n": 1168
+            }
+          },
+          "termination_acc": 0.9793001478560868,
+          "termination_bce": 0.07810983836733988
+        }
+      },
+      "role": "robustness",
+      "selected_epoch": 29
+    }
+  },
+  "test_headline_inherited": {
+    "J2": "runtime delta vs B1: -49.0/-65.4/-29.9 ms (all seeds CI upper < 0); load duration +7.3%/+3.0%/+5.4%",
+    "J3": "runtime delta vs B1: -78.1/-77.1/-64.0 ms (all seeds CI upper < 0); load duration +6.7%/+4.7%/+4.3%",
+    "source": "outputs/j_series_joint_resource/test_eval.json (frozen; not recomputed)",
+    "verdict": "no Core GO (load-duration NI); test consumed once"
+  },
+  "tier": "validation (official)"
+}

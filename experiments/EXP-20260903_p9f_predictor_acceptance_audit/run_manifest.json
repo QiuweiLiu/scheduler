@@ -1,0 +1,36 @@
+{
+  "experiment_id": "EXP-20260903_p9f_predictor_acceptance_audit",
+  "inputs": {
+    "checkpoint_sha256": {
+      "11": "45972d2751d3044e5260b6134352d1aa2f7ae773bae9d4d3dd28680674e353e5",
+      "22": "690ccbb3697222d65622a5ffb1ecce84cc8beef811edc1d32472545108361bc6",
+      "33": "5e4843b7b6ac3518d5f77eb76144d3018a5f9b55217ffde588eb0b9ec4c4b0e9"
+    },
+    "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+    "empirical_baseline_metrics_sha256": "fa1f3856a30b1dc9f515f431760502e7e7e966773564b3926b76885785c5c528",
+    "resource_dev_compute_sha256": "7546cc15e8ab2c23cc6593c188811ca2b9188f2c9fb1f270e6189820ebc4701e",
+    "resource_holdout_compute_sha256": "61e21c696ba213d1d6566198f485d7ebf8e394acb2fd61dd45055520013ff235"
+  },
+  "outputs_sha256": {
+    "cost_profiles.json": "0e3faaf5412787eb98be1786b3d4f8e4cd9cfba296e88b8a1a3bf7962832ddbd",
+    "metrics.json": "5eef27a61d37d0f5be81968e511e1d9dee31cbc2c5b320688b38ff3bd659e841",
+    "stage0_audit.json": "e257ef37b93a8ba8859f80ef9b4237b1e54bed453fd078731acbc3248375a1f9"
+  },
+  "schema_version": "p9f-predictor-acceptance-audit-v1",
+  "source_sha256": {
+    "experiments/config.json": "d391f130f98b35d478a471b8110a2f51beda9cc360067e5e396e621a704bd416",
+    "scripts/p9d_future_role_family_multitask.py": "89e6416f90b1e6ef6f0219aae5e2b162f5c1071d496d9c1feecd5d2a4d8c01db",
+    "scripts/p9d_shared_causal_gru.py": "62d6a9e7b2b9dd31c1ccec8692c8ded03ae0e6501d2f9a096ee5bdbffc048802",
+    "scripts/p9f_predictor_acceptance_audit.py": "81f00c6ce73a891a3ec153ff7c5f2d48a206c96acae6523096c25c4d55cb0937"
+  },
+  "status": "completed_diagnostic",
+  "verification": {
+    "calibration_fit_split": "P_dev/train",
+    "frozen_checkpoints_only": true,
+    "raw_traces_modified": false,
+    "scheduler_groups_used": false,
+    "scheduler_integration_started": false,
+    "stage0_passed": true,
+    "t_final_read": false
+  }
+}

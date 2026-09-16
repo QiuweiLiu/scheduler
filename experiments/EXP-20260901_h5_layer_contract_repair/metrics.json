@@ -1,0 +1,56 @@
+{
+  "schema_version": "h5-layer-contract-repair-v0.1",
+  "status": "passed_diagnostic_unary_projection",
+  "formal_topology_predictor": false,
+  "remote_used": false,
+  "t_final_read": false,
+  "inputs": {
+    "templates": ".scratch/action_value_audit_remote_inputs_20260825/job_templates_r7_v02.jsonl",
+    "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+    "episodes": ".scratch/action_value_audit_remote_inputs_20260825/workload_validation_r7.jsonl",
+    "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "legacy_future_h5_sha256": "38366adc39eed389620d73c97a794d33375b1a727abe319c566b4c463b0cabc2"
+  },
+  "artifacts": {
+    "layer_schema_version": "scheduling-future-h5-layer-v1",
+    "source_rows": 8935,
+    "layer_rows": 8935,
+    "scenario_count": 26805,
+    "predicted_layer_count_mean": 5.0,
+    "predicted_node_count_mean": 5.0,
+    "layer_artifact_nodes": 8935
+  },
+  "action_value_audit": {
+    "episodes": 100,
+    "decisions": 15364,
+    "candidate_rows": 44690,
+    "failed_jobs": 0,
+    "aligned_predopt_h5_layer_mean_true_regret_ms": 7978.733159658943,
+    "aligned_predopt_h5_layer_top1_agreement_rate": 0.6605701640197865,
+    "aligned_predopt_h5_mean_true_regret_ms": 7978.733159658943,
+    "aligned_predopt_h5_top1_agreement_rate": 0.6605701640197865,
+    "layer_policy_vs_legacy_aligned_score_exact": true
+  },
+  "truth_topology_reference": {
+    "weighted_mean_nonempty_layer_count": 2.5107406578652944,
+    "weighted_mean_dag_node_count": 5.388923696576415
+  },
+  "smoke_10": {
+    "episodes": 10,
+    "policies": [
+      "myopic",
+      "aligned_predopt_h5_layer",
+      "aligned_trueopt_h5"
+    ],
+    "failed_jobs": 0,
+    "completed_jobs_per_policy": 160,
+    "aligned_predopt_h5_layer_mean_completion_ms": 177058.29647187502,
+    "myopic_mean_completion_ms": 176937.06589687505,
+    "aligned_trueopt_h5_mean_completion_ms": 162234.53575000004
+  },
+  "tests": {
+    "full_unittest": "60/60 passed",
+    "targeted_aligned_h5": "9/9 passed",
+    "compile": "passed"
+  }
+}

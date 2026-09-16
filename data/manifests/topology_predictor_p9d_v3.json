@@ -1,0 +1,270 @@
+{
+  "alignment_summary": {
+    "produced_rows": {
+      "holdout": 1380,
+      "test": 1520,
+      "train": 13754,
+      "validation": 2029
+    },
+    "produced_runs": {
+      "holdout": 120,
+      "test": 108,
+      "train": 988,
+      "validation": 144
+    },
+    "produced_videos": {
+      "holdout": 40,
+      "test": 30,
+      "train": 240,
+      "validation": 30
+    },
+    "unmatched_behavior_anchors": 0
+  },
+  "builder": {
+    "builder_version": "topology-predictor-p9d-v1+v3",
+    "python_dependencies": "standard_library_only",
+    "script": "scripts/build_p9d_topology_dataset.py"
+  },
+  "counts": {
+    "anchors_on_merged_nested": {
+      "holdout": 72,
+      "test": 24,
+      "train": 349,
+      "validation": 37
+    },
+    "graph_totals": {
+      "edges": 15963,
+      "explicit_parent_refs": 14736,
+      "forward_parent_refs": 0,
+      "graph_nodes": 17323,
+      "missing_parent_refs": 0,
+      "raw_events": 18683,
+      "root_nodes": 1360,
+      "same_step_fallback_edges": 1227,
+      "step_parent_dropped_edges": 16971,
+      "step_parent_last_event_expansions": 14736
+    },
+    "nested_merged_by_baseline": {
+      "langgraph_react": 272,
+      "st_fixed": 168,
+      "star": 42
+    },
+    "registry_videos_by_split": {
+      "holdout": 40,
+      "test": 30,
+      "train": 240,
+      "validation": 30
+    },
+    "rows_by_split": {
+      "holdout": 1380,
+      "test": 1520,
+      "train": 13754,
+      "validation": 2029
+    },
+    "runs_by_split": {
+      "holdout": 120,
+      "test": 108,
+      "train": 988,
+      "validation": 144
+    },
+    "v3_gates": {
+      "cross_step_transitions": 7157,
+      "intra_step_transitions": 8324,
+      "nested_merged_calls": 482,
+      "planner_tool_name_match": 6630,
+      "resource_applicable_nodes": 15481,
+      "retry_adjacent": 502,
+      "retry_events": 502,
+      "runs": 1360,
+      "terminal_marker_nodes": 1360,
+      "tool_step_id_match": 6630,
+      "tool_step_id_present": 6630,
+      "yolo_preobserve_tools": 112
+    },
+    "videos_by_split": {
+      "holdout": 40,
+      "test": 30,
+      "train": 240,
+      "validation": 30
+    },
+    "width_histogram_nonempty_layers": {
+      "1": 65275
+    }
+  },
+  "created_at": "2026-09-10",
+  "dataset_root": "/Volumes/Lenovo/scheduler/results/processed/topology_predictor_p9d_v3",
+  "feature_contract": {
+    "execution_runtime_load_memory_status_excluded": true,
+    "forbidden_model_input_keys": [
+      "answer",
+      "answer_label",
+      "event_id",
+      "family_label",
+      "future_events",
+      "future_layers",
+      "future_state",
+      "gold",
+      "load_ms",
+      "local_runtime_ms",
+      "memory",
+      "memory_mb",
+      "next_role",
+      "node_id",
+      "peak_allocated_mb",
+      "peak_reserved_mb",
+      "predecessor_node_ids",
+      "predecessors",
+      "remaining_runtime_ms",
+      "remaining_steps",
+      "resource",
+      "run_id",
+      "runtime_ms",
+      "source_event_id",
+      "status",
+      "successor_node_ids",
+      "successors",
+      "target_source_event_id",
+      "trace_sha256",
+      "truth",
+      "video_id",
+      "video_path"
+    ],
+    "future_edges_excluded": true,
+    "future_events_excluded": true,
+    "model_input_keys": [
+      "history",
+      "current_node",
+      "task_context",
+      "stack_context"
+    ],
+    "remaining_steps_excluded": true,
+    "resource_truth_excluded": true,
+    "upstream_behavior_prediction_features": "not_included_in_v1",
+    "video_id_as_model_feature": false
+  },
+  "files_sha256": {
+    "features_holdout": "c2c1701eb019f9410f84d3e16e4ea4fc5103fdea69aa424db5a839c0c73c657e",
+    "features_test": "74a7885061974bba78e1701b7685f3a8be724889e2c885d153b70a242aab7658",
+    "features_train": "e0b49f1a90c2e6ee5b1a18a9ddaacc7391f40f1c74089c751f6211a15acd8183",
+    "features_validation": "2e7639caafa440629ac29680c507fa81b115f94c96322c7dd6a077b922e152c3",
+    "labels_holdout": "08e06842d7a782509453ae273999d9e8063cab4f88c13147577fbe42bae4d701",
+    "labels_test": "4c74967d3f1b85cf01b2fb8f839aa223e0edfeaf7a5854c7aceece6bd66a31ab",
+    "labels_train": "01a7a5dc045b0c6e0045f67fe74fea49f15d48c38ad3970bdd3ea246adc68f28",
+    "labels_validation": "e7f861d8ed755460fa7664977da35d9abd55d097b3efce99a1fba92de16ae9ac"
+  },
+  "label_contract": {
+    "edge_policy": "verified_serial_control_flow",
+    "execution_lane": "unknown because absent from raw trace",
+    "future_unit": "verified_serial_control_flow_chain",
+    "layer_horizon": 5,
+    "nested_call_policy": "merged_into_enclosing_tool",
+    "node_identity_retained": true,
+    "resource_policy": "node_total_includes_merged_nested_call",
+    "retry_policy": "kept_as_chain_node",
+    "terminal_marker": "answer_run_event_excluded_from_horizon",
+    "termination": "terminated_vs_censored_explicit",
+    "width_policy": "deterministic_width_1_compatibility_field",
+    "workload_scale": "clip_len_query_char_len_nested_api_call_count_per_node"
+  },
+  "label_policy": "v3",
+  "notes": [
+    "Rerun with: py scripts/build_p9d_topology_dataset.py --label-policy v3 (see manifest source block for full inputs).",
+    "Features are byte-identical (decompressed sha256) to topology_predictor_p9d_v2 across all splits.",
+    "Invalidated predecessors kept for audit: topology_predictor_p9d_v3_invalidated_20260910_v2diff_bug and ..._crlf.",
+    "Canonical dataset_root is the macOS mount /Volumes/Lenovo/scheduler; the same exFAT volume mounts as F: on Windows (this rebuild ran on the Windows mount). Input paths inside dataset_manifest.json are Windows-relative."
+  ],
+  "policy": {
+    "contract_doc": "docs/p9d_topology_label_contract_v3.md",
+    "review_record": "docs/research/2026-09-10_p9d_v3_contract_review.md",
+    "scheduler_integration_started": false,
+    "t_final_unsealed": false,
+    "training_started": false,
+    "v1_v2_and_raw_traces_untouched": true
+  },
+  "reconstruction_policy": "v3_verified_serial_control_flow",
+  "reports_sha256": {
+    "alignment_report.json": "5083c1697c365062a7b75baed089671f66a904773ddedc229b456c58f481f9a1",
+    "dataset_manifest.json": "67873cf5efd31bf15e8225753416c6694dd81c4684910cd5a2a31387d7a58aaf"
+  },
+  "schema_version": "topology-predictor-p9d-v3",
+  "source": {
+    "behavior_role_samples": "results\\processed\\behavior_nn_v1_r1v5_candidate\\data\\role_event_samples.jsonl",
+    "holdout_role_samples": "results\\processed\\behavior_nn_v1_r2\\final_holdout\\dataset\\role_event_samples.jsonl",
+    "raw_label_source": "trace.jsonl parent_step_ids",
+    "raw_roots": [
+      "results\\raw"
+    ],
+    "s_train_s_val_t_final_used": false,
+    "scheduler_trace_groups_used_for_fit": false,
+    "video_registry": "data\\manifests\\video_split_registry_r7_v1.json"
+  },
+  "status": "generated_frozen",
+  "v2_comparison": {
+    "examples": [
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:5",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:3"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:4"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:7",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:5"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:6"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:10",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:7"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:8"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:12",
+        "node_kind": "planner",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:10"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:11"
+        ]
+      },
+      {
+        "node_id": "-3t1rj8g6yg_langgraph_react_1785874133203:action:13",
+        "node_kind": "tool",
+        "run_id": "-3t1rj8g6yg_langgraph_react_1785874133203",
+        "v2_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:action:10"
+        ],
+        "v3_predecessors": [
+          "-3t1rj8g6yg_langgraph_react_1785874133203:api_call:12"
+        ]
+      }
+    ],
+    "predecessor_changes_by_class": {
+      "generate:tool->planner": 64,
+      "generate:tool->tool": 1113,
+      "planner:tool->planner": 365,
+      "tool:generate->planner": 10,
+      "tool:tool->planner": 5565
+    },
+    "predecessor_changes_total": 7117
+  },
+  "windows_mount_path": "F:/scheduler/results/processed/topology_predictor_p9d_v3"
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": "neural-public-datasets-v0.1",
+  "purpose": "public-trace-pretraining-catalog",
+  "download_policy": {
+    "train_only_for_pretraining": true,
+    "record_license_and_sha256": true,
+    "do_not_mix_public_test_into_training": true
+  },
+  "datasets": [
+    {
+      "dataset_id": "bpi_2012",
+      "priority": 1,
+      "role": "process_structure",
+      "source_url": "https://research.tue.nl/en/datasets/bpi-challenge-2012/",
+      "expected_signal": ["event_sequence", "branch", "completion"],
+      "visual_features": false,
+      "status": "planned"
+    },
+    {
+      "dataset_id": "bpi_2014_incidents",
+      "priority": 1,
+      "role": "process_structure",
+      "source_url": "https://research.tue.nl/en/datasets/bpi-challenge-2014-activity-log-for-incidents/",
+      "expected_signal": ["event_sequence", "case_attributes", "duration"],
+      "visual_features": false,
+      "status": "planned"
+    },
+    {
+      "dataset_id": "sepsis_cases",
+      "priority": 1,
+      "role": "process_structure",
+      "source_url": "https://research.tue.nl/nl/datasets/sepsis-cases-event-log/",
+      "expected_signal": ["event_sequence", "attributes", "loops", "duration"],
+      "visual_features": false,
+      "status": "planned"
+    },
+    {
+      "dataset_id": "toolbench",
+      "priority": 1,
+      "role": "tool_planning",
+      "source_url": "https://github.com/OpenBMB/ToolBench",
+      "expected_signal": ["single_tool", "multi_tool", "tool_result", "solution_path"],
+      "visual_features": false,
+      "status": "planned"
+    },
+    {
+      "dataset_id": "mind2web_train",
+      "priority": 1,
+      "role": "observation_to_action",
+      "source_url": "https://github.com/OSU-NLP-Group/Mind2Web",
+      "expected_signal": ["observation", "action_sequence", "html", "screenshot_optional"],
+      "visual_features": true,
+      "status": "planned"
+    },
+    {
+      "dataset_id": "api_bank",
+      "priority": 2,
+      "role": "converter_smoke_test",
+      "source_url": "https://arxiv.org/abs/2304.08244",
+      "expected_signal": ["tool_dialogue", "api_call"],
+      "visual_features": false,
+      "status": "optional"
+    }
+  ]
+}

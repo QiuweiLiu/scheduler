@@ -1,0 +1,386 @@
+{
+  "aggregate": {
+    "answer_leakage_policy": "source manifest omits ground-truth answer; generated answer is retained only in run manifest/answer event and is not in planner inputs",
+    "baseline_counts": {
+      "langgraph_react": 4,
+      "star": 4
+    },
+    "error_event_count_total": 2,
+    "error_policy": "recoverable parse errors are retained as trace events; pilot gate requires a successful retry and successful final run, not zero errors",
+    "event_count_total": 122,
+    "planner_mode_counts": {
+      "local_qwen": 4,
+      "local_split": 4
+    },
+    "planner_parse_status_counts": {
+      "bare_tool_token": 8,
+      "error": 2,
+      "json": 39
+    },
+    "retry_count_total": 2,
+    "run_manifest_answer_is_generated_output_only": true,
+    "stack_counts": {
+      "stack_a_qwen3_vl8b_yolo11x": 4,
+      "stack_b_qwen3_4b_qwen25vl3b_yolo26n": 4
+    },
+    "status_counts": {
+      "success": 8
+    },
+    "validator_counts": {
+      "valid": 8
+    }
+  },
+  "checks": {
+    "all_run_status_success": true,
+    "all_summary_status_success": true,
+    "all_traces_valid": true,
+    "error_events_have_successful_retry": true,
+    "manifest_row_count_match": true,
+    "planner_inputs_have_no_answer_or_gold_fields": true,
+    "planner_mode_matches_manifest": true,
+    "run_success_is_final_outcome": true,
+    "source_manifest_has_no_answer": true,
+    "stack_matches_manifest": true,
+    "task_ids_unique": true
+  },
+  "expected_runs": 8,
+  "manifest": "data/manifests/r7_trace_pilot_manifest_v1.jsonl",
+  "pilot_gate_passed": true,
+  "raw_root": "results/raw/r7_trace_pilot_20260817",
+  "runs": [
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "frame-selector": 1,
+        "generalist.generate": 1,
+        "image-qa": 5,
+        "planner.generate": 6
+      },
+      "baseline": "star",
+      "error_event_count": 0,
+      "event_count": 15,
+      "event_status_counts": {
+        "success": 15
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 7,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "expected_planner_mode": "local_qwen",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "parse_status_counts": {
+        "bare_tool_token": 4,
+        "json": 2
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_qwen",
+      "question_sha256": "7c119ef1c1b3717f6f43a821997aecbda4ed28b1c8114779e85766f278bdfb19",
+      "retry_count": 0,
+      "run_id": "56yT3H_DjVE_star_1786903867745",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_train_56yT3H_DjVE_stack_a_star",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "5022cb1a72c49bba7b1c57dccaed4e178d690b4bf1a6f762977749659ce35e47"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "frame-selector": 1,
+        "generalist.generate": 2,
+        "image-grid-qa": 2,
+        "image-qa": 1,
+        "planner.generate": 5,
+        "summarization-tool": 1
+      },
+      "baseline": "langgraph_react",
+      "error_event_count": 0,
+      "event_count": 14,
+      "event_status_counts": {
+        "success": 14
+      },
+      "event_type_counts": {
+        "action": 5,
+        "api_call": 7,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "expected_planner_mode": "local_qwen",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "parse_status_counts": {
+        "json": 5
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_qwen",
+      "question_sha256": "7c119ef1c1b3717f6f43a821997aecbda4ed28b1c8114779e85766f278bdfb19",
+      "retry_count": 0,
+      "run_id": "56yT3H_DjVE_langgraph_react_1786903949189",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_train_56yT3H_DjVE_stack_a_langgraph_react",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "5022cb1a72c49bba7b1c57dccaed4e178d690b4bf1a6f762977749659ce35e47"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "frame-selector": 6,
+        "generalist.generate": 1,
+        "planner.generate": 6
+      },
+      "baseline": "star",
+      "error_event_count": 0,
+      "event_count": 15,
+      "event_status_counts": {
+        "success": 15
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 7,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "expected_planner_mode": "local_split",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "parse_status_counts": {
+        "json": 6
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_split",
+      "question_sha256": "7c119ef1c1b3717f6f43a821997aecbda4ed28b1c8114779e85766f278bdfb19",
+      "retry_count": 0,
+      "run_id": "56yT3H_DjVE_star_1786904007972",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_train_56yT3H_DjVE_stack_b_star",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "5022cb1a72c49bba7b1c57dccaed4e178d690b4bf1a6f762977749659ce35e47"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "frame-selector": 1,
+        "generalist.generate": 1,
+        "image-grid-selector": 4,
+        "image-qa": 1,
+        "planner.generate": 6
+      },
+      "baseline": "langgraph_react",
+      "error_event_count": 0,
+      "event_count": 15,
+      "event_status_counts": {
+        "success": 15
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 7,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "expected_planner_mode": "local_split",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "parse_status_counts": {
+        "json": 6
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_split",
+      "question_sha256": "7c119ef1c1b3717f6f43a821997aecbda4ed28b1c8114779e85766f278bdfb19",
+      "retry_count": 0,
+      "run_id": "56yT3H_DjVE_langgraph_react_1786904074509",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_train_56yT3H_DjVE_stack_b_langgraph_react",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "5022cb1a72c49bba7b1c57dccaed4e178d690b4bf1a6f762977749659ce35e47"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "generalist.generate": 1,
+        "image-grid-qa": 1,
+        "image-qa": 2,
+        "planner.generate": 6,
+        "temporal-qa": 3
+      },
+      "baseline": "star",
+      "error_event_count": 0,
+      "event_count": 15,
+      "event_status_counts": {
+        "success": 15
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 7,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "expected_planner_mode": "local_qwen",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "parse_status_counts": {
+        "bare_tool_token": 4,
+        "json": 2
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_qwen",
+      "question_sha256": "65c20a0b489b99c3cfd56d2399b87a1d7e2be4ee3090ea9bd9d913182fbe09f3",
+      "retry_count": 0,
+      "run_id": "8y2Hj7GDcwI_star_1786904163725",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_val_8y2Hj7GDcwI_stack_a_star",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "527608546abc34edf3b606fa66d11178998ad48d4413d5fa160a35f0c54d78bb"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "generalist.generate": 2,
+        "image-grid-qa": 3,
+        "image-grid-selector": 1,
+        "image-qa": 1,
+        "planner.generate": 6,
+        "summarization-tool": 1
+      },
+      "baseline": "langgraph_react",
+      "error_event_count": 0,
+      "event_count": 16,
+      "event_status_counts": {
+        "success": 16
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 8,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "expected_planner_mode": "local_qwen",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_a_qwen3_vl8b_yolo11x",
+      "parse_status_counts": {
+        "json": 6
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_qwen",
+      "question_sha256": "65c20a0b489b99c3cfd56d2399b87a1d7e2be4ee3090ea9bd9d913182fbe09f3",
+      "retry_count": 0,
+      "run_id": "8y2Hj7GDcwI_langgraph_react_1786904208350",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_val_8y2Hj7GDcwI_stack_a_langgraph_react",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "527608546abc34edf3b606fa66d11178998ad48d4413d5fa160a35f0c54d78bb"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "frame-selector": 4,
+        "generalist.generate": 1,
+        "planner.generate": 7,
+        "temporal-grounding": 1,
+        "temporal-qa": 1
+      },
+      "baseline": "star",
+      "error_event_count": 1,
+      "event_count": 16,
+      "event_status_counts": {
+        "error": 1,
+        "success": 15
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 8,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "expected_planner_mode": "local_split",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "parse_status_counts": {
+        "error": 1,
+        "json": 6
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_split",
+      "question_sha256": "65c20a0b489b99c3cfd56d2399b87a1d7e2be4ee3090ea9bd9d913182fbe09f3",
+      "retry_count": 1,
+      "run_id": "8y2Hj7GDcwI_star_1786904280216",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_val_8y2Hj7GDcwI_stack_b_star",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "527608546abc34edf3b606fa66d11178998ad48d4413d5fa160a35f0c54d78bb"
+    },
+    {
+      "action_counts": {
+        "answer": 1,
+        "baseline_start": 1,
+        "frame-selector": 1,
+        "generalist.generate": 1,
+        "image-grid-selector": 5,
+        "planner.generate": 7
+      },
+      "baseline": "langgraph_react",
+      "error_event_count": 1,
+      "event_count": 16,
+      "event_status_counts": {
+        "error": 1,
+        "success": 15
+      },
+      "event_type_counts": {
+        "action": 6,
+        "api_call": 8,
+        "run": 2
+      },
+      "expected_model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "expected_planner_mode": "local_split",
+      "manifest_answer_present": false,
+      "model_stack_id": "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+      "parse_status_counts": {
+        "error": 1,
+        "json": 6
+      },
+      "planner_input_forbidden_fields": [],
+      "planner_mode": "local_split",
+      "question_sha256": "65c20a0b489b99c3cfd56d2399b87a1d7e2be4ee3090ea9bd9d913182fbe09f3",
+      "retry_count": 1,
+      "run_id": "8y2Hj7GDcwI_langgraph_react_1786904351455",
+      "run_manifest_answer_present": true,
+      "status": "success",
+      "task_id": "r7_s_val_8y2Hj7GDcwI_stack_b_langgraph_react",
+      "unrecovered_error_event_ids": [],
+      "validator": "valid",
+      "validator_errors": [],
+      "video_sha256": "527608546abc34edf3b606fa66d11178998ad48d4413d5fa160a35f0c54d78bb"
+    }
+  ],
+  "schema_version": "r7-trace-pilot-report-v1",
+  "summary_rows": 8
+}

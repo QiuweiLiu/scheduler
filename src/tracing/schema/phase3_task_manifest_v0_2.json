@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dynamic-video-agent/phase3_task_manifest_v0_2.json",
+  "title": "Phase 3 structured task manifest v0.2",
+  "type": "object",
+  "required": [
+    "manifest_schema",
+    "task_id",
+    "dataset",
+    "video_id",
+    "video_path",
+    "agent_input",
+    "task_structure",
+    "baselines",
+    "repetitions",
+    "source"
+  ],
+  "properties": {
+    "manifest_schema": {"const": "phase3-task-0.2"},
+    "task_id": {"type": "string", "minLength": 1},
+    "question_id": {"type": "string", "minLength": 1},
+    "dataset": {"type": "string", "minLength": 1},
+    "video_id": {"type": "string", "minLength": 1},
+    "video_path": {"type": "string", "minLength": 1},
+    "agent_input": {
+      "type": "object",
+      "required": ["question", "options"],
+      "properties": {
+        "question": {"type": "string", "minLength": 1},
+        "options": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "task_structure": {
+      "type": "object",
+      "required": [
+        "question_type",
+        "answer_type",
+        "temporal_scope",
+        "required_modalities",
+        "option_count",
+        "question_chars",
+        "question_tokens",
+        "option_chars_mean",
+        "domain",
+        "sub_category",
+        "derivation"
+      ],
+      "properties": {
+        "question_type": {"type": "string", "minLength": 1},
+        "answer_type": {"type": "string", "minLength": 1},
+        "temporal_scope": {"type": "string", "minLength": 1},
+        "required_modalities": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "option_count": {"type": "integer", "minimum": 0},
+        "question_chars": {"type": "integer", "minimum": 0},
+        "question_tokens": {"type": "integer", "minimum": 0},
+        "option_chars_mean": {"type": "number", "minimum": 0},
+        "domain": {"type": "string", "minLength": 1},
+        "sub_category": {"type": "string", "minLength": 1},
+        "official_task_type": {"type": "string", "minLength": 1},
+        "derivation": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "baselines": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "repetitions": {"type": "integer", "minimum": 1},
+    "source": {
+      "type": "object",
+      "required": ["source", "source_url"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "source_url": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

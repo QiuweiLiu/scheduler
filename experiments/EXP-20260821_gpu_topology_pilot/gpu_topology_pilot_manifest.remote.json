@@ -1,0 +1,136 @@
+{
+  "cell_counts": {
+    "G4_S0_baseline": 30,
+    "G4_S4_combined": 30,
+    "G8_S0_baseline": 30,
+    "G8_S4_combined": 30,
+    "H4_S0": 30,
+    "H4_S4": 30,
+    "H8_S0": 30,
+    "H8_S4": 30
+  },
+  "cells": [
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0
+      ],
+      "id": "G4_S0_baseline",
+      "source_cell": "S0_baseline"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0
+      ],
+      "id": "G8_S0_baseline",
+      "source_cell": "S0_baseline"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0
+      ],
+      "id": "H4_S0",
+      "source_cell": "S0_baseline"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0
+      ],
+      "id": "H8_S0",
+      "source_cell": "S0_baseline"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0
+      ],
+      "id": "G4_S4_combined",
+      "source_cell": "S4_combined"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0,
+        32760.0
+      ],
+      "id": "G8_S4_combined",
+      "source_cell": "S4_combined"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0
+      ],
+      "id": "H4_S4",
+      "source_cell": "S4_combined"
+    },
+    {
+      "gpu_topology_mb": [
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0,
+        32760.0,
+        24576.0
+      ],
+      "id": "H8_S4",
+      "source_cell": "S4_combined"
+    }
+  ],
+  "changes": [
+    "gpu_topology_mb",
+    "initial_residency_hint",
+    "initial_residency_memory_mb",
+    "episode metadata",
+    "episode_id"
+  ],
+  "combined_output": "results/processed/EXP-20260821_gpu_topology_pilot/episodes_all.jsonl",
+  "common_random_numbers": true,
+  "episodes_per_cell": 30,
+  "schema_version": "gpu-topology-pilot-v0.1",
+  "script_sha256": "10abfb14aae7b592af6b5982b7d5bbe8d29aa9c08f50355048abc040f5ad51f3",
+  "source_dir": "results/processed/EXP-20260821_stress_pilot",
+  "source_sha256": {
+    "S0_baseline": "be3f71d98761978bac78ffb4dd0b3aa81c352b7aa76cb1e67809c1010f4e8e84",
+    "S4_combined": "63f326e0b0c53aabd851bbc1542000f88929327efa23926eaddc13f98e6dec7d"
+  },
+  "total_episodes": 240,
+  "unchanged": [
+    "arrival_ms",
+    "deadline_ms",
+    "template_id",
+    "scheduler_visible",
+    "node DAG",
+    "source trace/video refs"
+  ]
+}

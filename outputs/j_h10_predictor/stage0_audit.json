@@ -1,0 +1,136 @@
+{
+  "attr_dim": 36,
+  "bootstrap": {
+    "B": 1000,
+    "draws_shape": [
+      1000,
+      30
+    ],
+    "seed": 20260911
+  },
+  "coverage": {
+    "load_occ_slots": 93107,
+    "memory_slots": 57793,
+    "runtime_slots": 93536
+  },
+  "expected_rows": {
+    "test": 1520,
+    "train": 13754,
+    "validation": 2029
+  },
+  "file_hashes": {
+    "test": {
+      "registry_match": false,
+      "sha256": "95223b44d70eca39fe39941ed26601a39eb4577e531538b668d63887dae97c02"
+    },
+    "train": {
+      "registry_match": false,
+      "sha256": "4b4ef14202ec038cf79fa4920b6f94f319f5a5ddc5cd980f92089d6eba773719"
+    },
+    "validation": {
+      "registry_match": false,
+      "sha256": "ea388a131b53121a56f5390cc43de8fae1b8f69a2219ff91f2736f9a24a54ef7"
+    }
+  },
+  "histogram_train": {
+    "0": 2080,
+    "1": 1082,
+    "10": 3444,
+    "2": 988,
+    "3": 929,
+    "4": 877,
+    "5": 914,
+    "6": 860,
+    "7": 886,
+    "8": 847,
+    "9": 847
+  },
+  "j3_regression_check": null,
+  "model_params": 128225,
+  "routing_checks": {
+    "B1": {
+      "attribute_head_resource_grad": 0.0,
+      "encoder_resource_grad": false,
+      "resource_head_grad": true
+    },
+    "J0": {
+      "attribute_head_resource_grad": 0.0,
+      "encoder_resource_grad": false,
+      "resource_head_grad": true
+    },
+    "J1": {
+      "attribute_head_resource_grad": 0.0,
+      "encoder_resource_grad": true,
+      "resource_head_grad": true
+    },
+    "J2": {
+      "attribute_head_resource_grad": 0.0,
+      "encoder_resource_grad": true,
+      "resource_head_grad": true
+    },
+    "J3": {
+      "duration_head_grad": true,
+      "duration_only_adapter_grad": null,
+      "duration_only_shared_hidden_grad": 1.7470051383863165
+    },
+    "J4a": {
+      "duration_head_grad": true,
+      "duration_only_adapter_grad": 1.9875710939116773,
+      "duration_only_shared_hidden_grad": 0.0
+    },
+    "J4b": {
+      "duration_head_grad": true,
+      "duration_only_adapter_grad": 1.0886598603482496,
+      "duration_only_shared_hidden_grad": 0.0
+    },
+    "backbone": {
+      "encoder_grad_present": true,
+      "resource_head_untouched": true
+    }
+  },
+  "rows": {
+    "test": 1520,
+    "train": 13754,
+    "validation": 2029
+  },
+  "rows_match": true,
+  "stage": "stage0",
+  "termination_train": {
+    "0": 2627,
+    "1": 11127
+  },
+  "video_counts": {
+    "test": 30,
+    "train": 240,
+    "validation": 30
+  },
+  "vocab_sizes": {
+    "context": {
+      "answer_type": 4,
+      "baseline": 5,
+      "domain": 9,
+      "model_stack_id": 11,
+      "official_task_type": 15,
+      "planner_model_id": 3,
+      "question_type": 10,
+      "sub_category": 33,
+      "temporal_scope": 6
+    },
+    "history": {
+      "action_family": 8,
+      "event_type": 5,
+      "model_id": 11,
+      "node_type": 8,
+      "raw_action": 15,
+      "role": 6
+    },
+    "modalities": 12,
+    "nested": 6,
+    "slot": {
+      "action_family": 8,
+      "model_class": 8,
+      "node_type": 7,
+      "role": 5
+    }
+  }
+}

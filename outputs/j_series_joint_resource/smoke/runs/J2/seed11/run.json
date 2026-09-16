@@ -1,0 +1,287 @@
+{
+  "dataset_manifest": {
+    "batch_size": 256,
+    "bootstrap": {
+      "B": 1000,
+      "min_valid_replicate_ratio": 0.95,
+      "seed": 20260911,
+      "unit": "video"
+    },
+    "config_sha256": "a201c9ff007c5ee8ad0f19856d278d0767eeed190ac1628998a2231c4e4e0d58",
+    "created_at": "2026-09-11T16:47:27+0800",
+    "dataset_files": {
+      "j_test.jsonl.gz": {
+        "bytes": 128650,
+        "sha256": "39ecccc77e28bc06c8ff8d30fdbe79548bfb7a790b37355cd225646beae5310b"
+      },
+      "j_train.jsonl.gz": {
+        "bytes": 1162431,
+        "sha256": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2"
+      },
+      "j_validation.jsonl.gz": {
+        "bytes": 170354,
+        "sha256": "9547d38fb3fa42e7e9c78e5885a5390204a1d7b7b2563f3533e5feee95efc279"
+      }
+    },
+    "device": "cuda",
+    "environment": {
+      "cuda": "12.4",
+      "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "python": "3.10.21",
+      "torch": "2.6.0+cu124"
+    },
+    "experiment_id": "EXP-20260911_p9d_j_series_joint_resource",
+    "max_epochs": 30,
+    "schema_version": "j-series-run-v1",
+    "seeds": [
+      11,
+      22,
+      33
+    ],
+    "variants": {
+      "B1": {
+        "attribute_gradient": "none",
+        "encoder": "frozen",
+        "use_attribute_distribution": 1
+      },
+      "J0": {
+        "attribute_gradient": "none",
+        "encoder": "frozen",
+        "use_attribute_distribution": 0
+      },
+      "J1": {
+        "attribute_gradient": "none",
+        "encoder": "trainable",
+        "use_attribute_distribution": 0
+      },
+      "J2": {
+        "attribute_gradient": "stopgrad",
+        "encoder": "trainable",
+        "use_attribute_distribution": 1
+      },
+      "J3": {
+        "attribute_gradient": "full",
+        "encoder": "trainable",
+        "use_attribute_distribution": 1
+      }
+    },
+    "vocab_sha256": "a5306bd136a0984e5e47d360afacd545b4d97cd17e9eac8178d91c079e5e95dc"
+  },
+  "device": "cuda",
+  "duration_seconds": 0.47,
+  "epochs": 2,
+  "gradient_probe": {
+    "cosines": {
+      "behavior_vs_content": -0.0013467862736433744,
+      "behavior_vs_resource": 0.0038099675439298153,
+      "behavior_vs_structure": -0.009077092632651329,
+      "content_vs_resource": 0.005579940974712372,
+      "content_vs_structure": -0.001049546292051673,
+      "resource_vs_structure": 0.00379777024500072
+    },
+    "norms": {
+      "behavior": 5.061911106109619,
+      "content": 1.1303678750991821,
+      "resource": 3.977473497390747,
+      "structure": 3.1771774291992188
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "ni": {
+        "future_content": {
+          "ci_lower": 0.07367505951886683,
+          "ci_upper": 0.1056233386515951,
+          "delta_mean": 0.08911500786500788,
+          "n_rows": 444,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "future_length": {
+          "ci_lower": -0.19812405774589978,
+          "ci_upper": -0.019605451936872312,
+          "delta_mean": -0.08984375,
+          "n_rows": 512,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_family": {
+          "ci_lower": 0.05419687980663591,
+          "ci_upper": 0.13408242136680187,
+          "delta_mean": 0.09234234234234234,
+          "n_rows": 444,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_role": {
+          "ci_lower": 0.011018526927617837,
+          "ci_upper": 0.09950534682907303,
+          "delta_mean": 0.060810810810810814,
+          "n_rows": 444,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "termination": {
+          "ci_lower": -0.002953221425820847,
+          "ci_upper": -0.001452848654942391,
+          "delta_mean": -0.002129099564626813,
+          "n_rows": 512,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        }
+      },
+      "ni_feasible": 1,
+      "selection_score": 3479.981807009525,
+      "train": {
+        "behavior": 3.415977954864502,
+        "content": 1.460493266582489,
+        "resource": 11.460778713226318,
+        "structure": 2.2910358905792236
+      },
+      "val": {
+        "content_accuracy": 0.4563822751322751,
+        "length_mae": 1.537109375,
+        "load_brier": 0.23956668336860548,
+        "load_dur_qscore": 3218.6353902090364,
+        "next_family_acc": 0.4189189189189189,
+        "next_role_acc": 0.39864864864864863,
+        "runtime_qscore": 3479.981807009525,
+        "termination_bce": 0.6979480682639405
+      }
+    },
+    {
+      "epoch": 2,
+      "ni": {
+        "future_content": {
+          "ci_lower": 0.1169329573357282,
+          "ci_upper": 0.1610983414742552,
+          "delta_mean": 0.1405816530816531,
+          "n_rows": 444,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "future_length": {
+          "ci_lower": -0.25360718533064136,
+          "ci_upper": 0.03337499999999996,
+          "delta_mean": -0.087890625,
+          "n_rows": 512,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_family": {
+          "ci_lower": 0.07484396747491026,
+          "ci_upper": 0.19669143520251553,
+          "delta_mean": 0.13513513513513514,
+          "n_rows": 444,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_role": {
+          "ci_lower": 0.03581021251475797,
+          "ci_upper": 0.13509762379229223,
+          "delta_mean": 0.09234234234234234,
+          "n_rows": 444,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "termination": {
+          "ci_lower": -0.006552577560598199,
+          "ci_upper": -0.0029307064910749662,
+          "delta_mean": -0.0045474800281226635,
+          "n_rows": 512,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        }
+      },
+      "ni_feasible": 0,
+      "selection_score": 3479.9425031447395,
+      "train": {
+        "behavior": 3.2832449674606323,
+        "content": 1.40249502658844,
+        "resource": 11.242908954620361,
+        "structure": 2.2456250190734863
+      },
+      "val": {
+        "content_accuracy": 0.5078489203489204,
+        "length_mae": 1.5390625,
+        "load_brier": 0.2148068679851663,
+        "load_dur_qscore": 3218.550233618382,
+        "next_family_acc": 0.4617117117117117,
+        "next_role_acc": 0.43018018018018017,
+        "runtime_qscore": 3479.9425031447395,
+        "termination_bce": 0.6955296878004447
+      }
+    }
+  ],
+  "init": "backbone:seed11:epoch2",
+  "schema_version": "j-series-run-v1",
+  "seed": 11,
+  "selected_epoch": 1,
+  "selected_record": {
+    "epoch": 1,
+    "ni": {
+      "future_content": {
+        "ci_lower": 0.07367505951886683,
+        "ci_upper": 0.1056233386515951,
+        "delta_mean": 0.08911500786500788,
+        "n_rows": 444,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "future_length": {
+        "ci_lower": -0.19812405774589978,
+        "ci_upper": -0.019605451936872312,
+        "delta_mean": -0.08984375,
+        "n_rows": 512,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "next_family": {
+        "ci_lower": 0.05419687980663591,
+        "ci_upper": 0.13408242136680187,
+        "delta_mean": 0.09234234234234234,
+        "n_rows": 444,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "next_role": {
+        "ci_lower": 0.011018526927617837,
+        "ci_upper": 0.09950534682907303,
+        "delta_mean": 0.060810810810810814,
+        "n_rows": 444,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "termination": {
+        "ci_lower": -0.002953221425820847,
+        "ci_upper": -0.001452848654942391,
+        "delta_mean": -0.002129099564626813,
+        "n_rows": 512,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      }
+    },
+    "ni_feasible": 1,
+    "selection_score": 3479.981807009525,
+    "train": {
+      "behavior": 3.415977954864502,
+      "content": 1.460493266582489,
+      "resource": 11.460778713226318,
+      "structure": 2.2910358905792236
+    },
+    "val": {
+      "content_accuracy": 0.4563822751322751,
+      "length_mae": 1.537109375,
+      "load_brier": 0.23956668336860548,
+      "load_dur_qscore": 3218.6353902090364,
+      "next_family_acc": 0.4189189189189189,
+      "next_role_acc": 0.39864864864864863,
+      "runtime_qscore": 3479.981807009525,
+      "termination_bce": 0.6979480682639405
+    }
+  },
+  "selected_score": 3479.981807009525,
+  "status": "ok",
+  "variant": "J2"
+}

@@ -1,0 +1,43 @@
+{
+  "schema_version": "transition-profile-run-v0.1",
+  "python": "/root/miniconda3/envs/finetooling/bin/python",
+  "python_version": "3.10.20",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "cwd": "/root/autodl-tmp/scheduler/experiments/EXP-20260824_transition_profile",
+  "torch": "2.12.0+cu130",
+  "cuda_available": true,
+  "device": "NVIDIA GeForce RTX 4080 SUPER",
+  "repeats": 2,
+  "models": [
+    {
+      "model_id": "Qwen3-VL-8B-Instruct",
+      "kind": "qwen",
+      "path": "/root/autodl-tmp/Qwen3-VL-8B-Instruct",
+      "exists": true,
+      "file_count": 17
+    },
+    {
+      "model_id": "Qwen3-4B",
+      "kind": "qwen",
+      "path": "/root/autodl-tmp/scheduler/Qwen3-4B",
+      "exists": true,
+      "file_count": 13
+    },
+    {
+      "model_id": "Qwen2.5-VL-3B-Instruct",
+      "kind": "qwen",
+      "path": "/root/autodl-tmp/scheduler/Qwen2.5-VL-3B-Instruct",
+      "exists": true,
+      "file_count": 14
+    },
+    {
+      "model_id": "yolo11x.pt",
+      "kind": "yolo",
+      "path": "/root/autodl-tmp/upload/models/yolo11x.pt",
+      "exists": true,
+      "size_bytes": 114636239,
+      "sha256": "35cb10e863e7fd4913b3f50841062880f1bfa7e75317122edbada53fdaef0fc9"
+    }
+  ],
+  "device_total_memory_mb": 32230.8125
+}

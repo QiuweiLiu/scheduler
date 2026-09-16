@@ -1,0 +1,68 @@
+{
+  "schema_version": "p9d-r0p-workload-proxy-probe-v1",
+  "experiment_id": "EXP-20260911_p9d_r0p_workload_proxy_probe",
+  "question": "Can workload-size signal be recovered from fields already present in the existing P9d traces (tool request length, frame counts, task size, video metadata), or is a new instrumented collection required?",
+  "r0_node_table": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+  "r0_metrics": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/metrics.json",
+  "raw_roots": ["F:/scheduler/results/raw"],
+  "behavior_role_samples": "F:/scheduler/results/processed/behavior_nn_v1_r1v5_candidate/data/role_event_samples.jsonl",
+  "holdout_role_samples": "F:/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/dataset/role_event_samples.jsonl",
+  "provenance": "F:/scheduler/data/manifests/video_provenance_v2_expanded_available.jsonl",
+  "feature_sets": {
+    "F0_r0_c4": [
+      "exec_class", "role", "planner_mode", "is_retry",
+      "model_class", "nested_model_class", "merged_nested_call",
+      "clip_len", "query_char_len", "nested_api_call_count",
+      "clip_len_missing", "query_char_len_missing",
+      "baseline", "prefix_model_reuse"
+    ],
+    "F1_trace_proxies": [
+      "exec_class", "role", "planner_mode", "is_retry",
+      "model_class", "nested_model_class", "merged_nested_call",
+      "clip_len", "query_char_len", "nested_api_call_count",
+      "clip_len_missing", "query_char_len_missing",
+      "baseline", "prefix_model_reuse",
+      "tool_input_len", "frame_count_before", "frame_count"
+    ],
+    "F2_full_proxies": [
+      "exec_class", "role", "planner_mode", "is_retry",
+      "model_class", "nested_model_class", "merged_nested_call",
+      "clip_len", "query_char_len", "nested_api_call_count",
+      "clip_len_missing", "query_char_len_missing",
+      "baseline", "prefix_model_reuse",
+      "tool_input_len", "frame_count_before", "frame_count",
+      "question_chars", "question_tokens", "option_chars_mean", "option_count",
+      "video_duration_s", "video_width", "video_height"
+    ]
+  },
+  "categorical_features": ["exec_class", "role", "planner_mode", "model_class", "nested_model_class", "baseline"],
+  "lgbm_quantile": {
+    "objectives": [0.5, 0.9, 0.95],
+    "grid": [
+      {"num_leaves": 31, "min_data_in_leaf": 20},
+      {"num_leaves": 31, "min_data_in_leaf": 50},
+      {"num_leaves": 63, "min_data_in_leaf": 20},
+      {"num_leaves": 63, "min_data_in_leaf": 50}
+    ],
+    "learning_rate": 0.05,
+    "n_estimators": 400,
+    "subsample": 1.0,
+    "colsample_bytree": 1.0,
+    "seeds": [11, 22, 33],
+    "selection_metric": "mean over seeds of validation PB_primary, per feature set",
+    "tie_break": "smaller num_leaves then smaller min_data_in_leaf"
+  },
+  "bootstrap": {"n_resamples": 1000, "seed": 20260911, "unit": "video"},
+  "protocol": {
+    "fit": "P_dev/train only",
+    "selection": "P_dev/validation",
+    "diagnostic": "P_dev/test",
+    "holdout": "deliberately NOT used in this probe (consumed by R0; any feature change makes the old holdout non-confirmatory)"
+  },
+  "outputs": {
+    "stage0_audit": "stage0_audit.json",
+    "metrics": "metrics.json",
+    "run_manifest": "run_manifest.json",
+    "joined_table": "artifacts/joined_table.jsonl.gz"
+  }
+}

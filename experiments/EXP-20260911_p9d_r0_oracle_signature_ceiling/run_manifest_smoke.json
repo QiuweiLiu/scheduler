@@ -1,0 +1,26 @@
+{
+  "experiment_id": "EXP-20260911_p9d_r0_oracle_signature_ceiling",
+  "smoke": true,
+  "command": "scripts\\r0_oracle_signature_ceiling.py --config experiments\\EXP-20260911_p9d_r0_oracle_signature_ceiling\\config.json --smoke",
+  "python": "3.12.2 (tags/v3.12.2:6abddd9, Feb  6 2024, 21:26:36) [MSC v.1937 64 bit (AMD64)]",
+  "lightgbm_version": "4.7.0",
+  "numpy_version": "2.5.3",
+  "dataset_root": "F:/scheduler/results/processed/topology_predictor_p9d_v3",
+  "dataset_registry_sha256": "95405d0b8ce55aadc43760454e181939b9c944d67065e25612998bd5f4687f03",
+  "config_sha256": "cca9874f72f85f95aa117676f0d2ad2ccb3fcddad70250829912c42c9426f805",
+  "stage0_sha256": "acfe0feef8d69ef92b75cbfdc623e2c8257bcb757a12d9ccdead67fcf37321bb",
+  "node_table_sha256": "f1789e2100430c26f93382886746983019013394684deed18f071d66bfa338be",
+  "metrics_sha256": "7fe695c2e3f3802730cf11ef7cbcc1f82477e8d7d3f2331ace6b667d00312f86",
+  "nodes": 932,
+  "splits": {
+    "train": 271,
+    "validation": 251,
+    "test": 241,
+    "holdout": 169
+  },
+  "selected_lgbm": {
+    "num_leaves": 31,
+    "min_data_in_leaf": 20
+  },
+  "run_seconds": 8.99
+}

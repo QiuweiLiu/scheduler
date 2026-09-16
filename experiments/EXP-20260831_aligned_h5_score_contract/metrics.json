@@ -1,0 +1,157 @@
+{
+  "schema_version": "aligned-h5-score-contract-v0.1",
+  "experiment_id": "EXP-20260831_aligned_h5_score_contract",
+  "status": "passed_diagnostic",
+  "execution_environment": "local_only",
+  "input_data": {
+    "templates": ".scratch/action_value_audit_remote_inputs_20260825/job_templates_r7_v02.jsonl",
+    "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+    "episodes": ".scratch/action_value_audit_remote_inputs_20260825/workload_validation_r7.jsonl",
+    "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "future_artifact_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60"
+  },
+  "verification": {
+    "py_compile": "passed",
+    "unittest_tests": 58,
+    "unittest_status": "passed",
+    "aligned_preflight_episodes": 1,
+    "aligned_preflight_status": "passed",
+    "smoke_peak_memory_max_mb": 32756.0,
+    "smoke_capacity_limit_mb": 32760.0,
+    "smoke_capacity_violations": 0,
+    "smoke_transition_profile_enabled": false
+  },
+  "action_value_audit": {
+    "status": "passed",
+    "episodes": 100,
+    "decisions": 15364,
+    "failed_jobs": 0,
+    "missing_future_artifact_nodes": 0,
+    "truth_contract": "aligned_h5",
+    "horizon": 5,
+    "policies": {
+      "myopic": {
+        "true_top1_agreement_rate": 0.6953918250455611,
+        "mean_true_regret_ms": 7659.222127831294,
+        "mean_spearman_predicted_vs_true": 0.2987323920018041,
+        "priority_violation_rate": 0.0
+      },
+      "predopt_h5": {
+        "true_top1_agreement_rate": 0.6603098151523041,
+        "mean_true_regret_ms": 8065.462884144754,
+        "mean_spearman_predicted_vs_true": 0.3219657041873615,
+        "priority_violation_rate": 0.0
+      },
+      "aligned_predopt_h5": {
+        "true_top1_agreement_rate": 0.6605701640197865,
+        "mean_true_regret_ms": 7978.733159658943,
+        "mean_spearman_predicted_vs_true": 0.29631421146530573,
+        "priority_violation_rate": 0.0
+      },
+      "trueopt_h5": {
+        "true_top1_agreement_rate": 0.6485941161155949,
+        "mean_true_regret_ms": 2806.4496433561344,
+        "mean_spearman_predicted_vs_true": 0.38139391896100205,
+        "priority_violation_rate": 0.10557146576412392
+      },
+      "aligned_trueopt_h5": {
+        "true_top1_agreement_rate": 1.0,
+        "mean_true_regret_ms": 0.0,
+        "mean_spearman_predicted_vs_true": 0.9999999999999999,
+        "priority_violation_rate": 0.0
+      }
+    }
+  },
+  "full_event_rollout_audit": {
+    "status": "passed",
+    "sampled_decisions": 100,
+    "completed_decisions": 100,
+    "candidate_rollouts": 774,
+    "failures": 0,
+    "reference_forced_action_consistency": 1.0,
+    "policies": {
+      "myopic": {
+        "full_rollout_top1_agreement_rate": 0.32,
+        "mean_full_rollout_regret_ms": 3295.0770162499825,
+        "p95_full_rollout_regret_ms": 9076.832907812546
+      },
+      "predopt_h5": {
+        "full_rollout_top1_agreement_rate": 0.31,
+        "mean_full_rollout_regret_ms": 3262.9572971874823,
+        "p95_full_rollout_regret_ms": 8262.14889375
+      },
+      "aligned_predopt_h5": {
+        "full_rollout_top1_agreement_rate": 0.31,
+        "mean_full_rollout_regret_ms": 3280.0150368749805,
+        "p95_full_rollout_regret_ms": 8262.14889375
+      },
+      "trueopt_h5": {
+        "full_rollout_top1_agreement_rate": 0.42,
+        "mean_full_rollout_regret_ms": 1779.6681359374752,
+        "p95_full_rollout_regret_ms": 6043.3814015625085
+      },
+      "aligned_trueopt_h5": {
+        "full_rollout_top1_agreement_rate": 0.34,
+        "mean_full_rollout_regret_ms": 2851.1653956249816,
+        "p95_full_rollout_regret_ms": 7830.080175000012
+      }
+    }
+  },
+  "smoke_10": {
+    "status": "passed",
+    "episodes": 10,
+    "result_rows": 50,
+    "expected_result_rows": 50,
+    "jobs_per_policy": 160,
+    "failed_jobs_per_policy": 0,
+    "aggregate": {
+      "myopic": {
+        "mean_completion_ms": 176937.06589687505,
+        "p95_completion_ms": 309850.74971093755,
+        "mean_deadline_miss_rate": 0.00625,
+        "mean_job_queue_ms": 85629.48593750001,
+        "mean_gpu_evictions": 18.2
+      },
+      "predopt_h5": {
+        "mean_completion_ms": 175963.21902187503,
+        "p95_completion_ms": 306255.659603125,
+        "mean_deadline_miss_rate": 0.0125,
+        "mean_job_queue_ms": 85735.0626625,
+        "mean_gpu_evictions": 19.6
+      },
+      "aligned_predopt_h5": {
+        "mean_completion_ms": 177058.29647187502,
+        "p95_completion_ms": 307049.4841859375,
+        "mean_deadline_miss_rate": 0.0125,
+        "mean_job_queue_ms": 87432.28717812501,
+        "mean_gpu_evictions": 17.7
+      },
+      "trueopt_h5": {
+        "mean_completion_ms": 160220.56010000006,
+        "p95_completion_ms": 257698.23342031258,
+        "mean_deadline_miss_rate": 0.0125,
+        "mean_job_queue_ms": 82221.48421562504,
+        "mean_gpu_evictions": 20.1
+      },
+      "aligned_trueopt_h5": {
+        "mean_completion_ms": 162234.53575000004,
+        "p95_completion_ms": 266774.49192187504,
+        "mean_deadline_miss_rate": 0.00625,
+        "mean_job_queue_ms": 74796.14976562503,
+        "mean_gpu_evictions": 14.9
+      }
+    },
+    "paired_mean_completion_delta_vs_myopic_ms": {
+      "predopt_h5": -973.8468750000153,
+      "aligned_predopt_h5": 121.2305749999702,
+      "trueopt_h5": -16716.50579687499,
+      "aligned_trueopt_h5": -14702.530146875014
+    }
+  },
+  "conclusion": {
+    "score_contract_alignment_effect": "small_on_local_q_and_not_material_on_full_event",
+    "leading_remaining_issue": "five-layer_surrogate_and_continuation_objective_mismatch",
+    "policy_selection": "do_not_promote_aligned_predopt_h5",
+    "next_scope": "keep_wait_prefetch_preemption_multi_gpu_ppo_and_t_final_frozen"
+  }
+}

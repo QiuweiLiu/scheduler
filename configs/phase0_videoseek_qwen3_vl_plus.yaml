@@ -1,0 +1,74 @@
+schema_version: "phase0-0.1"
+purpose: "Sanitized, reproducible provenance for the completed native VideoSeek run. No credential is stored here."
+
+framework:
+  name: videoseek
+  repository: "https://github.com/jylins/videoseek.git"
+  commit: "443f8710bd1f9023f4a52ac95cb83610ad29c5ac"
+  license: "MIT"
+  remote_checkout: "/root/autodl-tmp/scheduler/third_party/videoseek"
+  working_tree_verified_clean: true
+
+environment:
+  host: "AutoDL remote instance"
+  conda_env: "finetooling"
+  python: "3.10.20"
+  gpu:
+    name: "NVIDIA GeForce RTX 4080 SUPER"
+    driver: "595.58.03"
+    total_memory_mib: 32760
+  packages:
+    videoseek: "0.1.0 (editable)"
+    litellm: "1.94.0"
+    openai: "2.37.0"
+    decord: "0.6.0"
+
+model:
+  name: "openai/qwen3-vl-plus"
+  api_base_env: "OPENAI_API_BASE"
+  api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key_env: "OPENAI_API_KEY"
+  api_version_env: "OPENAI_API_VERSION"
+  litellm_drop_params: true
+  reasoning_effort: "medium"
+  seed: 42
+  temperature: 1.0
+  max_steps: 20
+  max_tokens: 32768
+
+input:
+  dataset: "LVBench official metadata / public YouTube source"
+  video_id: "wgBlACG927Y"
+  video_path: "/root/autodl-tmp/scheduler/data/phase0/lvbench/wgBlACG927Y.mp4"
+  video_sha256: "adf60db34dad3d81b0a091045e356b1722c6d32d0139a5c2db2e4fee0f7e76e7"
+  media_variant: "144p H.264/AAC MP4, selected only because the remote download path was bandwidth-constrained"
+  duration_seconds: 2331.423
+  subtitles: null
+  question: |-
+    What animal statue is under the Dong Men Ding Food Street sign?
+    (A) Hawk
+    (B) Panda
+    (C) Tiger
+    (D) Lion
+    Please directly answer with the best option's letter from the given choices directly (A, B, C, or D).
+
+execution:
+  executable: "/root/miniconda3/envs/finetooling/bin/videoseek-cli"
+  verbose: true
+  exit_code: 0
+  elapsed_seconds: 289
+  observed_trajectory_steps: 7
+  observed_prediction: "D"
+
+outputs:
+  remote_run_root: "/root/autodl-tmp/scheduler/results/raw/phase0/videoseek_wgBlACG927Y_20260731T003811+0800"
+  stdout_stderr: "stdout_stderr.log"
+  gpu_before: "nvidia_smi_before.txt"
+  gpu_after: "nvidia_smi_after.txt"
+  run_status: "run_status.txt"
+  prediction: "videoseek_output/wgBlACG927Y_1785429495/prediction.json"
+  trajectory: "videoseek_output/wgBlACG927Y_1785429495/trajectory.json"
+  sha256:
+    stdout_stderr: "fd2c49f6cdd328c0af8f563154e93e2ab74afceacbb906be214ac07feb5d74a6"
+    prediction: "2131a2982620e2c648c7ddf89ba5c10ceb550f1bcbd3c2d13cc08f435bd389b9"
+    trajectory: "c759055d6cf28bc647a04dc265b18dfb2ecc34e6976fa37a1abfdaee86052ecb"

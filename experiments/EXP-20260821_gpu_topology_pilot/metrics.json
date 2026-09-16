@@ -1,0 +1,71 @@
+{
+  "schema_version": "gpu-topology-pilot-metrics-v0.1",
+  "status": "passed",
+  "remote_report": "results/processed/EXP-20260821_gpu_topology_pilot/gpu_topology_report.json",
+  "design": {
+    "cells": 8,
+    "episodes_per_cell": 30,
+    "total_episodes": 240,
+    "jobs": 8192,
+    "result_rows": 960,
+    "policies": ["round_robin", "myopic", "predopt_h5", "oracle"],
+    "event_audit_episodes_per_cell": 1
+  },
+  "gates": {
+    "matrix_status_passed": true,
+    "all_jobs_completed": true,
+    "failed_jobs": 0,
+    "capacity_violations": 0,
+    "topology_coverage": true,
+    "event_audit_complete": true,
+    "r7_untouched": true,
+    "t_final_read": false
+  },
+  "source_sha256": {
+    "templates": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+    "source_episodes": "4cf1c9f4d4c63114b84b0b9fd845ae0bfbdbf2aa2807d9431a94cfdb3dad4135",
+    "topology_manifest": "f34bbccf3650d8ca2e739f0c32cb4bdeae7cedb199aa2b53d10c8beb5b07ca2f",
+    "derivation_script": "10abfb14aae7b592af6b5982b7d5bbe8d29aa9c08f50355048abc040f5ad51f3",
+    "audit_script": "caa889d5bec634ab0cd718fd157d3d4b5979883110addee7065d83c5c601271c",
+    "matrix_report": "f80b50b57ed109cacb5e5ee915443fd0faf92dac6e4ee4fc54fa19cee657310f",
+    "audit_report": "59b0cc80232c396e735a63c9217eff6a1e16beb52a22cc43fdcd78f2bfebdc05"
+  },
+  "myopic_completion_ms": {
+    "G4_S0_baseline": 111725.9809,
+    "H4_S0": 112351.5927,
+    "G8_S0_baseline": 98701.6269,
+    "H8_S0": 98782.2444,
+    "G4_S4_combined": 570643.6590,
+    "H4_S4": 570163.5097,
+    "G8_S4_combined": 308879.3864,
+    "H8_S4": 308752.1493
+  },
+  "oracle_completion_ms": {
+    "G4_S0_baseline": 107878.6915,
+    "H4_S0": 108627.1285,
+    "G8_S0_baseline": 99291.2919,
+    "H8_S0": 99556.4703,
+    "G4_S4_combined": 429842.9499,
+    "H4_S4": 431086.8354,
+    "G8_S4_combined": 244730.4001,
+    "H8_S4": 245476.3087
+  },
+  "relative_changes": {
+    "G4_to_G8_myopic_S0": -0.1165741,
+    "G4_to_G8_myopic_S4": -0.4587176,
+    "H4_vs_G4_myopic_S0": 0.0055995,
+    "H4_vs_G4_myopic_S4": -0.0008414,
+    "H8_vs_G8_myopic_S0": 0.0008168,
+    "H8_vs_G8_myopic_S4": -0.0004119
+  },
+  "event_action_width_p50_myopic": {
+    "G4_S0_baseline": 3,
+    "H4_S0": 3,
+    "G8_S0_baseline": 8,
+    "H8_S0": 8,
+    "G4_S4_combined": 10,
+    "H4_S4": 10,
+    "G8_S4_combined": 10,
+    "H8_S4": 9
+  }
+}

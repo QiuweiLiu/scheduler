@@ -1,0 +1,36 @@
+{
+  "schema_version": "remote-inventory-v0.1",
+  "observed_at": "2026-08-13T14:54:22+08:00",
+  "host": "root@connect.westc.seetacloud.com:12469",
+  "container": "autodl-container-41d846924e-d62d0601",
+  "project_root": "/root/autodl-tmp/scheduler",
+  "git_repository": false,
+  "layout": {
+    "tracing_source": "src/tracing",
+    "legacy_root_tracing_exists": false,
+    "grounded_videollm_exists": true,
+    "scripts_behavior_r2_v5_exists": true
+  },
+  "counts": {
+    "video_files": 362,
+    "trace_related_json_or_jsonl_files": 2603,
+    "note": "trace_related_json_or_jsonl_files is a path/file count, not a unique trace count"
+  },
+  "storage": {
+    "filesystem": "/dev/md0",
+    "capacity_gb_decimal": 250,
+    "used_gb_decimal": 218,
+    "free_gb_decimal": 33,
+    "project_du_gb_decimal": 76
+  },
+  "active_processes_at_audit": [],
+  "source_hashes": {
+    "src/tracing/collectors/videotool_phase1.py": "2d9d1f8f60489e296a8279f8ad0ef4a06adac09c5c3a1956db4e60bbc0ab245a",
+    "src/tracing/analysis/phase4_trace_simulator.py": "43d7a566604cc929a71985a45cd4b4437479b3159121c0a8b8bd5c9ff2f7a236"
+  },
+  "limitations": [
+    "This inventory is a read-only snapshot; it does not copy remote data locally.",
+    "No claim is made that all 2603 files are independent traces.",
+    "Remote has no Git repository; source synchronization is hash-based until a repository is created."
+  ]
+}

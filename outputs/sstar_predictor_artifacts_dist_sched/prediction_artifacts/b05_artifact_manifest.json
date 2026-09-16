@@ -1,0 +1,22 @@
+{
+  "files": {
+    "b05_future_h1.jsonl.gz": "70a73b742c2ee9e5f680de672ab14f1abeb203200fe7147dee2ee8ca41337f3f",
+    "b05_future_h3.jsonl.gz": "3ad43f514dffb010ab7e63af2bc5512db71625dabc7e33b2ea52943f235d8079",
+    "b05_future_h5.jsonl.gz": "37163d3ba59c3e6489ffcd2d24870ea49efab4bbb18300fe70724b199702a528",
+    "b05_future_h5_layers.jsonl.gz": "5b5041158129651e74cf149928edd81eb437d937dafe13de5d0907168041cfd1",
+    "b05_node_h1.jsonl.gz": "842a59001457e0e34e20bc9323f96abe1523d250bce5aa3a46e07b3c181b9696"
+  },
+  "node_count": 9575,
+  "notes": [
+    "renamed copy for the scheduler loader (b05_* convention)",
+    "distribution arm: per-step model_probabilities and per-row length_probabilities present"
+  ],
+  "producer": "scripts/pack_j_predictor_artifacts.py (J3:seed11, --emit-distributions)",
+  "schema_version": "scheduling-future-j-predictor-manifest-v1",
+  "source_dir": "F:/scheduler/outputs/sstar_predictor_artifacts_dist",
+  "template_coverage": {
+    "covered": 8935,
+    "missing": 0,
+    "template_nodes": 8935
+  }
+}

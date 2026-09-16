@@ -1,0 +1,21 @@
+{
+  "episodes": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/workload_validation_r7.jsonl",
+  "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "future_artifact_manifest_sha256": "947d7ac5e3672d0eb86ae8b3f10bb9bd1d039d5dbf44d8fb70dac7be0190fc71",
+  "future_artifacts": "/Users/liuqiuwei/Documents/调度/experiments/EXP-20260901_topology_predictor_baseline/artifacts/prediction_artifacts",
+  "horizon": 5,
+  "limit": 100,
+  "policies": [
+    "myopic",
+    "predopt_h5",
+    "aligned_predopt_h5",
+    "aligned_predopt_h5_layer",
+    "aligned_trueopt_h5"
+  ],
+  "q_definition": "Q_aligned_H5 = aligned_h5_score(truth): current action plus next H DAG layers under shared cache contract; lower is better",
+  "reference_policy": "myopic",
+  "schema_version": "action-value-audit-v0.1",
+  "templates": "/Users/liuqiuwei/Documents/调度/.scratch/action_value_audit_remote_inputs_20260825/job_templates_r7_v02.jsonl",
+  "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "truth_contract": "aligned_h5"
+}

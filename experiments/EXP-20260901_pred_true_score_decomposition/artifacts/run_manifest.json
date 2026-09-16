@@ -1,0 +1,24 @@
+{
+  "audit_records": "experiments/EXP-20260831_aligned_h5_score_contract/artifacts/action_value_audit/decision_records.jsonl",
+  "audit_records_sha256": "b26bf3bc4fc851fe6acdd2711127a78d54dfa0436c1bbfa26340f15384efde28",
+  "counts": {
+    "candidate_rows": 44690,
+    "decisions": 15364,
+    "mean_candidates_per_decision": 2.9087477219474094,
+    "mean_strict_candidates_per_decision": 2.9087477219474094,
+    "scored_candidate_rows": 44690,
+    "strict_candidate_rows": 44690
+  },
+  "output_files": {
+    "candidate_score_comparisons": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/candidate_score_comparisons.jsonl",
+    "decision_comparisons": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/decision_comparisons.jsonl",
+    "metrics": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/metrics.json",
+    "top_candidate_score_errors": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/top_candidate_score_errors.jsonl",
+    "top_decision_mismatches": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/top_decision_mismatches.jsonl",
+    "topology_metrics": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/topology_metrics.json",
+    "topology_node_summaries": "experiments/EXP-20260901_pred_true_score_decomposition/artifacts/topology_node_summaries.jsonl"
+  },
+  "schema_version": "pred-true-score-decomposition-v0.1",
+  "status": "passed",
+  "top_k": 100
+}

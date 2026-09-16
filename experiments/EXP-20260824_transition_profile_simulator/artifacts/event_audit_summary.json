@@ -1,0 +1,25 @@
+{
+  "source": "/root/autodl-tmp/scheduler/results/processed/EXP-20260824_transition_profile_simulator/paired_rtx4080_super/transition_on_event_audit/event_samples.jsonl",
+  "remote_bytes": 450403453,
+  "raw_event_lines": 102722,
+  "event_types": {
+    "job_arrive": 1728,
+    "job_finish": 1728,
+    "model_load_start": 1773,
+    "model_evict": 736,
+    "node_ready": 23868,
+    "node_start": 23868,
+    "node_dispatch": 16852,
+    "node_wait": 8301,
+    "node_finish": 23868
+  },
+  "load_sources": {"transition_profile": 1773},
+  "event_load_ms": 7255094.403000104,
+  "event_evict_ms": 242695.3199999977,
+  "event_load_hits": 1773,
+  "event_evict_hits": 1608,
+  "summary_load_ms": 7255094.403,
+  "summary_evict_ms": 242695.32,
+  "costs_reconcile": true,
+  "raw_event_samples_copied_locally": false
+}

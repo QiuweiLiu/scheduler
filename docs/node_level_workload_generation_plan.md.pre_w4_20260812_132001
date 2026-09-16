@@ -1,0 +1,536 @@
+# 节点级 Workload 生成与验收方案
+
+> 状态：2026-08-12 W0–W3.2 已执行并通过 smoke；正式大规模 workload 仍未生成  
+> 远端项目：`/root/autodl-tmp/scheduler`  
+> 适用阶段：行为预测器和资源预测器完成后的 Phase 4 workload 构造与调度模拟  
+> 与旧文档关系：本文件是后续 workload 生成的权威方案；`docs/phase3_to_phase5_trace_workload_plan.md` 中已完成的采集记录继续有效，但其中 workload v0.1 的生成方式只保留为历史开发口径。
+
+## 0. 本轮执行记录（W0–W2）
+
+本轮已在远端完成以下落地，旧的 workload v0.1 和旧 smoke 结果未覆盖：
+
+- W0：绑定并校验冻结资源契约 scheduler-resource-contract-v1；读取 Alibaba pai_job_table.csv 的 start_time（秒），转换为毫秒间隔，并按连续时间块切分 train/validation/test。
+- W1：模板边恢复规则改为：真实 parent_step_ids 优先；同一原始 source_step_ids 内的事件顺序标记为 same_step_event_order；只有原始 trace 完全没有父节点元数据时才允许 sequence_fallback_no_parent_data。有父节点元数据但跨 step 缺失父节点的模板直接判无效。
+- W2：到达过程改为 Alibaba 连续 gap block replay、Poisson、burst；不再使用原来的 0.80 缩放；每个 episode 记录 arrival 元数据、目标/实际 offered compute load、初始驻留和资源契约哈希；无放回抽样和 split 隔离写入审计器。
+- 新审计入口：tracing/workloads/audit_workload_v02.py。它检查模板 DAG、边 provenance、split 泄漏、无放回抽样、到达单调性、资源契约绑定、显存容量和 135-cell 矩阵。
+- 本轮验收产物目录：results/processed/workload_v0_2_smoke_fixed_20260812/。该目录只用于 smoke，矩阵不完整时必须显式使用 --allow-incomplete-matrix；正式 135-cell locked test 仍需单独生成并通过完整矩阵门禁。
+- 生成器/审计 smoke 已通过；W3.1 已修复 tracing/analysis/workload_v02_simulator.py 的显存准入账本，并通过 3 条 admission 单元测试及 train/validation/test 各 10 个 episode 的 simulator 回归。30 个 episode 共 480 个 job，显存账本违规为 0，异常 OOM 为 0，模型驱逐事件正常产生。
+- W3.2 已把 GPU 调度动作改为 ready node × free GPU 联合选择，新增 node_dispatch/node_wait 事件，并把 Oracle 未来代价改为 DAG successors 路径。新增 2 条联合动作单元测试；5 条测试全部通过。W3.2 smoke 的 Myopic 相对 Oracle gap：train 14.6%、validation 4.8%、test 14.5%；候选数大于 1 的 dispatch 占多数，说明调度选择已经实际生效。
+
+## 1. 用人话说明要做什么
+
+现有 768 条 Agent trace 相当于 768 份“做事流程”。一条 trace 是一个 job，trace 里的 planner、YOLO、视觉分析、检索、验证和回答等工具动作是 node。
+
+workload 生成不是重新跑视频，而是做三件事：
+
+1. 把每条 trace 整理成一个带节点依赖的 job 模板；
+2. 让许多 job 按真实或合成的时间间隔到达；
+3. 在每个 node 完成后释放它的后续 node，让多个 job 的 ready node 争抢 GPU。
+
+因此：
+
+```text
+一条 trace = 一种任务流程
+一个 job = 某次具体任务
+一个 node = 一次可调度的工具/模型动作
+一个 workload episode = 一批在一段时间内到达的 job
+```
+
+workload 的目标不是单纯把数量变大，而是稳定地产生：排队、模型复用、模型换入换出、显存准入冲突和不同 GPU 之间的调度选择。
+
+## 2. 本轮边界
+
+### 2.1 本方案负责
+
+- 从正式 collection 编译 job template；
+- 保留观测到的节点顺序、依赖、模型和资源画像；
+- 构造 job 到达过程、GPU 拓扑、初始模型驻留和资源压力；
+- 定义调度器可见信息与模拟器隐藏真值；
+- 定义节点级事件模拟、输出格式和验收门禁；
+- 固定训练、验证、锁定测试 workload 的数量和拆分方式。
+
+### 2.2 本方案不负责
+
+- 不重新采集 Agent trace；
+- 不修改或覆盖 raw trace；
+- 不把合成 workload 计作新的真实 trace；
+- 不在本阶段训练 RL 调度器；
+- 不在本阶段执行真实 GPU contention；
+- 不把未校准的 OOM、stall 或自动重试伪装成实测标签。
+
+## 3. 当前资产与现有 workload 的定位
+
+当前正式数据为：
+
+| 项目 | 当前数量/状态 |
+|---|---:|
+| 正式 trace | 768 |
+| 可编译节点 | 9,366 |
+| 视频 | 64 |
+| template split | train 566 / validation 94 / test 108 |
+| workload v0.1 | train 20,000 / validation 1,000 / test 1,000 episodes |
+| v0.1 job 实例 | 746,640 / 37,312 / 37,312 |
+| 资源预测器契约 | `scheduler-resource-contract-v1` |
+
+资源预测器契约路径为
+results/processed/resource_predictor_v1_final_q99_20260811/scheduler_resource_contract.json。
+已确认 Alibaba/Pai job arrival 文件存在于
+data/public/arrivals/alibaba_v2020/pai_job_table.csv（约 1,055,501 行，文件 SHA-256：
+379ecb3becaba347f44a53bf7eb53e54b185221b2a0338a3f828828d269ba96c）。官方字段
+start_time 的单位是秒；生成器只借用其到达间隔，转换为毫秒并按连续时间块切分，
+不借用其资源需求字段，也不把 synthetic arrival 改名冒充 Alibaba replay。
+
+现有 workload v0.1 可以用于接口 smoke 和开发调试，但不作为最终节点级调度实验的权威输入，原因如下：
+
+1. 当前 `pressure` 只是用模板中位运行时间缩短到达间隔，没有验证实际计算、显存和队列压力；
+2. `hot` 初态会把 episode 中所有模型放进每张 GPU，没有检查模型常驻显存是否超过容量；
+3. deadline 直接由模板实测总运行时间乘 1.5/2/3 得到，若交给调度器会泄露未来；
+4. 缺少 `parent_step_ids` 时默认连接前一个节点；存在 parent 时又没有完整映射到 `predecessor_node_ids`，可能造成丢边或错误线性化；
+5. episode 目前只保存模板引用和到达时间，还不是 ready/running/finish/queue 的节点级执行记录；
+6. 当前正式 trace 中严格 OOM=0、正 queue/wait=0，不能据此拟合真实 OOM 或等待概率。
+
+因此后续新增 `workload v0.2`，保留 v0.1 文件不覆盖。
+
+## 4. 四层数据结构
+
+### 4.1 Job template：一条任务怎么执行
+
+每条正式 trace 编译成一个 job template。template 至少包含：
+
+- `template_id`、`video_id`、`task_id`、split、baseline、workflow、model stack；
+- 节点列表和有向依赖边；
+- 每个节点的角色、执行通道、实际模型 ID；
+- 实测 runtime、load、workspace 以及来源；
+- retry 关系和观测到的状态；
+- raw trace、collection index 和资源记录的可追溯引用。
+
+template 表示**这次真实运行已经走过的路径**，不是完整工作流中所有未发生的分支。不能从一条运行轨迹凭空补出未执行分支。
+
+### 4.2 Workload episode：一批任务什么时候来
+
+episode 只描述：
+
+- 哪些 job template 被实例化；
+- 每个 job 的到达时间、优先级和服务等级；
+- GPU 数量与每张卡的容量；
+- episode 开始时哪些模型已驻留；
+- 到达来源、压力目标、随机种子和生成版本。
+
+### 4.3 Simulation event：运行时真正发生了什么
+
+节点级模拟器输出事件流：
+
+```text
+job_arrive
+node_ready
+model_load_start / model_load_finish
+node_start / node_finish
+node_wait
+model_evict
+job_finish / job_fail
+```
+
+queue time 是这些事件自然形成的结果，不由资源预测器提前输出。
+
+### 4.4 Job outcome：最后表现怎样
+
+每个 job 输出一条最终结果，包括完成时间、排队时间、deadline 是否满足、模型加载次数、驱逐次数、峰值显存、失败原因和重试次数。策略比较只消费最终 outcome 和对应事件证据。
+
+## 5. Node 的正式定义
+
+调度粒度固定为一次工具或模型动作：
+
+| 动作 | 是否为调度 node | 执行通道 |
+|---|---|---|
+| 本地 Qwen planner | 是 | GPU |
+| 远程 API planner | 是 | API/network，不占 GPU |
+| Qwen VLM/视觉问答 | 是 | GPU |
+| YOLO 检测 | 是 | GPU |
+| temporal search/frame inspect | 是 | GPU、CPU 或 API，按实际实现记录 |
+| validator | 有可测成本时是 | 按实际通道 |
+| answer generation | 是 | GPU 或 API |
+| 纯状态更新、日志、计数 | 否 | bookkeeping |
+
+首版不拆到每一帧、每个 token 或每个 CUDA kernel。只有已有可靠测量时，才把一个工具节点进一步拆成 model load、preprocess、GPU inference、postprocess。
+
+## 6. 节点依赖与 DAG 门禁
+
+### 6.1 依赖恢复规则
+
+1. 优先使用 trace 中真实 `parent_step_ids`；
+2. 将 parent step 映射到对应 template node ID；
+3. retry 节点保留 `retry_of` 和实际前驱；
+4. 只有原始 trace 确实没有父节点信息且该 workflow 明确按顺序执行时，才允许使用相邻节点线性回放；
+5. 所有线性补边必须写入 `edge_provenance=sequence_fallback`，不能当成真实 DAG 证据；
+6. 找不到 parent、出现环、孤立不可达节点时直接判 template 无效，不静默修复。
+
+### 6.2 调度时的释放规则
+
+- job 到达时只有根节点进入 ready queue；
+- 节点完成后，只有全部前驱完成的后继节点才能 ready；
+- Myopic 只能看到当前 ready 节点；
+- Predictive 只能看到行为预测器给出的未来分布；
+- Oracle 可以看到真实剩余路径，但仅用于测量预测信息的理论上限。
+
+## 7. 调度器可见信息与模拟器真值
+
+同一个 node 保存两套严格分离的数据：
+
+### 7.1 Scheduler view
+
+- 当前已观测 prefix；
+- 当前 ready node；
+- GPU 容量、空闲状态和已驻留模型；
+- 资源预测器输出：`runtime_p50_ms`、`runtime_p90_ms`、`load_p50_ms`、`peak_memory_p95_mb`、uncertainty；
+- 行为预测器输出：后续角色/节点概率和预计剩余路径；
+- 由服务等级和预测值生成的 deadline。
+
+### 7.2 Simulator truth
+
+- template 中实测或经真实 contention 校准后的 runtime；
+- 实测 workspace、真实 load 和实际后续节点；
+- 节点最终成功或失败结果。
+
+调度器禁止读取真实 runtime、真实峰值显存、真实后缀节点和测试答案。Oracle 只额外读取真实未来路径，不能修改 workload、deadline 或资源真值。
+
+## 8. Split 和数据泄漏控制
+
+### 8.1 视频与 template
+
+- 继续使用视频级 48/8/8 split；
+- 同一视频的所有问题、baseline、模型栈和重复运行只能属于同一 split；
+- template 数量固定为 train 566、validation 94、test 108；
+- 单个 episode 内无放回抽样 template，跨 episode 允许复用；最大 64 jobs，小于最小 split 的 94 templates，因此无需单 episode 重复。
+
+### 8.2 到达 trace
+
+- 阿里到达 trace 按不重叠时间块或日期拆分为 train/validation/test；
+- 不能从测试时间块估计训练侧到达分布参数；
+- 保存原始 block ID、时间范围、缩放系数和来源版本；
+- 如果阿里数据尚未落盘，episode 必须明确标记为 synthetic，不能静默伪装成 Alibaba replay。
+
+### 8.3 策略公平性
+
+- 所有策略读取完全相同的 locked test episodes；
+- 模拟随机性使用配对 seed；
+- workload 生成不得依赖正在被评测的调度策略；
+- 主结论限定为固定 workload mix；跨模板/视频的一般化作为单独敏感性分析。
+
+策略差值使用同 episode 配对统计；主置信区间按 episode 重采样，按 video/template
+聚类的结果只作为相关性敏感性检查，不能把重复模板的 6,750 个 episode 当成 6,750
+条独立真实轨迹。
+
+## 9. 到达过程
+
+正式主测试保留三类到达：
+
+1. `alibaba_replay`：使用阿里 GPU 集群 job submission 的相对到达间隔，只借用到达随机性；
+2. `poisson`：提供可解释的随机到达对照；
+3. `burst`：制造短时间集中到达，测试排队和模型换入换出。
+
+现有 `staggered` 保留为诊断场景，不进入主 135-cell 测试矩阵。
+
+阿里 trace 不提供我们视频 Agent 的服务时间和显存需求。其 CPU/GPU 需求字段不能直接替代本项目的资源画像。具体映射过程为：
+
+```text
+提取 job submission 时间
+→ 计算相邻到达间隔
+→ 截取固定时间窗口
+→ 保留窗口内部相对间隔
+→ 使用统一缩放系数调到目标 offered load
+→ 按顺序映射本项目 job template
+```
+
+## 10. Job 混合方式
+
+每个 episode 包含 16、32 或 64 个 job，三个规模在每个测试场景内平衡出现。template 抽样同时约束：
+
+- workflow/baseline；
+- 任务类型；
+- model stack；
+- 短、中、长节点路径；
+- 轻、中、重显存节点。
+
+训练 workload 使用分层随机混合；验证和测试 workload 使用固定配额。不能让某个压力档只由一种 baseline 或一种模型栈组成，否则调度器可能学会识别 baseline，而不是学习资源选择。
+
+## 11. 资源压力定义
+
+### 11.1 不再用一个数字混合三种压力
+
+v0.2 分开记录：
+
+- `target_offered_compute_load`：单位时间内预计 GPU 工作量与 GPU 总服务能力的比值；
+- `estimated_memory_demand`：按模型常驻和节点 `peak_memory_p95_mb` 估计的显存需求；
+- `realized_queue_pressure`：模拟后实际排队和等待，只作为结果，不作为输入伪造。
+
+计算压力目标继续使用：
+
+```text
+0.50 / 0.70 / 0.85 / 0.95 / 1.05
+```
+
+其中 1.05 表示提交的工作量超过系统持续处理能力，不表示允许显存超过物理容量。
+
+### 11.2 资源预测器的用途
+
+使用当前 `scheduler-resource-contract-v1`：
+
+- expected service：`runtime_p50_ms`；
+- admission safety：`runtime_p90_ms`、`peak_memory_p95_mb`；
+- cold load：`load_p50_ms`；
+- queue：由 workload simulator 产生；
+- OOM/stall：当前不支持预测，保持 unknown。
+
+缺失资源值不能用 0 补齐。进入 GPU 调度的节点若缺少必要 runtime 或 memory，必须在 workload audit 中单独列出并阻止正式集发布。
+
+### 11.3 压力校准
+
+到达间隔缩放只使用中立的容量公式，不使用任一待比较调度策略。生成后计算每个 episode 的预计 offered load：
+
+```text
+sum(predicted node GPU runtime)
+---------------------------------
+episode window × GPU count
+```
+
+至少 90% 的 episode 要落在目标值 ±0.05 内；未达到时调整该场景的到达缩放参数并重新生成该场景，不能只修改标签。
+
+## 12. GPU 拓扑与初始驻留
+
+GPU 拓扑继续保留：
+
+```text
+32760 + 32760 MiB
+24576 + 24576 MiB
+32760 + 24576 MiB
+```
+
+初态改为容量可验证的三类：
+
+- `cold`：无模型驻留；
+- `warm`：按训练侧频率放置少量常用模型，每张卡都必须实际装得下；
+- `skewed`：模型集中在一张卡形成不均衡，但仍不得超过该卡容量。
+
+每个驻留模型必须有明确 `resident_model_mb` 来源。未知不能视为 0；未补齐模型常驻显存之前，warm/skewed episode 不得进入正式 workload。
+
+显存准入使用：
+
+```text
+resident_model_memory
++ active_workspace_p95
++ calibrated_safety_margin
+<= gpu_capacity
+```
+
+正式 Phase 4 首版每张 GPU 同时只执行一个 GPU node，但允许 CPU/API node 并行，并保留多个模型驻留。这样与现有串行节点资源数据一致。允许同一 GPU 同时运行多个 GPU node 的 co-location 模式，必须等真实 contention microbenchmark 得到耗时膨胀和 workspace 叠加规律后再启用。
+
+## 13. Deadline、等待、OOM 和重试
+
+### 13.1 Deadline
+
+deadline 不再使用 test template 的实测总运行时间。它由统一服务等级乘调度器可见的预测 job p90 生成：
+
+```text
+deadline = arrival + service_class_multiplier × predicted_job_p90
+```
+
+所有策略使用相同 deadline。服务等级 multiplier 在训练前冻结。
+首版继续使用 1.5/2.0/3.0 三档，但乘数作用于预测 job p90，而不是 test 实测总耗时。
+
+### 13.2 等待
+
+等待来自 ready node 没有可用 GPU、显存准入失败或等待模型加载，不从 trace 中随机伪造。
+
+### 13.3 OOM
+
+当前 trace 没有严格 OOM 样本，资源预测器也明确不输出 OOM 概率。模拟器只能根据真实容量规则产生“无法准入”或受控 OOM 结果，并清楚标记为 simulator outcome，不能称为实测 OOM。
+
+### 13.4 Retry
+
+只有 template 中真实存在 retry/recovery 边时才回放重试。模拟器新产生的失败默认结束该 job；在没有恢复契约前不自动补一次 retry。
+
+## 14. 节点级事件模拟
+
+模拟器维护以下状态：
+
+- 当前时钟；
+- 尚未到达的 jobs；
+- ready nodes；
+- 每张 GPU 正在执行的 node、空闲时间和显存；
+- 已驻留模型及加载/驱逐状态；
+- 已完成节点和可释放后继；
+- CPU/API 中的并行动作。
+
+事件循环：
+
+1. job 到达，释放根节点；
+2. 调度器从 ready nodes 中选择 node 和执行位置；
+3. 检查模型驻留和显存准入；
+4. 必要时产生 load/evict/wait 事件；
+5. node 执行完成，写入资源与时间记录；
+6. 所有前驱完成的后继进入 ready queue；
+7. 所有 job 完成或失败后结束 episode。
+
+必须满足：
+
+```text
+arrival <= ready <= start <= finish
+job_finish >= 所有成功节点 finish
+同一 GPU 的显存账本始终可解释
+除明确 OOM 事件外，显存不得超过物理容量
+```
+
+## 15. 正式 workload v0.2 数量
+
+### 15.1 开发和训练
+
+| Split | Episode 数 | 用途 |
+|---|---:|---|
+| train | 20,000 | 调度器或 RL 训练起点 |
+| validation | 2,000 | 超参数、早停和策略选择 |
+
+20,000 条训练 episode 足以开始。只有出现训练不收敛或明显过拟合，才扩大到 50,000；不预先生成 100,000 条重复模板 workload。
+
+### 15.2 锁定测试
+
+主测试矩阵为：
+
+```text
+3 到达类型 × 5 计算压力 × 3 GPU 拓扑 × 3 初始状态
+= 135 个场景 cell
+```
+
+每个 cell 固定 50 个 episode，共：
+
+```text
+135 × 50 = 6,750 test episodes
+```
+
+每个 cell 内平衡 16/32/64 jobs。所有调度策略复用完全相同的 6,750 个 episode。
+
+若 P95/P99 或策略差值的置信区间仍不稳定，再把每个 cell 扩展到 100 个，使 test 总量达到 13,500；这不是默认必做项。
+
+## 16. 输出路径与版本规则
+
+后续执行时使用单一新目录，不覆盖 v0.1：
+
+```text
+results/processed/workload_v0_2/
+  job_templates.jsonl
+  job_templates.summary.json
+  episodes/
+    train.jsonl
+    validation.jsonl
+    test_locked.jsonl
+  arrival_sources/
+    alibaba_blocks_manifest.json
+  schemas/
+    job_template.schema.json
+    workload_episode.schema.json
+    simulation_event.schema.json
+  audits/
+    template_audit.json
+    workload_generation_audit.json
+    leakage_audit.json
+    pressure_audit.json
+  generation_manifest.json
+```
+
+`generation_manifest.json` 固定输入路径、输入版本、随机种子、split、资源预测器契约、到达 trace block、生成参数和脚本版本。所有 derived 文件必须能从正式 collection、资源预测器和到达源重建。
+
+## 17. 实现顺序（W0–W3.2 已执行，后续按门禁）
+
+### W0：冻结输入
+
+- 固定 768 条 collection 与 566/94/108 template split；
+- 固定资源预测器 `scheduler-resource-contract-v1`；
+- 获取并登记阿里 GPU 到达 trace，按时间块拆分；
+- 不修改 raw trace 和现有 v0.1 workload。
+
+### W1：修复 template 编译
+
+- 修改 `tracing/workloads/build_workload.py` 的 parent→predecessor 映射；
+- 增加 node lane、edge provenance 和资源字段来源；
+- 做 DAG、可达性、retry 和 split 验证；
+- 先对少量模板 smoke，再编译 768 条。
+
+### W2：修复 episode 生成
+
+- 加入 Alibaba replay、Poisson、burst；
+- 单 episode 改为无放回、分层抽样；
+- 使用容量可验证的 cold/warm/skewed；
+- 分离 compute load、memory demand 和 realized queue；
+- deadline 改用 scheduler-visible prediction。
+
+### W3.1：显存准入账本修复（已执行）
+
+- 在 tracing/analysis/workload_v02_simulator.py 中加入无副作用的 GPU admission plan；
+- 账本统一计算：当前 resident + 未驻留模型显存 + workspace；
+- 只有 admission 成功后才应用驱逐，模型自身超过 GPU 容量时返回 simulator OOM，不抛出 ledger overflow；
+- 单元测试覆盖换入驱逐、目标模型保留和不可容纳模型；
+- 回归输出位于 results/processed/workload_v0_2_smoke_fixed_20260812/sim_*10_w31/。
+
+### W3.2：节点级调度动作重构（已执行）
+
+- 每次 GPU 调度从所有 ready GPU node 与所有 free GPU 的联合候选中选取动作；
+- 保留 round_robin、myopic、oracle 三个策略接口，但策略现在同时决定 node 和 GPU；
+- 增加 node_dispatch 和去重后的 node_wait 事件，事件中记录候选数量和可行候选数量；
+- Oracle 只在 oracle 策略路径读取 DAG 后继和 simulator truth；普通策略的候选可行性只使用 scheduler-visible 的预测峰值显存，真实驻留账本仅由 simulator admission 使用；
+- 单元测试覆盖 myopic 选择短节点和 round-robin 保留最老 ready 节点；
+- 回归输出位于 results/processed/workload_v0_2_smoke_fixed_20260812/sim_*10_w32_final2/。
+
+### W4：小规模通路验收
+
+- 每个 split 先生成 10 个 episode；
+- 使用 round-robin、myopic、oracle 跑相同输入；
+- 验证事件时序、显存账本、split、泄漏和配对 seed；
+- 任一门禁失败即停止，不生成正式数量。
+
+### W5：正式生成
+
+- 生成 20,000 train、2,000 validation、6,750 locked test；
+- 输出生成审计和每个场景 cell 的计数；
+- 只生成 workload，不在本步骤训练 RL 或做真实 contention。
+
+### W6：进入调度实验的前置门禁
+
+- Myopic 与 Oracle 使用相同 workload；
+- Oracle 相对 Myopic 的完成时间优势跨配对 seed 稳定超过 1%；
+- 若 Oracle gap 接近 0，优先检查压力、模型混合和驻留状态，不直接进入 RL；
+- 只有 workload 与模拟器门禁通过后，才比较 predictive 或优化器/RL 策略。
+
+## 18. 发布验收清单
+
+### 18.1 Template gate
+
+- [ ] 768 个 template 全部可追溯；
+- [ ] parent 全部可解析，无环、无不可达节点；
+- [ ] sequence fallback 数量单独报告；
+- [ ] GPU/API/CPU/bookkeeping 分类完整；
+- [ ] 未知 runtime/memory 没有被替换成 0。
+
+### 18.2 Workload gate
+
+- [ ] train/validation/test 视频和 template 隔离；
+- [ ] Alibaba 时间块隔离；
+- [ ] 单 episode 无重复 template；
+- [ ] 135 个 test cell 各 50 个 episode；
+- [ ] 16/32/64 job 规模在 cell 内平衡；
+- [ ] 初始驻留不超过任何 GPU 容量；
+- [ ] 至少 90% episode 的 offered load 位于目标 ±0.05；
+- [ ] deadline 不读取实测 test runtime。
+
+### 18.3 Simulation gate
+
+- [ ] 调度器看不到真实未来节点、runtime、memory 和答案；
+- [ ] queue 由事件模拟产生；
+- [ ] OOM/stall 没有被伪装成预测器输出；
+- [ ] 所有 node/job 时间不变量通过；
+- [ ] 不同策略使用相同 episode 和配对 seed；
+- [ ] 事件日志可以还原每次 load、wait、run、evict 和 finish。
+
+## 19. 最终判断
+
+当前 768 条 trace 足以生成节点级 workload；模板 DAG、容量可行的驻留状态和节点级联合调度动作已经通过 smoke。仍未完成的是 W4 的多 arrival/pressure/job-count 场景覆盖、压力校准、资源预测器正式接入和 scheduler truth 隔离审计。
+
+因此下一步不是继续增加 episode 数量，而是先完成 W4 门禁。W3.2 smoke 的 gap 只说明联合动作已经生效，不代表正式调度结论；门禁通过后再生成 20,000/2,000/6,750 的 workload v0.2。

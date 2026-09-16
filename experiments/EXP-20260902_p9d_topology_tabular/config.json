@@ -1,0 +1,63 @@
+{
+  "schema_version": "p9d-topology-tabular-v1",
+  "experiment_id": "EXP-20260902_p9d_topology_tabular",
+  "question": "Can a causal tabular model improve future DAG-layer count and width prediction over the P9d empirical baseline?",
+  "scope": "P_dev_train_fit_validation_model_selection_test_diagnostic_holdout_frozen_acceptance_only",
+  "execution_environment": "remote_finetooling_cpu_only",
+  "dataset_root": "/root/autodl-tmp/scheduler/results/processed/topology_predictor_p9d_v1",
+  "dataset_manifest_sha256": "c921f6ee4dbdee1b01af102ad6d02b29a843f91392357ce7fad78cf24df84630",
+  "experiment_root": "/root/autodl-tmp/scheduler/experiments/EXP-20260902_p9d_topology_tabular",
+  "horizon": 5,
+  "max_width": 5,
+  "max_scenarios": 3,
+  "seed": 0,
+  "seed_semantics": "fixed_lightgbm_seed_one_thread",
+  "candidate_models": [
+    "lgbm_small",
+    "lgbm_wide"
+  ],
+  "selection": {
+    "split": "validation",
+    "primary_metric": "layer_count_mae",
+    "tie_break_1": "lower_width_vector_mae",
+    "tie_break_2": "lower_node_count_mae",
+    "tie_break_3": "higher_top3_exact_signature_coverage",
+    "tie_break_4": "lexicographic_model_name"
+  },
+  "target": {
+    "structural_heads": [
+      "layer_count",
+      "width_1",
+      "width_2",
+      "width_3",
+      "width_4",
+      "width_5"
+    ],
+    "prototype_decoder": "train_only_empirical_conditional",
+    "identity_free_signature_fields": [
+      "node_type",
+      "raw_action",
+      "model_id",
+      "execution_lane",
+      "action_family"
+    ],
+    "node_identity_used": false,
+    "edges_used_as_features": false,
+    "resource_truth_used_as_features": false
+  },
+  "data_boundary": {
+    "fit": "P_dev/train",
+    "selection": "P_dev/validation",
+    "diagnostic": "P_dev/test",
+    "frozen_acceptance": "P_holdout_diag/holdout",
+    "scheduler_groups_used": false,
+    "s_train_s_val_t_final_t_backup_used": false,
+    "t_final_sealed": true
+  },
+  "git_commit": "unavailable_uncommitted_source_mirror",
+  "remote_host_identity": "autodl-container-41d846924e-d62d0601",
+  "source_scripts": [
+    "scripts/p9d_topology_tabular.py",
+    "tests/test_p9d_topology_tabular.py"
+  ]
+}

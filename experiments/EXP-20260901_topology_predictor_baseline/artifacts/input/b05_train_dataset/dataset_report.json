@@ -1,0 +1,58 @@
+{
+  "combined": {
+    "role_rows": 17163,
+    "tool_rows": 5853
+  },
+  "development": {
+    "role_rows": 15783,
+    "source_test_rows_excluded": true,
+    "tool_rows": 5327
+  },
+  "evaluation_splits": [
+    "final_holdout_v1_relabelled_validation"
+  ],
+  "fit_splits": [
+    "development_train_validation_relabelled_train"
+  ],
+  "holdout": {
+    "role_rows": 1380,
+    "successful_valid_runs": 120,
+    "tool_rows": 526
+  },
+  "join_report": {
+    "checked_relations": [
+      "task_id equality",
+      "current_role equality",
+      "role.event_index == tool.target_event_index - 1",
+      "role.event_index == tool.cutoff_event_index",
+      "role.cutoff_event_index == tool.cutoff_event_index",
+      "split equality"
+    ],
+    "current_role_agreement": true,
+    "cutoff_relation_agreement": true,
+    "event_relation_agreement": true,
+    "join_keys": [
+      "run_id",
+      "target_source_event_id"
+    ],
+    "joined_tool_rows": 5853,
+    "role_next_execute_total": 6516,
+    "role_next_execute_with_tool": 5853,
+    "role_side": "next_role == 'execute'",
+    "split_agreement": true,
+    "task_id_agreement": true,
+    "tool_side": "target_role == 'execute'",
+    "tool_total": 5853,
+    "unambiguous": true,
+    "video_id_enforced": false,
+    "video_id_exact_match": 5638,
+    "video_id_mismatch_normalized": 215
+  },
+  "schema_version": "final_holdout_dataset.v1",
+  "source_hashes": {
+    "candidate_role": "bdc52d5accd8a769fc5ae4fd20bb462da0f558018f523a81d65e4377f6405e0c",
+    "candidate_tool": "2aef9470c5118708138c2e6d4bad3af2729849fc91eac4774906ec56ed029a94",
+    "holdout_enrichment_summary": "8ead92c415fb05dbcc2b3dd5d1a21200f36816572d8e10442003df1903741712"
+  },
+  "test_targets_used": false
+}

@@ -1,0 +1,154 @@
+{
+  "schema_version": "source-sync-registry-v0.1",
+  "generated_at": "2026-08-13T07:05:29.767126+00:00",
+  "source_root": "src/tracing",
+  "python_import_name": "tracing",
+  "runtime_path_contract": "PYTHONPATH=src",
+  "files": [
+    {
+      "path": "src/tracing/analysis/build_collection_index.py",
+      "size_bytes": 5496,
+      "sha256": "d9d082620fffeb48bc304c30a2ceadb6bb4b45be16be407d34968e5db98ee9d9"
+    },
+    {
+      "path": "src/tracing/analysis/build_neural_prefix_examples.py",
+      "size_bytes": 5931,
+      "sha256": "f9a9f90a06987ea44789b025ba059ea80d1084455ba1fb068e8ac1317eb2bbfa"
+    },
+    {
+      "path": "src/tracing/analysis/build_trace_enrichment.py",
+      "size_bytes": 28160,
+      "sha256": "220222dd4e5888895e2f00461da8bcd6b984174cd3f707caeed29b663b0920f9"
+    },
+    {
+      "path": "src/tracing/analysis/multistep_graph_predictor.py",
+      "size_bytes": 18764,
+      "sha256": "fe14d583b750fbf47fed676ec0cef4163cfd42ffe79cb8c93baf230cef7e08aa"
+    },
+    {
+      "path": "src/tracing/analysis/neural_trace_model.py",
+      "size_bytes": 4062,
+      "sha256": "0b1ec13be9842d6875e5fa88aa6d0fcbf511f093e1bdd366fcef70716d268444"
+    },
+    {
+      "path": "src/tracing/analysis/phase2_trace_stats.py",
+      "size_bytes": 6965,
+      "sha256": "d61cd46b6a606b9ef5bb80fa128e5fa50b83d5e6211675ae296d56e9f29a4009"
+    },
+    {
+      "path": "src/tracing/analysis/phase3_predictor_baselines.py",
+      "size_bytes": 24932,
+      "sha256": "b7e8242a5a8850d5e5e74abf662e06703b9dea778d02a45ff5ac3fe78198e69b"
+    },
+    {
+      "path": "src/tracing/analysis/phase3_structured_predictor.py",
+      "size_bytes": 32850,
+      "sha256": "ef4da47ab0da40fdbdfe6ae9115e8f9bb88aba49bd9f14af8d489fa9aed6eb90"
+    },
+    {
+      "path": "src/tracing/analysis/phase4_trace_simulator.py",
+      "size_bytes": 21656,
+      "sha256": "43d7a566604cc929a71985a45cd4b4437479b3159121c0a8b8bd5c9ff2f7a236"
+    },
+    {
+      "path": "src/tracing/analysis/reproduce_prediction_baselines.py",
+      "size_bytes": 32901,
+      "sha256": "65f905595868f853ca8d587b41645b073b3552e4ea8cb43b88e6363da9ea1211"
+    },
+    {
+      "path": "src/tracing/analysis/reproduce_resource_predictor.py",
+      "size_bytes": 8568,
+      "sha256": "98a255acb5d64b527b20ef266254d4ac746d70eed8306bebdf2a30490e40da6c"
+    },
+    {
+      "path": "src/tracing/analysis/select_resource_completion.py",
+      "size_bytes": 4914,
+      "sha256": "5f3e6ab0992701606ee5856f4ae8cbd6442aa50947d1ad4a6608fe136129e84d"
+    },
+    {
+      "path": "src/tracing/analysis/trace_predictor.py",
+      "size_bytes": 17588,
+      "sha256": "2f5c1716dace63844458dfc06d228bd34392ed5fcf88aab727e5fada44f3645e"
+    },
+    {
+      "path": "src/tracing/analysis/train_neural_trace_predictor.py",
+      "size_bytes": 10941,
+      "sha256": "4b9f579f80bd098c22b8e00a32e63e4fe1a11d1d91df65b966352b0dba0bf578"
+    },
+    {
+      "path": "src/tracing/collectors/__init__.py",
+      "size_bytes": 55,
+      "sha256": "f383058ce465a123322cd9e7c9d0a7f85e1877fcf0d3bbd74bde0783bc1670ff"
+    },
+    {
+      "path": "src/tracing/collectors/dvd_pilot.py",
+      "size_bytes": 20799,
+      "sha256": "adaa403438d63cdfe106aa9ad2342d08dadbf6f81d6c61862adc3c5f217eb6df"
+    },
+    {
+      "path": "src/tracing/collectors/qwen3_vl_worker.py",
+      "size_bytes": 11702,
+      "sha256": "03898c3db51564a81b5cd1be6e89c4231f257cd0a11b000e05dd67df4a2b2e03"
+    },
+    {
+      "path": "src/tracing/collectors/qwen_text_worker.py",
+      "size_bytes": 12518,
+      "sha256": "201032d3f08d4abbe5f7eec72d7e63dca04cfed4b951b37572ddf5a4f567d6d4"
+    },
+    {
+      "path": "src/tracing/collectors/structured_state.py",
+      "size_bytes": 19913,
+      "sha256": "7f162c8d93fbf539a539f0adbe8d13bbbec08d21e8f19d66c4ac25821843af66"
+    },
+    {
+      "path": "src/tracing/collectors/videoseek_wrapper.py",
+      "size_bytes": 26839,
+      "sha256": "6994b9cffa2771786d812800f141ead00ce9d8457338b981f3c3c92adf62d980"
+    },
+    {
+      "path": "src/tracing/collectors/videotool_phase1.py",
+      "size_bytes": 84679,
+      "sha256": "2d9d1f8f60489e296a8279f8ad0ef4a06adac09c5c3a1956db4e60bbc0ab245a"
+    },
+    {
+      "path": "src/tracing/collectors/videotool_phase2_batch.py",
+      "size_bytes": 8939,
+      "sha256": "94dd3a341f879b773cff70b4571eef458aff3667c815519f2b4716c6bf3d1923"
+    },
+    {
+      "path": "src/tracing/schema/phase3_task_manifest_v0_2.json",
+      "size_bytes": 2642,
+      "sha256": "8cb5f0a2a8670940e4993c77dc1f7e1237fbf2b40b13c2b0a4126ed324e76e02"
+    },
+    {
+      "path": "src/tracing/schema/state_v0_2.json",
+      "size_bytes": 5463,
+      "sha256": "5dbb2bfbe2c54a8fef685f757a6d393d2b244a9c021f2f656d2eeb2ac51b6983"
+    },
+    {
+      "path": "src/tracing/schema/trace_v0_1.json",
+      "size_bytes": 2821,
+      "sha256": "354198aa96c762736b58c079427c1c8761ae2898f6aeb24656109a7607307002"
+    },
+    {
+      "path": "src/tracing/validators/__init__.py",
+      "size_bytes": 34,
+      "sha256": "00fcde460fefef59f798799b515fb5267089cd356fc0615b489a5955fb8ecdfc"
+    },
+    {
+      "path": "src/tracing/validators/validate_trace.py",
+      "size_bytes": 8564,
+      "sha256": "9f824a902a4b73d4d22c17e6a2617721de62fdb01af0e880e8d306d29d56ddfc"
+    },
+    {
+      "path": "src/tracing/workloads/__init__.py",
+      "size_bytes": 55,
+      "sha256": "4050fc913ad07d88bd0b4f8653d5fc57b09b06ac033735c8077bf17b418e0821"
+    },
+    {
+      "path": "src/tracing/workloads/build_workload.py",
+      "size_bytes": 14273,
+      "sha256": "86b32156a6c7d3b521db2ddd1b942f5f6500bcb75e81ad9a979c0f1ea4e4f642"
+    }
+  ]
+}

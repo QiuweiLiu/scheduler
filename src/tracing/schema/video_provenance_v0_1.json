@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dynamic-video-agent/video_provenance_v0_1.json",
+  "title": "Video source and derivative provenance record v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "collection_id",
+    "video_id",
+    "source",
+    "original",
+    "derivatives",
+    "retrieval",
+    "retention"
+  ],
+  "properties": {
+    "schema_version": {"const": "video-provenance-v0.1"},
+    "collection_id": {"type": "string", "minLength": 1},
+    "video_id": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset", "dataset_revision", "source_url", "official_archive"],
+      "properties": {
+        "dataset": {"type": "string", "minLength": 1},
+        "dataset_revision": {"type": ["string", "null"]},
+        "source_url": {"type": "string", "minLength": 1},
+        "official_archive": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "shard",
+            "member",
+            "shard_size_bytes",
+            "compressed_size_bytes",
+            "uncompressed_size_bytes",
+            "crc32",
+            "local_offset"
+          ],
+          "properties": {
+            "repository": {"type": "string", "minLength": 1},
+            "shard": {"type": "string", "minLength": 1},
+            "member": {"type": "string", "minLength": 1},
+            "shard_size_bytes": {"type": "integer", "minimum": 0},
+            "compressed_size_bytes": {"type": "integer", "minimum": 0},
+            "uncompressed_size_bytes": {"type": "integer", "minimum": 0},
+            "crc32": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+            "local_offset": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "original": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes", "width", "height", "duration_s"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "duration_s": {"type": "number", "minimum": 0}
+      }
+    },
+    "derivatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "path",
+          "parent_sha256",
+          "sha256",
+          "size_bytes",
+          "width",
+          "height",
+          "duration_s",
+          "encoder"
+        ],
+        "properties": {
+          "variant_id": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "parent_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "size_bytes": {"type": "integer", "minimum": 0},
+          "width": {"type": "integer", "minimum": 1},
+          "height": {"type": "integer", "minimum": 1},
+          "duration_s": {"type": "number", "minimum": 0},
+          "encoder": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "retrieval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retrieved_at", "verified_at", "method"],
+      "properties": {
+        "retrieved_at": {"type": ["string", "null"], "format": "date-time"},
+        "verified_at": {"type": "string", "format": "date-time"},
+        "method": {"type": "string", "minLength": 1}
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "original_status",
+        "archive_path",
+        "archive_sha256",
+        "archive_restore_tested",
+        "deletion_eligible"
+      ],
+      "properties": {
+        "original_status": {
+          "enum": ["present", "archived", "deleted_after_gate", "unknown"]
+        },
+        "archive_path": {"type": ["string", "null"]},
+        "archive_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "archive_restore_tested": {"type": "boolean"},
+        "deletion_eligible": {"type": "boolean"}
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,102 @@
+{
+  "aggregate": {
+    "myopic": {
+      "completed_jobs": 5120,
+      "episodes": 150,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_batch_action_width_p50": null,
+      "mean_completion_ms": 670549.8893138542,
+      "mean_deadline_miss_rate": 0.5282291666666666,
+      "mean_gpu_evictions": 26.226666666666667,
+      "mean_job_queue_ms": 581688.1736444271,
+      "mean_preempt_recompute_ms": 0.0,
+      "mean_preemptions": 0.0,
+      "mean_prefetch_load_ms": 0.0,
+      "mean_wasted_prefetches": 0.0,
+      "p95_completion_ms": 1969160.1481460934
+    },
+    "oracle": {
+      "completed_jobs": 5120,
+      "episodes": 150,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_batch_action_width_p50": null,
+      "mean_completion_ms": 482385.0563967187,
+      "mean_deadline_miss_rate": 0.39989583333333334,
+      "mean_gpu_evictions": 30.68,
+      "mean_job_queue_ms": 389832.824666875,
+      "mean_preempt_recompute_ms": 0.0,
+      "mean_preemptions": 0.0,
+      "mean_prefetch_load_ms": 0.0,
+      "mean_wasted_prefetches": 0.0,
+      "p95_completion_ms": 1413686.5370109375
+    },
+    "predopt_h5": {
+      "completed_jobs": 5120,
+      "episodes": 150,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_batch_action_width_p50": null,
+      "mean_completion_ms": 670532.679279375,
+      "mean_deadline_miss_rate": 0.5280208333333334,
+      "mean_gpu_evictions": 26.466666666666665,
+      "mean_job_queue_ms": 581658.351820052,
+      "mean_preempt_recompute_ms": 0.0,
+      "mean_preemptions": 0.0,
+      "mean_prefetch_load_ms": 0.0,
+      "mean_wasted_prefetches": 0.0,
+      "p95_completion_ms": 1969160.1481460934
+    },
+    "round_robin": {
+      "completed_jobs": 5120,
+      "episodes": 150,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_batch_action_width_p50": null,
+      "mean_completion_ms": 681707.4804755208,
+      "mean_deadline_miss_rate": 0.5488541666666666,
+      "mean_gpu_evictions": 75.11333333333333,
+      "mean_job_queue_ms": 745952.5157065626,
+      "mean_preempt_recompute_ms": 0.0,
+      "mean_preemptions": 0.0,
+      "mean_prefetch_load_ms": 0.0,
+      "mean_wasted_prefetches": 0.0,
+      "p95_completion_ms": 2091987.078601953
+    }
+  },
+  "capacity_violation_count": 0,
+  "episodes": 150,
+  "event_logging": "disabled",
+  "execution_context": {
+    "cwd": "/root/autodl-tmp/scheduler/experiments/EXP-20260824_transition_profile_simulator",
+    "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+    "python": "/root/miniconda3/bin/python",
+    "python_version": "3.12.3"
+  },
+  "expected_result_rows": 600,
+  "extension_config": {
+    "schema_version": "scheduler-extension-config-v0.1"
+  },
+  "future_artifacts_manifest_sha256": "cf608b254ad17156c65f1f034840c4b0295970c3bd6a15bd65f68ba8a375f396",
+  "information_boundary": {
+    "batch": "measured per-yolo-tool batch profiles; no cross-job dynamic batching",
+    "preemption": "node-level recompute after preempt; no free checkpoint/resume",
+    "prefetch": "explicit paid load plan; load time and resident memory are charged",
+    "priority": "unchanged binary priority/normal service_class"
+  },
+  "policies": [
+    "round_robin",
+    "myopic",
+    "predopt_h5",
+    "oracle"
+  ],
+  "result_rows": 600,
+  "schema_version": "r8-scheduler-extensions-matrix-v0.1",
+  "source_episodes_sha256": "5b60ae7425d8642a3aefb54dec2d915d24d3e460dd893818d52aede9f6a8a928",
+  "source_extension_config_sha256": "4df8cba371d8642f44b3acfe269d24641367d8d26f7d23bf80682927d203bd2b",
+  "source_runner_sha256": "b06fddae6fbb4abfab3eece4dad639bce187f985e923c19c6bfc61c2fdfccc2e",
+  "source_simulator_sha256": "65dec245e5e0ad2b27403790261fe3cb53034594ecd71f8e2eac5646b4c92f99",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed"
+}

@@ -1,0 +1,45 @@
+{
+  "cases": 20,
+  "command": "/root/miniconda3/envs/finetooling/bin/python scripts/r8_milp_sanity.py --templates results/processed/r7_workload_20260817/job_templates_r7_v02.jsonl --episodes results/processed/r7_workload_20260817/episodes/workload_validation_r7.jsonl --future-artifacts results/processed/r7_scheduling_future_20260817/prediction_artifacts --output-dir results/processed/r8_optimizer_rl_upgrade/p2_milp_sanity_20260819_fix2 --cases 20 --nodes-per-case 4 --time-limit-s 2.0 --seed 0",
+  "cp_rho_mean_solve_ms": 39.509131386876106,
+  "cp_rho_status_counts": {
+    "OPTIMAL": 20
+  },
+  "exact_action_agreement": 0.8,
+  "execution_context": {
+    "cwd": "/root/autodl-tmp/scheduler",
+    "pythonpath": "src"
+  },
+  "future_artifacts_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "information_boundary": "same current-ready candidate estimates, no execution truth, no suffix truth",
+  "max_objective_relative_gap": 2.6319902025099073e-13,
+  "mean_objective_relative_gap": 6.681361662603196e-14,
+  "milp_mean_solve_ms": 40.8143138512969,
+  "milp_status_counts": {
+    "OPTIMAL": 20
+  },
+  "node_action_agreement": 1.0,
+  "nodes_per_case": 4,
+  "objective_gap_tolerance": 1e-06,
+  "runtime": {
+    "cpu_count": 128,
+    "machine": "x86_64",
+    "milp_backend": "HiGHS via scipy.optimize.milp",
+    "ortools": "9.9.3963",
+    "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+    "python": "3.10.20",
+    "scipy": "1.15.3"
+  },
+  "schema_version": "r8-milp-sanity-v0.1",
+  "seed": 0,
+  "source_code_sha256": {
+    "cp_rho.py": "f927b03e9aded4ed737ccb25c4ae982c165643e1a7e6223ed088c65e62fb1c31",
+    "milp_sanity.py": "248838af54497ce5c93943615bdeea272620f865de8104633c4bd2015b0a3ab0",
+    "r8_milp_sanity.py": "e9629982a6f1d04a945c6ef1039117ca2fdedc6fd4f1e45cc0b258ed7a6c5eae",
+    "workload_v02_simulator.py": "8972532f1809ac4cd8a2d79d8d1d0e647ec8108e334a1ebaa4c7c886e7fc69d0"
+  },
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed",
+  "time_limit_s": 2.0
+}

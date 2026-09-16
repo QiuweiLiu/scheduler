@@ -1,0 +1,50 @@
+{
+  "created_at": "2026-09-11T16:37:24+0800",
+  "dataset_root": "F:\\scheduler\\results\\processed\\topology_predictor_p9d_v3",
+  "experiment_config": "experiments\\EXP-20260911_p9d_j_series_joint_resource\\config.json",
+  "length_histogram": {
+    "0": 2608,
+    "1": 1350,
+    "2": 1240,
+    "3": 1164,
+    "4": 1102,
+    "5": 9839
+  },
+  "load_accounting": {
+    "missing": 292,
+    "positive": 4886,
+    "zero": 55747
+  },
+  "memory_accounting": {
+    "available": 37553,
+    "missing": 23372
+  },
+  "nonconfirmatory_holdout_included": false,
+  "outputs": {
+    "test": "j_test.jsonl.gz",
+    "train": "j_train.jsonl.gz",
+    "validation": "j_validation.jsonl.gz"
+  },
+  "resource_table": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+  "resource_table_sha256": "4584cdc1a425b7f33756c9542623914024c16a9ce6e4a49f1d8b56d1752178b4",
+  "rows_by_split": {
+    "test": 1520,
+    "train": 13754,
+    "validation": 2029
+  },
+  "runtime_seconds": 4.11,
+  "schema_version": "j-series-dataset-v1",
+  "slots_by_split": {
+    "test": 5387,
+    "train": 48343,
+    "validation": 7195
+  },
+  "status": "generated",
+  "supervision_instances_total": 60925,
+  "termination_by_split": {
+    "test": 745,
+    "train": 6870,
+    "validation": 994
+  },
+  "unique_resource_nodes_referenced": 14413
+}

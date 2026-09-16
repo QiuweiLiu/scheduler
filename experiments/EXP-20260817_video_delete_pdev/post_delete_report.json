@@ -1,0 +1,23 @@
+{
+  "operation_id": "video_delete_pdev_20260817",
+  "schema_version": "video-deletion-audit-v0.1",
+  "status": "success",
+  "target_split": "P_dev",
+  "target_count": 300,
+  "deleted_count": 300,
+  "deleted_bytes": 28436477904,
+  "remaining_target_count": 0,
+  "unexpected_removed_count": 0,
+  "source_urls_retained": 300,
+  "provenance_path": "/root/autodl-tmp/scheduler/data/manifests/video_provenance_v2_expanded_available.jsonl",
+  "retention_after": {
+    "original_status": "deleted_after_gate",
+    "deletion_eligible": true,
+    "archive_path": null,
+    "archive_restore_tested": false
+  },
+  "collector_pid": 187515,
+  "collector_alive_after": true,
+  "r7_summary_rows_before": 545,
+  "completed_at_epoch": 1786935701.9229639
+}

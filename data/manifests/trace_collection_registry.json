@@ -1,0 +1,66 @@
+{
+  "schema_version": "trace-collection-registry-v0.1",
+  "updated_at": "2026-08-16",
+  "collections": [
+    {
+      "collection_id": "trace_collection_v1_legacy_core",
+      "status": "frozen_read_only",
+      "trace_count": 768,
+      "video_scope": "historical core collection",
+      "usable_for": ["retrospective predictor analysis", "legacy workload comparison", "resource audit"],
+      "usable_for_c2": false,
+      "overwrite_policy": "never",
+      "video_provenance_manifest": "data/manifests/video_provenance_v1_legacy_core.jsonl",
+      "video_provenance_status": "complete_64_of_64_archive_verified_with_8_source_sha_warnings",
+      "video_provenance_coverage_report": "data/manifests/video_provenance_v1_legacy_core_coverage.json",
+      "required_video_provenance_schema": "src/tracing/schema/video_provenance_v0_1.json",
+      "source_variants": ["original"],
+      "source_documents": [
+        "docs/videoseek_experiment_summary_20260812.md",
+        "docs/VideoSeek_R0a_只读审计报告_20260813.md"
+      ]
+    },
+    {
+      "collection_id": "trace_collection_v2_expanded",
+      "status": "source_provenance_complete_pending_traces",
+      "trace_count": null,
+      "video_target": 600,
+      "video_scope": "expanded public-video pool; new video-level split required",
+      "usable_for": ["causal-v2 derivation", "C1/C2 workload", "finite-lookahead scheduling"],
+      "usable_for_c2": "only for videos unseen by predictor training/tuning",
+      "overwrite_policy": "write_new_versioned_outputs_only",
+      "video_provenance_manifest": "data/manifests/video_provenance_v2_expanded_available.jsonl",
+      "video_provenance_target_manifest": "data/manifests/video_provenance_v2_expanded.jsonl",
+      "video_provenance_coverage_report": "data/manifests/video_provenance_v2_expanded_coverage.json",
+      "video_provenance_status": "complete_600_of_600_archive_verified",
+      "required_video_provenance_schema": "src/tracing/schema/video_provenance_v0_1.json",
+      "source_variants": ["original", "derived_640x360"],
+      "depends_on": ["R5 capacity gate", "new source manifest", "video-level split", "causal-v2 schema"],
+      "r6_split_registry": "data/manifests/video_split_registry_r6_v1_causal_v2.jsonl",
+      "c2_status": "pending_trace_collection"
+    },
+    {
+      "collection_id": "trace_collection_v1_legacy_core_r6_causal_v2",
+      "status": "derived_complete",
+      "trace_count": 768,
+      "video_scope": "C1 legacy 64 videos; derived decision-time/resource/workload views",
+      "derived_from_collection": "trace_collection_v1_legacy_core",
+      "usable_for": ["causal-v2 predictor inputs", "C1 train/validation/test-retrospective workload", "R7 scheduling integration"],
+      "usable_for_c2": false,
+      "overwrite_policy": "write_new_versioned_outputs_only",
+      "split_registry": "data/manifests/video_split_registry_r6_v1_causal_v2.jsonl",
+      "derived_output": "results/processed/r6_causal_v2_20260816_fix1/r6_manifest.json",
+      "gate_report": "results/processed/r6_causal_v2_20260816_fix1/r6_gate_report.json",
+      "source_variants": ["original"],
+      "c2_status": "pending_trace_collection"
+    }
+  ],
+  "rules": [
+    "Never merge v1 and v2 counts without a collection_id column.",
+    "Every derived prefix/resource/workload artifact records source collection and source hash.",
+    "A file count is not a trace count; unique runs must be counted from validated manifests.",
+    "The video provenance manifest is authoritative for source, original-file, derivative, and retention fields.",
+    "Every derivative record carries parent_sha256 equal to the referenced original SHA-256.",
+    "Original deletion is forbidden until provenance is complete, archive recovery is tested, and deletion_eligible is true."
+  ]
+}

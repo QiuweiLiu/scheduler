@@ -1,0 +1,2005 @@
+{
+  "bootstrap": {
+    "count": 10000,
+    "seed": 20260818,
+    "unit": "episode_within_scenario_cell"
+  },
+  "comparisons": {
+    "predopt_h1_vs_myopic": {
+      "left": "predopt_h1",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.4444444444444444,
+          "ci95_delta_left_minus_right": [
+            -0.004546875,
+            -0.001609375
+          ],
+          "episode_win_rate_left_better": 0.183,
+          "mean_delta_left_minus_right": -0.003046875,
+          "mean_left": 0.10675,
+          "mean_right": 0.109796875,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.027750106731179735
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.38536146385361464,
+          "bootstrap_probability_left_better": 0.1908,
+          "cell_win_rate_left_better": 0.5111111111111111,
+          "ci95_delta_left_minus_right": [
+            -0.18502499999999997,
+            0.475
+          ],
+          "episode_win_rate_left_better": 0.429,
+          "mean_delta_left_minus_right": 0.146,
+          "mean_left": 41.208,
+          "mean_right": 41.062,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.0035555988505187276
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8222222222222222,
+          "ci95_delta_left_minus_right": [
+            -2421.0414768025485,
+            -1707.5388134707075
+          ],
+          "episode_win_rate_left_better": 0.638,
+          "mean_delta_left_minus_right": -2066.6426425859454,
+          "mean_left": 213049.75589503904,
+          "mean_right": 215116.398537625,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.00960709019226388
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.5925925925925926,
+          "ci95_delta_left_minus_right": [
+            -1630.9769985894645,
+            -888.9620748982469
+          ],
+          "episode_win_rate_left_better": 0.522,
+          "mean_delta_left_minus_right": -1249.0061224218832,
+          "mean_left": 122116.322491,
+          "mean_right": 123365.32861342187,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.010124450171374927
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.3925925925925926,
+          "ci95_delta_left_minus_right": [
+            5864.103628903134,
+            11871.333898048726
+          ],
+          "episode_win_rate_left_better": 0.443,
+          "mean_delta_left_minus_right": 8791.169506549999,
+          "mean_left": 529721.8801608499,
+          "mean_right": 520930.7106542999,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.016875890260929532
+        }
+      },
+      "right": "myopic"
+    },
+    "predopt_h1_vs_optimizer_0": {
+      "left": "predopt_h1",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.45185185185185184,
+          "ci95_delta_left_minus_right": [
+            -0.0045,
+            -0.001515625
+          ],
+          "episode_win_rate_left_better": 0.179,
+          "mean_delta_left_minus_right": -0.003015625,
+          "mean_left": 0.10675,
+          "mean_right": 0.109765625,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.027473309608540924
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8,
+          "ci95_delta_left_minus_right": [
+            -3.822,
+            -3.032
+          ],
+          "episode_win_rate_left_better": 0.645,
+          "mean_delta_left_minus_right": -3.43,
+          "mean_left": 41.208,
+          "mean_right": 44.638,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.07684036023119316
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.9111111111111111,
+          "ci95_delta_left_minus_right": [
+            -2975.0751277798868,
+            -2223.8598803666046
+          ],
+          "episode_win_rate_left_better": 0.737,
+          "mean_delta_left_minus_right": -2597.0341404765677,
+          "mean_left": 213049.75589503904,
+          "mean_right": 215646.79003551565,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.01204299929550935
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.6444444444444445,
+          "ci95_delta_left_minus_right": [
+            -1787.1187765066477,
+            -999.7314824668017
+          ],
+          "episode_win_rate_left_better": 0.543,
+          "mean_delta_left_minus_right": -1378.416051875006,
+          "mean_left": 122116.322491,
+          "mean_right": 123494.73854287501,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.011161739100297347
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.42962962962962964,
+          "ci95_delta_left_minus_right": [
+            5706.0692412181415,
+            11709.085165696219
+          ],
+          "episode_win_rate_left_better": 0.481,
+          "mean_delta_left_minus_right": 8678.963809,
+          "mean_left": 529721.8801608499,
+          "mean_right": 521042.91635184985,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.016656907783656097
+        }
+      },
+      "right": "optimizer_0"
+    },
+    "predopt_h3_vs_myopic": {
+      "left": "predopt_h3",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.5407407407407407,
+          "ci95_delta_left_minus_right": [
+            -0.004171875,
+            -0.0014527343750000057
+          ],
+          "episode_win_rate_left_better": 0.177,
+          "mean_delta_left_minus_right": -0.0028125,
+          "mean_left": 0.106984375,
+          "mean_right": 0.109796875,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.0256154831364736
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.6069393060693931,
+          "bootstrap_probability_left_better": 0.3009,
+          "cell_win_rate_left_better": 0.4740740740740741,
+          "ci95_delta_left_minus_right": [
+            -0.263025,
+            0.442
+          ],
+          "episode_win_rate_left_better": 0.427,
+          "mean_delta_left_minus_right": 0.092,
+          "mean_left": 41.154,
+          "mean_right": 41.062,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.002240514344162486
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8592592592592593,
+          "ci95_delta_left_minus_right": [
+            -3127.955851122268,
+            -2344.9557055843748
+          ],
+          "episode_win_rate_left_better": 0.678,
+          "mean_delta_left_minus_right": -2728.4793938593775,
+          "mean_left": 212387.91914376564,
+          "mean_right": 215116.398537625,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.012683735003039072
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.6962962962962963,
+          "ci95_delta_left_minus_right": [
+            -2264.5284749103485,
+            -1388.57705490215
+          ],
+          "episode_win_rate_left_better": 0.557,
+          "mean_delta_left_minus_right": -1815.6157067500003,
+          "mean_left": 121549.71290667188,
+          "mean_right": 123365.32861342187,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.01471739043017039
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.1277872212778722,
+          "bootstrap_probability_left_better": 0.9362,
+          "cell_win_rate_left_better": 0.4888888888888889,
+          "ci95_delta_left_minus_right": [
+            -4309.2240717200375,
+            501.87468928747285
+          ],
+          "episode_win_rate_left_better": 0.475,
+          "mean_delta_left_minus_right": -1892.2012430750108,
+          "mean_left": 519038.50941122486,
+          "mean_right": 520930.7106542999,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.0036323472668723378
+        }
+      },
+      "right": "myopic"
+    },
+    "predopt_h3_vs_optimizer_0": {
+      "left": "predopt_h3",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.0005999400059994001,
+          "bootstrap_probability_left_better": 0.9998,
+          "cell_win_rate_left_better": 0.5259259259259259,
+          "ci95_delta_left_minus_right": [
+            -0.004140625,
+            -0.001421875
+          ],
+          "episode_win_rate_left_better": 0.176,
+          "mean_delta_left_minus_right": -0.00278125,
+          "mean_left": 0.106984375,
+          "mean_right": 0.109765625,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.025338078291814944
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8296296296296296,
+          "ci95_delta_left_minus_right": [
+            -3.903025,
+            -3.074
+          ],
+          "episode_win_rate_left_better": 0.646,
+          "mean_delta_left_minus_right": -3.484,
+          "mean_left": 41.154,
+          "mean_right": 44.638,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.07805009184999329
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.9555555555555556,
+          "ci95_delta_left_minus_right": [
+            -3665.900479404692,
+            -2865.171072704297
+          ],
+          "episode_win_rate_left_better": 0.766,
+          "mean_delta_left_minus_right": -3258.8708917500003,
+          "mean_left": 212387.91914376564,
+          "mean_right": 215646.79003551565,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.015112076981128656
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.7481481481481481,
+          "ci95_delta_left_minus_right": [
+            -2406.0148384566355,
+            -1490.8552921236242
+          ],
+          "episode_win_rate_left_better": 0.589,
+          "mean_delta_left_minus_right": -1945.0256362031228,
+          "mean_left": 121549.71290667188,
+          "mean_right": 123494.73854287501,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.015749866424696685
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.10878912108789121,
+          "bootstrap_probability_left_better": 0.9457,
+          "cell_win_rate_left_better": 0.4666666666666667,
+          "ci95_delta_left_minus_right": [
+            -4442.9032973843505,
+            451.8572867030717
+          ],
+          "episode_win_rate_left_better": 0.496,
+          "mean_delta_left_minus_right": -2004.4069406250103,
+          "mean_left": 519038.50941122486,
+          "mean_right": 521042.91635184985,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.0038469133304011266
+        }
+      },
+      "right": "optimizer_0"
+    },
+    "predopt_h5_vs_myopic": {
+      "left": "predopt_h5",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.5851851851851851,
+          "ci95_delta_left_minus_right": [
+            -0.006625,
+            -0.003640625
+          ],
+          "episode_win_rate_left_better": 0.209,
+          "mean_delta_left_minus_right": -0.005109375,
+          "mean_left": 0.1046875,
+          "mean_right": 0.109796875,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.046534794364593714
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.6296296296296297,
+          "ci95_delta_left_minus_right": [
+            -1.504025,
+            -0.797
+          ],
+          "episode_win_rate_left_better": 0.512,
+          "mean_delta_left_minus_right": -1.15,
+          "mean_left": 39.912,
+          "mean_right": 41.062,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.028006429302031073
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.9111111111111111,
+          "ci95_delta_left_minus_right": [
+            -4970.163865048243,
+            -4003.04927053809
+          ],
+          "episode_win_rate_left_better": 0.733,
+          "mean_delta_left_minus_right": -4481.303198664067,
+          "mean_left": 210635.09533896093,
+          "mean_right": 215116.398537625,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.020831992489313934
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.7777777777777778,
+          "ci95_delta_left_minus_right": [
+            -3532.3694488830097,
+            -2486.8660586044875
+          ],
+          "episode_win_rate_left_better": 0.589,
+          "mean_delta_left_minus_right": -2995.5071555000004,
+          "mean_left": 120369.82145792188,
+          "mean_right": 123365.32861342187,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.024281596694698027
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.06359364063593641,
+          "bootstrap_probability_left_better": 0.9683,
+          "cell_win_rate_left_better": 0.5111111111111111,
+          "ci95_delta_left_minus_right": [
+            -5365.889933808152,
+            183.73699063874466
+          ],
+          "episode_win_rate_left_better": 0.479,
+          "mean_delta_left_minus_right": -2600.2009078250053,
+          "mean_left": 518330.50974647485,
+          "mean_right": 520930.7106542999,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.004991452518817903
+        }
+      },
+      "right": "myopic"
+    },
+    "predopt_h5_vs_optimizer_0": {
+      "left": "predopt_h5",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.5703703703703704,
+          "ci95_delta_left_minus_right": [
+            -0.0065625,
+            -0.003609375
+          ],
+          "episode_win_rate_left_better": 0.209,
+          "mean_delta_left_minus_right": -0.005078125,
+          "mean_left": 0.1046875,
+          "mean_right": 0.109765625,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.046263345195729534
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8666666666666667,
+          "ci95_delta_left_minus_right": [
+            -5.14,
+            -4.309
+          ],
+          "episode_win_rate_left_better": 0.73,
+          "mean_delta_left_minus_right": -4.726,
+          "mean_left": 39.912,
+          "mean_right": 44.638,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.10587391908239617
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.9925925925925926,
+          "ci95_delta_left_minus_right": [
+            -5521.995341687896,
+            -4521.5066188216815
+          ],
+          "episode_win_rate_left_better": 0.802,
+          "mean_delta_left_minus_right": -5011.6946965546895,
+          "mean_left": 210635.09533896093,
+          "mean_right": 215646.79003551565,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.023240293517604853
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.7925925925925926,
+          "ci95_delta_left_minus_right": [
+            -3673.620478777535,
+            -2584.489731691989
+          ],
+          "episode_win_rate_left_better": 0.611,
+          "mean_delta_left_minus_right": -3124.917084953123,
+          "mean_left": 120369.82145792188,
+          "mean_right": 123494.73854287501,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.02530405037351621
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.055194480551944806,
+          "bootstrap_probability_left_better": 0.9725,
+          "cell_win_rate_left_better": 0.5185185185185185,
+          "ci95_delta_left_minus_right": [
+            -5551.956108758121,
+            53.089591192486765
+          ],
+          "episode_win_rate_left_better": 0.497,
+          "mean_delta_left_minus_right": -2712.4066053750043,
+          "mean_left": 518330.50974647485,
+          "mean_right": 521042.91635184985,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.005205725901363892
+        }
+      },
+      "right": "optimizer_0"
+    },
+    "rl_0_vs_myopic": {
+      "left": "rl_0",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8148148148148148,
+          "ci95_delta_left_minus_right": [
+            -0.013822916666666667,
+            -0.010182161458333332
+          ],
+          "episode_win_rate_left_better": 0.367,
+          "mean_delta_left_minus_right": -0.012015625,
+          "mean_left": 0.09778125,
+          "mean_right": 0.109796875,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.10943503628860111
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.17777777777777778,
+          "ci95_delta_left_minus_right": [
+            9.352974999999999,
+            10.797333333333336
+          ],
+          "episode_win_rate_left_better": 0.209,
+          "mean_delta_left_minus_right": 10.065,
+          "mean_left": 51.127,
+          "mean_right": 41.062,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.24511713993473286
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.9851851851851852,
+          "ci95_delta_left_minus_right": [
+            -11668.838443839515,
+            -9927.890690694861
+          ],
+          "episode_win_rate_left_better": 0.841,
+          "mean_delta_left_minus_right": -10802.821243075521,
+          "mean_left": 204313.5772945495,
+          "mean_right": 215116.398537625,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.050218492483668324
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8,
+          "ci95_delta_left_minus_right": [
+            -6361.027028783534,
+            -4868.634682151047
+          ],
+          "episode_win_rate_left_better": 0.584,
+          "mean_delta_left_minus_right": -5596.211799968749,
+          "mean_left": 117769.11681345312,
+          "mean_right": 123365.32861342187,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.04536292216677072
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8296296296296296,
+          "ci95_delta_left_minus_right": [
+            -32659.532754836804,
+            -24529.48466279581
+          ],
+          "episode_win_rate_left_better": 0.643,
+          "mean_delta_left_minus_right": -28580.821663341634,
+          "mean_left": 492349.8889909582,
+          "mean_right": 520930.7106542999,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.05486491980371732
+        }
+      },
+      "right": "myopic"
+    },
+    "rl_h5_vs_myopic": {
+      "left": "rl_h5",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.6888888888888889,
+          "ci95_delta_left_minus_right": [
+            -0.01577604166666666,
+            -0.010572786458333337
+          ],
+          "episode_win_rate_left_better": 0.345,
+          "mean_delta_left_minus_right": -0.013182291666666669,
+          "mean_left": 0.09661458333333332,
+          "mean_right": 0.109796875,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.12006071818224943
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.05185185185185185,
+          "ci95_delta_left_minus_right": [
+            22.851658333333333,
+            25.940341666666676
+          ],
+          "episode_win_rate_left_better": 0.103,
+          "mean_delta_left_minus_right": 24.382,
+          "mean_left": 65.444,
+          "mean_right": 41.062,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.5937850080366276
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8814814814814815,
+          "ci95_delta_left_minus_right": [
+            -14026.258298368617,
+            -11663.58951139857
+          ],
+          "episode_win_rate_left_better": 0.737,
+          "mean_delta_left_minus_right": -12827.04677509375,
+          "mean_left": 202289.35176253124,
+          "mean_right": 215116.398537625,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.05962840054171988
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.6,
+          "ci95_delta_left_minus_right": [
+            -6927.93967823502,
+            -4618.541879924674
+          ],
+          "episode_win_rate_left_better": 0.475,
+          "mean_delta_left_minus_right": -5746.880684096352,
+          "mean_left": 117618.44792932553,
+          "mean_right": 123365.32861342187,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.046584244930800635
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.7407407407407407,
+          "ci95_delta_left_minus_right": [
+            -16947.343846507923,
+            -9123.954260592338
+          ],
+          "episode_win_rate_left_better": 0.56,
+          "mean_delta_left_minus_right": -12989.76386475835,
+          "mean_left": 507940.9467895415,
+          "mean_right": 520930.7106542999,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.024935684533635837
+        }
+      },
+      "right": "myopic"
+    },
+    "rl_h5_vs_predopt_h5": {
+      "left": "rl_h5",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.6222222222222222,
+          "ci95_delta_left_minus_right": [
+            -0.010208463541666674,
+            -0.005864583333333333
+          ],
+          "episode_win_rate_left_better": 0.329,
+          "mean_delta_left_minus_right": -0.008072916666666666,
+          "mean_left": 0.09661458333333332,
+          "mean_right": 0.1046875,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.07711442786069651
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.0,
+          "ci95_delta_left_minus_right": [
+            23.955274999999986,
+            27.112999999999992
+          ],
+          "episode_win_rate_left_better": 0.036,
+          "mean_delta_left_minus_right": 25.532,
+          "mean_left": 65.444,
+          "mean_right": 39.912,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.639707356183604
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.8518518518518519,
+          "ci95_delta_left_minus_right": [
+            -9279.647254367834,
+            -7425.605566988857
+          ],
+          "episode_win_rate_left_better": 0.672,
+          "mean_delta_left_minus_right": -8345.743576429682,
+          "mean_left": 202289.35176253124,
+          "mean_right": 210635.09533896093,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.03962180928586206
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.5111111111111111,
+          "ci95_delta_left_minus_right": [
+            -3688.1089967281973,
+            -1850.1644794822885
+          ],
+          "episode_win_rate_left_better": 0.432,
+          "mean_delta_left_minus_right": -2751.3735285963508,
+          "mean_left": 117618.44792932553,
+          "mean_right": 120369.82145792188,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.022857668934552326
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.7185185185185186,
+          "ci95_delta_left_minus_right": [
+            -14190.543086242906,
+            -6629.561703432497
+          ],
+          "episode_win_rate_left_better": 0.58,
+          "mean_delta_left_minus_right": -10389.562956933345,
+          "mean_left": 507940.9467895415,
+          "mean_right": 518330.50974647485,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.0200442820971798
+        }
+      },
+      "right": "predopt_h5"
+    },
+    "rl_h5_vs_rl_0": {
+      "left": "rl_h5",
+      "metrics": {
+        "deadline_miss_rate": {
+          "bootstrap_p_value_two_sided": 0.16878312168783122,
+          "bootstrap_probability_left_better": 0.9157,
+          "cell_win_rate_left_better": 0.4222222222222222,
+          "ci95_delta_left_minus_right": [
+            -0.0028124999999999995,
+            0.0005052083333333327
+          ],
+          "episode_win_rate_left_better": 0.254,
+          "mean_delta_left_minus_right": -0.001166666666666667,
+          "mean_left": 0.09661458333333332,
+          "mean_right": 0.09778125,
+          "metric": "deadline_miss_rate",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.011931394481730055
+        },
+        "gpu_evictions": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.0,
+          "ci95_delta_left_minus_right": [
+            13.335983333333328,
+            15.337666666666664
+          ],
+          "episode_win_rate_left_better": 0.09,
+          "mean_delta_left_minus_right": 14.317,
+          "mean_left": 65.444,
+          "mean_right": 51.127,
+          "metric": "gpu_evictions",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.28002816515735324
+        },
+        "mean_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 1.0,
+          "cell_win_rate_left_better": 0.5407407407407407,
+          "ci95_delta_left_minus_right": [
+            -2577.034198118419,
+            -1480.3813111558554
+          ],
+          "episode_win_rate_left_better": 0.481,
+          "mean_delta_left_minus_right": -2024.2255320182257,
+          "mean_left": 202289.35176253124,
+          "mean_right": 204313.5772945495,
+          "metric": "mean_completion_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.009907445010861871
+        },
+        "mean_job_queue_ms": {
+          "bootstrap_p_value_two_sided": 0.6627337266273373,
+          "bootstrap_probability_left_better": 0.6687,
+          "cell_win_rate_left_better": 0.3925925925925926,
+          "ci95_delta_left_minus_right": [
+            -840.6556924745418,
+            511.48520102975317
+          ],
+          "episode_win_rate_left_better": 0.356,
+          "mean_delta_left_minus_right": -150.66888412760153,
+          "mean_left": 117618.44792932553,
+          "mean_right": 117769.11681345312,
+          "metric": "mean_job_queue_ms",
+          "metric_scope": "episode_summary",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": 0.0012793581900275419
+        },
+        "p95_completion_ms": {
+          "bootstrap_p_value_two_sided": 0.00019998000199980003,
+          "bootstrap_probability_left_better": 0.0,
+          "cell_win_rate_left_better": 0.32592592592592595,
+          "ci95_delta_left_minus_right": [
+            12032.31346202643,
+            19288.93001601618
+          ],
+          "episode_win_rate_left_better": 0.415,
+          "mean_delta_left_minus_right": 15591.057798583286,
+          "mean_left": 507940.9467895415,
+          "mean_right": 492349.8889909582,
+          "metric": "p95_completion_ms",
+          "metric_scope": "episode_p95_diagnostic_only",
+          "n_cells": 135,
+          "n_episodes": 1000,
+          "relative_improvement_left_vs_right": -0.03166662194346429
+        }
+      },
+      "right": "rl_0"
+    }
+  },
+  "multiple_comparison": {
+    "deadline_miss_rate": {
+      "vs_myopic": {
+        "holm_p_values": {
+          "predopt_h1_vs_myopic": 0.0005999400059994001,
+          "predopt_h3_vs_myopic": 0.0005999400059994001,
+          "predopt_h5_vs_myopic": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_myopic": 0.00019998000199980003,
+          "predopt_h3_vs_myopic": 0.00019998000199980003,
+          "predopt_h5_vs_myopic": 0.00019998000199980003
+        }
+      },
+      "vs_optimizer_0": {
+        "holm_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h3_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h5_vs_optimizer_0": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h3_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h5_vs_optimizer_0": 0.00019998000199980003
+        }
+      }
+    },
+    "gpu_evictions": {
+      "vs_myopic": {
+        "holm_p_values": {
+          "predopt_h1_vs_myopic": 0.7707229277072293,
+          "predopt_h3_vs_myopic": 0.7707229277072293,
+          "predopt_h5_vs_myopic": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_myopic": 0.38536146385361464,
+          "predopt_h3_vs_myopic": 0.6069393060693931,
+          "predopt_h5_vs_myopic": 0.00019998000199980003
+        }
+      },
+      "vs_optimizer_0": {
+        "holm_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h3_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h5_vs_optimizer_0": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h3_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h5_vs_optimizer_0": 0.00019998000199980003
+        }
+      }
+    },
+    "mean_completion_ms": {
+      "vs_myopic": {
+        "holm_p_values": {
+          "predopt_h1_vs_myopic": 0.0005999400059994001,
+          "predopt_h3_vs_myopic": 0.0005999400059994001,
+          "predopt_h5_vs_myopic": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_myopic": 0.00019998000199980003,
+          "predopt_h3_vs_myopic": 0.00019998000199980003,
+          "predopt_h5_vs_myopic": 0.00019998000199980003
+        }
+      },
+      "vs_optimizer_0": {
+        "holm_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h3_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h5_vs_optimizer_0": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h3_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h5_vs_optimizer_0": 0.00019998000199980003
+        }
+      }
+    },
+    "mean_job_queue_ms": {
+      "vs_myopic": {
+        "holm_p_values": {
+          "predopt_h1_vs_myopic": 0.0005999400059994001,
+          "predopt_h3_vs_myopic": 0.0005999400059994001,
+          "predopt_h5_vs_myopic": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_myopic": 0.00019998000199980003,
+          "predopt_h3_vs_myopic": 0.00019998000199980003,
+          "predopt_h5_vs_myopic": 0.00019998000199980003
+        }
+      },
+      "vs_optimizer_0": {
+        "holm_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h3_vs_optimizer_0": 0.0005999400059994001,
+          "predopt_h5_vs_optimizer_0": 0.0005999400059994001
+        },
+        "method": "Holm",
+        "raw_p_values": {
+          "predopt_h1_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h3_vs_optimizer_0": 0.00019998000199980003,
+          "predopt_h5_vs_optimizer_0": 0.00019998000199980003
+        }
+      }
+    }
+  },
+  "p95_note": "p95_completion_ms is an episode-level summary diagnostic. A global job-level P95 is not computed because this matrix stores no job-level completion values; final T_final must collect them.",
+  "rl_seed_comparisons": {
+    "11": {
+      "rl_0_vs_myopic": {
+        "left": "rl_0",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8444444444444444,
+            "ci95_delta_left_minus_right": [
+              -0.02453125,
+              -0.019140625
+            ],
+            "episode_win_rate_left_better": 0.36,
+            "mean_delta_left_minus_right": -0.021890625,
+            "mean_left": 0.08790625,
+            "mean_right": 0.109796875,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.19937384374555286
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8814814814814815,
+            "ci95_delta_left_minus_right": [
+              -7.618025,
+              -6.558
+            ],
+            "episode_win_rate_left_better": 0.732,
+            "mean_delta_left_minus_right": -7.073,
+            "mean_left": 33.989,
+            "mean_right": 41.062,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.1722517169158833
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9925925925925926,
+            "ci95_delta_left_minus_right": [
+              -20293.6454607252,
+              -17515.03703899531
+            ],
+            "episode_win_rate_left_better": 0.911,
+            "mean_delta_left_minus_right": -18907.980022273445,
+            "mean_left": 196208.41851535157,
+            "mean_right": 215116.398537625,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.08789650696465308
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9925925925925926,
+            "ci95_delta_left_minus_right": [
+              -19265.41342259591,
+              -16513.53752547715
+            ],
+            "episode_win_rate_left_better": 0.886,
+            "mean_delta_left_minus_right": -17880.623924125,
+            "mean_left": 105484.70468929686,
+            "mean_right": 123365.32861342187,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.14494043119810268
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8,
+            "ci95_delta_left_minus_right": [
+              -36609.2171897375,
+              -25439.689002482548
+            ],
+            "episode_win_rate_left_better": 0.621,
+            "mean_delta_left_minus_right": -30964.210004175016,
+            "mean_left": 489966.50065012486,
+            "mean_right": 520930.7106542999,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.059440170008950556
+          }
+        },
+        "right": "myopic"
+      },
+      "rl_h5_vs_myopic": {
+        "left": "rl_h5",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.674074074074074,
+            "ci95_delta_left_minus_right": [
+              -0.017625,
+              -0.012328125
+            ],
+            "episode_win_rate_left_better": 0.316,
+            "mean_delta_left_minus_right": -0.014953125,
+            "mean_left": 0.09484375,
+            "mean_right": 0.109796875,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.1361889853422513
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.0,
+            "ci95_delta_left_minus_right": [
+              44.675,
+              50.817025
+            ],
+            "episode_win_rate_left_better": 0.05,
+            "mean_delta_left_minus_right": 47.738,
+            "mean_left": 88.8,
+            "mean_right": 41.062,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -1.1625834104524866
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.674074074074074,
+            "ci95_delta_left_minus_right": [
+              -10519.59659362695,
+              -7967.034117912687
+            ],
+            "episode_win_rate_left_better": 0.618,
+            "mean_delta_left_minus_right": -9217.280972718749,
+            "mean_left": 205899.11756490628,
+            "mean_right": 215116.398537625,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.042847876941871525
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.5259259259259259,
+            "ci95_delta_left_minus_right": [
+              -4930.077618231246,
+              -2334.3107133191365
+            ],
+            "episode_win_rate_left_better": 0.419,
+            "mean_delta_left_minus_right": -3589.1127721953085,
+            "mean_left": 119776.21584122657,
+            "mean_right": 123365.32861342187,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.029093366933282915
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.09219078092190781,
+            "bootstrap_probability_left_better": 0.954,
+            "cell_win_rate_left_better": 0.6,
+            "ci95_delta_left_minus_right": [
+              -9527.099339441871,
+              768.1251767331264
+            ],
+            "episode_win_rate_left_better": 0.536,
+            "mean_delta_left_minus_right": -4419.330032975006,
+            "mean_left": 516511.3806213249,
+            "mean_right": 520930.7106542999,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.008483527545197394
+          }
+        },
+        "right": "myopic"
+      },
+      "rl_h5_vs_rl_0": {
+        "left": "rl_h5",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.26666666666666666,
+            "ci95_delta_left_minus_right": [
+              0.00475,
+              0.009125390624999993
+            ],
+            "episode_win_rate_left_better": 0.156,
+            "mean_delta_left_minus_right": 0.0069375,
+            "mean_left": 0.09484375,
+            "mean_right": 0.08790625,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.07891930323498045
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.0,
+            "ci95_delta_left_minus_right": [
+              51.517,
+              58.164025
+            ],
+            "episode_win_rate_left_better": 0.01,
+            "mean_delta_left_minus_right": 54.811,
+            "mean_left": 88.8,
+            "mean_right": 33.989,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -1.6126099620465446
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.1925925925925926,
+            "ci95_delta_left_minus_right": [
+              8664.497506966216,
+              10750.360228835349
+            ],
+            "episode_win_rate_left_better": 0.219,
+            "mean_delta_left_minus_right": 9690.699049554692,
+            "mean_left": 205899.11756490628,
+            "mean_right": 196208.41851535157,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.04938982293869557
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.13333333333333333,
+            "ci95_delta_left_minus_right": [
+              13167.527234996282,
+              15428.827763831647
+            ],
+            "episode_win_rate_left_better": 0.145,
+            "mean_delta_left_minus_right": 14291.511151929692,
+            "mean_left": 119776.21584122657,
+            "mean_right": 105484.70468929686,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.13548420307972667
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.32592592592592595,
+            "ci95_delta_left_minus_right": [
+              20027.64513579567,
+              33384.5422653256
+            ],
+            "episode_win_rate_left_better": 0.403,
+            "mean_delta_left_minus_right": 26544.87997120001,
+            "mean_left": 516511.3806213249,
+            "mean_right": 489966.50065012486,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.05417692829199189
+          }
+        },
+        "right": "rl_0"
+      }
+    },
+    "22": {
+      "rl_0_vs_myopic": {
+        "left": "rl_0",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.725925925925926,
+            "ci95_delta_left_minus_right": [
+              -0.01625,
+              -0.011280859375000006
+            ],
+            "episode_win_rate_left_better": 0.3,
+            "mean_delta_left_minus_right": -0.01371875,
+            "mean_left": 0.096078125,
+            "mean_right": 0.109796875,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.12494663441013235
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9925925925925926,
+            "ci95_delta_left_minus_right": [
+              -14.387,
+              -12.734
+            ],
+            "episode_win_rate_left_better": 0.897,
+            "mean_delta_left_minus_right": -13.547,
+            "mean_left": 27.515,
+            "mean_right": 41.062,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.3299157371779261
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9925925925925926,
+            "ci95_delta_left_minus_right": [
+              -17327.773839327918,
+              -14832.303944488867
+            ],
+            "episode_win_rate_left_better": 0.893,
+            "mean_delta_left_minus_right": -16047.726024640628,
+            "mean_left": 199068.67251298437,
+            "mean_right": 215116.398537625,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.07460019846805772
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.5407407407407407,
+            "ci95_delta_left_minus_right": [
+              -5630.198450016217,
+              -3526.431542727155
+            ],
+            "episode_win_rate_left_better": 0.471,
+            "mean_delta_left_minus_right": -4556.509710648441,
+            "mean_left": 118808.81890277343,
+            "mean_right": 123365.32861342187,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.036935091584173865
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.837037037037037,
+            "ci95_delta_left_minus_right": [
+              -57681.4799497349,
+              -44299.55055629682
+            ],
+            "episode_win_rate_left_better": 0.659,
+            "mean_delta_left_minus_right": -50780.08071417493,
+            "mean_left": 470150.6299401249,
+            "mean_right": 520930.7106542999,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.09747952976393749
+          }
+        },
+        "right": "myopic"
+      },
+      "rl_h5_vs_myopic": {
+        "left": "rl_h5",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.7457254274572542,
+            "bootstrap_probability_left_better": 0.6272,
+            "cell_win_rate_left_better": 0.42962962962962964,
+            "ci95_delta_left_minus_right": [
+              -0.00375,
+              0.0026875
+            ],
+            "episode_win_rate_left_better": 0.263,
+            "mean_delta_left_minus_right": -0.000546875,
+            "mean_left": 0.10925,
+            "mean_right": 0.109796875,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.004980788387647645
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.007407407407407408,
+            "ci95_delta_left_minus_right": [
+              32.305975,
+              36.529075
+            ],
+            "episode_win_rate_left_better": 0.049,
+            "mean_delta_left_minus_right": 34.397,
+            "mean_left": 75.459,
+            "mean_right": 41.062,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.8376844771321417
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.7111111111111111,
+            "ci95_delta_left_minus_right": [
+              -7804.326174665429,
+              -5653.320507400975
+            ],
+            "episode_win_rate_left_better": 0.581,
+            "mean_delta_left_minus_right": -6720.18084670312,
+            "mean_left": 208396.2176909219,
+            "mean_right": 215116.398537625,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.03123974226226981
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.2518518518518518,
+            "ci95_delta_left_minus_right": [
+              2165.156519025586,
+              4521.796612033795
+            ],
+            "episode_win_rate_left_better": 0.302,
+            "mean_delta_left_minus_right": 3363.1143318125055,
+            "mean_left": 126728.44294523439,
+            "mean_right": 123365.32861342187,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.027261422391628164
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00039996000399960006,
+            "bootstrap_probability_left_better": 0.0001,
+            "cell_win_rate_left_better": 0.5259259259259259,
+            "ci95_delta_left_minus_right": [
+              4234.000432234352,
+              13633.801819484299
+            ],
+            "episode_win_rate_left_better": 0.476,
+            "mean_delta_left_minus_right": 8922.809636124957,
+            "mean_left": 529853.5202904248,
+            "mean_right": 520930.7106542999,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.017128592063458348
+          }
+        },
+        "right": "myopic"
+      },
+      "rl_h5_vs_rl_0": {
+        "left": "rl_h5",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.17037037037037037,
+            "ci95_delta_left_minus_right": [
+              0.010359375,
+              0.015906640624999996
+            ],
+            "episode_win_rate_left_better": 0.16,
+            "mean_delta_left_minus_right": 0.013171875,
+            "mean_left": 0.10925,
+            "mean_right": 0.096078125,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.13709546267685802
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.0,
+            "ci95_delta_left_minus_right": [
+              45.211975,
+              50.72605
+            ],
+            "episode_win_rate_left_better": 0.007,
+            "mean_delta_left_minus_right": 47.944,
+            "mean_left": 75.459,
+            "mean_right": 27.515,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -1.7424677448664365
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.1111111111111111,
+            "ci95_delta_left_minus_right": [
+              8309.504345983014,
+              10389.077851910757
+            ],
+            "episode_win_rate_left_better": 0.222,
+            "mean_delta_left_minus_right": 9327.545177937507,
+            "mean_left": 208396.2176909219,
+            "mean_right": 199068.67251298437,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.04685591690640883
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.17777777777777778,
+            "ci95_delta_left_minus_right": [
+              6728.759654173837,
+              9137.979745321494
+            ],
+            "episode_win_rate_left_better": 0.31,
+            "mean_delta_left_minus_right": 7919.624042460945,
+            "mean_left": 126728.44294523439,
+            "mean_right": 118808.81890277343,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.06665855376394178
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.2518518518518518,
+            "ci95_delta_left_minus_right": [
+              52569.224592593026,
+              67070.05559078993
+            ],
+            "episode_win_rate_left_better": 0.357,
+            "mean_delta_left_minus_right": 59702.890350299895,
+            "mean_left": 529853.5202904248,
+            "mean_right": 470150.6299401249,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.12698672839788225
+          }
+        },
+        "right": "rl_0"
+      }
+    },
+    "33": {
+      "rl_0_vs_myopic": {
+        "left": "rl_0",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.6697330266973303,
+            "bootstrap_probability_left_better": 0.6652,
+            "cell_win_rate_left_better": 0.4740740740740741,
+            "ci95_delta_left_minus_right": [
+              -0.0023125,
+              0.001421875
+            ],
+            "episode_win_rate_left_better": 0.186,
+            "mean_delta_left_minus_right": -0.0004375,
+            "mean_left": 0.109359375,
+            "mean_right": 0.109796875,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.003984630710118116
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.0,
+            "ci95_delta_left_minus_right": [
+              48.03695,
+              53.723
+            ],
+            "episode_win_rate_left_better": 0.006,
+            "mean_delta_left_minus_right": 50.815,
+            "mean_left": 91.877,
+            "mean_right": 41.062,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -1.2375188738980079
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.2740740740740741,
+            "ci95_delta_left_minus_right": [
+              1805.1553164007853,
+              3299.5707619554623
+            ],
+            "episode_win_rate_left_better": 0.336,
+            "mean_delta_left_minus_right": 2547.2423176875022,
+            "mean_left": 217663.6408553125,
+            "mean_right": 215116.398537625,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.011841227981705801
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 0.0,
+            "cell_win_rate_left_better": 0.2074074074074074,
+            "ci95_delta_left_minus_right": [
+              4892.188916023628,
+              6431.997166502351
+            ],
+            "episode_win_rate_left_better": 0.237,
+            "mean_delta_left_minus_right": 5648.498234867191,
+            "mean_left": 129013.82684828907,
+            "mean_right": 123365.32861342187,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": -0.04578675628196436
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.059394060593940604,
+            "bootstrap_probability_left_better": 0.9704,
+            "cell_win_rate_left_better": 0.45185185185185184,
+            "ci95_delta_left_minus_right": [
+              -8033.333664677443,
+              130.43207848314424
+            ],
+            "episode_win_rate_left_better": 0.463,
+            "mean_delta_left_minus_right": -3998.174271674966,
+            "mean_left": 516932.53638262494,
+            "mean_right": 520930.7106542999,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.007675059638263936
+          }
+        },
+        "right": "myopic"
+      },
+      "rl_h5_vs_myopic": {
+        "left": "rl_h5",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8,
+            "ci95_delta_left_minus_right": [
+              -0.02690625,
+              -0.021296875
+            ],
+            "episode_win_rate_left_better": 0.365,
+            "mean_delta_left_minus_right": -0.024046875,
+            "mean_left": 0.08575,
+            "mean_right": 0.109796875,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.2190123808168493
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9111111111111111,
+            "ci95_delta_left_minus_right": [
+              -9.639,
+              -8.365
+            ],
+            "episode_win_rate_left_better": 0.779,
+            "mean_delta_left_minus_right": -8.989,
+            "mean_left": 32.073,
+            "mean_right": 41.062,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.21891286347474553
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 1.0,
+            "ci95_delta_left_minus_right": [
+              -24238.326854033203,
+              -20921.718563372837
+            ],
+            "episode_win_rate_left_better": 0.919,
+            "mean_delta_left_minus_right": -22543.678505859374,
+            "mean_left": 192572.72003176564,
+            "mean_right": 215116.398537625,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.10479758242101829
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9333333333333333,
+            "ci95_delta_left_minus_right": [
+              -18631.48062166542,
+              -15423.076895159358
+            ],
+            "episode_win_rate_left_better": 0.731,
+            "mean_delta_left_minus_right": -17014.643611906253,
+            "mean_left": 106350.68500151562,
+            "mean_right": 123365.32861342187,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.13792079025074716
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8814814814814815,
+            "ci95_delta_left_minus_right": [
+              -49197.49374968247,
+              -37807.29204414941
+            ],
+            "episode_win_rate_left_better": 0.67,
+            "mean_delta_left_minus_right": -43472.77119742499,
+            "mean_left": 477457.9394568749,
+            "mean_right": 520930.7106542999,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.08345211811916844
+          }
+        },
+        "right": "myopic"
+      },
+      "rl_h5_vs_rl_0": {
+        "left": "rl_h5",
+        "metrics": {
+          "deadline_miss_rate": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8148148148148148,
+            "ci95_delta_left_minus_right": [
+              -0.026422265625,
+              -0.020796875
+            ],
+            "episode_win_rate_left_better": 0.362,
+            "mean_delta_left_minus_right": -0.023609375,
+            "mean_left": 0.08575,
+            "mean_right": 0.109359375,
+            "metric": "deadline_miss_rate",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.21588798399771394
+          },
+          "gpu_evictions": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 1.0,
+            "ci95_delta_left_minus_right": [
+              -63.15,
+              -56.480900000000005
+            ],
+            "episode_win_rate_left_better": 0.986,
+            "mean_delta_left_minus_right": -59.804,
+            "mean_left": 32.073,
+            "mean_right": 91.877,
+            "metric": "gpu_evictions",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.6509137216060603
+          },
+          "mean_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 1.0,
+            "ci95_delta_left_minus_right": [
+              -26960.795393206252,
+              -23317.520935513276
+            ],
+            "episode_win_rate_left_better": 0.97,
+            "mean_delta_left_minus_right": -25090.920823546876,
+            "mean_left": 192572.72003176564,
+            "mean_right": 217663.6408553125,
+            "metric": "mean_completion_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.11527382673997243
+          },
+          "mean_job_queue_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.9925925925925926,
+            "ci95_delta_left_minus_right": [
+              -24466.236467706247,
+              -20909.17312341799
+            ],
+            "episode_win_rate_left_better": 0.883,
+            "mean_delta_left_minus_right": -22663.14184677344,
+            "mean_left": 106350.68500151562,
+            "mean_right": 129013.82684828907,
+            "metric": "mean_job_queue_ms",
+            "metric_scope": "episode_summary",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.17566444155961403
+          },
+          "p95_completion_ms": {
+            "bootstrap_p_value_two_sided": 0.00019998000199980003,
+            "bootstrap_probability_left_better": 1.0,
+            "cell_win_rate_left_better": 0.8518518518518519,
+            "ci95_delta_left_minus_right": [
+              -46311.91487370817,
+              -32894.29919642067
+            ],
+            "episode_win_rate_left_better": 0.666,
+            "mean_delta_left_minus_right": -39474.596925750026,
+            "mean_left": 477457.9394568749,
+            "mean_right": 516932.53638262494,
+            "metric": "p95_completion_ms",
+            "metric_scope": "episode_p95_diagnostic_only",
+            "n_cells": 135,
+            "n_episodes": 1000,
+            "relative_improvement_left_vs_right": 0.07636315021295463
+          }
+        },
+        "right": "rl_0"
+      }
+    }
+  },
+  "row_audit": {
+    "myopic": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    },
+    "optimizer_0": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    },
+    "predopt_h1": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    },
+    "predopt_h3": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    },
+    "predopt_h5": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    },
+    "rl_0": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    },
+    "rl_h5": {
+      "episodes": 1000,
+      "failed_jobs": 0
+    }
+  },
+  "schema_version": "r7-paired-policy-stats-v0.1",
+  "selection_gates": {
+    "predopt_h5_is_lowest_mean_completion_among_h1_h3_h5": true,
+    "rl_h5_direction_consistent_across_seeds": {
+      "completion_all_seeds_left_better": false,
+      "deadline_all_seeds_left_better": false
+    },
+    "rl_h5_final_freeze_allowed": false
+  },
+  "status": "passed",
+  "validation": {
+    "cell_episode_count_max": 8,
+    "cell_episode_count_min": 7,
+    "episodes": 1000,
+    "expected_scenario_cells": 135,
+    "scenario_cells": 135,
+    "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "source_scheduler_results_sha256": "6476db5ef9f7e2a14ed088cb8b7e0b8dbd441505d66e5f14374470bdf1a5658e"
+  }
+}

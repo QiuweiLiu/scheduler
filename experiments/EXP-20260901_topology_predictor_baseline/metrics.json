@@ -1,0 +1,253 @@
+{
+  "action_value_audit": {
+    "decisions": 15364,
+    "episodes": 100,
+    "failed_jobs": 0,
+    "future_horizon": 5,
+    "policies": {
+      "aligned_predopt_h5": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "mean_spearman_predicted_vs_true": 0.29631421146530573,
+        "mean_true_regret_ms": 7978.733159658943,
+        "p95_true_regret_ms": 54561.89664999998,
+        "predicted_score_top1_agreement_rate": 0.6605701640197865,
+        "priority_violation_rate": 0.0,
+        "true_top1_agreement_rate": 0.6605701640197865
+      },
+      "aligned_predopt_h5_layer": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "mean_spearman_predicted_vs_true": 0.35435899640099666,
+        "mean_true_regret_ms": 6686.3388275839625,
+        "p95_true_regret_ms": 45452.470999999954,
+        "predicted_score_top1_agreement_rate": 0.7108174954438948,
+        "priority_violation_rate": 0.0,
+        "true_top1_agreement_rate": 0.7108174954438948
+      },
+      "aligned_trueopt_h5": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "mean_spearman_predicted_vs_true": 0.9999999999999999,
+        "mean_true_regret_ms": 0.0,
+        "p95_true_regret_ms": 0.0,
+        "predicted_score_top1_agreement_rate": 1.0,
+        "priority_violation_rate": 0.0,
+        "true_top1_agreement_rate": 1.0
+      },
+      "myopic": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "mean_spearman_predicted_vs_true": 0.2987323920018041,
+        "mean_true_regret_ms": 7659.222127831294,
+        "p95_true_regret_ms": 50521.18894999991,
+        "predicted_score_top1_agreement_rate": 0.6953918250455611,
+        "priority_violation_rate": 0.0,
+        "true_top1_agreement_rate": 0.6953918250455611
+      },
+      "predopt_h5": {
+        "chosen_in_strict_feasible_rate": 1.0,
+        "mean_spearman_predicted_vs_true": 0.3219657041873615,
+        "mean_true_regret_ms": 8065.462884144754,
+        "p95_true_regret_ms": 56014.92959999996,
+        "predicted_score_top1_agreement_rate": 0.6603098151523041,
+        "priority_violation_rate": 0.0,
+        "true_top1_agreement_rate": 0.6603098151523041
+      }
+    },
+    "status": "passed",
+    "truth_contract": "aligned_h5"
+  },
+  "baseline": {
+    "fit": {
+      "condition_key_count": 42,
+      "condition_key_fields": [
+        "model_stack_id",
+        "baseline",
+        "node_type",
+        "raw_action",
+        "model_id",
+        "execution_lane"
+      ],
+      "node_count": 6735,
+      "support_count_max": 797,
+      "support_count_min": 3,
+      "task_prefix": "r7_s_train_",
+      "template_count": 480,
+      "video_count": 120
+    },
+    "horizon": 5,
+    "max_scenarios": 3,
+    "output_contract": "future_h5_layers with identity-free scheduler-visible node prototypes",
+    "prediction": {
+      "layer_sidecar": "/Users/liuqiuwei/Documents/调度/experiments/EXP-20260901_topology_predictor_baseline/artifacts/prediction_artifacts/b05_future_h5_layers.jsonl.gz",
+      "layer_sidecar_sha256": "4f1ed76671c8c6f7db9d012a923fbf48cf932225470d231a45b56de82702aa12",
+      "node_count": 2200,
+      "predicted_layer_count_mean": 2.032324840764331,
+      "predicted_node_count_mean": 3.9399681528662422,
+      "task_prefix": "r7_s_val_",
+      "template_count": 160,
+      "unseen_condition_key_count": 0,
+      "video_count": 40
+    },
+    "predictor_type": "conditional_empirical_baseline",
+    "status": "generated"
+  },
+  "conclusion": {
+    "baseline_boundary": "conditional empirical S_train DAG-layer labels; no checkpoint, future event, target label, successor identity, or resource truth feature",
+    "next_scope": "only consider a learned train-only topology predictor after this diagnostic baseline is reviewed; keep formal matrix and T_final sealed",
+    "policy_selection": "do_not_promote",
+    "topology_contract": "Pred and True use the aligned H5 DAG-layer unit through the opt-in layer scorer"
+  },
+  "evidence_sha256": {
+    "action_value_audit_metrics": "7e39a3d5d5ec59f68ab7e6d7e6f5b9e4179aeea8b9fdcc81bbde99232d8b5332",
+    "baseline_metrics": "d79c949ac1ac46e098b8952ae1a3662711b35bfbb1d4b76992e22acf693ffdc4",
+    "layer_topology_audit": "251e3fdba67b29d6431f57cfaba7b1a0483c76d31351fdaa0a751c82b5e4f508",
+    "smoke_10_metrics": "3c06391fc8ac8e102f496f3f64fa9b5ee8f97be60dedc504441795994b2cd548"
+  },
+  "execution_environment": "local_only",
+  "experiment_id": "EXP-20260901_topology_predictor_baseline",
+  "formal_topology_predictor": false,
+  "inputs": {
+    "base_artifact_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+    "base_artifact_root": ".scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts",
+    "episodes": ".scratch/action_value_audit_remote_inputs_20260825/workload_validation_r7.jsonl",
+    "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "templates": ".scratch/action_value_audit_remote_inputs_20260825/job_templates_r7_v02.jsonl",
+    "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464"
+  },
+  "remote_used": false,
+  "schema_version": "r8-topology-predictor-baseline-experiment-v0.1",
+  "smoke_10": {
+    "aggregate": {
+      "aligned_predopt_h5": {
+        "completed_jobs": 160,
+        "episodes": 10,
+        "failed_jobs": 0,
+        "mean_completion_ms": 177058.29647187502,
+        "mean_deadline_miss_rate": 0.0125,
+        "mean_gpu_evictions": 17.7,
+        "mean_job_queue_ms": 87432.28717812501,
+        "mean_pred_mpc_rollout_ms": null,
+        "mean_pred_mpc_terminal_ms": null,
+        "p95_completion_ms": 307049.4841859375
+      },
+      "aligned_predopt_h5_layer": {
+        "completed_jobs": 160,
+        "episodes": 10,
+        "failed_jobs": 0,
+        "mean_completion_ms": 178714.337525,
+        "mean_deadline_miss_rate": 0.0125,
+        "mean_gpu_evictions": 17.3,
+        "mean_job_queue_ms": 87783.04093125,
+        "mean_pred_mpc_rollout_ms": null,
+        "mean_pred_mpc_terminal_ms": null,
+        "p95_completion_ms": 314424.96419375006
+      },
+      "aligned_trueopt_h5": {
+        "completed_jobs": 160,
+        "episodes": 10,
+        "failed_jobs": 0,
+        "mean_completion_ms": 162234.53575000004,
+        "mean_deadline_miss_rate": 0.00625,
+        "mean_gpu_evictions": 14.9,
+        "mean_job_queue_ms": 74796.14976562503,
+        "mean_pred_mpc_rollout_ms": null,
+        "mean_pred_mpc_terminal_ms": null,
+        "p95_completion_ms": 266774.49192187504
+      },
+      "myopic": {
+        "completed_jobs": 160,
+        "episodes": 10,
+        "failed_jobs": 0,
+        "mean_completion_ms": 176937.06589687505,
+        "mean_deadline_miss_rate": 0.00625,
+        "mean_gpu_evictions": 18.2,
+        "mean_job_queue_ms": 85629.48593750001,
+        "mean_pred_mpc_rollout_ms": null,
+        "mean_pred_mpc_terminal_ms": null,
+        "p95_completion_ms": 309850.74971093755
+      },
+      "predopt_h5": {
+        "completed_jobs": 160,
+        "episodes": 10,
+        "failed_jobs": 0,
+        "mean_completion_ms": 175963.21902187503,
+        "mean_deadline_miss_rate": 0.0125,
+        "mean_gpu_evictions": 19.6,
+        "mean_job_queue_ms": 85735.0626625,
+        "mean_pred_mpc_rollout_ms": null,
+        "mean_pred_mpc_terminal_ms": null,
+        "p95_completion_ms": 306255.659603125
+      }
+    },
+    "episodes": 10,
+    "expected_result_rows": 50,
+    "result_rows": 50,
+    "status": "passed"
+  },
+  "status": "passed_diagnostic_empirical_topology_baseline",
+  "t_final_read": false,
+  "topology_audit": {
+    "counts": {
+      "candidate_occurrences": 44690,
+      "layer_artifact_nodes": 2200,
+      "unique_candidate_nodes": 1546
+    },
+    "interpretation": "This artifact is a conditional empirical multi-node layer baseline fit on the r7_s_train DAG labels. The width gap is diagnostic prediction error for this baseline; it is not evidence of a learned topology model or formal policy improvement.",
+    "predicted_layer_unit": {
+      "layer_count_distribution": {
+        "0.0": 160,
+        "1.6666666666666667": 550,
+        "2.0": 777,
+        "2.6666666666666665": 50,
+        "3.6666666666666665": 9
+      },
+      "node_count_distribution": {
+        "0.0": 160,
+        "3.0": 294,
+        "3.3333333333333335": 256,
+        "3.6666666666666665": 560,
+        "4.333333333333333": 60,
+        "4.666666666666667": 157,
+        "5.0": 5,
+        "5.333333333333333": 45,
+        "7.666666666666667": 9
+      },
+      "weighted_mean_layer_count": 1.5885358394868343,
+      "weighted_mean_node_count": 3.114932497948826
+    },
+    "predicted_layer_width_max": 4,
+    "predicted_topology_sources": [
+      "conditional_empirical_s_train_dag_layers"
+    ],
+    "status": "passed",
+    "truth_dag_layer_unit": {
+      "layer_count_distribution": {
+        "0": 160,
+        "1": 390,
+        "2": 231,
+        "3": 216,
+        "4": 197,
+        "5": 352
+      },
+      "node_count_distribution": {
+        "0": 160,
+        "1": 389,
+        "10": 148,
+        "11": 49,
+        "12": 111,
+        "13": 42,
+        "14": 15,
+        "16": 1,
+        "17": 1,
+        "2": 1,
+        "3": 1,
+        "4": 182,
+        "5": 46,
+        "6": 169,
+        "7": 34,
+        "8": 161,
+        "9": 36
+      },
+      "weighted_mean_layer_count": 2.5107406578652944,
+      "weighted_mean_node_count": 5.388923696576415
+    }
+  }
+}

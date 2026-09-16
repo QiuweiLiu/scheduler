@@ -1,0 +1,125 @@
+{
+  "schema_version": "p9d-r0-oracle-signature-ceiling-v1",
+  "experiment_id": "EXP-20260911_p9d_r0_oracle_signature_ceiling",
+  "question": "Given oracle future-node signatures on the frozen v3.1 serial-chain contract, how identifiable are per-node runtime/load/memory under the frozen interface and estimator family?",
+  "design_doc": "docs/p9d_r0_oracle_signature_ceiling_design.md",
+  "label_contract_doc": "docs/p9d_topology_label_contract_v3.md",
+  "windows_project_root": "F:/scheduler",
+  "macos_project_root": "/Volumes/Lenovo/scheduler",
+  "dataset_root": "F:/scheduler/results/processed/topology_predictor_p9d_v3",
+  "dataset_registry": "F:/scheduler/data/manifests/topology_predictor_p9d_v3.json",
+  "behavior_role_samples": "F:/scheduler/results/processed/behavior_nn_v1_r1v5_candidate/data/role_event_samples.jsonl",
+  "holdout_role_samples": "F:/scheduler/results/processed/behavior_nn_v1_r2/final_holdout/dataset/role_event_samples.jsonl",
+  "raw_roots": ["F:/scheduler/results/raw"],
+  "expected_node_counts": {
+    "total": 15481,
+    "planner": 7211,
+    "tool": 7078,
+    "post_loop_generation": 1192,
+    "nested_merged_excluded": 482,
+    "by_split": {"train": 11429, "validation": 1704, "test": 1280, "holdout": 1068}
+  },
+  "expected_load_accounting": {
+    "planner": {"missing": 67, "zero": 5960, "positive": 1184, "total": 7211},
+    "tool": {"missing": 0, "zero": 6742, "positive": 336, "total": 7078},
+    "post_loop_generation": {"missing": 9, "zero": 530, "positive": 653, "total": 1192}
+  },
+  "targets": {
+    "primary": "runtime_ms",
+    "secondary": ["load_ms", "peak_memory_inclusive_mb"],
+    "positive_required": true,
+    "memory_formula": "max(peak_reserved_mb, peak_allocated_mb)"
+  },
+  "load_semantics": {
+    "definition": "load_ms = model_load_ms if request_index == 1 else 0.0; frame-load path uses visible_frames.last_load_ms",
+    "zero_means": "legitimate no-load observation for this node",
+    "missing_means": "unavailable; excluded from load targets with coverage reporting",
+    "evaluation": "hurdle: occurrence = 1[load_ms>0] over all non-missing rows; duration = load_ms | load_ms>0; optional expected_load = P(occ)*E[dur|occ]"
+  },
+  "residency": {
+    "field": "model_resident_before",
+    "states": ["resident", "nonresident", "unknown"],
+    "pool_availability": "0 percent non-null in P9d pool; residency_state is recorded but not usable as a feature",
+    "proxy": "prefix_model_reuse (model_class seen earlier in the same run chain); labeled pre-execution proxy"
+  },
+  "stall_rule": {"multiple": 10.0, "absolute_ms": 300000, "fit_on": "train", "per_exec_class_median": true},
+  "tail_rule": {"quantile": 0.9, "fit_on": "train"},
+  "splits_order": ["train", "validation", "test", "holdout"],
+  "feature_roles": {
+    "pre_execution": ["planner_mode", "is_retry", "clip_len", "query_char_len", "nested_api_call_count", "clip_len_missing", "query_char_len_missing", "baseline", "prefix_model_reuse"],
+    "oracle_label": ["exec_class", "role", "model_class", "nested_model_class", "merged_nested_call"],
+    "target_only": ["runtime_ms", "load_ms", "peak_allocated_mb", "peak_reserved_mb", "peak_memory_inclusive_mb"]
+  },
+  "c_ablation": {
+    "C0": ["exec_class"],
+    "C1": ["exec_class", "role", "planner_mode", "is_retry"],
+    "C2": ["exec_class", "role", "planner_mode", "is_retry", "model_class", "nested_model_class", "merged_nested_call"],
+    "C3": ["exec_class", "role", "planner_mode", "is_retry", "model_class", "nested_model_class", "merged_nested_call", "clip_len", "query_char_len", "nested_api_call_count", "clip_len_missing", "query_char_len_missing"],
+    "C4": ["exec_class", "role", "planner_mode", "is_retry", "model_class", "nested_model_class", "merged_nested_call", "clip_len", "query_char_len", "nested_api_call_count", "clip_len_missing", "query_char_len_missing", "baseline", "prefix_model_reuse"]
+  },
+  "categorical_features": ["exec_class", "role", "planner_mode", "model_class", "nested_model_class", "baseline"],
+  "numeric_features": ["is_retry", "merged_nested_call", "clip_len", "query_char_len", "nested_api_call_count", "clip_len_missing", "query_char_len_missing", "prefix_model_reuse"],
+  "model_class_coarse_map": {
+    "qwen3-4b": "llm-4b",
+    "qwen2.5-vl-3b-instruct": "vlm-3b",
+    "qwen3-vl-8b-instruct": "vlm-8b",
+    "qwen3-vl-8b": "vlm-8b",
+    "yolo11x.pt": "detector",
+    "yolo26n.pt": "detector",
+    "cpu-metadata-adapter-v1": "cpu"
+  },
+  "fallback_hierarchy": [
+    ["exec_class", "model_class", "planner_mode", "is_retry", "load_bucket"],
+    ["exec_class", "model_class", "planner_mode", "is_retry"],
+    ["exec_class", "model_class"],
+    ["exec_class"],
+    []
+  ],
+  "min_support": 20,
+  "load_bucket_edges": [0, 1, 2],
+  "lgbm_quantile": {
+    "objectives": [0.5, 0.9, 0.95],
+    "grid": [
+      {"num_leaves": 31, "min_data_in_leaf": 20},
+      {"num_leaves": 31, "min_data_in_leaf": 50},
+      {"num_leaves": 63, "min_data_in_leaf": 20},
+      {"num_leaves": 63, "min_data_in_leaf": 50}
+    ],
+    "learning_rate": 0.05,
+    "n_estimators": 400,
+    "subsample": 1.0,
+    "colsample_bytree": 1.0,
+    "seeds": [11, 22, 33],
+    "selection_metric": "mean over seeds of validation PB_primary",
+    "tie_break": "smaller num_leaves then smaller min_data_in_leaf"
+  },
+  "lgbm_occurrence": {
+    "num_leaves": 31,
+    "min_data_in_leaf": 20,
+    "learning_rate": 0.05,
+    "n_estimators": 200,
+    "subsample": 1.0,
+    "colsample_bytree": 1.0,
+    "seeds": [11, 22, 33],
+    "selection_metric": "mean over seeds of validation Brier score",
+    "reference": "fixed L2 logistic (C=1.0, one-hot C4, train medians for missing; scipy L-BFGS-B)"
+  },
+  "metrics": {
+    "primary_loss": "PB_primary = mean(PB_0.50, PB_0.90, PB_0.95)",
+    "scale": "raw physical scale for gates; log1p used for training only",
+    "calibration_gate": {"overall_max_abs": 0.05, "major_strata_max_abs": 0.10},
+    "major_strata_rule": {"min_nodes": 200, "min_videos": 10},
+    "core_baseline": "exec_class-conditional train median",
+    "improvement_floor": 0.15,
+    "crossing_policy": "report raw crossing rate; metrics after per-row monotone rearrangement",
+    "normal_subset": "same inclusive-trained model; stall rows are a subset diagnostic"
+  },
+  "bootstrap": {"n_resamples": 1000, "seed": 20260911, "unit": "video"},
+  "smoke": {"runs_per_split": 20, "bootstrap_resamples": 100},
+  "outputs": {
+    "stage0_audit": "stage0_audit.json",
+    "node_table": "artifacts/node_table.jsonl.gz",
+    "metrics": "metrics.json",
+    "run_manifest": "run_manifest.json"
+  }
+}

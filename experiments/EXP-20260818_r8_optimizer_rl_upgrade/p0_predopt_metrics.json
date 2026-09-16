@@ -1,0 +1,28 @@
+{
+  "schema_version": "r8-p0-predopt-audit-metrics-v0.1",
+  "status": "candidate_rejected",
+  "episodes": 1000,
+  "horizon": 5,
+  "legacy_policy": "predopt_h5",
+  "revised_policy": "predopt_v2_h5",
+  "legacy_mean_completion_ms": 210809.0991328828,
+  "revised_mean_completion_ms": 217579.53438327345,
+  "revised_minus_legacy_mean_completion_ms": 6770.435250390641,
+  "legacy_mean_deadline_miss_rate": 0.10428125,
+  "revised_mean_deadline_miss_rate": 0.1123125,
+  "legacy_mean_job_queue_ms": 120595.97976991406,
+  "revised_mean_job_queue_ms": 127850.35628476563,
+  "legacy_mean_gpu_evictions": 39.85,
+  "revised_mean_gpu_evictions": 40.95,
+  "episodes_with_action_differences": 944,
+  "episode_action_difference_rate": 0.944,
+  "total_action_difference_count": 145127,
+  "objective": {
+    "priority_weight": 0.25,
+    "current_scale_ms": 100000.0,
+    "future_weight": 1.0,
+    "future_scale_ms": 100000.0,
+    "memory_ratio_weight": 0.05
+  },
+  "interpretation": "The candidate changes decisions broadly but worsens completion and deadline metrics; retain as a rejected objective candidate and calibrate weights on S_train only."
+}

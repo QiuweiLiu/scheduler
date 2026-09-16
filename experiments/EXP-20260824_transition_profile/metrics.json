@@ -1,0 +1,48 @@
+{
+  "schema_version": "transition-profile-metrics-v0.1",
+  "experiment_id": "EXP-20260824_transition_profile",
+  "status": "passed",
+  "remote_run": "/root/autodl-tmp/scheduler/experiments/EXP-20260824_transition_profile/run_20260824T100219+0800",
+  "repeats_per_model": 2,
+  "rows": 8,
+  "success_rows": 8,
+  "error_rows": 0,
+  "missing_rows": 0,
+  "checkpoint_supported_models": [],
+  "models": {
+    "Qwen3-VL-8B-Instruct": {
+      "cold_load_mean_ms": 12679.876,
+      "first_operation_mean_ms": 269.746,
+      "resident_operation_mean_ms": 38.239,
+      "evict_mean_ms": 183.088,
+      "peak_allocated_mean_mb": 19100.092
+    },
+    "Qwen3-4B": {
+      "cold_load_mean_ms": 3986.29,
+      "first_operation_mean_ms": 38.694,
+      "resident_operation_mean_ms": 37.01,
+      "evict_mean_ms": 138.005,
+      "peak_allocated_mean_mb": 7776.518
+    },
+    "Qwen2.5-VL-3B-Instruct": {
+      "cold_load_mean_ms": 3741.643,
+      "first_operation_mean_ms": 33.647,
+      "resident_operation_mean_ms": 32.081,
+      "evict_mean_ms": 154.996,
+      "peak_allocated_mean_mb": 7270.271
+    },
+    "yolo11x.pt": {
+      "cold_load_mean_ms": 464.209,
+      "first_operation_mean_ms": 1543.466,
+      "resident_operation_mean_ms": 16.542,
+      "evict_mean_ms": 185.77,
+      "peak_allocated_mean_mb": 477.026
+    }
+  },
+  "limitations": [
+    "evict_ms is explicit object unload plus torch.cuda.empty_cache, not automatic scheduler cache eviction",
+    "recompute is a repeated-operation proxy, not a real mid-node preemption/resume measurement",
+    "checkpoint and restore timings were not fabricated because no resumable node API was exposed",
+    "Qwen measurements are text-only and YOLO measurement uses one synthetic 640x360 black image"
+  ]
+}

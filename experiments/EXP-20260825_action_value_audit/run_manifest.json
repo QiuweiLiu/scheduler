@@ -1,0 +1,13 @@
+{
+  "episodes": ".scratch/action_value_audit_remote_inputs_20260825/workload_validation_r7.jsonl",
+  "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "future_artifact_manifest_sha256": "aa943b60848212f4599feddb5de21a04a9398d9e72db5a173f507731b3983b60",
+  "future_artifacts": ".scratch/action_value_audit_remote_inputs_20260825/prediction_artifacts",
+  "horizon": 5,
+  "limit": 100,
+  "q_definition": "Q_local_H5 = limited_future_truth_cost over next H DAG layers; lower is better",
+  "reference_policy": "myopic",
+  "schema_version": "action-value-audit-v0.1",
+  "templates": ".scratch/action_value_audit_remote_inputs_20260825/job_templates_r7_v02.jsonl",
+  "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464"
+}

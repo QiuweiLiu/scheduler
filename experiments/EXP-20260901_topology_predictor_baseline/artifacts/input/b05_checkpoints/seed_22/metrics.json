@@ -1,0 +1,281 @@
+{
+  "elapsed_seconds": 115.00879979133606,
+  "evaluation_splits": [
+    "final_holdout_v1_relabelled_validation"
+  ],
+  "fit_splits": [
+    "development_train_validation_relabelled_train"
+  ],
+  "fixed_epoch": 19,
+  "info": {
+    "family_static_dimension": 66,
+    "loss_last": {
+      "family": 0.4704109669761092,
+      "role": 0.1769704966802512
+    },
+    "role_static_dimension": 71,
+    "sequence_max_family": 14,
+    "sequence_max_role": 16
+  },
+  "metrics": {
+    "contract": "r2.a2a.evaluator",
+    "family_oracle_gate": {
+      "brier": 0.4909259304646834,
+      "confusion_matrix": [
+        [
+          61,
+          24,
+          9,
+          0,
+          0,
+          0
+        ],
+        [
+          47,
+          170,
+          16,
+          0,
+          0,
+          0
+        ],
+        [
+          42,
+          34,
+          36,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          72,
+          0,
+          0
+        ],
+        [
+          6,
+          9,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "ece": 0.10655271038129753,
+      "ece_bins": 10,
+      "fixed_labels": [
+        "select_frames",
+        "visual_qa",
+        "temporal_ops",
+        "summarize",
+        "detect",
+        "other"
+      ],
+      "head": "family",
+      "macro_f1_fixed": 0.43793153773623583,
+      "macro_f1_observed": 0.525517845283483,
+      "mrr": 0.7945183776932822,
+      "n": 526,
+      "nll": 0.9180402832482628,
+      "per_class": {
+        "detect": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 15
+        },
+        "other": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "select_frames": {
+          "f1": 0.488,
+          "precision": 0.391025641025641,
+          "recall": 0.648936170212766,
+          "support": 94
+        },
+        "summarize": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 72
+        },
+        "temporal_ops": {
+          "f1": 0.41618497109826597,
+          "precision": 0.5901639344262295,
+          "recall": 0.32142857142857145,
+          "support": 112
+        },
+        "visual_qa": {
+          "f1": 0.723404255319149,
+          "precision": 0.7172995780590717,
+          "recall": 0.7296137339055794,
+          "support": 233
+        }
+      },
+      "selective_top1": {
+        "0.80": {
+          "accuracy": 0.684085510688836,
+          "coverage": 0.8,
+          "k": 421
+        },
+        "0.90": {
+          "accuracy": 0.6582278481012658,
+          "coverage": 0.9,
+          "k": 474
+        },
+        "0.95": {
+          "accuracy": 0.65,
+          "coverage": 0.95,
+          "k": 500
+        }
+      },
+      "support": {
+        "detect": 15,
+        "other": 0,
+        "select_frames": 94,
+        "summarize": 72,
+        "temporal_ops": 112,
+        "visual_qa": 233
+      },
+      "top1_accuracy": 0.6444866920152091
+    },
+    "joint": {
+      "denominator_policy": "joint-scorable set = every true non-execute role row plus true execute role rows that have a joined family row; true execute role rows without a family row are excluded from the joint denominator and from hierarchical NLL (never silently counted correct or wrong)",
+      "execute_coverage": 1.0,
+      "execute_missing_family": 0,
+      "execute_scorable": 526,
+      "execute_total": 526,
+      "hierarchical_nll": 0.5514007203998479,
+      "joint_accuracy": 0.8021739130434783,
+      "joint_correct": 1107,
+      "joint_n": 1380,
+      "non_execute_n": 854
+    },
+    "labels": {
+      "families": [
+        "select_frames",
+        "visual_qa",
+        "temporal_ops",
+        "summarize",
+        "detect",
+        "other"
+      ],
+      "roles": [
+        "plan",
+        "execute",
+        "aggregate",
+        "terminate"
+      ]
+    },
+    "role": {
+      "brier": 0.11043252029956938,
+      "confusion_matrix": [
+        [
+          448,
+          10,
+          4,
+          0
+        ],
+        [
+          39,
+          478,
+          9,
+          0
+        ],
+        [
+          4,
+          24,
+          244,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          120
+        ]
+      ],
+      "ece": 0.012886496384938507,
+      "ece_bins": 10,
+      "fixed_labels": [
+        "plan",
+        "execute",
+        "aggregate",
+        "terminate"
+      ],
+      "head": "role",
+      "macro_f1_fixed": 0.9459215195285384,
+      "macro_f1_observed": 0.9459215195285384,
+      "mrr": 0.9659420289855073,
+      "n": 1380,
+      "nll": 0.2014810182342051,
+      "per_class": {
+        "aggregate": {
+          "f1": 0.9224952741020793,
+          "precision": 0.9494163424124513,
+          "recall": 0.8970588235294118,
+          "support": 272
+        },
+        "execute": {
+          "f1": 0.9210019267822736,
+          "precision": 0.93359375,
+          "recall": 0.908745247148289,
+          "support": 526
+        },
+        "plan": {
+          "f1": 0.9401888772298007,
+          "precision": 0.9124236252545825,
+          "recall": 0.9696969696969697,
+          "support": 462
+        },
+        "terminate": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 120
+        }
+      },
+      "selective_top1": {
+        "0.80": {
+          "accuracy": 0.9646739130434783,
+          "coverage": 0.8,
+          "k": 1104
+        },
+        "0.90": {
+          "accuracy": 0.9557165861513688,
+          "coverage": 0.9,
+          "k": 1242
+        },
+        "0.95": {
+          "accuracy": 0.9496567505720824,
+          "coverage": 0.95,
+          "k": 1311
+        }
+      },
+      "support": {
+        "aggregate": 272,
+        "execute": 526,
+        "plan": 462,
+        "terminate": 120
+      },
+      "top1_accuracy": 0.9347826086956522
+    },
+    "version": "1.0.0"
+  },
+  "model_id": "B05",
+  "seed": 22,
+  "test_targets_used": false
+}

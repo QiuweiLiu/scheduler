@@ -1,0 +1,31 @@
+{
+  "runs": [
+    {
+      "schema_version": "r7-event-engine-parity-smoke-v1",
+      "episodes": 10,
+      "checks": {
+        "none_no_future": 10,
+        "predicted_truth_free": 10,
+        "truth_mutation_invariant": 10,
+        "suffix_mutation_invariant": 10,
+        "deterministic_replay": 10
+      },
+      "pass": true
+    },
+    {
+      "schema_version": "r7-event-engine-parity-smoke-v1",
+      "episodes": 50,
+      "checks": {
+        "none_no_future": 50,
+        "predicted_truth_free": 50,
+        "truth_mutation_invariant": 50,
+        "suffix_mutation_invariant": 50,
+        "deterministic_replay": 50
+      },
+      "pass": true
+    }
+  ],
+  "source": "deterministic_causal_contract_fixture",
+  "formal_scheduler_workload_started": false,
+  "pass": true
+}

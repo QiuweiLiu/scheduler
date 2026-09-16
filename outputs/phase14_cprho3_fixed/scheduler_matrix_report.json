@@ -1,0 +1,59 @@
+{
+  "aggregate": {
+    "cp_rho_h3": {
+      "completed_jobs": 8400,
+      "episodes": 300,
+      "failed_jobs": 0,
+      "max_gpu_peak_memory_mb": 32756.0,
+      "mean_completion_ms": 204248.83987567708,
+      "mean_deadline_miss_rate": 0.10177083333333334,
+      "mean_gpu_evictions": 34.10666666666667,
+      "mean_gpu_utilization": 0.7231907331464508,
+      "mean_job_queue_ms": 112596.58644716146,
+      "p95_completion_ms": 436344.19427734404
+    }
+  },
+  "capacity_violation_count": 0,
+  "capacity_violation_examples": [],
+  "episodes": 300,
+  "event_logging": "disabled_in_matrix_runner; event invariants covered by sim_smoke_50",
+  "expected_result_rows": 300,
+  "future_artifacts_manifest_sha256": "1867fe070c86d4c4096e43c474f196a3cb9c8274409f7332426e8eaa0e9e2845",
+  "information_boundary": {
+    "myopic_optimizer": "current ready nodes plus train-only resource estimates",
+    "oracle": "full suffix truth reference only",
+    "predopt_h": "B05 current-prefix artifact and train-only finite-horizon rollout",
+    "trueopt_h": "actual DAG successor identities and engine truth for reference only"
+  },
+  "lookup_path_counts": {
+    "lane": 1,
+    "model_lane": 4
+  },
+  "mixed_row_fingerprints": [
+    "f0ac515e0759bd98"
+  ],
+  "oracle_gaps": {},
+  "policies": [
+    "cp_rho_h3"
+  ],
+  "result_rows": 300,
+  "run_fingerprint": {
+    "artifacts_manifest_sha256": "1867fe070c86d4c4096e43c474f196a3cb9c8274409f7332426e8eaa0e9e2845",
+    "code": {
+      "scripts/r7_scheduler_matrix.py": "b4b1d91573f0f7697a48e79e98617102071649aecf017391bd2e66e2dd9d356b",
+      "src/tracing/analysis/workload_v02_simulator.py": "cab8f70397eb15008ce040672a81b417af4d460a9a511150653d6b2827f7c8d6",
+      "src/tracing/scheduling/cp_rho.py": "94db809643a735bf5d4f0f19883dbecb4cdf823fc2346c419eb583731c844a7f",
+      "src/tracing/scheduling/event_engine.py": "32ff01c52d83096da8f133ede6f278d39ba9fc46ade67da67d3d5bda0f52cfb6"
+    },
+    "episode_ids_file": null,
+    "episode_ids_sha256": null,
+    "episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+    "schema_version": "r7-run-fingerprint-v1",
+    "templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464"
+  },
+  "run_fingerprint_id": "f0ac515e0759bd98",
+  "schema_version": "r7-scheduler-matrix-v0.1",
+  "source_episodes_sha256": "358bf01838c142e0b8d2e3059ef26a8b423eb3687b94a7cffde553b1af906e2e",
+  "source_templates_sha256": "e0a5b12c9ba6f483a3cdf8abfaf012e3a55d59043f41cc4aab2d247cce09a464",
+  "status": "passed"
+}

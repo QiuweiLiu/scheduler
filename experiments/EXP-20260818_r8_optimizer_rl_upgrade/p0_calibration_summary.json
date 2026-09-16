@@ -1,0 +1,42 @@
+{
+  "schema_version": "r8-p0-calibration-summary-v0.1",
+  "status": "candidate_rejected_cp_rho_required",
+  "dataset": "S_train_first_300_episodes",
+  "legacy_policy": "predopt_h5",
+  "configs": [
+    {
+      "priority_weight": 1.0,
+      "future_weight": 1.0,
+      "memory_weight": 0.05,
+      "revised_mean_completion_ms": 191654.98141145834,
+      "legacy_mean_completion_ms": 191530.59659846354,
+      "delta_revised_minus_legacy_ms": 124.3848129948019,
+      "revised_mean_deadline_miss_rate": 0.08473958333333333,
+      "legacy_mean_deadline_miss_rate": 0.08421875,
+      "failed_jobs": 0
+    },
+    {
+      "priority_weight": 2.0,
+      "future_weight": 1.0,
+      "memory_weight": 0.05,
+      "revised_mean_completion_ms": 191654.98141145834,
+      "legacy_mean_completion_ms": 191530.59659846354,
+      "delta_revised_minus_legacy_ms": 124.3848129948019,
+      "revised_mean_deadline_miss_rate": 0.08473958333333333,
+      "legacy_mean_deadline_miss_rate": 0.08421875,
+      "failed_jobs": 0
+    },
+    {
+      "priority_weight": 1.0,
+      "future_weight": 2.0,
+      "memory_weight": 0.05,
+      "revised_mean_completion_ms": 192735.4885414323,
+      "legacy_mean_completion_ms": 191530.59659846354,
+      "delta_revised_minus_legacy_ms": 1204.8919429687667,
+      "revised_mean_deadline_miss_rate": 0.08317708333333333,
+      "legacy_mean_deadline_miss_rate": 0.08421875,
+      "failed_jobs": 0
+    }
+  ],
+  "interpretation": "No tested weighted-score configuration improves completion on the S_train calibration pilot; the future-weight=2 configuration trades completion for a small deadline-miss reduction. Stop score-only tuning and move to CP-RHO V1."
+}

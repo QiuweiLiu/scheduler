@@ -1,0 +1,1955 @@
+#!/usr/bin/env python3
+"""Collect comparable Phase 1 traces for VideoTool's three control flows.
+
+The official VideoTool checkout is kept read-only.  This runner imports the
+official STAR graph, uses a small outer registry for the heavy visual tools,
+and uses LangGraph's ReAct graph for the free-form baseline.  ``scripted`` is
+kept as a deterministic compatibility control; ``api`` is available when the
+caller explicitly provides an OpenAI-compatible endpoint; ``local_qwen`` uses
+the serial resident Qwen3-VL-8B worker for planner and answer decisions.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as datetime_module
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from collections import Counter
+from pathlib import Path
+from typing import Any, Callable, Iterable, Optional
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from tracing.collectors.videoseek_wrapper import (  # noqa: E402
+    SCHEMA_VERSION,
+    TraceRecorder,
+    _environment_metadata,
+    _git_provenance,
+    _json_safe,
+    _round_ms,
+    _sha256,
+    _utc_now,
+    _video_metadata,
+)
+from tracing.collectors.qwen3_vl_worker import QwenVLClient  # noqa: E402
+from tracing.collectors.qwen_text_worker import QwenTextClient  # noqa: E402
+from tracing.collectors.structured_state import (  # noqa: E402
+    EvidenceAccumulator,
+    build_state_snapshot,
+    canonical_action,
+    derive_task_structure,
+    write_state_sidecar,
+)
+
+
+DEFAULT_OPTIONS = "(A) Hawk\n(B) Panda\n(C) Tiger\n(D) Lion"
+_CATEGORY = {
+    "FrameSelector": "temporal",
+    "TemporalGrounding": "temporal",
+    "TemporalQA": "temporal",
+    "TemporalReferring": "temporal",
+    "ImageGridSelect": "temporal",
+    "ImageQA": "spatial",
+    "ImageCaptioner": "spatial",
+    "ImageCaptionerLLaVA": "spatial",
+    "ImageGridQA": "spatial",
+    "PatchZoomer": "spatial",
+    "YOLOTracker": "spatial",
+    "Summarizer": "generalist",
+    "VideoQA": "generalist",
+    "VideoQAInternVL": "generalist",
+}
+
+
+def _parse_rate(value: Any) -> float:
+    if isinstance(value, str) and "/" in value:
+        numerator, denominator = value.split("/", 1)
+        try:
+            return float(numerator) / float(denominator)
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0.0
+    try:
+        return float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+class VisibleFrames:
+    """Metadata-only visible-frame state with lazy CPU frame extraction."""
+
+    def __init__(self, video_path: Path, run_dir: Path, initial_count: int = 4) -> None:
+        self.video_path = video_path
+        self.run_dir = run_dir
+        self.frame_dir = run_dir / "_frames"
+        self.frame_dir.mkdir(parents=True, exist_ok=True)
+        metadata = _video_metadata(video_path)
+        fps = _parse_rate(metadata.get("frame_rate")) or 1.0
+        duration = float(metadata.get("duration_seconds") or 0.0)
+        total_frames = int(round(duration * fps)) if duration else 0
+        self.video_info = {
+            "total_frames": max(1, total_frames),
+            "duration": duration,
+            "fps": fps,
+        }
+        self.frames: list[dict[str, Any]] = []
+        self.qa: list[dict[str, Any]] = []
+        self.last_decode_ms = 0.0
+        self.last_load_ms = 0.0
+        self._frame_paths: dict[int, Path] = {}
+        self.select(initial_count, "initial uniform sampling")
+
+    def get_frame_count(self) -> int:
+        return len(self.frames)
+
+    def get_frame_descriptions(self) -> str:
+        if not self.frames:
+            return "No frame descriptions available."
+        return "\n".join(
+            f"- frame {item['index']} at {item['time_seconds']:.2f}s: {item['description']}"
+            for item in self.frames
+        )
+
+    def get_qa_descriptions(self) -> str:
+        if not self.qa:
+            return "No QA information available."
+        return "\n".join(
+            f"- {item['tool']} on frames {item['frame_indices']}: {item['answer']}"
+            for item in self.qa
+        )
+
+    def _indices_for(self, count: int, query: str) -> list[int]:
+        total = self.video_info["total_frames"]
+        count = max(1, min(int(count), 8))
+        lowered = query.lower()
+        if any(word in lowered for word in ("first", "earliest", "beginning", "start")):
+            fractions = [0.0, 0.05, 0.15, 0.30, 0.50, 0.75, 1.0]
+        elif any(word in lowered for word in ("last", "latest", "end", "final")):
+            fractions = [0.50, 0.70, 0.85, 0.95, 1.0]
+        else:
+            fractions = [0.0, 0.25, 0.50, 0.75, 1.0]
+        chosen = [int(round((total - 1) * fraction)) for fraction in fractions]
+        return sorted(set(chosen))[:count]
+
+    def select(self, count: int, query: str) -> list[int]:
+        started = time.perf_counter()
+        indices = self._indices_for(count, query)
+        self.frames = [
+            {
+                "index": index,
+                "time_seconds": index / self.video_info["fps"],
+                "description": f"CPU-selected frame for {query[:120]}",
+            }
+            for index in indices
+        ]
+        self.last_decode_ms = _round_ms(time.perf_counter() - started)
+        self.last_load_ms = 0.0
+        return indices
+
+    def sample_indices(self, count: int) -> list[int]:
+        """Return a deterministic uniform sample for a batched detector call."""
+        count = max(1, int(count))
+        total = max(1, int(self.video_info["total_frames"]))
+        if count == 1 or total == 1:
+            return [0]
+        safe_last = max(0, int(round((total - 1) * 0.95)))
+        if count >= total:
+            return list(range(safe_last + 1))
+        # ``duration * fps`` can round one frame past the last decodable frame;
+        # keep the final sample at 95% of the nominal range to avoid an
+        # otherwise spurious ffmpeg failure on short or VFR videos.
+        return sorted({int(round(safe_last * index / (count - 1))) for index in range(count)})
+
+    def add_qa(self, tool: str, answer: str, frame_indices: Optional[list[int]] = None) -> None:
+        self.qa.append(
+            {
+                "tool": tool,
+                "frame_indices": frame_indices or [item["index"] for item in self.frames],
+                "answer": answer[:1000],
+            }
+        )
+
+    def ensure_frame_file(self, index: Optional[int] = None) -> Path:
+        if index is None:
+            index = self.frames[0]["index"] if self.frames else 0
+        if index in self._frame_paths:
+            return self._frame_paths[index]
+        timestamp = index / self.video_info["fps"]
+        output = self.frame_dir / f"frame_{index:08d}.jpg"
+        started = time.perf_counter()
+        completed = subprocess.run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-ss",
+                f"{timestamp:.3f}",
+                "-i",
+                str(self.video_path),
+                "-frames:v",
+                "1",
+                "-vf",
+                "scale=640:-1",
+                str(output),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.last_decode_ms = _round_ms(time.perf_counter() - started)
+        if completed.returncode != 0 or not output.is_file():
+            raise RuntimeError(f"ffmpeg frame extraction failed: {completed.stderr[-400:]}")
+        self._frame_paths[index] = output
+        return output
+
+    def ensure_frame_files(self, indices: Iterable[int], limit: int = 8) -> list[Path]:
+        """Extract a bounded set of frames and preserve aggregate decode cost."""
+        total_decode_ms = 0.0
+        outputs: list[Path] = []
+        self.last_decode_ms = 0.0
+        for index in list(indices)[: max(1, int(limit))]:
+            was_cached = index in self._frame_paths
+            output = self.ensure_frame_file(index)
+            outputs.append(output)
+            # A cache hit has no new decode cost; a fresh ffmpeg call updates
+            # ``last_decode_ms``.  The subtraction keeps one action's resource
+            # field representative when several frames are requested.
+            if not was_cached:
+                total_decode_ms += self.last_decode_ms
+        if outputs and total_decode_ms:
+            self.last_decode_ms = _round_ms(total_decode_ms / 1000.0)
+        return outputs
+
+
+class ToolContext:
+    def __init__(
+        self,
+        visible_frames: VisibleFrames,
+        video_path: Path,
+        run_dir: Path,
+        recorder: TraceRecorder,
+        yolo_model: Optional[Path],
+        yolo_python: Optional[str],
+        qwen_client: Optional[QwenVLClient] = None,
+        qwen_model_id: str = "qwen3-vl-8b-instruct",
+        planner_client: Optional[QwenTextClient] = None,
+        planner_model_id: str = "qwen3-4b-instruct",
+        answer_client: Optional[QwenVLClient] = None,
+        answer_model_id: str = "qwen3-vl-8b-instruct",
+        detector_model_id: str = "none",
+        model_stack_id: str = "stack_a_qwen3_vl8b",
+        baseline: str = "unknown",
+        task_structure: Optional[dict[str, Any]] = None,
+        max_steps: int = 1,
+        yolo_batch: int = 1,
+        yolo_preobserve: bool = False,
+    ) -> None:
+        self.visible_frames = visible_frames
+        self.video_path = video_path
+        self.run_dir = run_dir
+        self.recorder = recorder
+        self.yolo_model = yolo_model
+        self.yolo_python = yolo_python
+        self.qwen_client = qwen_client
+        self.qwen_model_id = str(qwen_model_id)
+        self.planner_client = planner_client
+        self.planner_model_id = str(planner_model_id)
+        self.answer_client = answer_client
+        self.answer_model_id = str(answer_model_id)
+        self.detector_model_id = str(detector_model_id)
+        self.model_stack_id = str(model_stack_id)
+        self.baseline = baseline
+        self.task_structure = dict(task_structure or derive_task_structure({"question": ""}))
+        self.max_steps = max(1, int(max_steps))
+        self.yolo_batch = max(1, int(yolo_batch))
+        self.yolo_preobserve = bool(yolo_preobserve)
+        self.current_step = 1
+        self.react_call_count = 0
+        self.current_standard_tool_call: Optional[dict[str, Any]] = None
+        self.planner_mode = "scripted"
+        self.answer_model: Optional[AnswerModel] = None
+        self._last_tool_metrics: dict[str, Any] = {}
+        self.state_dir = run_dir / "states"
+        self.state_evidence = EvidenceAccumulator(duration_s=float(visible_frames.video_info.get("duration") or 0.0))
+        self.state_actions: list[str] = []
+        self.state_local_runtime_ms = 0.0
+        self.state_api_wait_ms = 0.0
+        self.state_retry_count = 0
+        self.state_error_count = 0
+        self._seen_frame_indices: set[int] = set()
+        self._observe_visible_frames("scene")
+        self.write_state_snapshot(0)
+
+    def record_tool_metrics(self, metrics: Optional[dict[str, Any]]) -> None:
+        if metrics:
+            self._last_tool_metrics.update(metrics)
+
+    def consume_resource_metrics(self) -> dict[str, Any]:
+        metrics = {
+            "decode_ms": self.visible_frames.last_decode_ms,
+            "load_ms": self.visible_frames.last_load_ms,
+        }
+        metrics.update(self._last_tool_metrics)
+        self._last_tool_metrics = {}
+        self.visible_frames.last_decode_ms = 0.0
+        self.visible_frames.last_load_ms = 0.0
+        return metrics
+
+    def _observe_visible_frames(
+        self,
+        modality: str,
+        *,
+        object_counts: Optional[dict[str, Any]] = None,
+        confidence: Optional[float] = None,
+        source_event_id: Optional[str] = None,
+    ) -> None:
+        """Add newly visible frames to cumulative evidence without reading future frames."""
+
+        frames = self.visible_frames.frames
+        new_frames = [item for item in frames if int(item.get("index", -1)) not in self._seen_frame_indices]
+        for item in new_frames:
+            self._seen_frame_indices.add(int(item.get("index", -1)))
+        fps = float(self.visible_frames.video_info.get("fps") or 0.0)
+        frame_width = 1.0 / fps if fps > 0.0 else 0.0
+        intervals = [
+            [float(item.get("time_seconds") or 0.0), float(item.get("time_seconds") or 0.0) + frame_width]
+            for item in new_frames
+        ]
+        self.state_evidence.observe(
+            intervals=intervals,
+            frames_seen=len(new_frames),
+            modality=modality,
+            object_counts=object_counts,
+            confidence=confidence,
+            source_event_id=source_event_id,
+        )
+
+    def write_state_snapshot(self, step_id: int) -> None:
+        state = build_state_snapshot(
+            run_id=self.recorder.run_id,
+            task_id=self.recorder.task_id,
+            video_id=self.video_path.stem,
+            baseline=self.baseline,
+            step_id=step_id,
+            task_structure=self.task_structure,
+            video_metadata={
+                "duration_s": self.visible_frames.video_info.get("duration"),
+                "fps": self.visible_frames.video_info.get("fps"),
+                "width": None,
+                "height": None,
+                "subtitle_available": None,
+                "shot_count": None,
+            },
+            prefix_actions=self.state_actions,
+            local_runtime_ms=self.state_local_runtime_ms,
+            api_wait_ms=self.state_api_wait_ms,
+            retry_count=self.state_retry_count,
+            error_count=self.state_error_count,
+            max_steps=self.max_steps,
+            evidence=self.state_evidence.snapshot(),
+        )
+        write_state_sidecar(self.state_dir / f"state_{step_id:04d}.json", state)
+
+    def record_observed_action(
+        self,
+        *,
+        action: str,
+        status: str,
+        runtime_ms: float,
+        api_wait_ms: float,
+        tool_metrics: Optional[dict[str, Any]],
+        source_event_id: str,
+    ) -> None:
+        self.state_actions.append(action)
+        self.state_local_runtime_ms += max(0.0, float(runtime_ms) - float(api_wait_ms))
+        self.state_api_wait_ms += max(0.0, float(api_wait_ms))
+        if status == "error":
+            self.state_error_count += 1
+        if canonical_action(action) == "retry":
+            self.state_retry_count += 1
+        canonical = canonical_action(action)
+        modality = {
+            "sample_seek": "temporal",
+            "temporal_qa": "temporal",
+            "object_detection": "object",
+            "ocr": "text",
+            "spatial_qa": "scene",
+            "summarize": "scene",
+            "answer": "scene",
+        }.get(canonical, "unknown")
+        metrics = tool_metrics or {}
+        object_counts = metrics.get("object_counts")
+        if not isinstance(object_counts, dict):
+            object_counts = None
+        confidence = metrics.get("object_confidence_mean")
+        self._observe_visible_frames(
+            modality,
+            object_counts=object_counts,
+            confidence=float(confidence) if isinstance(confidence, (int, float)) else None,
+            source_event_id=source_event_id,
+        )
+        self.write_state_snapshot(len(self.state_actions))
+
+
+class _Inference:
+    def __init__(self, owner: "BaseTool", name: str, description: str) -> None:
+        self.owner = owner
+        self.name = name
+        self.description = description
+
+    def __call__(self, *, input: str) -> str:
+        return self.owner._invoke(input)
+
+
+class BaseTool:
+    name = "base-tool"
+    description = "Phase 1 lightweight replacement tool"
+
+    def __init__(self, ctx: ToolContext) -> None:
+        self.ctx = ctx
+        self.inference = _Inference(self, self.name, self.description)
+
+    def _run(self, tool_input: str) -> str:
+        raise NotImplementedError
+
+    def _invoke(self, tool_input: str) -> str:
+        before = self.ctx.visible_frames.get_frame_count()
+        start_wall = _utc_now()
+        started = time.perf_counter()
+        status = "success"
+        error = None
+        try:
+            output = str(self._run(tool_input))
+        except Exception as exc:  # STAR's upstream executor treats tool errors as observations.
+            status = "error"
+            error = f"{type(exc).__name__}: {exc}"
+            output = f"Tool error: {error}"
+        elapsed_ms = _round_ms(time.perf_counter() - started)
+        after = self.ctx.visible_frames.get_frame_count()
+        standard_call = self.ctx.current_standard_tool_call
+        self.ctx.current_standard_tool_call = None
+        input_data = {
+            "video_path": str(self.ctx.video_path),
+            "tool_input": tool_input,
+            "tool_class": type(self).__name__,
+            "tool_category": _CATEGORY.get(type(self).__name__, "unknown"),
+            "frame_count_before": before,
+            "frame_count_after": after,
+            "frame_indices": [item["index"] for item in self.ctx.visible_frames.frames],
+            "model_stack_id": self.ctx.model_stack_id,
+            "visual_model_id": self.ctx.qwen_model_id,
+            "replacement_model_id": (
+                self.ctx.qwen_model_id
+                if self.ctx.qwen_client is not None and type(self).__name__ in {"ImageQA", "ImageGridQA"}
+                else getattr(self, "replacement_model_id", "cpu-metadata-adapter-v1")
+            ),
+            "planner_mode": self.ctx.planner_mode,
+        }
+        if standard_call is not None:
+            input_data["standard_tool_call"] = standard_call
+        tool_metrics = dict(self.ctx._last_tool_metrics)
+        resource_metrics = self.ctx.consume_resource_metrics()
+        if type(self).__name__ in {"ImageQA", "ImageGridQA"} and self.ctx.qwen_client is not None:
+            event_model_id = self.ctx.qwen_model_id
+        elif type(self).__name__ == "YOLOTracker":
+            event_model_id = self.ctx.detector_model_id
+        else:
+            event_model_id = getattr(self, "replacement_model_id", "cpu-metadata-adapter-v1")
+        if tool_metrics:
+            input_data["tool_metrics"] = tool_metrics
+        self.ctx.recorder.record_event(
+            event_type="action",
+            step_id=max(1, self.ctx.current_step),
+            action=self.inference.name,
+            node_type=f"videotool_{_CATEGORY.get(type(self).__name__, 'tool')}",
+            parent_step_ids=[max(0, self.ctx.current_step - 1)] if self.ctx.current_step > 1 else [],
+            input_data=input_data,
+            start_time=start_wall,
+            end_time=_utc_now(),
+            runtime_ms=elapsed_ms,
+            api_wait_ms=0.0,
+            status=status,
+            output_summary_ref=f"trace.jsonl:action-{self.ctx.recorder.event_count + 1}",
+            model_id=event_model_id,
+            error=error,
+            resource_overrides=resource_metrics,
+        )
+        self.ctx.record_observed_action(
+            action=self.inference.name,
+            status=status,
+            runtime_ms=elapsed_ms,
+            api_wait_ms=0.0,
+            tool_metrics=tool_metrics,
+            source_event_id=f"{self.ctx.recorder.run_id}:action:{self.ctx.recorder.event_count}",
+        )
+        return output
+
+
+class FrameSelector(BaseTool):
+    name = "frame-selector"
+    description = "Select a small set of temporally relevant frames using CPU metadata."
+
+    def _run(self, tool_input: str) -> str:
+        indices = self.ctx.visible_frames.select(4, tool_input)
+        return f"Selected frames {indices} for temporal query: {tool_input[:200]}"
+
+
+class TemporalGrounding(BaseTool):
+    name = "temporal-grounding"
+    description = "Locate a coarse temporal interval using deterministic video metadata."
+
+    def _run(self, tool_input: str) -> str:
+        indices = self.ctx.visible_frames.select(4, tool_input)
+        duration = self.ctx.visible_frames.video_info["duration"]
+        return f"Coarse temporal grounding for {tool_input[:160]}: 0-{duration:.1f}s; frames {indices}."
+
+
+class TemporalQA(BaseTool):
+    name = "temporal-qa"
+    description = "Record a temporal comparison over the currently visible frame order."
+
+    def _run(self, tool_input: str) -> str:
+        indices = [item["index"] for item in self.ctx.visible_frames.frames]
+        answer = f"Temporal metadata for {tool_input[:160]}: visible frame order is {indices}."
+        self.ctx.visible_frames.add_qa(self.name, answer, indices)
+        return answer
+
+
+class ImageGridSelect(BaseTool):
+    name = "image-grid-selector"
+    description = "Select a spatially useful subset of the current temporal grid."
+
+    def _run(self, tool_input: str) -> str:
+        indices = self.ctx.visible_frames.select(3, tool_input)
+        return f"Selected spatial grid frames {indices} for {tool_input[:180]}"
+
+
+class ImageQA(BaseTool):
+    name = "image-qa"
+    description = "Describe visible frames with Qwen3-VL-8B when configured, otherwise a CPU metadata adapter."
+
+    def _run(self, tool_input: str) -> str:
+        indices = [item["index"] for item in self.ctx.visible_frames.frames]
+        if self.ctx.qwen_client is not None:
+            frame_paths = self.ctx.visible_frames.ensure_frame_files(indices)
+            result = self.ctx.qwen_client.describe(
+                frame_paths,
+                "Describe concrete visual evidence relevant to this request. "
+                "Mention objects, actions, text, colors, and temporal clues only when visible.\n"
+                + tool_input,
+            )
+            self.ctx.record_tool_metrics(
+                {
+                    "load_ms": result.get("model_load_ms") if result.get("request_index") == 1 else 0.0,
+                    "qwen_inference_ms": result.get("inference_ms"),
+                    "qwen_worker_startup_ms": result.get("worker_startup_ms") if result.get("request_index") == 1 else 0.0,
+                    "peak_allocated_mb": result.get("peak_allocated_mb"),
+                    "peak_reserved_mb": result.get("peak_reserved_mb"),
+                    "qwen_model_resident": result.get("model_resident", True),
+                    "qwen_image_count": result.get("image_count", len(frame_paths)),
+                }
+            )
+            answer = f"Qwen3-VL-8B observation ({len(frame_paths)} frames): {result.get('text', '')}"
+        else:
+            answer = f"Frame-level visual observation for {tool_input[:160]} on frames {indices}."
+        self.ctx.visible_frames.add_qa(self.name, answer, indices)
+        return answer
+
+
+class ImageGridQA(BaseTool):
+    name = "image-grid-qa"
+    description = "Describe each currently visible grid frame with Qwen3-VL-8B when configured."
+
+    def _run(self, tool_input: str) -> str:
+        indices = [item["index"] for item in self.ctx.visible_frames.frames]
+        if self.ctx.qwen_client is not None:
+            frame_paths = self.ctx.visible_frames.ensure_frame_files(indices)
+            result = self.ctx.qwen_client.describe(
+                frame_paths,
+                "Compare the sampled video frames as a temporal grid and report "
+                "which frame-level evidence answers this request. Be concise.\n"
+                + tool_input,
+            )
+            self.ctx.record_tool_metrics(
+                {
+                    "load_ms": result.get("model_load_ms") if result.get("request_index") == 1 else 0.0,
+                    "qwen_inference_ms": result.get("inference_ms"),
+                    "qwen_worker_startup_ms": result.get("worker_startup_ms") if result.get("request_index") == 1 else 0.0,
+                    "peak_allocated_mb": result.get("peak_allocated_mb"),
+                    "peak_reserved_mb": result.get("peak_reserved_mb"),
+                    "qwen_model_resident": result.get("model_resident", True),
+                    "qwen_image_count": result.get("image_count", len(frame_paths)),
+                }
+            )
+            answer = f"Qwen3-VL-8B grid observation ({len(frame_paths)} frames): {result.get('text', '')}"
+        else:
+            answer = f"Grid observations for {tool_input[:160]}: " + ", ".join(
+                f"frame {index} has metadata-visible content" for index in indices
+            )
+        self.ctx.visible_frames.add_qa(self.name, answer, indices)
+        return answer
+
+
+class PatchZoomer(BaseTool):
+    name = "patch-zoomer"
+    description = "Describe a CPU ROI/zoom request without loading a large vision model."
+
+    def _run(self, tool_input: str) -> str:
+        answer = f"CPU ROI request recorded for {tool_input[:180]} on {self.ctx.visible_frames.get_frame_count()} frames."
+        self.ctx.visible_frames.add_qa(self.name, answer)
+        return answer
+
+
+class YOLOTracker(BaseTool):
+    name = "yolo-tracker"
+    description = "Run optional YOLO detection on one or more lazily extracted frames."
+    replacement_model_id = "ultralytics-yolo"
+
+    def _run(self, tool_input: str) -> str:
+        if self.ctx.yolo_model is None or not self.ctx.yolo_model.is_file():
+            return "YOLO adapter skipped: no verified model path was supplied."
+        requested_batch = max(1, int(self.ctx.yolo_batch))
+        frame_indices = self.ctx.visible_frames.sample_indices(requested_batch)
+        frame_paths = self.ctx.visible_frames.ensure_frame_files(frame_indices, limit=requested_batch)
+        if not frame_paths:
+            return "YOLO adapter skipped: no frame could be extracted."
+        python_bin = self.ctx.yolo_python or sys.executable
+        code = (
+            "import json,sys,time; import torch; from ultralytics import YOLO; "
+            "model_path=sys.argv[1]; requested=int(sys.argv[2]); sources=sys.argv[3:]; "
+            "t=time.perf_counter(); m=YOLO(model_path); load=(time.perf_counter()-t)*1000; "
+            "t=time.perf_counter(); r=m(sources, batch=requested, verbose=False); infer=(time.perf_counter()-t)*1000; "
+            "names=getattr(m,'names',{}); out=[]; "
+            "[out.append({'frame_position':pos, 'class': names.get(int(c), str(int(c))), 'confidence': round(float(cf),4)}) "
+            "for pos,x in enumerate(r) for c,cf in zip(x.boxes.cls.tolist(), x.boxes.conf.tolist())]; "
+            "print(json.dumps({'detections':out[:200], 'batch_requested':requested, 'batch_effective':len(sources), "
+            "'frame_count':len(sources), 'load_ms':round(load,3), 'inference_ms':round(infer,3), "
+            "'peak_allocated_mb':round(torch.cuda.max_memory_allocated()/1024**2,3) if torch.cuda.is_available() else None, "
+            "'peak_reserved_mb':round(torch.cuda.max_memory_reserved()/1024**2,3) if torch.cuda.is_available() else None}, ensure_ascii=False))"
+        )
+        completed = subprocess.run(
+            [python_bin, "-c", code, str(self.ctx.yolo_model), str(requested_batch), *[str(path) for path in frame_paths]],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError(f"YOLO subprocess failed: {completed.stderr[-500:]}")
+        raw = completed.stdout.strip().splitlines()[-1] if completed.stdout.strip() else "{}"
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"YOLO subprocess returned invalid JSON: {raw[-500:]}") from exc
+        self.ctx.record_tool_metrics(
+            {
+                "load_ms": payload.get("load_ms"),
+                "yolo_inference_ms": payload.get("inference_ms"),
+                "peak_allocated_mb": payload.get("peak_allocated_mb"),
+                "peak_reserved_mb": payload.get("peak_reserved_mb"),
+                "yolo_model_resident": False,
+                "yolo_batch_requested": payload.get("batch_requested", requested_batch),
+                "yolo_batch_effective": payload.get("batch_effective", len(frame_paths)),
+                "yolo_frame_count": payload.get("frame_count", len(frame_paths)),
+            }
+        )
+        detections = json.dumps(payload.get("detections", []), ensure_ascii=False)
+        detections_list = payload.get("detections", [])
+        object_counts = Counter(
+            str(item.get("class", "unknown"))
+            for item in detections_list
+            if isinstance(item, dict)
+        )
+        confidences = [
+            float(item.get("confidence"))
+            for item in detections_list
+            if isinstance(item, dict) and isinstance(item.get("confidence"), (int, float))
+        ]
+        self.ctx.record_tool_metrics(
+            {
+                "object_counts": dict(object_counts),
+                "object_confidence_mean": sum(confidences) / len(confidences) if confidences else None,
+                "detection_count": len(detections_list) if isinstance(detections_list, list) else 0,
+            }
+        )
+        answer = (
+            f"YOLO detections with batch={payload.get('batch_effective', len(frame_paths))} "
+            f"on {len(frame_paths)} sampled frames: {detections or '[]'}"
+        )
+        self.ctx.visible_frames.add_qa(self.name, answer, frame_indices)
+        return answer
+
+
+class Summarizer(BaseTool):
+    name = "summarization-tool"
+    description = "Synthesize collected observations into the multiple-choice answer."
+
+    def _run(self, tool_input: str) -> str:
+        frame_info = self.ctx.visible_frames.get_qa_descriptions()
+        if self.ctx.answer_model is None:
+            return "D"
+        prompt = f"Question:\n{tool_input}\n\nCollected frame information:\n{frame_info}\nReturn only the best option letter."
+        return self.ctx.answer_model.generate(prompt)
+
+
+def build_tools(ctx: ToolContext) -> list[BaseTool]:
+    return [
+        FrameSelector(ctx),
+        TemporalGrounding(ctx),
+        TemporalQA(ctx),
+        ImageGridSelect(ctx),
+        ImageQA(ctx),
+        ImageGridQA(ctx),
+        PatchZoomer(ctx),
+        YOLOTracker(ctx),
+        Summarizer(ctx),
+    ]
+
+
+def _tool_by_class(tools: list[BaseTool], class_name: str) -> BaseTool:
+    for tool in tools:
+        if type(tool).__name__ == class_name:
+            return tool
+    raise KeyError(class_name)
+
+
+def _strip_code_fence(text: str) -> str:
+    cleaned = text.strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
+
+
+def _message_text(message: Any) -> str:
+    """Normalize OpenAI-compatible content, including Qwen reasoning output."""
+    content = getattr(message, "content", "")
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("text") is not None:
+                parts.append(str(item["text"]))
+            else:
+                parts.append(str(item))
+        content = "".join(parts)
+    if content:
+        return str(content)
+    reasoning = getattr(message, "reasoning_content", "")
+    if isinstance(reasoning, str):
+        return reasoning
+    additional = getattr(message, "additional_kwargs", {})
+    if isinstance(additional, dict):
+        for key in ("reasoning_content", "content"):
+            value = additional.get(key)
+            if value:
+                return str(value)
+    return str(reasoning or "")
+
+
+def _worker_resource_metrics(response: dict[str, Any]) -> dict[str, Any]:
+    """Map either local worker response to the shared trace resource fields."""
+    first_request = response.get("request_index") == 1
+    return {
+        "load_ms": response.get("model_load_ms") if first_request else 0.0,
+        "qwen_inference_ms": response.get("inference_ms"),
+        "qwen_worker_startup_ms": response.get("worker_startup_ms") if first_request else 0.0,
+        "peak_allocated_mb": response.get("peak_allocated_mb"),
+        "peak_reserved_mb": response.get("peak_reserved_mb"),
+        "qwen_model_resident": response.get("model_resident", True),
+        "qwen_image_count": response.get("image_count", 0),
+    }
+
+
+def _parse_json_object(text: str) -> dict[str, Any]:
+    cleaned = _strip_code_fence(text)
+    try:
+        payload = json.loads(cleaned)
+        if isinstance(payload, dict):
+            return payload
+    except json.JSONDecodeError:
+        pass
+    # Some compatible endpoints prepend a reasoning section.  Parse the last
+    # balanced-looking JSON object without discarding the raw response in the
+    # trace.  A missing/invalid object still raises and is recorded as a parse
+    # error by the caller.
+    starts = [index for index, char in enumerate(cleaned) if char == "{"]
+    for start in reversed(starts):
+        end = cleaned.rfind("}")
+        if end <= start:
+            continue
+        try:
+            payload = json.loads(cleaned[start : end + 1])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            return payload
+    raise json.JSONDecodeError("no JSON object in model output", cleaned, 0)
+
+
+class _PlannerParseError(RuntimeError):
+    def __init__(self, raw_output: str, cause: Exception) -> None:
+        super().__init__(str(cause))
+        self.raw_output = raw_output
+
+
+def _planner_decision_from_payload(payload: Any) -> Any:
+    """Validate the canonical schema and normalize common compatible aliases."""
+    from star_prompts import PlannerDecision
+
+    tool_aliases = {
+        "frameselector": "frame-selector",
+        "frame_selector": "frame-selector",
+        "frame-selector": "frame-selector",
+        "temporalgrounding": "temporal-grounding",
+        "temporal_grounding": "temporal-grounding",
+        "temporal-grounding": "temporal-grounding",
+        "temporalqa": "temporal-qa",
+        "temporal_qa": "temporal-qa",
+        "temporal-qa": "temporal-qa",
+        "imagegridselect": "image-grid-selector",
+        "image_grid_selector": "image-grid-selector",
+        "image-grid-selector": "image-grid-selector",
+        "imageqa": "image-qa",
+        "image_qa": "image-qa",
+        "image-qa": "image-qa",
+        "imagegridqa": "image-grid-qa",
+        "image_grid_qa": "image-grid-qa",
+        "image-grid-qa": "image-grid-qa",
+        "patchzoomer": "patch-zoomer",
+        "patch_zoomer": "patch-zoomer",
+        "patch-zoomer": "patch-zoomer",
+        "yolotracker": "yolo-tracker",
+        "yolo_tracker": "yolo-tracker",
+        "yolo-tracker": "yolo-tracker",
+        "summarizer": "summarization-tool",
+        "summarizationtool": "summarization-tool",
+        "summarization_tool": "summarization-tool",
+        "summarization-tool": "summarization-tool",
+    }
+
+    def normalize(decision: Any) -> Any:
+        if not isinstance(decision, PlannerDecision):
+            return decision
+        raw_name = str(decision.tool_name).strip()
+        normalized = tool_aliases.get(raw_name.lower(), raw_name)
+        if normalized == raw_name:
+            return decision
+        return PlannerDecision(
+            reasoning=decision.reasoning,
+            tool_name=normalized,
+            tool_input=decision.tool_input,
+            info_sufficient=decision.info_sufficient,
+        )
+
+    if isinstance(payload, PlannerDecision):
+        return normalize(payload)
+    if not isinstance(payload, dict):
+        return normalize(PlannerDecision.model_validate(payload))
+    try:
+        return normalize(PlannerDecision.model_validate(payload))
+    except Exception:
+        tool_name = payload.get("tool_name", payload.get("tool", payload.get("name")))
+        tool_input = payload.get("tool_input", payload.get("input", payload.get("arguments", "")))
+        info_sufficient = payload.get(
+            "info_sufficient",
+            payload.get("is_sufficient", payload.get("finish", payload.get("done", False))),
+        )
+        if tool_name is None:
+            raise
+        return normalize(PlannerDecision(
+            reasoning=str(payload.get("reasoning", payload.get("reason", "Compatible planner output normalized."))),
+            tool_name=str(tool_name),
+            tool_input=str(tool_input),
+            info_sufficient=bool(info_sufficient),
+        ))
+
+
+class PlannerModel:
+    def __init__(self, ctx: ToolContext, mode: str, model_name: str) -> None:
+        self.ctx = ctx
+        self.mode = mode
+        self.model_name = model_name
+        self._last_resource: dict[str, Any] = {}
+        self._last_parse_status = "not_attempted"
+
+    def _scripted(self, prompt: str) -> Any:
+        from star_prompts import PlannerDecision
+
+        match = re.search(r"Current iteration: (\d+)", prompt)
+        iteration = int(match.group(1)) if match else 1
+        previous = re.search(r"Previous tool type: (\w+)", prompt)
+        previous_type = previous.group(1) if previous else "none"
+        if iteration == 1:
+            return PlannerDecision(
+                reasoning="Start with temporal frame selection.",
+                tool_name="frame-selector",
+                tool_input="Locate the relevant temporal moments before spatial analysis.",
+                info_sufficient=False,
+            )
+        if iteration == 2:
+            return PlannerDecision(
+                reasoning="Analyze the newly selected frames spatially.",
+                tool_name="image-qa",
+                tool_input="Describe visible signs, objects, and labels in each selected frame.",
+                info_sufficient=False,
+            )
+        if iteration == 3:
+            return PlannerDecision(
+                reasoning="Compare temporal order after the first spatial observation.",
+                tool_name="temporal-qa",
+                tool_input="Compare the visible frame order for the question.",
+                info_sufficient=False,
+            )
+        if previous_type == "temporal":
+            return PlannerDecision(
+                reasoning="The temporal update must receive one more spatial observation.",
+                tool_name="image-grid-qa",
+                tool_input="Extract complementary frame-level evidence for the final answer.",
+                info_sufficient=False,
+            )
+        return PlannerDecision(
+            reasoning="The alternating evidence is sufficient for synthesis.",
+            tool_name="image-qa",
+            tool_input="No further call; synthesize the collected evidence.",
+            info_sufficient=True,
+        )
+
+    def _api(self, prompt: str, system_prompt: Optional[str]) -> tuple[Any, str]:
+        from openai import OpenAI
+        from star_prompts import PlannerDecision
+
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY is unset for api planner mode")
+        client_kwargs: dict[str, Any] = {"api_key": api_key}
+        api_base = os.environ.get("OPENAI_API_BASE")
+        if api_base:
+            client_kwargs["base_url"] = api_base
+        client = OpenAI(**client_kwargs)
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        try:
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=0,
+                response_format={"type": "json_object"},
+            )
+        except Exception:
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=0,
+            )
+        message = response.choices[0].message
+        raw = _message_text(message)
+        parsed = getattr(message, "parsed", None)
+        if parsed is not None:
+            if not raw:
+                raw = json.dumps(parsed, ensure_ascii=False, default=str)
+            try:
+                return _planner_decision_from_payload(parsed), raw
+            except Exception as exc:
+                raise _PlannerParseError(raw, exc) from exc
+        if not raw:
+            try:
+                raw = message.model_dump_json()
+            except Exception:
+                raw = str(message)
+        try:
+            payload = _parse_json_object(raw)
+            return _planner_decision_from_payload(payload), raw
+        except Exception as exc:
+            raise _PlannerParseError(raw, exc) from exc
+
+    def _local_qwen(self, prompt: str) -> tuple[Any, str]:
+        client = self.ctx.planner_client if self.mode == "local_split" else self.ctx.qwen_client
+        if client is None:
+            required = "--planner-model" if self.mode == "local_split" else "--qwen-model"
+            raise RuntimeError(f"{self.mode} planner mode requires {required}")
+        response = client.generate(prompt)
+        self._last_resource = _worker_resource_metrics(response)
+        raw = str(response.get("text", ""))
+        try:
+            self._last_parse_status = "json"
+            return _planner_decision_from_payload(_parse_json_object(raw)), raw
+        except Exception as exc:
+            # Qwen occasionally emits just the selected tool name after the
+            # first complete JSON call.  Normalize only an exact known tool
+            # token; arbitrary prose remains a parse error and is retained in
+            # the trace for auditability.
+            token = raw.strip().strip("` ").lower()
+            known_tools = {
+                "frame-selector",
+                "temporal-grounding",
+                "temporal-qa",
+                "image-grid-selector",
+                "image-qa",
+                "image-grid-qa",
+                "patch-zoomer",
+                "yolo-tracker",
+                "summarization-tool",
+            }
+            if token in known_tools:
+                self._last_parse_status = "bare_tool_token"
+                return (
+                    _planner_decision_from_payload(
+                        {
+                            "reasoning": "The model emitted a bare next-tool token; continue evidence collection.",
+                            "tool_name": token,
+                            "tool_input": "Continue collecting evidence relevant to the question.",
+                            "info_sufficient": False,
+                        }
+                    ),
+                    raw,
+                )
+            raise _PlannerParseError(raw, exc) from exc
+
+    def generate(self, user_prompt: str, *, system_prompt: Optional[str] = None, response_format: Any = None) -> Any:
+        self.ctx.current_step = max(1, int(re.search(r"Current iteration: (\d+)", user_prompt).group(1))) if re.search(r"Current iteration: (\d+)", user_prompt) else self.ctx.current_step
+        retry_of: Optional[str] = None
+        prompt_to_send = user_prompt
+        for attempt in range(2):
+            started = time.perf_counter()
+            status = "success"
+            error = None
+            raw = ""
+            parsed: Any = None
+            self._last_resource = {}
+            self._last_parse_status = "error"
+            try:
+                if self.mode == "scripted":
+                    parsed = self._scripted(prompt_to_send)
+                    raw = parsed.model_dump_json()
+                    self._last_parse_status = "json"
+                elif self.mode in {"local_qwen", "local_split"}:
+                    parsed, raw = self._local_qwen(prompt_to_send)
+                else:
+                    parsed, raw = self._api(prompt_to_send, system_prompt)
+                    self._last_parse_status = "json"
+            except Exception as exc:
+                status = "error"
+                error = f"{type(exc).__name__}: {exc}"
+                raw = str(getattr(exc, "raw_output", raw) or raw)
+            elapsed_ms = _round_ms(time.perf_counter() - started)
+            event_id = f"{self.ctx.recorder.run_id}:api_call:{self.ctx.recorder.event_count + 1}"
+            self.ctx.recorder.record_event(
+                event_type="api_call",
+                step_id=max(1, self.ctx.current_step),
+                action="planner.generate",
+                node_type="planner",
+                parent_step_ids=[max(0, self.ctx.current_step - 1)] if self.ctx.current_step > 1 else [],
+                input_data={
+                    "model_name": self.model_name,
+                    "planner_model_id": self.ctx.planner_model_id,
+                    "model_stack_id": self.ctx.model_stack_id,
+                    "planner_mode": self.mode,
+                    "prompt_sha256": hashlib.sha256(user_prompt.encode("utf-8")).hexdigest(),
+                    "raw_model_output": raw,
+                    "parsed_decision": parsed.model_dump() if parsed is not None else None,
+                    "parse_status": self._last_parse_status if parsed is not None else "error",
+                },
+                start_time=_utc_now(),
+                end_time=_utc_now(),
+                runtime_ms=elapsed_ms,
+                api_wait_ms=elapsed_ms if self.mode == "api" else 0.0,
+                status=status,
+                output_summary_ref=f"trace.jsonl:planner-{self.ctx.recorder.event_count + 1}",
+                model_id=self.ctx.planner_model_id,
+                retry_of=retry_of,
+                error=error,
+                resource_overrides=self._last_resource,
+            )
+            if parsed is not None:
+                return parsed
+            if self.mode not in {"api", "local_qwen", "local_split"} or attempt == 1:
+                return None
+            retry_of = event_id
+            prompt_to_send = user_prompt + "\nRetry: return one complete minified JSON object only; reasoning <= 12 words, tool_input <= 20 words; no analysis or markdown."
+        return None
+
+
+class AnswerModel:
+    def __init__(
+        self,
+        ctx: ToolContext,
+        mode: str,
+        model_name: str,
+        options: str,
+        client: Optional[QwenVLClient] = None,
+    ) -> None:
+        self.ctx = ctx
+        self.mode = mode
+        self.model_name = model_name
+        self.options = options
+        self.client = client
+
+    def generate(self, prompt: str) -> str:
+        started = time.perf_counter()
+        status = "success"
+        error = None
+        raw = "D"
+        resource_overrides: dict[str, Any] = {}
+        try:
+            if self.mode == "api":
+                from openai import OpenAI
+
+                api_key = os.environ.get("OPENAI_API_KEY")
+                if not api_key:
+                    raise RuntimeError("OPENAI_API_KEY is unset for api answer mode")
+                kwargs: dict[str, Any] = {"api_key": api_key}
+                if os.environ.get("OPENAI_API_BASE"):
+                    kwargs["base_url"] = os.environ["OPENAI_API_BASE"]
+                response = OpenAI(**kwargs).chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "Return only one option letter."},
+                        {"role": "user", "content": prompt + "\nOptions:\n" + self.options},
+                    ],
+                    temperature=0,
+                )
+                raw = _message_text(response.choices[0].message)
+            elif self.mode in {"local_qwen", "local_split"}:
+                client = self.client or self.ctx.answer_client or self.ctx.qwen_client
+                if client is None:
+                    required = "--answer-model or --qwen-model" if self.mode == "local_split" else "--qwen-model"
+                    raise RuntimeError(f"{self.mode} answer mode requires {required}")
+                response = client.generate(
+                    "Return only one option letter (A, B, C, or D). Do not explain.\n"
+                    + prompt
+                    + "\nOptions:\n"
+                    + self.options
+                )
+                raw = str(response.get("text", ""))
+                resource_overrides = _worker_resource_metrics(response)
+            match = re.search(r"\b([A-D])\b", raw.upper())
+            return match.group(1) if match else raw.strip()[:200]
+        except Exception as exc:
+            status = "error"
+            error = f"{type(exc).__name__}: {exc}"
+            return ""
+        finally:
+            elapsed_ms = _round_ms(time.perf_counter() - started)
+            self.ctx.recorder.record_event(
+                event_type="api_call",
+                step_id=max(1, self.ctx.current_step),
+                action="generalist.generate",
+                node_type="answer_generation",
+                parent_step_ids=[max(0, self.ctx.current_step - 1)] if self.ctx.current_step > 1 else [],
+                input_data={
+                    "model_name": self.model_name,
+                    "answer_model_id": self.ctx.answer_model_id,
+                    "model_stack_id": self.ctx.model_stack_id,
+                    "planner_mode": self.mode,
+                    "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+                    "raw_model_output": raw,
+                },
+                start_time=_utc_now(),
+                end_time=_utc_now(),
+                runtime_ms=elapsed_ms,
+                api_wait_ms=elapsed_ms if self.mode == "api" else 0.0,
+                status=status,
+                output_summary_ref=f"trace.jsonl:answer-api-{self.ctx.recorder.event_count + 1}",
+                model_id=self.ctx.answer_model_id,
+                error=error,
+                resource_overrides=resource_overrides,
+            )
+
+ 
+def _yolo_preobserve(ctx: ToolContext, tools: list[BaseTool]) -> Optional[dict[str, Any]]:
+    """Inject an explicit YOLO observation before a dynamic planner starts."""
+    if not ctx.yolo_preobserve or ctx.yolo_model is None:
+        return None
+    tool = _tool_by_class(tools, "YOLOTracker")
+    ctx.current_step = 1
+    tool_input = f"Batch-detect sampled video frames for the question using batch={ctx.yolo_batch}."
+    ctx.current_standard_tool_call = {
+        "name": "YOLOTracker",
+        "args": {"input": tool_input},
+        "id": "pre-yolo-step-1",
+        "type": "tool_call",
+    }
+    observation = tool.inference(input=tool_input)
+    return {
+        "iteration": 1,
+        "planner_tool_name": "yolo-tracker",
+        "tool_name": "YOLOTracker",
+        "tool_type": "spatial",
+        "tool_input": tool_input,
+        "observation": observation[:600],
+        "info_sufficient": False,
+    }
+
+
+def run_star(
+    ctx: ToolContext,
+    tools: list[BaseTool],
+    question: str,
+    question_w_options: str,
+    max_iterations: int,
+    planner_mode: str,
+    model_name: str,
+) -> tuple[str, dict[str, Any]]:
+    if ctx.yolo_preobserve or planner_mode == "local_split":
+        return run_star_compat(ctx, tools, question, question_w_options, max_iterations, planner_mode, model_name)
+    try:
+        from star_reasoning import build_star_graph
+    except ModuleNotFoundError as exc:
+        # STAR's upstream graph depends on LangGraph, which is not installed
+        # in the minimal remote environment.  Keep STAR's planner contract and
+        # temporal/spatial alternation in a local compatibility loop.
+        if exc.name not in {"langgraph", "langchain_core"}:
+            raise
+        return run_star_compat(ctx, tools, question, question_w_options, max_iterations, planner_mode, model_name)
+
+    planner = PlannerModel(ctx, planner_mode, model_name)
+    graph = build_star_graph(tools, ctx.visible_frames, planner, ctx.answer_model)
+    app = graph.compile()
+    state = app.invoke(
+        {
+            "question": question,
+            "question_w_options": question_w_options,
+            "last_tool_type": "none",
+            "iteration_count": 0,
+            "max_iterations": max_iterations,
+            "should_end": False,
+            "final_answer": "",
+            "tool_history": [],
+            "selected_tool_name": "",
+            "selected_tool_input": "",
+        }
+    )
+    return str(state.get("final_answer", "")), state
+
+
+def run_star_compat(
+    ctx: ToolContext,
+    tools: list[BaseTool],
+    question: str,
+    question_w_options: str,
+    max_iterations: int,
+    planner_mode: str,
+    model_name: str,
+) -> tuple[str, dict[str, Any]]:
+    """Dependency-free STAR loop preserving planner and alternation semantics."""
+
+    planner = PlannerModel(ctx, planner_mode, model_name)
+    previous_type = "none"
+    history: list[dict[str, Any]] = []
+    start_iteration = 1
+    preobserve = _yolo_preobserve(ctx, tools)
+    if preobserve is not None:
+        history.append(preobserve)
+        previous_type = "spatial"
+        start_iteration = 2
+    allowed_tools = [
+        {
+            "tool_name": item.inference.name,
+            "tool_class": type(item).__name__,
+            "category": _CATEGORY.get(type(item).__name__, "generalist"),
+            "description": item.inference.description,
+        }
+        for item in tools
+    ]
+    for iteration in range(start_iteration, max(1, int(max_iterations)) + 1):
+        if planner_mode in {"local_qwen", "local_split"}:
+            prompt = (
+                "You are the planner in a video reasoning trace. Read the structured task and prior observations, "
+                "then choose the next tool based on the current state. The tool choice must be a real next action, "
+                "not a prose recommendation. Use at least two observations before setting info_sufficient=true.\n"
+                f"Current iteration: {iteration}\nPrevious tool type: {previous_type}\n"
+                f"Task structure: {json.dumps(ctx.task_structure, ensure_ascii=False, sort_keys=True)}\n"
+                f"Question: {question}\n"
+                f"Allowed tools: {json.dumps(allowed_tools, ensure_ascii=False)}\n"
+                f"Prior observations: {json.dumps(history[-4:], ensure_ascii=False)}\n"
+                f"Evidence state: {json.dumps(ctx.state_evidence.snapshot(), ensure_ascii=False)}\n"
+                "Return exactly one compact JSON object and no markdown; reasoning <= 12 words and tool_input <= 20 words: "
+                '{"reasoning":"...","tool_name":"one allowed tool_name",'
+                '"tool_input":"concrete request","info_sufficient":false}'
+            )
+        else:
+            prompt = (
+                f"Current iteration: {iteration}\n"
+                f"Previous tool type: {previous_type}\n"
+                f"Question: {question}\n"
+                "Choose one temporal/spatial tool or indicate sufficient information."
+            )
+        decision = planner.generate(prompt)
+        if decision is None:
+            break
+        if decision.info_sufficient and iteration < 2:
+            # Keep the minimum-observation rule explicit in the compatibility
+            # loop; the model still chooses the tool for this iteration.
+            decision.info_sufficient = False
+        tool = next((item for item in tools if item.inference.name == decision.tool_name), None)
+        if tool is None:
+            raise RuntimeError(f"STAR planner selected unknown tool: {decision.tool_name}")
+        tool_type = _CATEGORY.get(type(tool).__name__, "generalist")
+        required_type = "spatial" if previous_type == "temporal" else "temporal" if previous_type == "spatial" else "any"
+        if planner_mode not in {"local_qwen", "local_split"} and required_type != "any" and tool_type != required_type:
+            compatible = next(
+                (
+                    item
+                    for item in tools
+                    if _CATEGORY.get(type(item).__name__, "generalist") == required_type
+                ),
+                None,
+            )
+            if compatible is not None:
+                tool = compatible
+                tool_type = required_type
+        ctx.current_step = iteration
+        ctx.current_standard_tool_call = {
+            "name": type(tool).__name__,
+            "args": {"input": decision.tool_input},
+            "id": f"compat-star-step-{iteration}",
+            "type": "tool_call",
+        }
+        observation = tool.inference(input=decision.tool_input)
+        history.append(
+            {
+                "iteration": iteration,
+                "planner_tool_name": decision.tool_name,
+                "tool_name": tool.inference.name,
+                "tool_type": tool_type,
+                "tool_input": decision.tool_input,
+                "observation": observation[:600],
+                "info_sufficient": bool(decision.info_sufficient),
+            }
+        )
+        previous_type = tool_type
+        if decision.info_sufficient:
+            break
+    answer = ctx.answer_model.generate(question_w_options + "\nSTAR evidence:\n" + json.dumps(history, ensure_ascii=False))
+    return answer or "D", {
+        "engine": "compat_star_loop",
+        "planner_mode": planner_mode,
+        "model_name": model_name,
+        "iterations": len(history),
+        "tool_history": history,
+    }
+
+
+def _react_fake_model(ctx: ToolContext, sequence: list[str]):
+    from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
+    from langchain_core.messages import AIMessage
+
+    messages = []
+    for index, tool_name in enumerate(sequence, start=1):
+        messages.append(
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": tool_name,
+                        "args": {"input": f"ReAct observation request {index} for the question."},
+                        "id": f"call_{index}",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        )
+    messages.append(AIMessage(content="D"))
+
+    class RecordingFakeMessages(FakeMessagesListChatModel):
+        def bind_tools(self, tools: Any, tool_choice: Any = None, **kwargs: Any) -> "RecordingFakeMessages":
+            return self
+
+    # langchain-core 0.3.x calls this field ``responses`` (not ``messages``).
+    return RecordingFakeMessages(responses=messages, name="phase1-scripted-react")
+
+
+def run_react(
+    ctx: ToolContext,
+    tools: list[BaseTool],
+    question: str,
+    planner_mode: str,
+    model_name: str,
+    max_iterations: int,
+) -> tuple[str, dict[str, Any]]:
+    if ctx.yolo_preobserve or planner_mode in {"local_qwen", "local_split"}:
+        return run_react_compat(ctx, tools, question, planner_mode, model_name, max_iterations)
+    try:
+        from langchain_core.tools import StructuredTool
+        from langchain_core.messages import HumanMessage
+        from langgraph.prebuilt import create_react_agent
+    except ModuleNotFoundError as exc:
+        # The remote finetooling environment intentionally stays lightweight
+        # and does not install LangGraph.  Preserve the same registered tools,
+        # standard call envelope, and observation-driven sequence with a small
+        # compatibility loop; the trace records the engine explicitly.
+        if exc.name not in {"langchain_core", "langgraph"}:
+            raise
+        return run_react_compat(ctx, tools, question, planner_mode, model_name, max_iterations)
+
+    bound_tools = []
+    for tool in tools:
+        class_name = type(tool).__name__
+
+        def call(input: str, _tool: BaseTool = tool, _class_name: str = class_name) -> str:
+            ctx.react_call_count += 1
+            ctx.current_step = ctx.react_call_count
+            ctx.current_standard_tool_call = {
+                "name": _class_name,
+                "args": {"input": input},
+                "id": f"react-step-{ctx.react_call_count}",
+            }
+            return _tool.inference(input=input)
+
+        bound_tools.append(
+            StructuredTool.from_function(
+                func=call,
+                name=class_name,
+                description=tool.description,
+            )
+        )
+
+    if planner_mode == "scripted":
+        sequence = ["FrameSelector", "ImageQA", "TemporalQA", "ImageGridQA"]
+        if ctx.yolo_model is not None:
+            sequence = ["FrameSelector", "ImageQA", "YOLOTracker", "TemporalQA", "ImageGridQA"]
+        model = _react_fake_model(ctx, sequence)
+    else:
+        from langchain_openai import ChatOpenAI
+        from pydantic import PrivateAttr
+
+        class RecordingChatOpenAI(ChatOpenAI):
+            """Keep LangChain's tool binding while separating API wait in trace."""
+
+            _phase1_ctx: Any = PrivateAttr(default=None)
+            _phase1_model_name: str = PrivateAttr(default="")
+
+            def set_trace_context(self, trace_ctx: ToolContext, model_name_for_trace: str) -> None:
+                self._phase1_ctx = trace_ctx
+                self._phase1_model_name = model_name_for_trace
+
+            def _generate(self, messages: Any, stop: Any = None, run_manager: Any = None, **kwargs: Any) -> Any:
+                started = time.perf_counter()
+                start_wall = _utc_now()
+                status = "success"
+                error = None
+                result = None
+                try:
+                    result = super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                    return result
+                except Exception as exc:
+                    status = "error"
+                    error = f"{type(exc).__name__}: {exc}"
+                    raise
+                finally:
+                    elapsed_ms = _round_ms(time.perf_counter() - started)
+                    raw_output: Any = None
+                    has_tool_call = False
+                    if result is not None:
+                        try:
+                            generations = getattr(result, "generations", [])
+                            first_generation = generations[0] if generations else None
+                            message = getattr(first_generation, "message", None)
+                            if message is not None:
+                                raw_output = message.model_dump() if hasattr(message, "model_dump") else str(message)
+                                has_tool_call = bool(getattr(message, "tool_calls", None))
+                        except Exception as exc:
+                            raw_output = f"trace serialization failed: {type(exc).__name__}: {exc}"
+                    trace_ctx = self._phase1_ctx
+                    if trace_ctx is not None:
+                        step_id = max(1, trace_ctx.react_call_count + 1)
+                        trace_ctx.recorder.record_event(
+                            event_type="api_call",
+                            step_id=step_id,
+                            action="react.model_tool_call" if has_tool_call else "react.model_answer",
+                            node_type="react_planner" if has_tool_call else "react_answer",
+                            parent_step_ids=[step_id - 1] if step_id > 1 else [],
+                            input_data={
+                                "model_name": self._phase1_model_name,
+                                "planner_mode": "api",
+                                "raw_model_output": raw_output,
+                                "standard_tool_call_output": has_tool_call,
+                            },
+                            start_time=start_wall,
+                            end_time=_utc_now(),
+                            runtime_ms=elapsed_ms,
+                            api_wait_ms=elapsed_ms,
+                            status=status,
+                            output_summary_ref=f"trace.jsonl:react-api-{trace_ctx.recorder.event_count + 1}",
+                            model_id=self._phase1_model_name,
+                            error=error,
+                        )
+
+        kwargs: dict[str, Any] = {
+            "model": model_name,
+            "api_key": os.environ.get("OPENAI_API_KEY"),
+            "temperature": 0,
+        }
+        if os.environ.get("OPENAI_API_BASE"):
+            kwargs["base_url"] = os.environ["OPENAI_API_BASE"]
+        model = RecordingChatOpenAI(**kwargs)
+        model.set_trace_context(ctx, model_name)
+
+    ctx.current_step = 1
+    app = create_react_agent(model, bound_tools, name="phase1_langgraph_react")
+    result = app.invoke(
+        {"messages": [HumanMessage(content=question)]},
+        config={"recursion_limit": 20},
+    )
+    messages = result.get("messages", [])
+    final_content = ""
+    for message in reversed(messages):
+        content = getattr(message, "content", None)
+        if content:
+            final_content = str(content)
+            break
+    return final_content, {"messages_count": len(messages), "message_types": [type(m).__name__ for m in messages]}
+
+
+def run_react_compat(
+    ctx: ToolContext,
+    tools: list[BaseTool],
+    question: str,
+    planner_mode: str,
+    model_name: str,
+    max_iterations: int,
+) -> tuple[str, dict[str, Any]]:
+    """Dependency-free ReAct-compatible loop for the remote minimal env."""
+
+    observations: list[dict[str, Any]] = []
+    planner = PlannerModel(ctx, planner_mode, model_name) if planner_mode in {"local_qwen", "local_split"} else None
+    sequence = ["FrameSelector", "ImageQA", "TemporalQA", "ImageGridQA"]
+    if ctx.yolo_model is not None:
+        sequence = ["FrameSelector", "ImageQA", "YOLOTracker", "TemporalQA", "ImageGridQA"]
+    allowed_tools = [
+        {
+            "tool_name": item.inference.name,
+            "tool_class": type(item).__name__,
+            "category": _CATEGORY.get(type(item).__name__, "generalist"),
+            "description": item.inference.description,
+        }
+        for item in tools
+    ]
+    previous_type = "none"
+    executed_sequence: list[str] = []
+    iteration_limit = max(1, int(max_iterations))
+    preobserve = _yolo_preobserve(ctx, tools)
+    if preobserve is not None:
+        observations.append(preobserve)
+        executed_sequence.append("YOLOTracker")
+        previous_type = "spatial"
+        ctx.react_call_count = 1
+    for index in range(2 if preobserve is not None else 1, iteration_limit + 1):
+        if planner is None:
+            tool_name = sequence[index - 1] if index <= len(sequence) else sequence[-1]
+            tool_input = f"ReAct observation request {index} for the question: {question[:400]}"
+            planner_tool_name = _tool_by_class(tools, tool_name).inference.name
+            info_sufficient = False
+        else:
+            prompt = (
+                "You are a ReAct planner for a video QA trace. Select exactly one next tool from the allowed list "
+                "using the structured task and accumulated observations. Use at least two observations before "
+                "setting info_sufficient=true. Return only one JSON object with keys reasoning, tool_name, "
+                "tool_input, info_sufficient.\n"
+                f"Current iteration: {index}\nQuestion: {question}\n"
+                f"Task structure: {json.dumps(ctx.task_structure, ensure_ascii=False, sort_keys=True)}\n"
+                f"Previous tool type: {previous_type}\n"
+                f"Allowed tools: {json.dumps(allowed_tools, ensure_ascii=False)}\n"
+                f"Prior observations: {json.dumps(observations[-4:], ensure_ascii=False)}\n"
+                f"Evidence state: {json.dumps(ctx.state_evidence.snapshot(), ensure_ascii=False)}\n"
+                "Use short fields so the complete JSON fits in the response. "
+                '{"reasoning":"...","tool_name":"one allowed tool_name",'
+                '"tool_input":"concrete request","info_sufficient":false}'
+            )
+            decision = planner.generate(prompt)
+            if decision is None:
+                break
+            planner_tool_name = decision.tool_name
+            info_sufficient = bool(decision.info_sufficient and index >= 2)
+            tool_input = decision.tool_input
+            matching = next((item for item in tools if item.inference.name == decision.tool_name), None)
+            if matching is None:
+                raise RuntimeError(f"ReAct planner selected unknown tool: {decision.tool_name}")
+            tool_name = type(matching).__name__
+        ctx.react_call_count += 1
+        ctx.current_step = ctx.react_call_count
+        if planner is None:
+            tool_input = f"ReAct observation request {index} for the question: {question[:400]}"
+        else:
+            tool_input = str(tool_input or f"Inspect evidence relevant to: {question[:400]}")[:1000]
+        ctx.current_standard_tool_call = {
+            "name": tool_name,
+            "args": {"input": tool_input},
+            "id": f"compat-react-step-{ctx.react_call_count}",
+            "type": "tool_call",
+        }
+        observation = _tool_by_class(tools, tool_name).inference(input=tool_input)
+        tool_type = _CATEGORY.get(tool_name, "generalist")
+        observations.append(
+            {
+                "planner_tool_name": planner_tool_name,
+                "tool": tool_name,
+                "tool_type": tool_type,
+                "tool_input": tool_input,
+                "observation": observation[:600],
+                "info_sufficient": info_sufficient,
+            }
+        )
+        executed_sequence.append(tool_name)
+        previous_type = tool_type
+        if info_sufficient:
+            break
+    answer_prompt = question + "\nObserved tool evidence:\n" + json.dumps(observations, ensure_ascii=False)
+    answer = ctx.answer_model.generate(answer_prompt)
+    return answer or "D", {
+        "engine": "compat_react_loop",
+        "planner_mode": planner_mode,
+        "model_name": model_name,
+        "messages_count": len(executed_sequence) + 2,
+        "message_types": ["HumanMessage"] + ["ToolMessage"] * len(executed_sequence) + ["AIMessage"],
+        "standard_tool_calls": len(executed_sequence),
+        "tool_history": observations,
+    }
+
+
+def run_fixed(
+    ctx: ToolContext,
+    tools: list[BaseTool],
+    question_w_options: str,
+    planner_mode: str,
+) -> tuple[str, dict[str, Any]]:
+    preobserve = _yolo_preobserve(ctx, tools)
+    ctx.current_step = 2 if preobserve is not None else 1
+    _tool_by_class(tools, "ImageQA").inference(input="Describe visible signs and objects in each sampled frame.")
+    ctx.current_step = 3 if preobserve is not None else 2
+    answer = _tool_by_class(tools, "Summarizer").inference(input=question_w_options)
+    return answer, {"fixed_sequence": ["ImageQA", "Summarizer"], "planner_mode": planner_mode}
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(_json_safe(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def run_one(args: argparse.Namespace, baseline: str) -> Path:
+    video_path = args.video_path.expanduser().resolve()
+    output_root = args.output_root.expanduser().resolve()
+    output_root.mkdir(parents=True, exist_ok=True)
+    run_id = f"{video_path.stem}_{baseline}_{int(time.time() * 1000)}"
+    run_dir = output_root / run_id
+    run_dir.mkdir(parents=False, exist_ok=False)
+    task_id = args.task_id or video_path.stem
+    planner_model_path = getattr(args, "planner_model", None)
+    answer_model_path = getattr(args, "answer_model", None)
+    model_stack_id = str(getattr(args, "model_stack_id", None) or "stack_a_qwen3_vl8b")
+    visual_model_id = str(
+        getattr(args, "visual_model_id", None)
+        or (args.qwen_model.name if getattr(args, "qwen_model", None) is not None else "qwen3-vl-8b-instruct")
+    )
+    planner_model_id = str(
+        getattr(args, "planner_model_id", None)
+        or (planner_model_path.name if planner_model_path is not None else args.model_name)
+    )
+    answer_model_id = str(
+        getattr(args, "answer_model_id", None)
+        or (answer_model_path.name if answer_model_path is not None else args.model_name)
+    )
+    detector_model_id = str(
+        getattr(args, "detector_model_id", None)
+        or (args.yolo_model.name if getattr(args, "yolo_model", None) is not None else "none")
+    )
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "framework": "videotool_phase1_adapter",
+        "baseline": baseline,
+        "dataset": args.dataset,
+        "task_id": task_id,
+        "video_path": str(video_path),
+        "video_sha256": _sha256(video_path),
+        "question_sha256": hashlib.sha256(args.question.encode("utf-8")).hexdigest(),
+        "remote_videotool_root": str(args.videotool_root),
+        "source_provenance": _git_provenance(args.videotool_root),
+        "model_name": args.model_name,
+        "model_stack_id": model_stack_id,
+        "planner_model_id": planner_model_id,
+        "planner_model": str(planner_model_path) if planner_model_path else None,
+        "visual_model_id": visual_model_id,
+        "answer_model_id": answer_model_id,
+        "answer_model": str(answer_model_path) if answer_model_path else None,
+        "detector_model_id": detector_model_id,
+        "planner_mode": args.planner_mode,
+        "planner_constrained_json": bool(getattr(args, "planner_constrained_json", False)),
+        "replacement_policy": "outer_adapter_no_heavy_official_models",
+        "yolo_model": str(args.yolo_model) if args.yolo_model else None,
+        "yolo_python": args.yolo_python,
+        "yolo_batch": max(1, int(getattr(args, "yolo_batch", 1))),
+        "yolo_preobserve": bool(getattr(args, "yolo_preobserve", False)),
+        "qwen_visual_model": str(args.qwen_model) if args.qwen_model else None,
+        "qwen_visual_python": args.qwen_python,
+        "qwen_max_new_tokens": args.qwen_max_new_tokens,
+        "planner_max_new_tokens": getattr(args, "planner_max_new_tokens", 96),
+        "answer_max_new_tokens": getattr(args, "answer_max_new_tokens", args.qwen_max_new_tokens),
+        "task_structure": getattr(args, "task_structure", None),
+        "environment": _environment_metadata(),
+        "started_at": _utc_now(),
+        "status": "running",
+    }
+    _write_json(run_dir / "run_manifest.json", manifest)
+    recorder = TraceRecorder(
+        run_dir,
+        run_id=run_id,
+        framework="videotool_phase1_adapter",
+        dataset=args.dataset,
+        task_id=task_id,
+        model_id=args.model_name,
+    )
+    started = time.perf_counter()
+    ctx: Optional[ToolContext] = None
+    qwen_client: Optional[QwenVLClient] = None
+    planner_client: Optional[QwenTextClient] = None
+    answer_client: Optional[QwenVLClient] = None
+    answer = ""
+    run_error: Optional[str] = None
+    recorder.record_event(
+        event_type="run",
+        step_id=0,
+        action="baseline_start",
+        node_type="run_control",
+        parent_step_ids=[],
+        input_data={
+            "baseline": baseline,
+            "planner_mode": args.planner_mode,
+            "model_stack_id": model_stack_id,
+            "planner_model_id": planner_model_id,
+            "planner_constrained_json": bool(getattr(args, "planner_constrained_json", False)),
+            "visual_model_id": visual_model_id,
+            "answer_model_id": answer_model_id,
+            "detector_model_id": detector_model_id,
+        },
+        start_time=manifest["started_at"],
+        end_time=_utc_now(),
+        runtime_ms=0.0,
+        api_wait_ms=0.0,
+        status="success",
+        output_summary_ref="trace.jsonl:run-start",
+        model_id=model_stack_id,
+    )
+    try:
+        if args.qwen_model is not None:
+            qwen_client = QwenVLClient(
+                python_bin=args.qwen_python or sys.executable,
+                model_path=args.qwen_model,
+                log_path=run_dir / "qwen_worker.log",
+                max_new_tokens=args.qwen_max_new_tokens,
+            )
+        if planner_model_path is not None and args.planner_mode == "local_split":
+            planner_client = QwenTextClient(
+                python_bin=getattr(args, "planner_python", None) or sys.executable,
+                model_path=planner_model_path,
+                log_path=run_dir / "planner_worker.log",
+                max_new_tokens=getattr(args, "planner_max_new_tokens", 96),
+                constrained_json=bool(getattr(args, "planner_constrained_json", False)),
+            )
+        if answer_model_path is not None and args.planner_mode == "local_split":
+            same_as_visual = (
+                qwen_client is not None
+                and args.qwen_model is not None
+                and answer_model_path.expanduser().resolve() == args.qwen_model.expanduser().resolve()
+                and (getattr(args, "answer_python", None) or sys.executable)
+                == (args.qwen_python or sys.executable)
+            )
+            if not same_as_visual:
+                answer_client = QwenVLClient(
+                    python_bin=getattr(args, "answer_python", None) or sys.executable,
+                    model_path=answer_model_path,
+                    log_path=run_dir / "answer_worker.log",
+                    max_new_tokens=getattr(args, "answer_max_new_tokens", args.qwen_max_new_tokens),
+                )
+            else:
+                answer_client = qwen_client
+        visible = VisibleFrames(video_path, run_dir)
+        ctx = ToolContext(
+            visible,
+            video_path,
+            run_dir,
+            recorder,
+            args.yolo_model,
+            args.yolo_python,
+            qwen_client=qwen_client,
+            qwen_model_id=visual_model_id,
+            planner_client=planner_client,
+            planner_model_id=planner_model_id,
+            answer_client=answer_client,
+            answer_model_id=answer_model_id,
+            detector_model_id=detector_model_id,
+            model_stack_id=model_stack_id,
+            baseline=baseline,
+            task_structure=(
+                getattr(args, "task_structure", None)
+                or derive_task_structure({"question": args.question, "options": args.options})
+            ),
+            max_steps=args.max_iterations,
+            yolo_batch=getattr(args, "yolo_batch", 1),
+            yolo_preobserve=getattr(args, "yolo_preobserve", False),
+        )
+        ctx.planner_mode = args.planner_mode
+        ctx.answer_model = AnswerModel(
+            ctx,
+            args.planner_mode,
+            answer_model_id,
+            args.options,
+            client=answer_client,
+        )
+        # The upstream modules are imported only after their read-only checkout
+        # has been placed on sys.path; no upstream file is patched.
+        if str(args.videotool_root) not in sys.path:
+            sys.path.insert(0, str(args.videotool_root))
+        tools = build_tools(ctx)
+        question_w_options = args.question + "\n" + args.options
+        if baseline == "st_fixed":
+            answer, details = run_fixed(ctx, tools, question_w_options, args.planner_mode)
+        elif baseline == "star":
+            answer, details = run_star(
+                ctx, tools, args.question, question_w_options, args.max_iterations, args.planner_mode, planner_model_id
+            )
+        elif baseline == "langgraph_react":
+            answer, details = run_react(
+                ctx, tools, args.question, args.planner_mode, planner_model_id, args.max_iterations
+            )
+        else:
+            raise ValueError(f"Unknown baseline: {baseline}")
+        if not str(answer).strip():
+            raise RuntimeError("empty final answer after baseline execution")
+        final_step = max(1, ctx.current_step if ctx else 1) + 1
+        recorder.record_event(
+            event_type="run",
+            step_id=final_step,
+            action="answer",
+            node_type="answer_generation",
+            parent_step_ids=[final_step - 1],
+            input_data={"baseline": baseline, "answer": answer[:500], "details": details},
+            start_time=_utc_now(),
+            end_time=_utc_now(),
+            runtime_ms=_round_ms(time.perf_counter() - started),
+            api_wait_ms=0.0,
+            status="success",
+            output_summary_ref="trace.jsonl:run-answer",
+            model_id=answer_model_id,
+        )
+        status = "success"
+    except Exception as exc:
+        run_error = f"{type(exc).__name__}: {exc}"
+        recorder.record_event(
+            event_type="run",
+            step_id=max(1, ctx.current_step if ctx else 1),
+            action="baseline_error",
+            node_type="run_control",
+            parent_step_ids=[],
+            input_data={"baseline": baseline, "planner_mode": args.planner_mode},
+            start_time=_utc_now(),
+            end_time=_utc_now(),
+            runtime_ms=_round_ms(time.perf_counter() - started),
+            api_wait_ms=0.0,
+            status="error",
+            output_summary_ref=None,
+            model_id=model_stack_id,
+            error=run_error,
+        )
+        status = "error"
+    finally:
+        closed_clients: set[int] = set()
+        for client in (qwen_client, planner_client, answer_client):
+            if client is not None and id(client) not in closed_clients:
+                client.close()
+                closed_clients.add(id(client))
+        recorder.close()
+    manifest.update(
+        {
+            "status": status,
+            "finished_at": _utc_now(),
+            "elapsed_ms": _round_ms(time.perf_counter() - started),
+            "answer": answer[:500],
+            "error": run_error,
+            "trace_event_count": sum(1 for _ in (run_dir / "trace.jsonl").open(encoding="utf-8")),
+        }
+    )
+    _write_json(run_dir / "run_manifest.json", manifest)
+    _write_json(
+        run_dir / "run_status.json",
+        {
+            "status": status,
+            "run_id": run_id,
+            "baseline": baseline,
+            "answer": answer[:500],
+            "error": run_error,
+            "trace_path": str(run_dir / "trace.jsonl"),
+        },
+    )
+    return run_dir
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--baseline", choices=["st_fixed", "star", "langgraph_react", "all"], default="all")
+    parser.add_argument("--video-path", required=True, type=Path)
+    parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument("--videotool-root", required=True, type=Path)
+    parser.add_argument("--question", required=True)
+    parser.add_argument("--options", default=DEFAULT_OPTIONS)
+    parser.add_argument("--dataset", default="lvbench")
+    parser.add_argument("--task-id", default=None)
+    parser.add_argument("--model-name", default=os.environ.get("PHASE1_MODEL", "qwen3-vl-plus"))
+    parser.add_argument("--planner-mode", choices=["scripted", "api", "local_qwen", "local_split"], default="scripted")
+    parser.add_argument("--max-iterations", type=int, default=6)
+    parser.add_argument("--yolo-model", type=Path, default=None)
+    parser.add_argument("--yolo-python", default=None)
+    parser.add_argument("--yolo-batch", type=int, default=1)
+    parser.add_argument(
+        "--yolo-preobserve",
+        action="store_true",
+        help="run an explicit YOLO observation before STAR/ReAct planning",
+    )
+    parser.add_argument("--qwen-model", type=Path, default=None)
+    parser.add_argument("--qwen-python", default=None)
+    parser.add_argument("--qwen-max-new-tokens", type=int, default=96)
+    parser.add_argument("--planner-model", type=Path, default=None)
+    parser.add_argument("--planner-python", default=None)
+    parser.add_argument("--planner-max-new-tokens", type=int, default=96)
+    parser.add_argument(
+        "--planner-constrained-json",
+        action="store_true",
+        help="enforce the PlannerDecision JSON Schema for local_split planner output",
+    )
+    parser.add_argument("--answer-model", type=Path, default=None)
+    parser.add_argument("--answer-python", default=None)
+    parser.add_argument("--answer-max-new-tokens", type=int, default=96)
+    parser.add_argument("--model-stack-id", default="stack_a_qwen3_vl8b")
+    parser.add_argument("--planner-model-id", default=None)
+    parser.add_argument("--visual-model-id", default=None)
+    parser.add_argument("--answer-model-id", default=None)
+    parser.add_argument("--detector-model-id", default=None)
+    return parser
+
+
+def main(argv: Iterable[str] | None = None) -> int:
+    args = _build_parser().parse_args(list(argv) if argv is not None else None)
+    baselines = ["st_fixed", "star", "langgraph_react"] if args.baseline == "all" else [args.baseline]
+    exit_code = 0
+    for baseline in baselines:
+        run_dir = run_one(args, baseline)
+        status = json.loads((run_dir / "run_status.json").read_text(encoding="utf-8"))["status"]
+        print(json.dumps({"baseline": baseline, "run_dir": str(run_dir), "status": status}, ensure_ascii=False))
+        if status != "success":
+            exit_code = 1
+    return exit_code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

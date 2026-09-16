@@ -1,0 +1,68 @@
+{
+  "schema_version": "remote-layout-audit-v0.1",
+  "observed_at": "2026-08-15T13:06:49+08:00",
+  "root": "/root/autodl-tmp/scheduler",
+  "status": "normalized_control_plane_only",
+  "git_repository": false,
+  "control_plane": {
+    "source": "local:/Users/liuqiuwei/Documents/调度",
+    "synced": [
+      "AGENTS.md",
+      ".project/PROJECT.md",
+      ".project/STATE.md",
+      ".project/PLAN.md",
+      ".project/DECISIONS.md",
+      ".project/HANDOFF.md",
+      ".project/archive/"
+    ],
+    "verification": "remote SHA256 matches local for all listed control files"
+  },
+  "standard_directories_ensured": [
+    "docs",
+    "src",
+    "tests",
+    "configs",
+    "scripts/analysis",
+    "data/raw",
+    "data/interim",
+    "data/processed",
+    "data/external",
+    "data/manifests",
+    "data/schemas",
+    "experiments",
+    "outputs",
+    ".scratch"
+  ],
+  "protected_paths_untouched": [
+    "data/",
+    "results/",
+    "src/",
+    "scripts/",
+    "Grounded-VideoLLM/",
+    "grounded-video-llm/",
+    "Qwen3-4B/",
+    "Qwen2.5-VL-3B-Instruct/"
+  ],
+  "inventory_only_candidates": [
+    {
+      "paths": ["Grounded-VideoLLM", "grounded-video-llm"],
+      "reason": "same-name/model-worktree candidate; ownership and active references require review",
+      "action": "do_not_move_or_delete_without_explicit_target_confirmation"
+    },
+    {
+      "paths": ["scripts_behavior_r1", "scripts_behavior_r1_v5", "scripts_behavior_r2_v5"],
+      "reason": "versioned historical script trees",
+      "action": "register and compare before any archive move"
+    },
+    {
+      "paths": ["__pycache__", "_qwen_probe", "torchinductor_root"],
+      "reason": "cache or probe artifacts with possible active-runtime references",
+      "action": "leave untouched pending explicit cleanup scope"
+    }
+  ],
+  "notes": [
+    "No video, model, trace, result, source, or cache was moved, overwritten, or deleted.",
+    "Existing legacy data/phase* and results/raw|processed trees remain in place; standard directories are additive only.",
+    "Remote has no Git repository; source synchronization remains hash-manifest based."
+  ]
+}

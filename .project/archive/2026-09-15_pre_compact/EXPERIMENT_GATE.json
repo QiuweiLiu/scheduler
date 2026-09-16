@@ -1,0 +1,709 @@
+{
+  "experiments": {
+    "EXP-20260911_forecast_aware_scheduling": {
+      "phase0": {
+        "consistency": "myopic/oracle identical across providers; predopt_h5 differs",
+        "cost": "100 eps x 3 policies ~32s local; 1000 eps x 6 policies ~11 min/seed",
+        "coverage": "8935/8935 template nodes",
+        "e2_preview": {
+          "deadline_miss": {
+            "B05": 0.0406,
+            "J3": 0.0325
+          },
+          "oracle_gap": "+7.9%",
+          "predopt_h5_completion_ms": {
+            "B05": 158169,
+            "J3": 152782
+          }
+        },
+        "runs": {
+          "b05_100": "passed",
+          "j100": "passed",
+          "smoke10": "passed"
+        },
+        "scheduler_artifacts": "outputs/sstar_predictor_artifacts_sched/prediction_artifacts"
+      },
+      "phase1_pilot": {
+        "arms": {
+          "E0": "myopic",
+          "E1_proxy": "predopt_h1_jres",
+          "E2": "predopt_h5",
+          "E3": "predopt_h5_jres",
+          "E4": "oracle"
+        },
+        "episodes": 100,
+        "headline": {
+          "E2_minus_E0_completion_ms": [
+            -8175.6,
+            -10675.4,
+            -5771.0
+          ],
+          "E3_minus_E2_completion_ms": [
+            7506.9,
+            5211.7,
+            9945.8
+          ],
+          "E4_minus_E2_completion_ms": [
+            -11206.8,
+            -13670.3,
+            -8904.5
+          ],
+          "resource_substitution": "negative due to load-semantics mismatch (occ*duration vs median-positive load); CPU-lane and runtime scale also off",
+          "topology_prediction_effect": "significant positive (-5.1% vs no-future)"
+        },
+        "next": [
+          "calibrate E3 resource semantics (no S_* fitting)",
+          "rerun pilot E3",
+          "Phase 2 formal 1000-episode matrix x 3 seeds"
+        ],
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE1_REPORT.md"
+      },
+      "phase1_required": [
+        "resource adapter (opt-in new policy name) for E3",
+        "E1 resource-only definition freeze"
+      ],
+      "phase2": {
+        "conclusion": "future topology prediction significantly improves scheduling (-7.9% vs no-future; -6.0% vs legacy provider); direct resource substitution significantly harms; oracle gap remains 14.7%",
+        "episodes": 1000,
+        "headline": {
+          "E2_vs_E0_completion_ms": [
+            -17064.7,
+            -18691.6,
+            -15458.3
+          ],
+          "E2_vs_legacy_completion_ms": [
+            -12583.4,
+            -13962.4,
+            -11323.2
+          ],
+          "E3a_vs_E2_completion_ms": [
+            16012.2,
+            14479.8,
+            17611.0
+          ],
+          "E3b_vs_E3a_completion_ms": [
+            -15.0,
+            -160.6,
+            125.4
+          ],
+          "E4_vs_E2_completion_ms": [
+            -25318.8,
+            -27372.2,
+            -23291.0
+          ]
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE2_REPORT.md"
+      },
+      "phase3": {
+        "corrected_conclusion": "scheduling gain is driven by predicted future-length/termination (early-stop) structure; content is not superior to legacy when shape-matched; resource adds nothing at H=5; largest remaining headroom is horizon",
+        "headline": {
+          "horizon_effect_oracle_minus_trueopt5": [
+            -11112,
+            -12068,
+            -10185
+          ],
+          "length_effect_E2_minus_Jfixed5": [
+            -14932,
+            -16434,
+            -13516
+          ],
+          "matched_content_Jfixed5_minus_B05top1": [
+            1939,
+            1495,
+            2381
+          ],
+          "oracle_current_resource": [
+            2381,
+            1900,
+            2877
+          ],
+          "resource_gap_trueopt5_minus_OT": [
+            -669,
+            -1040,
+            -311
+          ],
+          "topology_gap_OT_minus_E2": [
+            -13538,
+            -14795,
+            -12308
+          ]
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE3_REPORT.md",
+        "zero_length_check": "pred=0 => P(actual<=1)=0.999; pred>0 => P(actual=0)=0.000; actual=0 => 100% caught"
+      },
+      "phase4": {
+        "conclusion": "content identity has no positive scheduling value (oracle content is worse); consuming q(A) as expected cost gives a small gain vs top-1 but loses to lane averages; length/survival remains the only main value; resource adds nothing at H=5",
+        "headline": {
+          "expected_minus_Jfixed5": [
+            -2347,
+            -2746,
+            -1960
+          ],
+          "length_only_minus_E2": [
+            -12334,
+            -13634,
+            -11077
+          ],
+          "oracle_content_minus_E2": [
+            14222,
+            12850,
+            15692
+          ],
+          "survival_minus_E2": [
+            -723,
+            -968,
+            -475
+          ],
+          "survival_minus_length_only": [
+            11611,
+            10424,
+            12887
+          ]
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE4_REPORT.md"
+      },
+      "phase5": {
+        "conclusion": "H=10 saturates the horizon gap (10.2s over H5; H20 = H10); risk-sensitive consumption of predicted quantiles converts (-10.5s vs E2); identity costs remain harmful (lane-average still 1.8s better than risk)",
+        "headline": {
+          "aligned_layer_minus_E2": [
+            650,
+            417,
+            892
+          ],
+          "oracle_minus_trueopt_h10": [
+            -881,
+            -1048,
+            -714
+          ],
+          "risk_minus_E2": [
+            -10505,
+            -11539,
+            -9511
+          ],
+          "risk_minus_length_only": [
+            1829,
+            1204,
+            2481
+          ],
+          "trueopt_h10_minus_h5": [
+            -10231,
+            -11115,
+            -9363
+          ]
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE5_REPORT.md"
+      },
+      "phase6": {
+        "best_consumer": {
+          "completion_ms": 180362,
+          "name": "predopt_h5_q95",
+          "vs_E2_ms": [
+            -17690,
+            -19238,
+            -16172
+          ]
+        },
+        "cache_res": {
+          "completion_ms": 220430,
+          "vs_E2_ms": [
+            22379,
+            20316,
+            24558
+          ]
+        },
+        "h10": "negative transfer (see EXP-20260911_p9d_j_h10_predictor)",
+        "lambda_scan": {
+          "cc": 213248,
+          "lam0": 214049,
+          "lam100": 187517,
+          "lam50": 212128,
+          "q95": 180362
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE6_REPORT.md"
+      },
+      "phase7a": {
+        "conclusion": "scenario+CVaR beats E2 but loses to summed p95; q95 confirmed on frozen confirm300; comonotone and higher kappa do not help (penalty shape, not conservatism magnitude); kappa=0 worse than E2",
+        "confirm300": {
+          "E2": 202012.46,
+          "q95": 183247.56,
+          "q95_minus_E2_miss_pp": [
+            -1.36,
+            -1.74,
+            -1.01
+          ],
+          "q95_minus_E2_ms": [
+            -18765,
+            -21948,
+            -15932
+          ]
+        },
+        "dev700": {
+          "E2": 196354.19,
+          "comon_k100": 187373.51,
+          "comon_k200": 188591.96,
+          "comon_k50": 185879.88,
+          "q95": 179124.78,
+          "q95_minus_E2_ms": [
+            -17229,
+            -19037,
+            -15476
+          ],
+          "q95_minus_scen_k50_ms": [
+            -3991,
+            -4492,
+            -3473
+          ],
+          "scen_k0": 210115.68,
+          "scen_k100": 183554.57,
+          "scen_k50": 183116.01
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE7A_REPORT.md",
+        "split_manifest": "data/manifests/validation_split_dev700_confirm300.json"
+      },
+      "phase7bc": {
+        "conclusion": "no consumer beats q95; adaptive risk helps only with a queue-pressure term and still loses; component split shows the entire gain comes from the runtime tail (rt95 == q95), load-tail weighting is harmful",
+        "dev700": {
+          "E2": 196354.19,
+          "adapt": 197227.7,
+          "adapt_q": 184996.05,
+          "ld95": 211443.76,
+          "q95": 179124.78,
+          "rt95": 179136.22
+        },
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE7BC_REPORT.md",
+        "stats": {
+          "adapt_q_minus_E2_ms": [
+            -11358,
+            -12859,
+            -9888
+          ],
+          "ld95_minus_E2_ms": [
+            15090,
+            13259,
+            16991
+          ],
+          "q95_minus_adapt_q_ms": [
+            -5871,
+            -6478,
+            -5331
+          ],
+          "rt95_minus_q95_ms": [
+            11,
+            -120,
+            135
+          ]
+        }
+      },
+      "plan_doc": "docs/research/2026-09-11_forecast_aware_scheduling_plan.md",
+      "purpose": "Does predicting the agent's future behavior improve scheduling? Forecast-aware ablation (E0 no-future / E1 resource-only / E2 topology-only / E3 full J3 / E4 oracle).",
+      "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE0_REPORT.md",
+      "reviews": {
+        "audit": "docs/research/2026-09-11_fas_phase2_audit.md",
+        "patches_applied": [
+          "artifact shape comparison (J 1-scenario/14.2% zero-step vs B05 3x5) and claim downgraded to artifact-level",
+          "multiple-comparison note (Bonferroni still significant)",
+          "single-predictor-seed boundary (J3:seed11 only)",
+          "load_threshold=0.5 and E1 deviation disclosed",
+          "run commands / environment / manifest sha chain added",
+          "evictions footnote; template-reuse clustering noted"
+        ],
+        "review": "docs/research/2026-09-11_fas_phase2_review.md",
+        "verification": "15/15 paired delta+CI independently recomputed (.scratch/phase2_stats_verify.py); line counts 5000/1000; manifest sha 0d0c9668... matches J report"
+      },
+      "status": "phase6_consumers_h10_cache_done"
+    },
+    "EXP-20260911_p9d_j4_duration_branch": {
+      "approved_by": "user design request (2026-09-11); pending execution approval",
+      "arms": [
+        "J4a (duration-decoupled head)",
+        "J4b (decoupled + frozen shared feature)"
+      ],
+      "artifacts": {
+        "run_root": "outputs/j4_duration_branch",
+        "stage0": "outputs/j4_duration_branch/stage0_audit.json",
+        "test_exploratory": "outputs/j4_duration_branch/test_exploratory.json",
+        "validation_ci": "outputs/j4_duration_branch/validation_ci.json"
+      },
+      "design_doc": "docs/p9d_j4_duration_branch_design.md",
+      "design_version": "frozen v2 (2026-09-11)",
+      "determination_tier": "validation (official); test = exploratory second look only (no confirmatory Core GO)",
+      "estimated_cost": "~15 GPU-min (RTX 3060 local); no new data, no remote side effects",
+      "findings": [
+        "duration decoupling did not repair the load-duration endpoint; removing duration from the shared hidden worsened duration at matched epochs (J4 >= J3) while slightly improving runtime (741-798 vs J3 814-898)",
+        "J4b (shared feature access, gradient-isolated) clearly better than J4a (fully independent) on duration => shared features carry duration-relevant information",
+        "competition hypothesis rejected; J-series duration degradation more consistent with representation-head co-adaptation (D1')",
+        "no confirmatory test use: test_exploratory only (second look), no claims"
+      ],
+      "frozen_constraints": [
+        "hidden=64 fixed",
+        "no q(A) entropy/temperature intervention",
+        "3 seeds 11/22/33",
+        "30 epochs",
+        "no PCGrad/GradNorm",
+        "negative-result rules pre-frozen",
+        "J-variant behavior must remain unchanged (J3 validation regression check)"
+      ],
+      "hypotheses": {
+        "H1": "vs B1 validation: CI_upper(delta_runtime)<0 and load NI (Brier <+0.005, duration <+5%) -> validation-level Core GO",
+        "H2": "vs J3 validation: CI_upper(delta_load_duration)<0; runtime preservation via CI_upper(delta_runtime vs B1)<0",
+        "H3": "shared-feature access ablation: J4b>J4a => shared features add info; J4a~J4b & both repaired => independent capacity enough; both fail => move to J4c conditioning"
+      },
+      "next_options": [
+        "J4c conditioning (model-side/execution-time context)",
+        "stop the joint-training line and consolidate attribute-interface + R0 mainline"
+      ],
+      "question": "Does decoupling the load-duration output path from the shared resource hidden layer repair the J-series load-duration non-inferiority failure while preserving the runtime gain over B1?",
+      "reference_arms": [
+        "J3 (inherited frozen reference, not re-estimated)",
+        "B1 (inherited frozen reference, not re-estimated)"
+      ],
+      "result_doc": "experiments/EXP-20260911_p9d_j4_duration_branch/RESULT.md",
+      "review": "docs/research/2026-09-11_j4_design_review.md (v1 MODIFY -> v2 ACCEPT)",
+      "reviews": {
+        "audit": "docs/research/2026-09-11_j4_result_audit.md",
+        "audit_verdict": "PASS (consistent)",
+        "experiment_review": "docs/research/2026-09-11_j4_result_review.md",
+        "review_verdict": "CONDITIONAL PASS -> 4 P1 applied (validation CI added; config label disclosure; test per-seed reporting; selection-asymmetry note)"
+      },
+      "selection_rule": "layer1: J interface NI-feasible (5 endpoints) -> layer2: LoadDurationQ_val <= LoadDurationQ_val(B1) + 5%*B1_val (B1 from frozen J-series validation predictions, no retrain) -> argmin RuntimeQScore",
+      "status": "completed_negative",
+      "verdict": "REJECT duration-decoupling branch (negative): J4a 0/3 feasible; J4b feasible only at early epochs (7-9) with RuntimeQScore 1187/1285 vs B1 912/895; validation CI: H1 fail (runtime worse, Brier worse, duration NI fail), H2 fail (dur vs J3 CI upper +14.2/+15.0 > 0)"
+    },
+    "EXP-20260911_p9d_j_h10_predictor": {
+      "datasets": {
+        "counts": {
+          "rows": {
+            "test": 1520,
+            "train": 13754,
+            "validation": 2029
+          },
+          "slots": {
+            "test": 8329,
+            "train": 74124,
+            "validation": 11083
+          }
+        },
+        "j_h10": "results/processed/j_series_dataset_h10 (registered: data/manifests/j_series_dataset_h10.json)",
+        "v3_h10": "results/processed/topology_predictor_p9d_v3_h10"
+      },
+      "design": "v3.1 contract with horizon=10; new dataset registrations; backbone + J3 x 3 seeds",
+      "purpose": "Retrain the J predictor with a 10-step horizon to convert the oracle H=10 gain into a deployable model",
+      "result": {
+        "conclusion": "naive horizon extension degrades early-horizon prediction (shared slot capacity dilution); oracle H10 gain not captured; needs a different recipe (later-slot down-weighting, separate head, longer training, or two-stage)",
+        "quality_audit_first5": {
+          "next_family_acc": {
+            "h10": 0.64,
+            "h5": 0.803
+          },
+          "runtime_pinball": {
+            "h10": 1691,
+            "h5": 1046
+          }
+        },
+        "scheduler": {
+          "H10_model_5step_minus_H5_model_5step_ms": [
+            33459,
+            30614,
+            36438
+          ],
+          "H10_q95_minus_H5_q95_ms": [
+            14587,
+            13273,
+            15907
+          ]
+        },
+        "selected_seed": 22,
+        "validation_runtime_qscore": {
+          "11": 823.6,
+          "22": 805.8,
+          "33": 841.8
+        }
+      },
+      "status": "completed_negative_transfer"
+    },
+    "EXP-20260911_p9d_j_predictor_acceptance": {
+      "artifacts": {
+        "audit": "experiments/EXP-20260911_p9d_j_predictor_acceptance/acceptance_audit.json",
+        "candidate_doc": "experiments/EXP-20260911_p9d_j_predictor_acceptance/CANDIDATE.md",
+        "checkpoints": "experiments/EXP-20260911_p9d_j_predictor_acceptance/artifacts/predictor"
+      },
+      "audit_headline": {
+        "behavior_next_role_next_family": [
+          0.9444,
+          0.8396
+        ],
+        "content_mean_acc": 0.9013,
+        "load_duration_pinball_ms": 326.9,
+        "load_occurrence_brier_ece": [
+          0.0135,
+          0.0289
+        ],
+        "memory": "head not trained; do not expose",
+        "runtime_coverage": [
+          0.556,
+          0.917,
+          0.968
+        ],
+        "runtime_pinball_ms": 845.0,
+        "structure_len_mae": 0.0473
+      },
+      "design_ref": "experiments/EXP-20260911_p9d_j_series_joint_resource/RESULT.md (frozen J series)",
+      "fallback": "B1:seed11",
+      "identifiability": {
+        "residency": "validation load events almost all cold-start (214/242); reuse=True implies no load; warm reloads only VL-8B n=28",
+        "runtime_by_model_class": "dominant factor; interface carries model_class",
+        "workload_proxies": "clip_len 100% missing; query_char_len available but R0.1 showed no gain"
+      },
+      "integration_smoke": {
+        "blockers_for_Sstar": [
+          "anchor feature builder from S_* traces -> predictor input schema"
+        ],
+        "doc": "experiments/EXP-20260911_p9d_j_predictor_acceptance/integration_smoke.md",
+        "integration_facts": [
+          "scheduler policies use their own resource tables; the per-step resource block needs a new adapter/policy to be consumed",
+          "raw_action/execution_lane are heuristic mappings, not model predictions",
+          "single deterministic scenario (prob 1.0); no DAG width claimed"
+        ],
+        "loader_smoke": "load_future_artifacts() consumed all 2029 nodes; layer schema validated",
+        "packed_artifacts": "outputs/j_predictor_artifacts/validation (j_future_h1/h3/h5 + layer sidecar; 2029 anchors)",
+        "sstar": {
+          "anchor_builder": "scripts/build_sstar_predictor_anchors.py",
+          "anchors": 9575,
+          "artifacts": "outputs/sstar_predictor_artifacts/",
+          "audit": {
+            "by_baseline": {
+              "langgraph_role": 0.878,
+              "star_role": 0.947
+            },
+            "indomain_reference": {
+              "load_occ_brier": 0.0135,
+              "next_family_acc": 0.84,
+              "next_role_acc": 0.944,
+              "runtime_pinball_ms": 845.0
+            },
+            "length_abs_error": 0.408,
+            "load_occ_brier": 0.0225,
+            "next_family_acc": 0.803,
+            "next_role_acc": 0.912,
+            "runtime_pinball_ms": 1045.5,
+            "verdict": "no collapse; measurable OOD degradation; no fitting/selection performed"
+          },
+          "audit_seconds": 5.0,
+          "build_seconds": 23.4,
+          "oov": {
+            "action_family": 0.0,
+            "event_type": 0.0,
+            "model_id": 0.06,
+            "model_stack_id": 0.489,
+            "node_type": 0.0,
+            "planner_model_id": 1.0,
+            "raw_action": 0.0,
+            "temporal_scope": 1.0
+          },
+          "pack_seconds": 23.9,
+          "runs": 640
+        },
+        "sstar_traces_location": "results/raw/r7_trace_full_20260817 (640 runs)"
+      },
+      "next_steps": [
+        "agree scheduler-level acceptance criteria",
+        "decide runtime-resource adapter (keep memory/lookup table)",
+        "small PredOpt matrix rerun"
+      ],
+      "primary_candidate": "J3:seed11",
+      "purpose": "freeze the J predictor candidate and run a P9f-style acceptance audit on the v3.1 contract before scheduler integration",
+      "robustness": [
+        "J3:seed22",
+        "J3:seed33"
+      ],
+      "selection_rule": "validation argmin RuntimeQScore across {J0,B1,J1,J2,J3} x seeds {11,22,33}",
+      "status": "smoke_passed_pending_scheduler_experiment",
+      "tier": "validation official; test inherited from frozen J determination (not recomputed)"
+    },
+    "EXP-20260911_p9d_j_series_joint_resource": {
+      "aggregation_rule": "all-seed (worst-seed): 3/3 seeds must satisfy runtime CI_upper<0 and load NI; the >=2/3 rule recorded in test_eval.json is post-hoc secondary and not used for the frozen verdict",
+      "approved_by": "user (2026-09-11)",
+      "checkpoint_hashes_verified": "15/15 copied checkpoints match source and test_eval model_sha256",
+      "compute": {
+        "backbone_seconds": 311.98,
+        "gpu": "RTX 3060 Laptop 6GB",
+        "test_wall_seconds": 13.1,
+        "variants_seconds": 1371.49
+      },
+      "dataset": "results/processed/j_series_dataset_v1 (registered: data/manifests/j_series_dataset_v1.json)",
+      "dataset_counts": {
+        "length_histogram": {
+          "0": 2608,
+          "1": 1350,
+          "2": 1240,
+          "3": 1164,
+          "4": 1102,
+          "5": 9839
+        },
+        "load_accounting": {
+          "missing": 292,
+          "positive": 4886,
+          "zero": 55747
+        },
+        "memory_accounting": {
+          "available": 37553,
+          "missing": 23372
+        },
+        "rows_by_split": {
+          "test": 1520,
+          "train": 13754,
+          "validation": 2029
+        },
+        "slots_by_split": {
+          "test": 5387,
+          "train": 48343,
+          "validation": 7195
+        },
+        "unique_resource_nodes_referenced": 14413
+      },
+      "design_doc": "docs/p9d_j_series_design.md",
+      "environment": {
+        "conda_env": "scheduler",
+        "torch": "2.6.0+cu124"
+      },
+      "estimated_cost": "local RTX 3060 6GB, 18 runs (backbone + 5 variants x 3 seeds), <3 GPU-hour",
+      "gates": {
+        "formal": "completed 2026-09-11: single frozen test determination; verdict no Core GO (J2/J3 fail load-duration NI; J2 seed22 sole full per-seed pass, not usable as evidence)",
+        "holdout": "excluded by default (non-confirmatory path only)",
+        "smoke": "passed (backbone/B1/J2; 2 epochs; 512 rows; 3.8s)",
+        "stage0_dataset": "passed (rows/hashes/registry match; 127,500 params; gradient routing assertions) "
+      },
+      "impl_plan": ".scratch/chatgpt_j_impl_plan_v2_zh.md",
+      "primary_metric": "RuntimeQScore = mean(PB_0.50, PB_0.90, PB_0.95) on raw ms, Delta vs B1 with paired video bootstrap CI upper < 0 on frozen test",
+      "question": "Does resource supervision through a shared representation / soft attribute conditioning improve deployable future runtime estimation over a two-stage baseline?",
+      "result_doc": "experiments/EXP-20260911_p9d_j_series_joint_resource/RESULT.md",
+      "results_summary": {
+        "core_go": false,
+        "j2_j3_runtime_ci_upper_below_zero_all_seeds": true,
+        "load_brier": "J1/J2/J3 pass; J0 fails",
+        "load_duration_5pct": "J2 1/3 seeds pass (seed22, margin 2.5%); J3 0/3; J0/J1 0/3",
+        "most_supported_claims": [
+          "soft predicted-attribute interface + joint representation (J2/J3) significantly improves runtime over two-stage B1 (3/3 seeds)",
+          "representation adaptation alone (J1) is worse than B1; pure resource head on frozen repr (J0) worst",
+          "end-to-end interface learning (J3) cannot be claimed due to load-duration NI failure (no-migration clause)"
+        ],
+        "runtime_delta_vs_B1_raw_ms": {
+          "J0": [
+            115.09,
+            119.37,
+            147.44
+          ],
+          "J1": [
+            26.4,
+            19.89,
+            73.76
+          ],
+          "J2": [
+            -49.0,
+            -65.39,
+            -29.88
+          ],
+          "J3": [
+            -78.12,
+            -77.09,
+            -63.97
+          ]
+        }
+      },
+      "reviews": {
+        "audit": "docs/research/2026-09-11_j_result_audit.md",
+        "audit_verdict": "inconsistent -> closed (Brier stat labeling fixed; checkpoint hashes verified 15/15)",
+        "experiment_review": "docs/research/2026-09-11_j_result_review.md",
+        "review_verdict": "modify -> applied (seed22 disclosure, aggregation rule, stat fixes, run.sh, control plane)"
+      },
+      "status": "completed",
+      "variants": [
+        "J0",
+        "B1",
+        "J1",
+        "J2",
+        "J3",
+        "OracleAttr (diagnostic)"
+      ]
+    },
+    "EXP-20260911_p9d_r0_oracle_signature_ceiling": {
+      "approved_by": "user (2026-09-11)",
+      "baseline": "exec_class-conditional train median (gate) + conditional empirical quantiles (diagnostic)",
+      "config": "experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/config.json",
+      "config_sha256": "cca9874f72f85f95aa117676f0d2ad2ccb3fcddad70250829912c42c9426f805",
+      "dataset": "topology_predictor_p9d_v3",
+      "dataset_registry_sha256": "95405d0b8ce55aadc43760454e181939b9c944d67065e25612998bd5f4687f03",
+      "design_doc": "docs/p9d_r0_oracle_signature_ceiling_design.md",
+      "estimated_cost": "CPU only; <1 CPU-minute per run; no GPU and no network",
+      "falsification": "Validation improvement < 15% or bootstrap CI lower bound <= 0, or calibration max_tau > 0.05, would reject the interface",
+      "formal_run": {
+        "command": "py scripts/r0_oracle_signature_ceiling.py --config experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/config.json",
+        "metrics_sha256": "832ae2912df82e8d53dfd94f26f12480395af055316909228b93947c7a9f6530",
+        "nodes": 15481,
+        "result": "completed",
+        "run_manifest": "experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/run_manifest.json",
+        "run_seconds": 36.57,
+        "splits": {
+          "holdout": 1068,
+          "test": 1280,
+          "train": 11429,
+          "validation": 1704
+        }
+      },
+      "hypothesis": "Runtime/load are empirically identifiable from the oracle signature + pre-execution context; memory and tail may not be.",
+      "metrics": "PB_primary = mean(PB_0.50, PB_0.90, PB_0.95) on raw scale; max_tau calibration error; video-cluster bootstrap improvement CI",
+      "question": "Given oracle future-node signatures on the frozen v3.1 serial-chain contract, how identifiable are per-node runtime/load/memory under the frozen interface and estimator family?",
+      "result_doc": "experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/RESULT.md",
+      "smoke": {
+        "command": "py scripts/r0_oracle_signature_ceiling.py --config experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/config.json --smoke",
+        "nodes": 932,
+        "result": "passed",
+        "run_seconds": 8.99
+      },
+      "status": "completed",
+      "variables": "C0-C4 feature tiers (exec_class -> role/planner_mode/retry -> model/nested -> workload_scale -> context), exact vs coarse model_class",
+      "verdict": {
+        "core_go": "PASS (runtime; load secondary)",
+        "memory": "descriptive-only (validation max_tau calibration 0.127 > 0.10)",
+        "runtime_calibration_max_tau": {
+          "holdout": 0.0161,
+          "test": 0.0461,
+          "validation": 0.0338
+        },
+        "runtime_validation_ci95_low": 0.7035,
+        "runtime_validation_improvement": 0.7495,
+        "tail": "2 holdout stalls dominate inclusive error; normal-subset PB = 319.8 ms",
+        "workload_scale": "zero variance in this pool (clip_len 0/15481 non-null; others constant 0)"
+      }
+    },
+    "EXP-20260911_p9d_r0p_workload_proxy_probe": {
+      "approved_by": "user (2026-09-11)",
+      "design_doc": "experiments/EXP-20260911_p9d_r0p_workload_proxy_probe/RESULT.md",
+      "estimated_cost": "CPU only; 63.3 s; no GPU and no network",
+      "feature_sets": {
+        "F0_r0_c4": "R0 C4 features (reference)",
+        "F1_trace_proxies": "F0 + tool_input_len + frame_count_before + frame_count",
+        "F2_full_proxies": "F1 + question chars/tokens/options + video duration/width/height"
+      },
+      "protocol": "train fit / validation selection / test diagnostic; frozen holdout deliberately not used",
+      "question": "Can workload-size signal be recovered from fields already present in existing P9d traces?",
+      "result": {
+        "F0_test_PB": 261.1,
+        "F0_validation_PB": 380.0,
+        "F1_test_PB": 258.0,
+        "F1_validation_PB": 384.6,
+        "F2_test_PB": 278.9,
+        "F2_validation_PB": 386.0,
+        "verdict": "no meaningful gain; proxies are used by the model but redundant; first-order model-side fields (true tokens, image sizes, batch) are absent from traces"
+      },
+      "result_doc": "experiments/EXP-20260911_p9d_r0p_workload_proxy_probe/RESULT.md",
+      "status": "completed"
+    }
+  },
+  "notes": [
+    "This control-plane file did not exist before EXP-20260911_p9d_r0_oracle_signature_ceiling; it is created with that experiment's record. Future formal runs must update it before execution.",
+    "Cost note: R0 is CPU-only (<1 CPU-minute per run); no GPU and no network were used."
+  ],
+  "schema": "experiment-gate-v1",
+  "updated_at": "2026-09-14"
+}
