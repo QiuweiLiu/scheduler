@@ -97,3 +97,19 @@
 背景：16 个消费变体在同一预测输入上比较；场景采样+CVaR、共单调、自适应风险等均更差。
 决策：以 `predopt_h5_q95` 为当前冠军配置（H5 预测器 + q95 消费）；`predopt_h5_rt95` 视为等价实现（仅 runtime 尾部）；
 不再为消费器家族继续投入（除非有新证据）。机制结论：价值来自 runtime 尾部的完全相关式惩罚，load 维度与收益无关。
+
+### 2026-09-17 — oracle 对照存在 key 形状混淆：撤回两处 oracle 差值，新增 same-shape 消费者臂（opt-in）
+
+- Decision: 认定 `baseline_matrix_status` 中"q95 胜过两个 oracle 臂"为 confounded 并**撤回该表述**；
+  新增三个同 key 形状的 opt-in 臂 `sameshape_h5_p50` / `sameshape_h5_p95` / `sameshape_h5_truth`；
+  **既有 legacy 臂（`predopt_h5`、`trueopt_h5`、`predopt_h5_q95`、`aligned_*`）不做任何修改**，历史数字保持可复现。
+- Evidence: `src/tracing/analysis/workload_v02_simulator.py` 中三臂 key 形状不同（`_q95/_lam` 分支 priority 第 1；
+  `trueopt_h*` 分支 future 第 1、priority 第 2；`_predicted_candidate_key()` priority 第 3），而 `aligned_h5_policy_key()`
+  文档要求 priority 先于 cost；`tests/test_sameshape_consumer.py` 断言 `sameshape_h5_p95` 与 `predopt_h5_q95`
+  在同一 episode 上 summary 逐字段相等；详见 `experiments/EXP-20260911_forecast_aware_scheduling/PHASE16_SAMESHAPE_CONSUMER.md`。
+- Reason: `r95=180.4s` 与 `trueopt_h5≈183.8s` 的差值同时混合信息源、排序 key 形状与 future 项定义，
+  不能支撑任何"预测优于真值"结论；先对齐消费函数形状，再回答"真值为何打不赢预测值"。
+- Alternatives considered: 直接修 `trueopt_h5`/`predopt_h5` 的 key 顺序（会改变已发布 baseline 语义、需重跑全部矩阵，已拒绝）；
+  使用既有 `aligned_trueopt_h5`（其 Pred 用 5 个 synthetic event step、True 用 5 个 DAG layer，H 语义不同，已判定过宽）。
+- Consequence: Truth-SameConsumer 成为下一步正式实验（未跑，需门禁）；不可消除的剩余差异（预测链 vs 真后继链）
+  必须在论文中显式声明；`trueopt_h5` 历史结果只能标注为 "legacy key shape"，不得当作 oracle 上界。

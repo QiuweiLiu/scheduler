@@ -72,7 +72,11 @@
       "experiment_table": {
         "baseline_matrix_status": {
           "caveat": "predopt_h5_surv degenerates to E2 with the current dist artifacts (no survival_probability field) - do not report as a separate baseline",
-          "headline": "q95 beats all classic/state-aware baselines by 33-35s and also beats both oracle arms on completion (-3.5k vs truth-resource oracle, -4.2k vs known-DAG oracle; miss +0.35pp worse vs known-DAG)",
+          "headline": "q95 beats all classic/state-aware baselines by 33-35s; the oracle-arm comparison is WITHDRAWN pending key-shape alignment (see truth_same_consumer_20260917 / PHASE16_SAMESHAPE_CONSUMER.md)",
+          "oracle_comparison_withdrawn": {
+            "reason": "trueopt_h5 and predopt_h5 do not share the champion's consumer key shape (priority position differs: 2nd and 3rd vs 1st), so r95 < trueopt_h5 supports no 'prediction beats truth' claim",
+            "previous_numbers_kept_for_reference_only": "q95 -3.5k vs truth-resource oracle, -4.2k vs known-DAG oracle (legacy key shapes, not an oracle upper bound)"
+          },
           "leaderboard_completion_ms": {
             "fcfs": 213281.7,
             "myopic": 215116.4,
@@ -631,6 +635,26 @@
           "README data-availability wording"
         ],
         "report": "experiments/EXP-20260911_forecast_aware_scheduling/POSTFIX_REPORT.md"
+      },
+      "truth_same_consumer_20260917": {
+        "finding": "the oracle comparison was confounded: predopt_h5_q95 keys on priority first, trueopt_h5 puts future_truth_cost first, plain predopt_h5 puts priority third; aligned_h5_policy_key documents priority-before-cost as the shared contract, so the two legacy oracle-style arms violate it",
+        "aligned_h5_score": "no 'prediction outperforms oracle' claim may be made from these arms; the two oracle deltas are withdrawn (legacy key shapes only)",
+        "verification": "tests/test_sameshape_consumer.py asserts sameshape_h5_p95 reproduces predopt_h5_q95 field-for-field on one episode",
+        "arms_implemented": [
+          "sameshape_h5_p50 (future = sum of per-step predicted p50 over the frozen chain)",
+          "sameshape_h5_p95 (future = sum of per-step predicted p95; identical consumer to predopt_h5_q95)",
+          "sameshape_h5_truth (future = limited_future_truth_cost over the true successor walk)"
+        ],
+        "legacy_arms_modified": false,
+        "irreducible_caveat": "frozen artifact steps are identity-only, so per-step truth on the predicted chain is unobservable; the truth arm swaps in the true successor walk, which aligns the key shape and current term but not the future chain content",
+        "preregistered_reading": {
+          "truth_much_better_than_r95_much_better_than_p50": "calibration narrative (p95 partly compensates forecast error)",
+          "truth_approx_r95_much_better_than_p50": "aggregate bias-correction narrative",
+          "r95_better_than_truth_ci_upper_lt_0": "genuine research value: uncertainty premium changes ranking in favour of the system objective",
+          "ranking_reversal_dev_vs_confirm": "unstable: do not package as mechanism"
+        },
+        "status": "implemented_not_run",
+        "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE16_SAMESHAPE_CONSUMER.md"
       },
       "report": "experiments/EXP-20260911_forecast_aware_scheduling/PHASE0..PHASE7BC reports",
       "review_actions_20260915": {

@@ -1,5 +1,17 @@
 # State
 
+## Current Stage (2026-09-17)
+
+- 主线不变：视频 Agent 未来预测 → GPU 调度；冠军仍是 r95/q95（逐步骤 runtime p95 求和）。
+- **09-16 → 09-17 新增**：
+  - Phase 11–15：runtime-only 正交族（C2 严格检验通过）、CVaR 重写（固定长度后场景族仍落后 15–17.5s）、
+    优化型参考重跑（exploratory negative，仍落后 ~19s）、CP-RHO executed 变量修复 + 300 集配对。
+  - **trace 依赖假设被否**：未约束 MOM run 层分量 −0.139（CI 全负）、截断 ICC=0、尾部 lift 双侧不显著
+    → 放弃"共单调/尾部共动"物理叙事，改挂 **forecast-error-aware ranking surrogate**。
+  - 公开仓库两轮审阅的 P0/P1/P2 全部落地（见 `POSTFIX_REPORT.md`）。
+  - **Phase 16（本回合）**：oracle 对照 confounded 认定 + 撤回；新增 `sameshape_h5_{p50,p95,truth}` 三臂（opt-in，未跑）。
+- **09-15 段落以下仍是有效细节快照**，但其"下一步"列表已过时（压力 sweep 实为已完成，6/6 cell 显著为正）。
+
 ## Current Stage (2026-09-15)
 
 - 主线：视频 Agent 工作流未来预测 → GPU 调度（forecast-aware scheduling）；Phase 0–7 全部完成并归档。

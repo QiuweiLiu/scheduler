@@ -78,6 +78,9 @@ POLICIES = (
     "predopt_h5_lam100",
     "predopt_h5_q95",
     "predopt_h5_cc",
+    "sameshape_h5_p50",
+    "sameshape_h5_p95",
+    "sameshape_h5_truth",
     "predopt_h10_lam0",
     "predopt_h10_lam25",
     "predopt_h10_lam50",
@@ -932,6 +935,43 @@ def _q95_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[st
         if isinstance(occurrence, (int, float)) and isinstance(duration, (int, float)) and float(occurrence) >= 0.5:
             load = max(0.0, float(duration))
     return float(runtime) + load
+
+
+# Truth-same-consumer arms: identical current cost, chain, structure and key
+# order (priority, current + future, future, ...); only the future statistic
+# differs. ``sameshape_h5_p95`` is by construction the same consumer as
+# ``predopt_h5_q95`` and is asserted equal to it in the unit tests.
+SAMESHAPE_POLICIES: tuple[str, ...] = (
+    "sameshape_h5_p50",
+    "sameshape_h5_p95",
+    "sameshape_h5_truth",
+)
+_SAMESHAPE_PREDICTED_STATS = ("p50", "p95")
+
+
+def sameshape_future_cost(
+    node_id: str,
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    train_stats: Mapping[str, Mapping[str, Any]],
+    horizon: int,
+    stat: str,
+) -> float:
+    """Sum one per-step statistic over the frozen predicted chain (p50 or p95).
+
+    The ``truth`` variant of this consumer cannot use this helper: the frozen
+    artifacts carry identity-only future steps, so there is no per-step ground
+    truth to attach to them. It uses ``limited_future_truth_cost`` on the real
+    successor walk instead, keeping the same key shape.
+    """
+
+    if stat not in _SAMESHAPE_PREDICTED_STATS:
+        raise ValueError(f"unknown same-shape future statistic: {stat!r}")
+    row = future_artifacts.get(str(node_id)) or {}
+    scenarios = row.get(f"future_h{int(horizon)}") or []
+    steps = (scenarios[0].get("steps") or []) if scenarios else []
+    if stat == "p50":
+        return sum(_mix_step_cost(step, train_stats, 0.0) for step in steps[: int(horizon)])
+    return sum(_q95_step_cost(step, train_stats) for step in steps[: int(horizon)])
 
 
 def _risk_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[str, Any]]) -> float:
@@ -2654,6 +2694,34 @@ def choose_action(
                 )
 
             chosen = min(pool, key=predicted_score_lam)
+    elif policy in SAMESHAPE_POLICIES:
+        if future_artifacts is None:
+            raise ValueError(f"{policy} requires finite-horizon artifacts")
+        horizon = int(policy.split("_h", 1)[1].rsplit("_", 1)[0])
+        stat = policy.rsplit("_", 1)[1]
+
+        def sameshape_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[float, float, float, float, int, int, str, int]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            if stat == "truth":
+                future = limited_future_truth_cost(jobs[job_index], node_id, gpu, train_stats, horizon)
+            else:
+                future = sameshape_future_cost(node_id, future_artifacts, train_stats, horizon, stat)
+            return (
+                float(item[0]),
+                current + future,
+                future,
+                float(item[1]),
+                item[2],
+                0,
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=sameshape_score)
     elif policy == "predopt_h5_risk":
         if future_artifacts is None:
             raise ValueError(f"{policy} requires finite-horizon artifacts")
