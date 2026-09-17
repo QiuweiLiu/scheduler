@@ -13,7 +13,12 @@
 - Phase 11–15 完成：runtime-only 正交族（C2 严格检验）、CVaR 重写、优化型参考重跑、fixed-L 对照、CP-RHO executed 变量修复 + 300 集配对重跑。
 - trace 依赖检验 T1/T2/T3 完成：**公共慢化因子 / 尾部共动假设被否**，叙事转为 forecast-error-aware ranking surrogate。
 - 公开仓库两轮 GPT 审阅 + 修复：CP-RHO 量纲/结构/executed、runner 指纹（含 gzip 载荷摘要 + fail-closed）、normalizer manifest、tail-shuffle 脚本公开、requirements、LICENSE/PROVENANCE/reproduce_main.sh、B≥2000 双侧统计。
-- **Phase 16（本次）**：oracle 对照 confounded 的 P0 认定 + 撤回；新增同 key 形状三臂并单元验证（未跑实验）。
+- **Phase 16（本次）**：oracle 对照 confounded 的 P0 认定 + 撤回；新增同 key 形状三臂并单元验证（未跑实验）；
+  已推送到公开仓库（`ae61c0a`）；GPT 审阅回复已存档（`docs/research/2026-09-17_fas_phase16_sameshape_review_gpt.md`）。
+- **Phase 16 勘误 + 审阅结论**（2026-09-17）：原"三臂 priority 第 1/2/3 位"有误——greedy 预测族（含 `predopt_h5`）
+  都是 priority 第 1，只有 legacy `trueopt_h5` 不同（future 第 1、且不含当前节点）；第 3 种形状只在 MPC/rollout 路径。
+  混淆只有一处，撤回旧"q95 胜 oracle"不变。GPT 判定 Phase16-A 只能作 **same-key system sensitivity**，
+  严格机制实验需 **Phase16-B**（runtime-only 四臂 `Pred50_R → Pred95_R → Truth|PredShape → Truth|TrueShape`）。
 
 ## Verified
 
@@ -32,6 +37,10 @@
 ## Open
 
 - Truth-SameConsumer 三臂**已实现未跑**（门禁：dev700 配对，判据见 PHASE16）。
+- **Phase16-B 未实现**：runtime-only 四臂 + 若 v3.1 evaluated continuation 内 outdegree ≤ 1 则做
+  `TruthRuntime | PredictedShape`（ordinal successor 对齐，需 path-invariant 断言）。
+- **label contract 未核**：J 预测器 `runtime_ms_quantiles` 是 total runtime 还是 compute-only
+  （若含 load，则 `runtime + load` 有重复计 load 风险）。
 - H10-lite 未实现；cache-aware 缺 residency/reuse 数据；真实 2-GPU replay 未做（论文最大短板，阻塞于硬件）。
 - 既有测试失败（与本次改动无关）：`tests.test_workload_v02_simulator.AdmissionTests.test_round_robin_joint_action_keeps_oldest_ready_node`。
 
@@ -42,7 +51,8 @@
 
 ## Next
 
-1. 跑 Phase 16 三臂（dev700 配对 → 判据分支），决定叙事走"校准"还是"不确定性溢价"。
+1. **先做 label contract 审计**（runtime_ms_quantiles 语义），再实现 Phase16-B 四臂并跑 dev700；
+   判据需预注册 equivalence margin δ，并报告 common-state ranking audit（避免 trajectory divergence）。
 2. 补真实 replay 的硬件确认（本地 1×3060 6GB 只能做节点级 fidelity）。
 3. 剩余仓库项：`trueopt_h5`/`predopt_h5` 命名与 legacy key shape 在论文中的标注；round-robin 既有测试失败定位。
 

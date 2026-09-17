@@ -103,10 +103,14 @@
 - Decision: 认定 `baseline_matrix_status` 中"q95 胜过两个 oracle 臂"为 confounded 并**撤回该表述**；
   新增三个同 key 形状的 opt-in 臂 `sameshape_h5_p50` / `sameshape_h5_p95` / `sameshape_h5_truth`；
   **既有 legacy 臂（`predopt_h5`、`trueopt_h5`、`predopt_h5_q95`、`aligned_*`）不做任何修改**，历史数字保持可复现。
-- Evidence: `src/tracing/analysis/workload_v02_simulator.py` 中三臂 key 形状不同（`_q95/_lam` 分支 priority 第 1；
-  `trueopt_h*` 分支 future 第 1、priority 第 2；`_predicted_candidate_key()` priority 第 3），而 `aligned_h5_policy_key()`
-  文档要求 priority 先于 cost；`tests/test_sameshape_consumer.py` 断言 `sameshape_h5_p95` 与 `predopt_h5_q95`
-  在同一 episode 上 summary 逐字段相等；详见 `experiments/EXP-20260911_forecast_aware_scheduling/PHASE16_SAMESHAPE_CONSUMER.md`。
+- Evidence: `src/tracing/analysis/workload_v02_simulator.py` 中 greedy 预测族（`predopt_h*` 与 `_q95/_lam` 分支）
+  priority 均为第 1，而 `trueopt_h*` 分支把 `limited_future_truth_cost` 放第 1、priority 第 2 且**不含当前节点**；
+  `aligned_h5_policy_key()` 文档要求 priority 先于 cost。`tests/test_sameshape_consumer.py` 断言 `sameshape_h5_p95`
+  与 `predopt_h5_q95` 在同一 episode 上 summary 逐字段相等；详见
+  `experiments/EXP-20260911_forecast_aware_scheduling/PHASE16_SAMESHAPE_CONSUMER.md`。
+  **勘误（2026-09-17，审阅后复核）**：本条曾写"三臂 priority 分别第 1/第 2/第 3 位"，其中"`predopt_h5` priority 第 3"
+  是错的——第 3 种形状只存在于 MPC/rollout 路径（`_predicted_candidate_key()`），不在 `choose_action` 的 greedy 派发里。
+  混淆只有一处（trueopt_h5 vs 预测族），撤回旧"q95 胜 oracle"的结论不变。
 - Reason: `r95=180.4s` 与 `trueopt_h5≈183.8s` 的差值同时混合信息源、排序 key 形状与 future 项定义，
   不能支撑任何"预测优于真值"结论；先对齐消费函数形状，再回答"真值为何打不赢预测值"。
 - Alternatives considered: 直接修 `trueopt_h5`/`predopt_h5` 的 key 顺序（会改变已发布 baseline 语义、需重跑全部矩阵，已拒绝）；

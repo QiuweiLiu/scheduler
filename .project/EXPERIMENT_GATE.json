@@ -637,7 +637,7 @@
         "report": "experiments/EXP-20260911_forecast_aware_scheduling/POSTFIX_REPORT.md"
       },
       "truth_same_consumer_20260917": {
-        "finding": "the oracle comparison was confounded: predopt_h5_q95 keys on priority first, trueopt_h5 puts future_truth_cost first, plain predopt_h5 puts priority third; aligned_h5_policy_key documents priority-before-cost as the shared contract, so the two legacy oracle-style arms violate it",
+        "finding": "the oracle comparison was confounded: the greedy prediction family (predopt_h* and predopt_h5_q95) keys on priority first, while legacy trueopt_h5 puts future_truth_cost first and omits the current node entirely; aligned_h5_policy_key documents priority-before-cost as the shared contract, so trueopt_h5 alone violates it. Corrected 2026-09-17: an earlier claim that plain predopt_h5 puts priority third was wrong - that third key shape exists only in the MPC/rollout path (_predicted_candidate_key via _predicted_rollout_score/_pred_mpc_choose), not in choose_action dispatch",
         "aligned_h5_score": "no 'prediction outperforms oracle' claim may be made from these arms; the two oracle deltas are withdrawn (legacy key shapes only)",
         "verification": "tests/test_sameshape_consumer.py asserts sameshape_h5_p95 reproduces predopt_h5_q95 field-for-field on one episode",
         "arms_implemented": [
