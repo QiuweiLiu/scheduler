@@ -111,9 +111,148 @@
   **勘误（2026-09-17，审阅后复核）**：本条曾写"三臂 priority 分别第 1/第 2/第 3 位"，其中"`predopt_h5` priority 第 3"
   是错的——第 3 种形状只存在于 MPC/rollout 路径（`_predicted_candidate_key()`），不在 `choose_action` 的 greedy 派发里。
   混淆只有一处（trueopt_h5 vs 预测族），撤回旧"q95 胜 oracle"的结论不变。
+
+### 2026-09-17 — runtime/load 契约缺陷认定（P0）：load 被部分重复计入；**修法待定，不擅自改**
+
+- Decision: 认定"在 runtime 之上再加 load 项"是系统性契约缺陷；**本轮只审计、不修改任何消费者、不重跑**。
+  修改 `_*_step_cost` 会改变冠军定义与全部已发布数字，属受保护的科学定义变更，须单独批准 + 新门禁。
+- Evidence: `Node.compute_ms = runtime_ms - load_ms`；`build_j_dataset.py` / `j_series_common.py` 的 runtime 头目标
+  是原始 `runtime_ms`（含 load）；`pack_j_predictor_artifacts.py` 的 runtime/load 分位数来自两个独立头且无扣减；
+  `j_validation` 上 546 个 `load>0` 步中 **0 个** `runtime_ms < load_ms`，`load/runtime ∈ (0, 0.55)`。
+  影响量化：冻结 artifact 中 7.69% 的 GPU 未来步被 `occ≥0.5` 门控并高估约 40%（load p95/runtime p95 p50=0.402）。
+  详见 `experiments/EXP-20260911_forecast_aware_scheduling/PHASE17_RUNTIME_LOAD_CONTRACT_AUDIT.md`。
+- Reason: 若 runtime 标签已含 load，则再加 load 是重复计数；这会让"冠军 = 逐步骤 runtime p95 求和"的语义描述失真。
+  **注意**：这**不**混淆"load 尾部无用（ld95 +15.1k）"——ld95 走 `_split95_step_cost(load_lam=1)`，是纯 load 信号；
+  且多出的 load 项近乎决策中性（rt95 vs q95 仅 +11ms）。初版曾写 ld95 结论受混淆，已撤回。
+- Alternatives considered: (a) 全部消费者改为 runtime-only；(b) runtime 头改为 compute-only 标签（需重训/重打包）；
+  (c) 只在 `predopt_h5_q95` 做最小修作为 Phase16-B 的干净基线。**尚未选择**。
+- Consequence: 在选定修法并重跑 dev700 之前，"load 维度无价值"与"q95 = runtime 尾部"两条表述**暂停对外使用**；
+  `predopt_h5_r95` / `predopt_h5_r50` 族不受此缺陷影响，可作干净参照。
 - Reason: `r95=180.4s` 与 `trueopt_h5≈183.8s` 的差值同时混合信息源、排序 key 形状与 future 项定义，
   不能支撑任何"预测优于真值"结论；先对齐消费函数形状，再回答"真值为何打不赢预测值"。
 - Alternatives considered: 直接修 `trueopt_h5`/`predopt_h5` 的 key 顺序（会改变已发布 baseline 语义、需重跑全部矩阵，已拒绝）；
   使用既有 `aligned_trueopt_h5`（其 Pred 用 5 个 synthetic event step、True 用 5 个 DAG layer，H 语义不同，已判定过宽）。
 - Consequence: Truth-SameConsumer 成为下一步正式实验（未跑，需门禁）；不可消除的剩余差异（预测链 vs 真后继链）
   必须在论文中显式声明；`trueopt_h5` 历史结果只能标注为 "legacy key shape"，不得当作 oracle 上界。
+
+### 2026-09-18 — Phase 21 结案（预注册负结果）：**task_context 缺失不是 S_* 域外失准的原因**；不重生成、不重跑
+
+- Decision: 在 Windows/GPU 机执行 16 视频 paired masked/fixed pilot（`scripts/preprocess/phase21_pilot.ps1`，23 秒）。
+  **判定 PILOT FAILED**：四条预注册 calibration gate 全部不通过；按预注册规则**不执行全量 S_* 重生成**，
+  不重跑任何调度族，不触发 Phase 18/20 重做链。**预测器、artifact、v03 workload、`T_final` 均未改动**。
+- Evidence: 管线 gate 全 PASS——975 anchors（两侧一致，576 skipped）、anchor id 顺序/集合 sha 一致、
+  **`prefix_hash` 975/975 完全一致**、`source_trace_sha256` 一致、`unknown_rate(domain/official_task_type/sub_category)=0`
+  且 `source_coverage=1.0`（masked 对照 1.0/0.0）、`task_context_failures=[]`、checkpoint SHA256 未变
+  （`0ee8ded4…`）、差异仅限三字段（2,925/2,925 全变）+ 审计块 → **干净单变量对照**。
+  校准门 FAIL：fixed p50 `R=0.3971`（门限 [0.70,1.30]）、cov `0.3960`（[0.45,0.65]）、p90 cov `0.8443`（[0.85,0.97]）、
+  p95 cov `0.9157`（[0.92,0.995]）；paired Δpinball p50 **+51.59ms [+27.23,+74.42]（显著更差）**，
+  p90 +9.12 [−25.80,43.60] 与 p95 +4.75 [−23.45,32.88] 不显著 → "pinball 降 ≥10%" 亦 FAIL。
+  报告 `experiments/EXP-20260911_forecast_aware_scheduling/PHASE21_TASKCTX_PILOT_REPORT.md`。
+- Reason: 修复被正确实现但未改善校准 → 失准是**结构性**的（逐步 p50 求和 vs 聚合真值的错配、执行期分布偏移），
+  不是特征管线遗漏。与 Phase 10（content 无可测效应）、Phase 18（Σp50=0.456× 真值、Σp95=4.9×）、
+  Phase 20-B（oracle-truth 仅比 p95 好 1.3s）互证 → **该负结果支撑 C2**（保守尾部聚合是纠偏机制），写入论文。
+- Alternatives considered: 继续全量重生成（作废全部调度结果且预期无收益，已否决）；
+  顺带修 `temporal_scope`/`planner_model_id`/`model_stack_id` 的 OOV（值是冻结 fallback，超出本问题范围，
+  已登记为残余同类问题，未修）。
+- Consequence: 预测侧修补线关闭；下一步需用户在 A/B/C 中选择（A=转入已批准的 P2 sweep + v03-confirm300，
+  推荐；B=Phase 17 契约修复，会重定义冠军且需预注册 δ；C=H10-lite/cache-aware/真实 replay）。
+- 附带修复（端到端路径缺陷，Mac 侧 11/11 单测未覆盖；`scripts/build_sstar_predictor_anchors.py`、
+  `scripts/analysis/analysis_phase21_taskctx_calibration.py`）：
+  ① `oov_rate_all` KeyError → 键回退；② `required_modalities` KeyError → 该字段为**列表型**并经
+  `vocabs.modalities`（而非 `vocabs.context`）编码，新增独立审计块，且字面量 `"unknown"` 视为缺失而非类型错误；
+  ③ `resolve_artifacts` 的 FileNotFoundError → packer 写 `j_future_h*` 于根目录而脚本找 `b05_future_h*` 于
+  `prediction_artifacts/`，改为兼容两种命名/两种布局并回退父目录。
+  另记：masked baseline 记录 n=3,226 vs 实测 3,275（+1.5%），但 R/cov 近乎逐位复现 → 属 slot 过滤口径差异，
+  不影响判定；**下次需在脚本内记录 slot 对定义**。
+
+### 2026-09-18（同日）— 一次误报的撤回：S_* context 输入**没有** null 遮蔽缺陷；Phase 21 总括结论**恢复成立**
+
+- Decision: 用户质疑负结果并索要代码审查后，我先提出"`baseline` / `model_stack_id` / `planner_model_id` 被 null 遮蔽
+  → 这三个字段 100% 变成 UNK"的 P0，并据此收窄了 Phase 21 结论。**该 P0 是误报，已撤回**；
+  Phase 21 的总括结论（恢复三个 registry 内容字段不改善校准，且**无**同类未修的管线输入缺口）**恢复成立**。
+  **未做任何管线改动**（不需要修）。
+- Evidence（误报根因 + 决定性反证）：
+  - 误报根因：探针用 `dict.get(field)` —— "键不存在"与"键存在但值为 null"都返回 `None`，**无法区分**；
+    "键存在且为 null"是**推断**出来的，不是实测的。
+  - 决定性检查（显式测键存在性）：`task_context` 的键集 =
+    {answer_type, domain, official_task_type, question_type, required_modalities, sub_category, temporal_scope}，
+    **975/975 行完全一致**；`baseline` / `model_stack_id` / `planner_model_id` 的 `key_present = False`（975/975）。
+    即 `task_context` 恰好只有 7 个键，与 `build_p9d_topology_dataset._task_context()` 的输出、
+    以及域内 J 的布局**完全一致**。
+  - 因此编码器 `j_series_common.py:178-183` 正常走 `else` 分支、从 `stack_context` 读到真实值；
+    按编码器口径复算：`baseline = langgraph_react`（**in_vocab**），
+    `answer_type / question_type / domain / official_task_type / sub_category` 全部 in_vocab。
+  - 真正的残余边界（均非 bug）：`temporal_scope = "unknown"` → UNK，但 registry **无此字段**（数据边界，GPT 方案已决定保留 fallback）；
+    `model_stack_id = stack_a_qwen3_vl8b_yolo11x` → OOV，是**数据集命名漂移**（域内为近似值 `stack_a_qwen3_vl8b`），
+    另一半 486 个锚点（`stack_b_..._yolo26n`）在词表内、能拿到真实 token；
+    `planner_model_id` 域内词表**只有 `unknown`** 一个值 → 该字段在域内从来不含信息；
+    `required_modalities` 的字符串形态与逐字符迭代**域内也存在**
+    （J train：list(1)=8156 / list(2)=2029 / str=3439 / list(3)=130）。
+- Reason: 该 P0 建立在"`coverage_report.json` 从 `stack_context` 解析（报 missing=0）而编码器从 `task_context` 解析"
+  这个矛盾上；显式测键存在性后发现**矛盾根本不存在**（审计与编码器口径一致）。
+- Alternatives considered: 按误报直接去"修" builder（**已否决** —— 会把本来正确的布局改坏）；
+  保留误报并加免责声明（否决 —— 会污染记录）。
+- Consequence: 记录更正四处（门禁 `post_pilot_code_audit_20260918`、本文件、PHASE21 报告 §7、HANDOFF/STATE）。
+  **教训已登记**：审计代码必须显式测键存在性（`field in mapping`），**不得**用 `.get()` 推断存在性；
+  建议 coverage 审计直接断言"编码器等价解析"的结果，而不是另写一套解析逻辑。
+- 审查路由：用户已把绑定会话切到 **Sol + High**，brief 已提交（待回收）。本节为本地端到端验证，
+  **以 GPT 审查回复做最终确认**。
+
+### 2026-09-18（同日）— 独立审查裁决：核心负结果通过、误报撤回通过；但"无残余输入缺口"被驳回（新增 21-B1/B2）
+
+- Decision: 把 Phase 21 的代码与判定提交绑定会话（GPT-5.6 Sol + High）独立审查，并按裁决更新记录。
+  **采纳**：核心结论（恢复三个 registry 内容字段不改善校准）与"null 遮蔽误报的撤回"均通过；
+  **撤回**我另加的两句——"不存在同类未修输入缺口"与"误差主要来自结构错配/执行期分布偏移"。
+- Evidence:
+  - **GPT 指出的关键事实**：冻结 `Vocab` 有两个不同概念 —— 特殊 OOV 桶 `__UNK__` 与普通类别 token `"unknown"`。
+    域内 `planner_model_id` 只有字面量 `"unknown"`（模型学的是它的 embedding）；S_* 传的是
+    `Qwen3-VL-8B-Instruct` → 落到 `__UNK__`（该 context embedding 很可能训练中几乎未被更新）。
+    因此"域内词表只有 unknown → 没有信息损失"在 **token 级是错的**。
+    同理适用于 `model_stack_id` 的 stack_a 命名变体与 `temporal_scope="unknown"`。
+    历史字段 `model_id` 也约有 6% OOV。
+  - **GPT 要求的两个封存前检查，已在 Windows 机执行并全部通过**：
+    ① 真值顺序等价性：按纯 `sequence_index` 与按 `(source_step_id, sequence_index)` 排序，
+    **640/640 全 R7 模板 + 64/64 pilot 模板完全一致（0 不一致）**（7,073/8,295 个节点的 `step_of != sequence_index`，
+    但**诱导顺序不变**）→ Q1 由 INFERENCE 转 **VERIFIED**，pilot 数字无需重跑。
+    ② 两个 pack 的 manifest 均 `min_steps=5` / `horizon=5` / checkpoint `0ee8ded4…` → P0-2 关闭。
+  - **零成本分层（GPT 建议的第一步，用现有输出）**：按 `model_stack_id` 分层
+    （fixed：stack_b(in-vocab) R50 **0.5820** / cov90 **0.9012** / cov95 **0.9699**；
+    stack_a(OOV) R50 **0.1751** / cov90 0.7878 / cov95 0.8620）
+    → 命中 GPT 判据"stack_b 正常、stack_a 极差 → 先查 stack canonicalization"。
+    **但存在混淆**：两者本就是不同执行栈、runtime 分布不同，分层不证明因果。
+- Reason: 只排除了一个"简单解释"，不等于排除了所有输入侧解释；`__UNK__` 与 `"unknown"` 的区别是我漏掉的关键点。
+- Alternatives considered: 直接全量重生成（否决：先做几十秒的配对反事实）；
+  凭名字相似直接把 stack_a 变体映射到 `stack_a_qwen3_vl8b`（**否决/需前置**：必须先确认 stack identity 定义）。
+- Consequence: 新增两个待批的几十秒级配对实验 **21-B1**（`planner_model_id` → 字面量 `"unknown"`，恢复训练期
+  feature-availability contract）与 **21-B2**（stack canonicalization，需前置确认）。
+  判据：mean runtime quantile pinball 改善 ≥10% 且 CI upper < 0，且 p50 coverage / R50 朝目标移动。
+  两者都失败后才可把主因归为分布偏移。**论文措辞以 GPT 给的三句为准，禁用清单见门禁 `forbidden_wording`。**
+  审查归档 `docs/research/2026-09-18_fas_phase21_review_gpt.md`。
+
+### 2026-09-18（同日）— Phase 21-B 封存：B1 有效但小；B2 拒绝正确；分层只能做 association
+
+- Decision: 执行 GPT 指定的 21-B1、拒绝 21-B2，并把结论按审核意见收紧。**feature-patching 线到此停止**，
+  回到已批准的 P2 sweep。
+- Evidence:
+  - **B1**（planner_model_id → 训练期字面量 `"unknown"`，975/975 锚点，同 checkpoint）：p50 pinball
+    **−24.70ms [−38.02, −9.87]（显著改善）**，但仅 **2.16%**（预注册门槛 10%）→ **FAIL**；
+    相对原始 masked +26.88 [−3.76, 55.51]（不显著）。故 `planner_model_id` 的 deployment-contract mismatch
+    是**可检出但工程上很小**的贡献者。
+  - **B2 拒绝依据**：`configs/phase3_stacka_old32_q2.jsonl`（裸 id 的唯一来源）**没有配置检测器**、
+    `qwen_max_new_tokens=384`、`answer_model_id=finish_argument`；R7 的 stack_a 是 **yolo11x.pt batch 8**、
+    256 tokens、answer_model=Qwen3-VL-8B-Instruct → **不同执行配置**，改名 = 错误身份替换。审核确认拒绝正确。
+  - **零成本分层分解（GPT 最高优先项）**：B1 下预测 p50 **scale 近乎平坦**（各格 193–764ms），
+    真值中位在 345–5978ms；**`langgraph_react` 在两个栈上都是最差格**（pred/truth = 0.069 与 0.114），
+    **含 in-vocab 的 stack_b** → **baseline 的影响大于"栈是否在词表内"**，"未见栈是主因"读法不完整。
+    p90/p95 头仍保守（stack_b 0.918/0.971；stack_a 0.819/0.878），失效的是 **p50 scale 头**。
+- Reason: 审核明确要求把因果叙事收紧：stack identity 的 OOV 与真实执行配置差异**完全共线**，
+  因此只能写 association（"失准高度集中于训练词表未覆盖的 stack_a 配置"），
+  不能写"未见栈本身导致失准"，也不能写"in-vocab 栈上模型校准良好"（只有一个 in-vocab 部署栈，n=1，且 p50 未校准）。
+- Alternatives considered: 继续做 stack canonicalization（**否决**：身份不符）；把 model_stack_id 也 mask 成
+  训练期 `unknown`（**审核排除**：该字段训练词表中**不存在**字面量 `unknown`，实验不合法）；
+  在本线重训 runtime 头（否决：改变冻结假设，属另立新线）。
+- Consequence: 冻结预测器的**栈相关 OOD 限制被接受**，不再改输入；下一步回到 P2 sweep（v03 pressure × horizon）
+  与 v03-confirm300 一次性验证。**写入论文前必做 3 个 P1**：128 missing-template anchor 分类 + fail-closed、
+  `paired_delta` 配对一致性断言、输出写入 resolved path/SHA/checkpoint/min_steps。
+  论文定位：不单开一章，归入 **Deployment input-contract audit**（A = registry task-context restoration，
+  B = stack/planner contract diagnostics）。归档 `docs/research/2026-09-18_fas_phase21b_review_gpt.md`。

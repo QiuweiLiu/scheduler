@@ -1,0 +1,14 @@
+{
+  "schema_version": "job-template-v0.2",
+  "source": "/Volumes/Lenovo/scheduler/results/processed/r7_workload_20260817/job_templates_r7_v02.jsonl",
+  "output": "/Volumes/Lenovo/scheduler/results/processed/r7_workload_v03_no_run_container/job_templates_r7_v03.jsonl",
+  "derivation": "phase19 A: remove event_type=='run' whole-run containers (terminal leaves, no rewiring)",
+  "removed_event_type": "run",
+  "removed_nodes": 640,
+  "remaining_nodes": 8295,
+  "templates": 640,
+  "roots": 640,
+  "dangling_predecessors": 0,
+  "runtime_removed_ratio": 0.5023604152417117,
+  "workload_over_container_wall_clock_median": 0.9823117735861624
+}

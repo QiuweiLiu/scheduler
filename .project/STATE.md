@@ -1,5 +1,42 @@
 # State
 
+## Current Stage (2026-09-18)
+
+- 主线不变：视频 Agent 未来预测 → GPU 调度。**主 workload 已切到 v03**（`r7_workload_v03_no_run_container`，移除 640 个重复计数容器节点）。
+- **本回合（Windows 执行）**：Phase 21 pilot 结案 = 预注册负结果（**差分成立**）。
+  - S_* `task_context` 修复（16 视频 paired masked/fixed）**FAIL 全部四条 calibration gate**：
+    fixed p50 R=0.397（门限 [0.70,1.30]）、cov p50/p90/p95 = 0.396/0.844/0.916、p50 pinball **显著恶化 +51.6ms [27.2,74.4]**。
+  - 管线 gate 全过（join 1.0、unknown_rate 0、`prefix_hash` 975/975 一致、checkpoint SHA 未变）→ **干净单变量对照**。
+  - → **不重生成 S_* 预测包、不重跑调度族**（该结论对"内容字段"仍成立）。
+- **同日事后代码审查（最终结论）：context 块无缺陷，Phase 21 总括结论成立**
+  - 期间曾提出"三个 stack 字段被 null 遮蔽 → 100% UNK"的 P0，**经复查为误报并已撤回**。
+  - 根因：探针用 `dict.get(field)`，**无法区分"键不存在"与"键存在但值为 null"**；"键存在且为 null"是推断而非实测。
+  - 决定性反证（显式测键存在性）：`task_context` 的键集 975/975 =
+    {answer_type, domain, official_task_type, question_type, required_modalities, sub_category, temporal_scope}
+    —— 恰好 7 个键，与 `_task_context()` 输出及域内 J 布局**完全一致**；
+    `baseline`/`model_stack_id`/`planner_model_id` 的 `key_present = False`（975/975）
+    → 编码器正常走 `else` 分支、从 `stack_context` 读真实值（`baseline = langgraph_react`，**in_vocab**）。
+  - 真正残余（均非 bug）：`temporal_scope = "unknown"` → UNK（**registry 无此字段**，数据边界）；
+    `model_stack_id = stack_a_qwen3_vl8b_yolo11x` → OOV（**数据集命名漂移**，域内为近似值 `stack_a_qwen3_vl8b`），
+    另一半 486 个锚点（`stack_b_..._yolo26n`）在词表内；`planner_model_id` 域内词表只有 `unknown`（从来不含信息）；
+    `required_modalities` 字符串形态域内也存在（J train 3439 行是字符串）。
+  - **未做任何管线改动**（不需要）；教训已登记：审计必须显式测键存在性，不得用 `.get()` 推断。
+- **独立 GPT 审查已完成（Sol + High）**：**核心负结果 PASS + 误报撤回 PASS**；但驳回"不存在同类未修输入缺口"
+  与"误差主要来自结构错配/分布偏移"（已撤回）。归档 `docs/research/2026-09-18_fas_phase21_review_gpt.md`。
+  - **它要求的两个封存前检查我已跑完并全部通过**：真值顺序等价性 640/640 + 64/64 模板完全一致
+    （Q1 转 VERIFIED，pilot 无需重跑）；两 pack 均 `min_steps=5`（P0-2 关闭）。
+  - **新关键点**：`__UNK__` ≠ 训练时的字面量 `"unknown"` token → `planner_model_id` / `model_stack_id`(stack_a) /
+    `temporal_scope` 仍是真实的 deployment input mismatch。
+  - **零成本分层（现有输出）**：in-vocab 的 stack_b 校准明显好于 OOV 的 stack_a
+    （fixed R50 0.5820 vs 0.1751；cov90 0.9012 vs 0.7878；cov95 0.9699 vs 0.8620）→ 命中"先查 stack canonicalization"。
+    但**有混淆**（两者本就是不同执行栈、runtime 分布不同），需配对反事实才能定因果。
+- **下一步（GPT 指定，均几十秒级）**：21-B1 把 `planner_model_id` 设为字面量 `"unknown"`；
+  21-B2 把 `stack_a_qwen3_vl8b_yolo11x` 映射到词表内的 `stack_a_qwen3_vl8b`（**前置：先确认 stack identity 定义相同**）。
+  判据：mean pinball 改善 ≥10% + CI upper < 0 + coverage/R50 朝目标移动。两者都失败才归因到分布偏移。
+- **待用户决策**：① 是否执行 21-B1 / 21-B2（前置的 stack identity 确认）；② 方向 A（P2 sweep + v03-confirm300）/
+  B（Phase 17 契约修复）/ C（H10-lite 等）。
+- 冠军与机制表述仍按 09-17 状态：**v03 上 `predopt_h5_q95`（=r95）为当前冠军**，机制 = "与未来步对齐的保守尾部聚合"。
+
 ## Current Stage (2026-09-17)
 
 - 主线不变：视频 Agent 未来预测 → GPU 调度；冠军仍是 r95/q95（逐步骤 runtime p95 求和）。
@@ -60,6 +97,30 @@
 1. 先核验 GPT 引用论文的真伪/出处（Parrot、Pythia、PBKV、FATE、SOLA、Vidur 等），再更新计划。
 2. H10-lite（H5 backbone + 后段 horizon 辅助头/降权，multi-resolution）。
 3. 备选：7-D queue-aware rollout（预期低）、跨期限/λ 稳健性、预测器 seed 稳健性（J3 seed22/33）。
+
+## ChatGPT Web 绑定（权威源，2026-09-18 从归档恢复）
+
+2026-09-15 压缩时该块从活跃 STATE 丢失，仅存归档；现恢复并更新。skill 规定此块是会话绑定的唯一真相源。
+
+```yaml
+chatgpt_web:
+  status: active
+  generation: 7
+  conversation_id: "6a9822da-e278-83e9-9c1a-675923acda0e"
+  conversation_url: "https://chatgpt.com/c/6a9822da-e278-83e9-9c1a-675923acda0e"
+  title: "架构设计评估"
+  model: "GPT-5.6 Sol"
+  reasoning: "High"
+  created_at: "2026-09-02 21:30 CST"
+  last_verified_at: "2026-09-08 17:19 CST"
+  last_used_at: "2026-09-08 17:19 CST"
+  parent_conversation_id: null
+  last_rollover_reason: null
+```
+
+**2026-09-18 实测（Windows 侧桥接）**：会话可达、线程健康（末轮为 Phase 21 计划），模型选择器当前显示
+**`DS Flash`** 而非登记的 `GPT-5.6 Sol` → model gate 拒绝提交（`selected_model: null`、`high_selected: false`），
+**未提交任何 brief**。在用户把该会话的手动模型切回 `GPT-5.6 Sol` + High 之前，网页审查不可用。
 
 ## 记录指针
 

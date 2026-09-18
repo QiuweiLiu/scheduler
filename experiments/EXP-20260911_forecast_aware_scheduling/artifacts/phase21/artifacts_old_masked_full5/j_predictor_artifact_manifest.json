@@ -1,0 +1,30 @@
+{
+  "checkpoint_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+  "horizon": 5,
+  "layer_schema_version": "scheduling-future-h5-layer-v1",
+  "layers_validated": true,
+  "min_steps": 5,
+  "model": "J3:seed11",
+  "notes": [
+    "single-scenario deterministic chain (probability 1.0); no DAG width claimed",
+    "resource block added per step (runtime p50/p90/p95, load occurrence prob, load duration p50/p90/p95)",
+    "raw_action is the train-mode mapping given predicted action_family; execution_lane heuristic",
+    "S_* inference requires a separate anchor feature builder (not part of this packer)"
+  ],
+  "output_files": {
+    "j_future_h1.jsonl.gz": "a8cd93bfb8cfb83407cdf59d5d5b388dc06c7c9d2d616280c5e1db033317a080",
+    "j_future_h3.jsonl.gz": "1318e959fe1f17b3d07a326dbd7ebc9f1f8a26053d1b3aaf60c871e670fa7d75",
+    "j_future_h5.jsonl.gz": "a265dff404403b6561664898521328c21b2ccdd2cb1c5daaa6a47d0b999cba9a",
+    "j_future_h5_layers.jsonl.gz": "3b7f50009463bd00c2e5dedf5ccb60148af064f7d0afa3d3541b4f3207d5d64f"
+  },
+  "predicted_node_count": {
+    "max": 5,
+    "mean": 5.0,
+    "min": 5
+  },
+  "rows": 975,
+  "scenarios": 975,
+  "schema_version": "j-series-future-predictor-manifest-v1",
+  "source": "anchors:outputs\\phase21_taskctx_fix\\anchors_old_masked\\features_sstar.jsonl.gz",
+  "split": "validation"
+}
