@@ -12,7 +12,7 @@
         "R2": "not enabled - j_series_dataset_v1 has no slot_activity label",
         "R3": "not enabled - only after R2 passes",
         "R4": "not enabled - winner x seeds after R1/R2",
-        "R3a": "executed, 3 seeds. Pre-registered verdict: NO EVIDENCE that the frozen representation is limiting (Spearman delta CI covers 0). But 3/3 seeds move in the same direction on every metric, and the 8-12 s median predicted value shifts from bin 3 (3790 ms) to bin 8 (5590 ms) in all three seeds. The CI cannot be narrowed with more seeds - 30 video clusters dominate the variance."
+        "R3a": "executed, 3 seeds. Pre-registered verdict: NO EVIDENCE that the frozen representation is limiting (Spearman delta CI covers 0). But 3/3 seeds move in the same direction on every metric, and the 8-12 s median predicted value shifts from bin 3 (3790 ms) to bin 8 (5590 ms) in all three seeds. The CI cannot be narrowed with more seeds - 30 video clusters dominate the variance. Rank audit (zero training) refuted the ties hypothesis: continuous scores give at most +0.017 Spearman and pairwise concordance ~0 or negative, so the ranking gain is genuinely small."
       },
       "gates": "two-tier, pre-registered in experiments/EXP-20260919_j_series_resource_dist_v1/config.json: viability (log-MAE <= 0.95x J3, expensive bucket >= 0.25, plus Spearman +0.03 or tail recall +0.04) and strong (Spearman/tail recall +0.08, log-MAE -10%, expensive bucket >= 0.50, 3 of 4)",
       "guards": {
@@ -162,6 +162,66 @@
           "therefore adding raw_action as a prediction target has a low ceiling and was NOT done"
         ],
         "residual_is_intrinsic_in_one_case": "summarize has a 64x internal spread (166 ms -> 10680 ms) with a single raw_action, so that part is execution randomness, not label coarseness"
+      },
+      "rank_audit_20260919": {
+        "trigger": "code review flagged that a 16-bin quantised q50 has massive ties which could hide a ranking gain",
+        "cost": "0 training, 297 s of compute on the existing predictions",
+        "spearman_deltas": {
+          "q50": {
+            "mean": 0.014270268666844702,
+            "ci95": [
+              -0.009238705375829936,
+              0.04162279507984804
+            ],
+            "fraction_le_zero": 0.173
+          },
+          "E[T]": {
+            "mean": -0.023702149911204413,
+            "ci95": [
+              -0.04982408835146035,
+              0.005383474680252058
+            ],
+            "fraction_le_zero": 0.938
+          },
+          "E[log1pT]": {
+            "mean": 0.016964047859696,
+            "ci95": [
+              -0.01208562523604543,
+              0.05475874791787446
+            ],
+            "fraction_le_zero": 0.272
+          }
+        },
+        "pairwise_concordance_deltas": {
+          "q50": {
+            "mean": 0.0006579332892423856,
+            "ci95": [
+              -0.004811805167860675,
+              0.006410673877519021
+            ],
+            "fraction_le_zero": 0.389
+          },
+          "E[T]": {
+            "mean": 0.0003540375172805181,
+            "ci95": [
+              -0.00437543565832013,
+              0.005420160605854153
+            ],
+            "fraction_le_zero": 0.446
+          },
+          "E[log1pT]": {
+            "mean": -0.004801809592545122,
+            "ci95": [
+              -0.011308480025103257,
+              0.002842098735665131
+            ],
+            "fraction_le_zero": 0.926
+          }
+        },
+        "verdict": "ranking gain is genuinely small",
+        "conclusion": "the ties hypothesis is REFUTED; the ranking gain is genuinely small. Adapting the last shared module improves magnitude/likelihood but not ordering.",
+        "review_next_step": "oracle-q(A) paired probe (predicted distribution vs true one-hot attributes, train and validate with each arm's own input type)",
+        "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R3A_RANK_AUDIT.md"
       }
     },
     "EXP-20260911_forecast_aware_scheduling": {

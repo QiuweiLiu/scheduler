@@ -30,6 +30,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import math
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -371,10 +372,157 @@ def stage_multi_seed(ctx: base.Ctx, n_boot: int) -> Dict[str, Any]:
     return report
 
 
+
+def _probs_for(ctx: base.Ctx, arm: str, seed: int, split: str = "validation") -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Full categorical distribution per pair, plus truth / video / slot."""
+
+    spec = dist.read_json(PROJECT_ROOT / "outputs/j_series_resource_dist_v1/bins.json")
+    edges = dist.edges_from_spec(spec)
+    payload = torch.load(head_pt(arm, seed), map_location=ctx.device, weights_only=False)
+    frozen = payload["res_hidden"]
+    res_hidden = torch.nn.Linear(frozen["weight"].shape[1], frozen["weight"].shape[0]).to(ctx.device)
+    res_hidden.load_state_dict({k: v.to(ctx.device) for k, v in frozen.items()})
+    head = dist.DiscreteRuntimeHead(frozen["weight"].shape[0], len(edges) - 1, hidden=HEAD_HIDDEN).to(ctx.device)
+    head.load_state_dict(payload["head"])
+    data = flatten(load_pre(split))
+    x = torch.from_numpy(data["features"].astype(np.float32)).to(ctx.device)
+    out = []
+    head.eval()
+    res_hidden.eval()
+    with torch.no_grad():
+        for start in range(0, x.shape[0], 8192):
+            out.append(F.softmax(head(torch.tanh(res_hidden(x[start : start + 8192]))), dim=-1).cpu().numpy())
+    return np.concatenate(out, axis=0), data["runtime"], data["video"], data["slot"]
+
+
+def _scores(probs: np.ndarray, spec: Dict[str, Any]) -> Dict[str, np.ndarray]:
+    reps = dist.reps_from_spec(spec)
+    cdf = np.cumsum(probs, axis=-1)
+    q50 = reps[np.argmax(cdf >= 0.50, axis=-1)]
+    exp_t = probs @ reps
+    exp_log = probs @ np.log1p(reps)
+    return {"q50": q50, "E[T]": exp_t, "E[log1pT]": exp_log}
+
+
+def _pairwise_concordance(score: np.ndarray, true: np.ndarray, video: np.ndarray, min_gap: float = 0.05) -> Dict[Any, float]:
+    """Per-video P(sign(s_i - s_j) == sign(y_i - y_j)) over pairs with a clear truth gap."""
+
+    out: Dict[Any, float] = {}
+    for v in sorted(set(video.tolist())):
+        idx = np.where(video == v)[0]
+        s, y = score[idx], true[idx]
+        order = np.argsort(y, kind="mergesort")
+        s, y = s[order], y[order]
+        n = len(y)
+        if n < 3:
+            continue
+        concordant = 0.0
+        total = 0.0
+        for i in range(n):
+            for j in range(i + 1, n):
+                gap = abs(math.log1p(y[j]) - math.log1p(y[i]))
+                if gap < min_gap:
+                    continue
+                total += 1.0
+                if (s[j] > s[i]) == (y[j] > y[i]):
+                    concordant += 1.0
+        if total:
+            out[v] = concordant / total
+    return out
+
+
+def stage_rank_audit(ctx: base.Ctx, n_boot: int) -> Dict[str, Any]:
+    """Zero-training audit: is the ranking gain hidden by the quantised q50?"""
+
+    import math as _math  # local import keeps the module import list unchanged
+
+    spec = dist.read_json(PROJECT_ROOT / "outputs/j_series_resource_dist_v1/bins.json")
+    seeds = [s for s in (11, 22, 33) if head_pt("F", s).is_file() and head_pt("U", s).is_file()]
+    if not seeds:
+        raise SystemExit("no paired arms; train F and U first")
+    cache: Dict[Tuple[str, int], Dict[str, Any]] = {}
+    for seed in seeds:
+        for arm in ("F", "U"):
+            probs, true, video, slot = _probs_for(ctx, arm, seed)
+            cache[(arm, seed)] = {"probs": probs, "true": true, "video": video, "slot": slot,
+                                  "scores": _scores(probs, spec)}
+    true = cache[("F", seeds[0])]["true"]
+    video = cache[("F", seeds[0])]["video"]
+    videos = sorted(set(video.tolist()))
+    groups = {v: np.where(video == v)[0] for v in videos}
+    rng = np.random.default_rng(20260911)
+
+    score_names = ("q50", "E[T]", "E[log1pT]")
+    report: Dict[str, Any] = {"seeds": seeds, "video_clusters": len(videos), "n_pairs": int(len(true)),
+                              "per_score": {}}
+    for name in score_names:
+        per_seed = {}
+        for seed in seeds:
+            f = cache[("F", seed)]["scores"][name]
+            u = cache[("U", seed)]["scores"][name]
+            per_seed[str(seed)] = {"rho_F": dist.spearman(f, true), "rho_U": dist.spearman(u, true),
+                                   "delta": dist.spearman(u, true) - dist.spearman(f, true)}
+        obs = float(np.mean([v["delta"] for v in per_seed.values()]))
+        boots = []
+        for _ in range(int(n_boot)):
+            picked = np.concatenate([groups[videos[int(rng.integers(len(videos)))]] for _ in range(len(videos))])
+            boots.append(float(np.mean([
+                dist.spearman(cache[("U", s)]["scores"][name][picked], true[picked])
+                - dist.spearman(cache[("F", s)]["scores"][name][picked], true[picked]) for s in seeds
+            ])))
+        boots.sort()
+        report["per_score"][name] = {
+            "per_seed": per_seed,
+            "mean_delta": obs,
+            "ci95": [boots[int(0.025 * (len(boots) - 1))], boots[int(0.975 * (len(boots) - 1))]],
+            "fraction_le_zero": float(np.mean([b <= 0 for b in boots])),
+        }
+
+    # within-video pairwise concordance (ranking-specific, uses many pairs per video)
+    conc: Dict[str, Dict[str, Any]] = {}
+    for name in score_names:
+        rows = []
+        for seed in seeds:
+            cf = _pairwise_concordance(cache[("F", seed)]["scores"][name], true, video)
+            cu = _pairwise_concordance(cache[("U", seed)]["scores"][name], true, video)
+            keys = sorted(set(cf) & set(cu))
+            rows.append({k: cu[k] - cf[k] for k in keys})
+        keys = sorted(rows[0])
+        obs = float(np.mean([np.mean([r[k] for k in keys]) for r in rows]))
+        boots = []
+        for _ in range(int(n_boot)):
+            draw = [keys[int(rng.integers(len(keys)))] for _ in range(len(keys))]
+            boots.append(float(np.mean([np.mean([r[k] for k in draw]) for r in rows])))
+        boots.sort()
+        conc[name] = {"mean_delta_concordance": obs,
+                      "ci95": [boots[int(0.025 * (len(boots) - 1))], boots[int(0.975 * (len(boots) - 1))]],
+                      "fraction_le_zero": float(np.mean([b <= 0 for b in boots]))}
+    report["pairwise_concordance"] = conc
+
+    verdict = {}
+    for name in score_names:
+        v = report["per_score"][name]
+        verdict[name] = {"mean_delta": v["mean_delta"], "ci95": v["ci95"]}
+    # pre-registered reading from the review: continuous delta >= 0.03 while q50 stays ~+0.014
+    # means the quantised median was hiding the ranking improvement
+    d_q50 = report["per_score"]["q50"]["mean_delta"]
+    d_cont = max(report["per_score"]["E[T]"]["mean_delta"], report["per_score"]["E[log1pT]"]["mean_delta"])
+    report["verdict"] = {
+        "q50_delta": d_q50,
+        "best_continuous_delta": d_cont,
+        "rule": "continuous delta >= 0.03 while q50 stays ~+0.014 -> ties hid the ranking gain, stop deeper unfreezing; continuous delta < 0.02 -> proceed to the oracle-q(A) probe",
+        "reading": ("ties hid the ranking gain" if d_cont >= 0.03 else
+                    "ranking gain is genuinely small" if d_cont < 0.02 else "grey zone"),
+    }
+    dist.write_json(run_root() / "r3a_rank_audit.json", report)
+    print(json.dumps(report, indent=1, default=str))
+    return report
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument("--stage", choices=("cache", "train", "diagnose", "multi-seed"), required=True)
+    parser.add_argument("--stage", choices=("cache", "train", "diagnose", "multi-seed", "rank-audit"), required=True)
     parser.add_argument("--arm", choices=("F", "U"), default=None)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--epochs", type=int, default=EPOCHS)
@@ -395,8 +543,10 @@ def main() -> int:
         train_arm(ctx, args.arm, args.epochs, args.max_rows, args.force, args.seed)
     elif args.stage == "diagnose":
         stage_diagnose(ctx, args.bootstrap)
-    else:
+    elif args.stage == "multi-seed":
         stage_multi_seed(ctx, args.bootstrap)
+    else:
+        stage_rank_audit(ctx, args.bootstrap)
     return 0
 
 
