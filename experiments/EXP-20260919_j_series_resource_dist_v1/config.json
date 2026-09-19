@@ -91,13 +91,24 @@
     "unified_batch_required": true
   },
   "gates": {
-    "_comment": "pre-registered in the R1 review; see PHASE_R_PLAN.md",
+    "_comment": "pre-registered in the R1 code review. TWO TIERS: 'viability' decides whether this direction is worth continuing, 'strong' is the paper-level success bar. All thresholds are READ BY THE CODE from this block.",
     "calibration_not_worse_by": 0.02,
+    "quantile_crossing_max": 0.0,
+    "viability_log_mae_max_relative": 0.95,
+    "viability_expensive_bucket_min": 0.25,
+    "viability_spearman_min_delta": 0.03,
+    "viability_tail_recall_min_delta": 0.04,
     "spearman_min_delta": 0.08,
     "tail_recall_min_delta": 0.08,
     "log_mae_max_relative": 0.9,
     "expensive_bucket_min_pred_over_true": 0.5,
-    "quantile_crossing_max": 0.0,
     "improved_required_of_four": 3
+  },
+  "protocol": {
+    "model_selection_splits": ["validation"],
+    "test_look": "only via --stage test-final for a locked winner; refuses to overwrite without --force",
+    "epoch_rule": "30 epochs, no early stopping; among calibration-eligible epochs pick argmin val log-MAE, tie-break higher Spearman; save best and last",
+    "first_arm": "Linear head (hidden=null); the MLP arm is a separate, pre-registered model-selection run",
+    "max_model_selection_runs": 3
   }
 }
