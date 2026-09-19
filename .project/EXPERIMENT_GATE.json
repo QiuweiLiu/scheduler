@@ -1,5 +1,78 @@
 {
   "experiments": {
+    "EXP-20260919_j_series_resource_dist_v1": {
+      "active": true,
+      "conclusion": "R1 viability PASS, strong FAIL; R1b (MLP) is the pre-registered next step",
+      "smoke_passed": true,
+      "ledger_registered": true,
+      "commit": "a591db6",
+      "stage_status": {
+        "R0": "passed - new metric code reproduces the recorded J3:seed11 acceptance numbers (coverage 0.5555/0.9166/0.9680, RuntimeQScore 845.04 ms) and the cache equivalence is exact (max|head(cached_z) - forward| = 0.00e+00)",
+        "R1": "executed seed 11: viability PASS, strong FAIL, test untouched. 8-12 s bucket 0.083->0.369, tail recall +0.111, log-MAE -9.6%, crossing 0, sum(mean)/sum(y)=0.941",
+        "R2": "not enabled - j_series_dataset_v1 has no slot_activity label",
+        "R3": "not enabled - only after R2 passes",
+        "R4": "not enabled - winner x seeds after R1/R2"
+      },
+      "gates": "two-tier, pre-registered in experiments/EXP-20260919_j_series_resource_dist_v1/config.json: viability (log-MAE <= 0.95x J3, expensive bucket >= 0.25, plus Spearman +0.03 or tail recall +0.04) and strong (Spearman/tail recall +0.08, log-MAE -10%, expensive bucket >= 0.50, 3 of 4)",
+      "guards": {
+        "frozen_checkpoint": "J3:seed11 sha256 0ee8ded4... asserted by --stage cache/r0/train",
+        "test_isolation": "--stage eval-val reads validation only; --stage test-final is a single locked-winner look and refuses to overwrite",
+        "cache_identity": "checkpoint + config + dataset + per-split file hashes, fail-closed; the check fired live when the config changed after the cache was built"
+      },
+      "review": "docs/research/2026-09-19_fas_resource_v2_code_review_gpt.md (NO-GO, 4 blocking + 7 P1) and docs/research/2026-09-19_fas_resource_v2_fix_review_gpt.md (all four closed, 1 new P0 + 2 P1, conditional GO). NOTE: that conversation reached its length limit - further reviews need a new chat.",
+      "plan": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_PLAN.md",
+      "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_PLAN.md",
+      "artifacts": "experiments/EXP-20260919_j_series_resource_dist_v1/artifacts/{bins.json,r0_report.json,j3_baseline_validation.json,cache_summary.json}",
+      "r1_seed11": {
+        "best_epoch": 27,
+        "wall_seconds": 64,
+        "gates": {
+          "integrity": {
+            "calibration_not_worse": {
+              "value": 0.031329627055825815,
+              "baseline": 0.030055594162612942,
+              "limit": 0.050055594162612946,
+              "pass": true
+            },
+            "no_quantile_crossing": {
+              "value": 0.0,
+              "limit": 0.0,
+              "pass": true
+            }
+          },
+          "viability": {
+            "log_mae_min_relative": 0.95,
+            "log_mae_relative": 0.9042856002600923,
+            "log_mae_pass": true,
+            "expensive_bucket_min": 0.25,
+            "expensive_bucket_value": 0.3693732134963507,
+            "expensive_bucket_pass": true,
+            "spearman_delta": 0.01703359858805964,
+            "spearman_pass": false,
+            "tail_recall_delta": 0.1111111111111111,
+            "tail_recall_pass": true,
+            "either_improved": true,
+            "pass": true
+          },
+          "strong": {
+            "spearman_pass": false,
+            "tail_recall_pass": true,
+            "log_mae_pass": false,
+            "expensive_bucket_pass": false,
+            "required": 3,
+            "improved_count": 1,
+            "pass": false
+          },
+          "headline": {
+            "integrity_pass": true,
+            "viability_pass": true,
+            "strong_pass": false
+          }
+        },
+        "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R1_REPORT.md",
+        "artifacts": "experiments/EXP-20260919_j_series_resource_dist_v1/artifacts/"
+      }
+    },
     "EXP-20260911_forecast_aware_scheduling": {
       "active": true,
       "baselines_required": {
@@ -1179,14 +1252,38 @@
           "pairs": 3275,
           "pipeline_gates": "ALL PASS - 975 anchors both sides (576 skipped), anchor ids/order/set-sha identical, prefix_hash 975/975 identical, source_trace_sha256 identical, unknown_rate(domain/official_task_type/sub_category) 0.0 with source_coverage 1.0 (masked control: 1.0 / 0.0), task_context_failures empty, checkpoint SHA256 0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77 unchanged, differences confined to the 3 repaired fields (2925/2925 changed) plus the audit block",
           "calibration_fixed": {
-            "p50": {"ratio_of_sums": 0.3971, "coverage": 0.3960, "pinball_ms": 1142.0},
-            "p90": {"ratio_of_sums": 2.0691, "coverage": 0.8443, "pinball_ms": 745.6},
-            "p95": {"ratio_of_sums": 2.8285, "coverage": 0.9157, "pinball_ms": 493.0}
+            "p50": {
+              "ratio_of_sums": 0.3971,
+              "coverage": 0.396,
+              "pinball_ms": 1142.0
+            },
+            "p90": {
+              "ratio_of_sums": 2.0691,
+              "coverage": 0.8443,
+              "pinball_ms": 745.6
+            },
+            "p95": {
+              "ratio_of_sums": 2.8285,
+              "coverage": 0.9157,
+              "pinball_ms": 493.0
+            }
           },
           "calibration_masked": {
-            "p50": {"ratio_of_sums": 0.4152, "coverage": 0.3911, "pinball_ms": 1090.4},
-            "p90": {"ratio_of_sums": 1.8816, "coverage": 0.8290, "pinball_ms": 736.5},
-            "p95": {"ratio_of_sums": 2.6153, "coverage": 0.9056, "pinball_ms": 488.3}
+            "p50": {
+              "ratio_of_sums": 0.4152,
+              "coverage": 0.3911,
+              "pinball_ms": 1090.4
+            },
+            "p90": {
+              "ratio_of_sums": 1.8816,
+              "coverage": 0.829,
+              "pinball_ms": 736.5
+            },
+            "p95": {
+              "ratio_of_sums": 2.6153,
+              "coverage": 0.9056,
+              "pinball_ms": 488.3
+            }
           },
           "gate_evaluation": [
             "FAIL R50 in [0.70, 1.30] - fixed 0.3971 (and slightly worse than masked 0.4152)",
@@ -1195,7 +1292,13 @@
             "FAIL p95 coverage in [0.92, 0.995] - fixed 0.9157",
             "FAIL mean pinball down >=10% vs masked - p50 pinball significantly WORSE (+51.59 ms, +4.73%, CI [27.23, 74.42]); p90 +9.12 [-25.80, 43.60] and p95 +4.75 [-23.45, 32.88] not significant"
           ],
-          "by_slot_fixed_p50_ratio": {"1": 0.453, "2": 0.394, "3": 0.415, "4": 0.344, "5": 0.361},
+          "by_slot_fixed_p50_ratio": {
+            "1": 0.453,
+            "2": 0.394,
+            "3": 0.415,
+            "4": 0.344,
+            "5": 0.361
+          },
           "conclusion": "restoring the three registry-backed CONTENT fields (domain / official_task_type / sub_category) does not fix the S_* out-of-domain miscalibration, and the post-pilot code audit confirms there is NO remaining unfixed pipeline input gap of that class: the context block is as complete as the project registry allows (see post_pilot_code_audit_20260918). Under-prediction is therefore structural (per-step quantiles summed against an aggregated target) and/or a genuine execution-regime distribution shift. Residual context inputs still reaching the encoder as UNK: temporal_scope (no source data exists) and model_stack_id for the stack_a naming variant (naming drift).",
           "paper_use": "the trivial 'missing metadata' explanation for the S_* miscalibration is ruled out with a clean single-variable control, and the audit shows the context block has no remaining fixable gap. Consistent with Phase 10 (content has no measurable marginal effect), Phase 18 (sum p50 = 0.456x truth, sum p95 = 4.9x) and Phase 20-B (oracle-truth only 1.3 s better than p95) - reinforces C2 that conservative step-aligned tail aggregation is the correction mechanism. Disclose the pipeline correction (registry join for the 3 content fields, checkpoint fixed) as a reproducibility note.",
           "residual_feature_issue_registered": "temporal_scope OOV 1.0, planner_model_id OOV 1.0, model_stack_id OOV 0.5015 (frozen fallback fields, out of scope here; would need the same unknown-vs-OOV audit if the input side is revisited)",
@@ -1228,115 +1331,213 @@
           "lesson_recorded": "audit code must test key presence explicitly (`field in mapping`) and must never infer presence from `.get()`. This is the second silent-failure class in this project, so the coverage audit should assert the encoder-equivalent resolution directly instead of re-implementing it.",
           "secondary_observation": "coverage_report.json resolves the stack fields from stack_context and therefore reported them as populated and non-missing, which was correct here; the earlier 'the audit and the model disagree about the resolution rule' claim was also part of the false positive",
           "gpt_review": "COMPLETED - see independent_review_20260918, phase21b_20260918 and metric_audit_20260918",
-        "metric_audit_20260918": {
-          "status": "COMPLETED - the premise 'the S_* predictor is badly miscalibrated' is withdrawn",
-          "trigger": "owner objection: 'my predictor cannot possibly be this bad'",
-          "method": "ran the frozen J3:seed11 over the J validation split with pack_j_predictor_artifacts.py (--split validation, --min-steps 5) and scored it with the SAME statistics used on R7",
-          "exact_reproduction": {
-            "p50_coverage": {"mine": 0.5555, "acceptance": 0.556},
-            "p90_coverage": {"mine": 0.9166, "acceptance": 0.917},
-            "p95_coverage": {"mine": 0.9680, "acceptance": 0.968},
-            "RuntimeQScore_ms": {"mine": 845.0, "acceptance": 845.0},
-            "note": "RuntimeQScore = mean(pinball p50, p90, p95) = (1194.3 + 797.9 + 542.9)/3 = 845.0. Every acceptance number is reproduced bit-for-bit, so the R7 scoring code and the acceptance scoring code are the SAME yardstick."
-          },
-          "key_facts": {
-            "ratio_of_sums_in_domain": 0.6322,
-            "ratio_of_sums_R7_B1": 0.4363,
-            "truth_median_ms_in_domain": 2209.4,
-            "truth_mean_ms_in_domain": 3876.8,
-            "truth_mean_over_median": 1.76,
-            "runtime_qscore_in_domain": 845.0,
-            "runtime_qscore_R7_B1": 782.1,
-            "R7_pinballs": {"p50": 1117.3, "p90": 737.4, "p95": 491.6}
-          },
-          "why_sum_of_p50_is_low_by_construction": "summing per-slot p50 (medians) does NOT equal the median of the sum. Runtime is extremely right-skewed: in-domain the per-slot truth median is 2209 ms but the mean is 3877 ms (1.76x). A perfectly calibrated model would therefore give ratio_of_sums ~ 1/1.76 = 0.57; the measured 0.632 is in that range. This is a property of aggregating medians, not a calibration failure.",
-          "the_0_90_numbers_are_a_different_head": "the acceptance table's 90%+ figures (7-field mean accuracy 0.9013, next-role 0.9444, next-family 0.8396) are CLASSIFICATION accuracies from the structure/behavior heads. They say nothing about the resource head, which has its own metrics (coverage, pinball). Conflating the two produced the false 'predictor is bad' narrative.",
-          "coverage_vs_target": {"p50": "0.5555 vs target 0.50", "p90": "0.9166 vs target 0.90", "p95": "0.9680 vs target 0.95", "reading": "all three are slightly ABOVE target, i.e. the predicted quantiles are mildly conservative - which is the safe direction for a scheduler"},
-          "verdict": "by the project's own primary metric the frozen predictor scores BETTER on the R7 deployment workload (782.1) than on its own validation split (845.0). The genuine residual is a modest p50 coverage drop (0.427 on R7 vs 0.556 in domain), consistent with the OOV input fields and the stack stratification already documented.",
-          "consequences_to_re_examine": [
-            "Phase 18's 'sum p50 = 0.456x truth => forecast optimism' must be re-based against the in-domain 0.632, not against 1.0; optimism still exists (0.456 vs 0.632) but is far smaller than stated",
-            "the C2 narrative 'conservative tail aggregation compensates for forecast error' needs re-argument: if summing p50 under-estimates the aggregate BY CONSTRUCTION, then q95-style aggregation may be the CORRECT aggregation rather than an error compensation - this is a hypothesis, not yet established",
-            "do NOT quote 'the predictor under-predicts by ~60%' anywhere"
-          ],
-          "not_done": "no model change, no artifact regeneration, no scheduler rerun",
-          "artifacts": {
-            "j_validation_pack": "outputs/a2a_jval_full5/",
-            "scoring_script": ".scratch/a2a_jval_score.py"
-          }
-        },
-        "phase21b_20260918": {
-          "status": "B1 executed and sealed; B2 correctly REFUSED; review verdict = association only, no causal attribution",
-          "arm_B1": {
-            "change": "stack_context.planner_model_id -> the literal 'unknown' that the in-domain training data always carried (975/975 anchors); same anchors, truth, checkpoint 0ee8ded4...",
-            "script": "scripts/preprocess/phase21b_stack_context_counterfactual.py (per-row before/after audit; only rewrites on an explicit mapping)",
-            "overall": {
-              "masked": {"R50": 0.4152, "cov50": 0.3911, "cov90": 0.8290, "cov95": 0.9056, "p50_pinball_ms": 1090.4},
-              "fixed": {"R50": 0.3971, "cov50": 0.3960, "cov90": 0.8443, "cov95": 0.9157, "p50_pinball_ms": 1142.0},
-              "B1": {"R50": 0.4363, "cov50": 0.4272, "cov90": 0.8684, "cov95": 0.9246, "p50_pinball_ms": 1117.3}
+          "metric_audit_20260918": {
+            "status": "COMPLETED - the premise 'the S_* predictor is badly miscalibrated' is withdrawn",
+            "trigger": "owner objection: 'my predictor cannot possibly be this bad'",
+            "method": "ran the frozen J3:seed11 over the J validation split with pack_j_predictor_artifacts.py (--split validation, --min-steps 5) and scored it with the SAME statistics used on R7",
+            "exact_reproduction": {
+              "p50_coverage": {
+                "mine": 0.5555,
+                "acceptance": 0.556
+              },
+              "p90_coverage": {
+                "mine": 0.9166,
+                "acceptance": 0.917
+              },
+              "p95_coverage": {
+                "mine": 0.968,
+                "acceptance": 0.968
+              },
+              "RuntimeQScore_ms": {
+                "mine": 845.0,
+                "acceptance": 845.0
+              },
+              "note": "RuntimeQScore = mean(pinball p50, p90, p95) = (1194.3 + 797.9 + 542.9)/3 = 845.0. Every acceptance number is reproduced bit-for-bit, so the R7 scoring code and the acceptance scoring code are the SAME yardstick."
             },
-            "paired": {
-              "B1_vs_fixed_p50_ms": {"mean": -24.70, "ci": [-38.02, -9.87], "significant": true, "relative_pct": -2.16},
-              "B1_vs_masked_p50_ms": {"mean": 26.88, "ci": [-3.76, 55.51], "significant": false},
-              "p90_p95": "not significant in either comparison"
+            "key_facts": {
+              "ratio_of_sums_in_domain": 0.6322,
+              "ratio_of_sums_R7_B1": 0.4363,
+              "truth_median_ms_in_domain": 2209.4,
+              "truth_mean_ms_in_domain": 3876.8,
+              "truth_mean_over_median": 1.76,
+              "runtime_qscore_in_domain": 845.0,
+              "runtime_qscore_R7_B1": 782.1,
+              "R7_pinballs": {
+                "p50": 1117.3,
+                "p90": 737.4,
+                "p95": 491.6
+              }
             },
-            "verdict": "FAILS the pre-agreed >=10% criterion (2.16%). A real, statistically detectable but ENGINEERING-MINOR deployment-contract effect. Do NOT upgrade it to 'major' on the strength of the stack_b stratification."
-          },
-          "arm_B2_refused": {
-            "proposed": "stack_a_qwen3_vl8b_yolo11x -> stack_a_qwen3_vl8b",
-            "reason": "identity check failed. configs/phase3_stacka_old32_q2.jsonl (the only source of the bare id) has NO detector configured, qwen_max_new_tokens 384, answer_model_id finish_argument; R7's stack_a runs yolo11x.pt batch 8, 256 tokens, answer_model_id Qwen3-VL-8B-Instruct. They are different execution configurations, not two spellings of one stack; renaming would inject a wrong identity",
-            "review_verdict": "REFUSING B2 IS CORRECT - the proposed rewrite is wrong-identity substitution, not canonicalization",
-            "precise_writable_claim": "The exact R7 stack_a configuration is out of support for the frozen categorical stack vocabulary and cannot be faithfully repaired by input relabeling alone. (Do NOT overstate to 'the frozen model cannot handle stack_a at all' - history model_id/action, baseline, other context and current-node attributes may still carry partial signal.)"
-          },
-          "zero_cost_stratified_decomposition_20260918": {
-            "purpose": "reviewer's top-priority next step: separate (a) truth-scale mismatch from (b) slot/baseline-specific failure",
-            "B1_arm_by_stack_and_baseline": {
-              "stack_b_..._yolo26n": {"all": {"n": 1630, "R50": 0.601, "cov90": 0.918, "cov95": 0.971, "truth_med_ms": 2110, "pred50_med_ms": 737, "ratio": 0.349},
-                                       "langgraph_react": {"n": 865, "R50": 0.592, "truth_med_ms": 5978, "pred50_med_ms": 682, "ratio": 0.114},
-                                       "star": {"n": 765, "R50": 0.616, "truth_med_ms": 2037, "pred50_med_ms": 764, "ratio": 0.375}},
-              "stack_a_..._yolo11x": {"all": {"n": 1645, "R50": 0.239, "cov90": 0.819, "cov95": 0.878, "truth_med_ms": 412, "pred50_med_ms": 234, "ratio": 0.568},
-                                       "langgraph_react": {"n": 815, "R50": 0.269, "truth_med_ms": 4475, "pred50_med_ms": 309, "ratio": 0.069},
-                                       "star": {"n": 830, "R50": 0.185, "truth_med_ms": 345, "pred50_med_ms": 193, "ratio": 0.558}}
+            "why_sum_of_p50_is_low_by_construction": "summing per-slot p50 (medians) does NOT equal the median of the sum. Runtime is extremely right-skewed: in-domain the per-slot truth median is 2209 ms but the mean is 3877 ms (1.76x). A perfectly calibrated model would therefore give ratio_of_sums ~ 1/1.76 = 0.57; the measured 0.632 is in that range. This is a property of aggregating medians, not a calibration failure.",
+            "the_0_90_numbers_are_a_different_head": "the acceptance table's 90%+ figures (7-field mean accuracy 0.9013, next-role 0.9444, next-family 0.8396) are CLASSIFICATION accuracies from the structure/behavior heads. They say nothing about the resource head, which has its own metrics (coverage, pinball). Conflating the two produced the false 'predictor is bad' narrative.",
+            "coverage_vs_target": {
+              "p50": "0.5555 vs target 0.50",
+              "p90": "0.9166 vs target 0.90",
+              "p95": "0.9680 vs target 0.95",
+              "reading": "all three are slightly ABOVE target, i.e. the predicted quantiles are mildly conservative - which is the safe direction for a scheduler"
             },
-            "KEY_READING": "the predicted p50 SCALE IS NEARLY FLAT across execution configurations while the truth scale varies by more than an order of magnitude: langgraph_react truth medians are 4475 ms (stack_a) and 5978 ms (stack_b) versus star 345 ms / 2037 ms, yet the predicted p50 medians stay in the 193-764 ms band. The largest errors are in langgraph_react on BOTH stacks (ratio 0.069 and 0.114), including the IN-VOCAB stack_b.",
-            "consequence": "BASELINE (langgraph_react vs star) is a bigger driver than stack vocabulary membership. The 'unseen stack' reading is therefore incomplete: resource-scale transfer fails across execution configurations generally, not only on the OOV stack. The p90/p95 heads stay reasonably conservative (stack_b cov90 0.918 / cov95 0.971; stack_a 0.819 / 0.878) - it is the p50 scale head that fails."
-          },
-          "review_positioning": {
-            "writable": [
-              "deployment calibration is strongly stratified by execution stack, and the worst-calibrated stratum corresponds to an execution configuration absent from the training vocabulary (association, NOT causation)",
-              "On the R7 pilot, calibration error was strongly stack-dependent. For the stack configuration represented in the frozen training vocabulary, p90/p95 empirical coverages (0.918/0.971) closely matched the in-domain reference (0.917/0.968), whereas the unseen stack_a configuration remained substantially miscalibrated.",
-              "MANDATORY caveat immediately after: Because the two stacks also differ in model composition and runtime distribution, this stratification does not isolate the causal effect of vocabulary support.",
-              "Replacing the OOV planner identifier with the training-time literal unknown reduced p50 pinball loss by 24.7 ms (2.16%; 95% CI 9.9-38.0 ms), indicating a small but measurable deployment-contract effect.",
-              "upper-quantile coverage APPROACHES the in-domain reference (never 'well calibrated overall': p50 coverage 0.454 != 0.556 and R50 0.601 still shows scale under-estimation)"
+            "verdict": "by the project's own primary metric the frozen predictor scores BETTER on the R7 deployment workload (782.1) than on its own validation split (845.0). The genuine residual is a modest p50 coverage drop (0.427 on R7 vs 0.556 in domain), consistent with the OOV input fields and the stack stratification already documented.",
+            "consequences_to_re_examine": [
+              "Phase 18's 'sum p50 = 0.456x truth => forecast optimism' must be re-based against the in-domain 0.632, not against 1.0; optimism still exists (0.456 vs 0.632) but is far smaller than stated",
+              "the C2 narrative 'conservative tail aggregation compensates for forecast error' needs re-argument: if summing p50 under-estimates the aggregate BY CONSTRUCTION, then q95-style aggregation may be the CORRECT aggregation rather than an error compensation - this is a hypothesis, not yet established",
+              "do NOT quote 'the predictor under-predicts by ~60%' anywhere"
             ],
-            "forbidden": [
-              "the OOV stack token causes the error",
-              "the frozen predictor is well calibrated on execution stacks present in its training vocabulary (only ONE in-vocab deployment stack, n=1, and p50 is not calibrated)",
-              "residual miscalibration is mainly caused by unseen/OOV stack identity",
-              "any claim that B2-style relabeling could repair the stack_a gap"
-            ],
-            "paper_placement": "do NOT open a separate chapter; put both under a 'Deployment input-contract audit' section: Phase21-A = registry task-context restoration; Phase21-B = stack/planner contract diagnostics. Narrative arc: missing metadata -> OOV categorical inputs -> stack-stratified deployment calibration."
+            "not_done": "no model change, no artifact regeneration, no scheduler rerun",
+            "artifacts": {
+              "j_validation_pack": "outputs/a2a_jval_full5/",
+              "scoring_script": ".scratch/a2a_jval_score.py"
+            }
           },
-          "next_step_per_review": [
-            "STOP the feature-patching line; do not run more stack canonicalization; do not retrain the runtime head on this line (that is a new method line)",
-            "accept the frozen predictor's stack-specific OOD limitation and return to the approved P2 sweep (v03 pressure x horizon) + the one-shot v03-confirm300",
-            "the reviewer additionally ruled OUT the 'mask model_stack_id to the training-time unknown' experiment: the frozen model_stack_id training vocabulary contains NO literal 'unknown' (verified in this project), so that experiment would not be legitimate"
-          ],
-          "P1_required_before_writing": [
-            "classify the 128 missing-template anchors and fail-closed: expected_root=64, expected_container=64, unexpected=0",
-            "paired_delta strict pair-consistency asserts: (anchor,slot) set equality, truth equality, video_id equality, no duplicate keys - B1's whole evidence is the paired CI",
-            "write resolved artifact path + SHA + checkpoint + min_steps into the audit output (Phase 21 already had one layout bug)"
-          ],
-          "P1_deferrable": [
-            "required_modalities encoder-equivalent audit (B1 did not touch that field, so it cannot affect the B1 causal comparison)",
-            "stronger mapping validation in the stack_canonical counterfactual script (unused, since B2 was correctly refused)"
-          ],
-          "artifacts": {
-            "anchors": "outputs/phase21b_stackctx/anchors_b1/features_sstar.jsonl.gz",
-            "artifacts": "outputs/phase21b_stackctx/artifacts_b1_full5/",
-            "audit": "outputs/phase21b_stackctx/audit/{b1_counterfactual.json,b1_vs_fixed.json,b1_vs_masked.json}",
-            "review": "docs/research/2026-09-18_fas_phase21b_review_gpt.md"
-          }
-        },
+          "phase21b_20260918": {
+            "status": "B1 executed and sealed; B2 correctly REFUSED; review verdict = association only, no causal attribution",
+            "arm_B1": {
+              "change": "stack_context.planner_model_id -> the literal 'unknown' that the in-domain training data always carried (975/975 anchors); same anchors, truth, checkpoint 0ee8ded4...",
+              "script": "scripts/preprocess/phase21b_stack_context_counterfactual.py (per-row before/after audit; only rewrites on an explicit mapping)",
+              "overall": {
+                "masked": {
+                  "R50": 0.4152,
+                  "cov50": 0.3911,
+                  "cov90": 0.829,
+                  "cov95": 0.9056,
+                  "p50_pinball_ms": 1090.4
+                },
+                "fixed": {
+                  "R50": 0.3971,
+                  "cov50": 0.396,
+                  "cov90": 0.8443,
+                  "cov95": 0.9157,
+                  "p50_pinball_ms": 1142.0
+                },
+                "B1": {
+                  "R50": 0.4363,
+                  "cov50": 0.4272,
+                  "cov90": 0.8684,
+                  "cov95": 0.9246,
+                  "p50_pinball_ms": 1117.3
+                }
+              },
+              "paired": {
+                "B1_vs_fixed_p50_ms": {
+                  "mean": -24.7,
+                  "ci": [
+                    -38.02,
+                    -9.87
+                  ],
+                  "significant": true,
+                  "relative_pct": -2.16
+                },
+                "B1_vs_masked_p50_ms": {
+                  "mean": 26.88,
+                  "ci": [
+                    -3.76,
+                    55.51
+                  ],
+                  "significant": false
+                },
+                "p90_p95": "not significant in either comparison"
+              },
+              "verdict": "FAILS the pre-agreed >=10% criterion (2.16%). A real, statistically detectable but ENGINEERING-MINOR deployment-contract effect. Do NOT upgrade it to 'major' on the strength of the stack_b stratification."
+            },
+            "arm_B2_refused": {
+              "proposed": "stack_a_qwen3_vl8b_yolo11x -> stack_a_qwen3_vl8b",
+              "reason": "identity check failed. configs/phase3_stacka_old32_q2.jsonl (the only source of the bare id) has NO detector configured, qwen_max_new_tokens 384, answer_model_id finish_argument; R7's stack_a runs yolo11x.pt batch 8, 256 tokens, answer_model_id Qwen3-VL-8B-Instruct. They are different execution configurations, not two spellings of one stack; renaming would inject a wrong identity",
+              "review_verdict": "REFUSING B2 IS CORRECT - the proposed rewrite is wrong-identity substitution, not canonicalization",
+              "precise_writable_claim": "The exact R7 stack_a configuration is out of support for the frozen categorical stack vocabulary and cannot be faithfully repaired by input relabeling alone. (Do NOT overstate to 'the frozen model cannot handle stack_a at all' - history model_id/action, baseline, other context and current-node attributes may still carry partial signal.)"
+            },
+            "zero_cost_stratified_decomposition_20260918": {
+              "purpose": "reviewer's top-priority next step: separate (a) truth-scale mismatch from (b) slot/baseline-specific failure",
+              "B1_arm_by_stack_and_baseline": {
+                "stack_b_..._yolo26n": {
+                  "all": {
+                    "n": 1630,
+                    "R50": 0.601,
+                    "cov90": 0.918,
+                    "cov95": 0.971,
+                    "truth_med_ms": 2110,
+                    "pred50_med_ms": 737,
+                    "ratio": 0.349
+                  },
+                  "langgraph_react": {
+                    "n": 865,
+                    "R50": 0.592,
+                    "truth_med_ms": 5978,
+                    "pred50_med_ms": 682,
+                    "ratio": 0.114
+                  },
+                  "star": {
+                    "n": 765,
+                    "R50": 0.616,
+                    "truth_med_ms": 2037,
+                    "pred50_med_ms": 764,
+                    "ratio": 0.375
+                  }
+                },
+                "stack_a_..._yolo11x": {
+                  "all": {
+                    "n": 1645,
+                    "R50": 0.239,
+                    "cov90": 0.819,
+                    "cov95": 0.878,
+                    "truth_med_ms": 412,
+                    "pred50_med_ms": 234,
+                    "ratio": 0.568
+                  },
+                  "langgraph_react": {
+                    "n": 815,
+                    "R50": 0.269,
+                    "truth_med_ms": 4475,
+                    "pred50_med_ms": 309,
+                    "ratio": 0.069
+                  },
+                  "star": {
+                    "n": 830,
+                    "R50": 0.185,
+                    "truth_med_ms": 345,
+                    "pred50_med_ms": 193,
+                    "ratio": 0.558
+                  }
+                }
+              },
+              "KEY_READING": "the predicted p50 SCALE IS NEARLY FLAT across execution configurations while the truth scale varies by more than an order of magnitude: langgraph_react truth medians are 4475 ms (stack_a) and 5978 ms (stack_b) versus star 345 ms / 2037 ms, yet the predicted p50 medians stay in the 193-764 ms band. The largest errors are in langgraph_react on BOTH stacks (ratio 0.069 and 0.114), including the IN-VOCAB stack_b.",
+              "consequence": "BASELINE (langgraph_react vs star) is a bigger driver than stack vocabulary membership. The 'unseen stack' reading is therefore incomplete: resource-scale transfer fails across execution configurations generally, not only on the OOV stack. The p90/p95 heads stay reasonably conservative (stack_b cov90 0.918 / cov95 0.971; stack_a 0.819 / 0.878) - it is the p50 scale head that fails."
+            },
+            "review_positioning": {
+              "writable": [
+                "deployment calibration is strongly stratified by execution stack, and the worst-calibrated stratum corresponds to an execution configuration absent from the training vocabulary (association, NOT causation)",
+                "On the R7 pilot, calibration error was strongly stack-dependent. For the stack configuration represented in the frozen training vocabulary, p90/p95 empirical coverages (0.918/0.971) closely matched the in-domain reference (0.917/0.968), whereas the unseen stack_a configuration remained substantially miscalibrated.",
+                "MANDATORY caveat immediately after: Because the two stacks also differ in model composition and runtime distribution, this stratification does not isolate the causal effect of vocabulary support.",
+                "Replacing the OOV planner identifier with the training-time literal unknown reduced p50 pinball loss by 24.7 ms (2.16%; 95% CI 9.9-38.0 ms), indicating a small but measurable deployment-contract effect.",
+                "upper-quantile coverage APPROACHES the in-domain reference (never 'well calibrated overall': p50 coverage 0.454 != 0.556 and R50 0.601 still shows scale under-estimation)"
+              ],
+              "forbidden": [
+                "the OOV stack token causes the error",
+                "the frozen predictor is well calibrated on execution stacks present in its training vocabulary (only ONE in-vocab deployment stack, n=1, and p50 is not calibrated)",
+                "residual miscalibration is mainly caused by unseen/OOV stack identity",
+                "any claim that B2-style relabeling could repair the stack_a gap"
+              ],
+              "paper_placement": "do NOT open a separate chapter; put both under a 'Deployment input-contract audit' section: Phase21-A = registry task-context restoration; Phase21-B = stack/planner contract diagnostics. Narrative arc: missing metadata -> OOV categorical inputs -> stack-stratified deployment calibration."
+            },
+            "next_step_per_review": [
+              "STOP the feature-patching line; do not run more stack canonicalization; do not retrain the runtime head on this line (that is a new method line)",
+              "accept the frozen predictor's stack-specific OOD limitation and return to the approved P2 sweep (v03 pressure x horizon) + the one-shot v03-confirm300",
+              "the reviewer additionally ruled OUT the 'mask model_stack_id to the training-time unknown' experiment: the frozen model_stack_id training vocabulary contains NO literal 'unknown' (verified in this project), so that experiment would not be legitimate"
+            ],
+            "P1_required_before_writing": [
+              "classify the 128 missing-template anchors and fail-closed: expected_root=64, expected_container=64, unexpected=0",
+              "paired_delta strict pair-consistency asserts: (anchor,slot) set equality, truth equality, video_id equality, no duplicate keys - B1's whole evidence is the paired CI",
+              "write resolved artifact path + SHA + checkpoint + min_steps into the audit output (Phase 21 already had one layout bug)"
+            ],
+            "P1_deferrable": [
+              "required_modalities encoder-equivalent audit (B1 did not touch that field, so it cannot affect the B1 causal comparison)",
+              "stronger mapping validation in the stack_canonical counterfactual script (unused, since B2 was correctly refused)"
+            ],
+            "artifacts": {
+              "anchors": "outputs/phase21b_stackctx/anchors_b1/features_sstar.jsonl.gz",
+              "artifacts": "outputs/phase21b_stackctx/artifacts_b1_full5/",
+              "audit": "outputs/phase21b_stackctx/audit/{b1_counterfactual.json,b1_vs_fixed.json,b1_vs_masked.json}",
+              "review": "docs/research/2026-09-18_fas_phase21b_review_gpt.md"
+            }
+          },
           "independent_review_20260918": {
             "source": "docs/research/2026-09-18_fas_phase21_review_gpt.md (bound conversation, Sol + High; 4 attachments: calibration analysis, anchor builder, task-context join module, pilot report)",
             "verdict": "PASS on the core negative result and PASS on the retraction of the null-shadowing false positive; FAIL on the two stronger claims",
@@ -1367,12 +1568,36 @@
             "zero_cost_stratification_20260918": {
               "purpose": "reviewer's first suggested step: compare the in-vocab stack_b against the OOV stack_a using the existing pilot outputs",
               "masked": {
-                "stack_a_qwen3_vl8b_yolo11x": {"n": 1645, "R50": 0.2394, "cov50": 0.3733, "cov90": 0.7574, "cov95": 0.8462},
-                "stack_b_qwen3_4b_qwen25vl3b_yolo26n": {"n": 1630, "R50": 0.5616, "cov50": 0.4092, "cov90": 0.9012, "cov95": 0.9656}
+                "stack_a_qwen3_vl8b_yolo11x": {
+                  "n": 1645,
+                  "R50": 0.2394,
+                  "cov50": 0.3733,
+                  "cov90": 0.7574,
+                  "cov95": 0.8462
+                },
+                "stack_b_qwen3_4b_qwen25vl3b_yolo26n": {
+                  "n": 1630,
+                  "R50": 0.5616,
+                  "cov50": 0.4092,
+                  "cov90": 0.9012,
+                  "cov95": 0.9656
+                }
               },
               "fixed": {
-                "stack_a_qwen3_vl8b_yolo11x": {"n": 1645, "R50": 0.1751, "cov50": 0.3416, "cov90": 0.7878, "cov95": 0.8620},
-                "stack_b_qwen3_4b_qwen25vl3b_yolo26n": {"n": 1630, "R50": 0.5820, "cov50": 0.4509, "cov90": 0.9012, "cov95": 0.9699}
+                "stack_a_qwen3_vl8b_yolo11x": {
+                  "n": 1645,
+                  "R50": 0.1751,
+                  "cov50": 0.3416,
+                  "cov90": 0.7878,
+                  "cov95": 0.862
+                },
+                "stack_b_qwen3_4b_qwen25vl3b_yolo26n": {
+                  "n": 1630,
+                  "R50": 0.582,
+                  "cov50": 0.4509,
+                  "cov90": 0.9012,
+                  "cov95": 0.9699
+                }
               },
               "reading": "the in-vocab stack_b is dramatically better calibrated than the OOV stack_a (R50 0.58 vs 0.18 fixed; p90 coverage 0.901 vs 0.788; p95 0.970 vs 0.862). stack_b is close to in-domain levels. This matches the reviewer's decision rule 'if stack_b looks normal and stack_a is far off, check stack canonicalization' and makes the model_stack_id OOV a leading candidate for the residual miscalibration. CONFOUND WARNING: stack_a and stack_b are also genuinely different execution stacks with different runtime distributions, so this stratification alone does not prove causation - the paired counterfactual below is required.",
               "fix_degrades_stack_a": "note the fixed arm makes stack_a WORSE (R50 0.2394 -> 0.1751) while stack_b improves (0.5616 -> 0.5820)"

@@ -358,7 +358,7 @@ def _layers(
     true_ms: np.ndarray,
     pred: Dict[float, np.ndarray],
     point: np.ndarray,
-    mean_ms: np.ndarray | None,
+    point_mean: np.ndarray | None,
     reps: np.ndarray,
     cdf: np.ndarray | None,
     edges: np.ndarray | None,
@@ -390,19 +390,31 @@ def _layers(
         layer_b["rps"] = None
 
     layer_c: Dict[str, Any] = {
+        "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, "
+                            "so log-MAE/Spearman/tail-recall are like-for-like comparable",
         "spearman_point": spearman(point, true_ms),
         "tail_recall_top10_point": tail_recall(point, true_ms),
         "mae_log": float(np.mean(np.abs(np.log1p(point) - np.log1p(true_ms)))),
         "mae_raw_ms": float(np.mean(np.abs(point - true_ms))),
         "buckets": _bucket_report(true_ms, point),
     }
+    if point_mean is not None:
+        # reported for transparency: for a right-skewed runtime the conditional MEAN sits
+        # far above the median, so its log error is much larger even when the raw error is
+        # similar.  It is the additive statistic, not the comparability point estimate.
+        layer_c["mean_point_diagnostics"] = {
+            "spearman_point": spearman(point_mean, true_ms),
+            "tail_recall_top10_point": tail_recall(point_mean, true_ms),
+            "mae_log": float(np.mean(np.abs(np.log1p(point_mean) - np.log1p(true_ms)))),
+            "mae_raw_ms": float(np.mean(np.abs(point_mean - true_ms))),
+        }
     lo, hi = EXPENSIVE_BUCKET
     layer_c["expensive_bucket_pred_over_true"] = bucket_ratio(true_ms, point, lo, hi)["pred_over_true"]
 
     layer_d = {
         "sum_q50_over_true": float(np.sum(pred[0.50]) / np.sum(true_ms)),
         "sum_q95_over_true": float(np.sum(pred[0.95]) / np.sum(true_ms)),
-        "sum_mean_over_true": float(np.sum(mean_ms) / np.sum(true_ms)) if mean_ms is not None else None,
+        "sum_mean_over_true": float(np.sum(point_mean) / np.sum(true_ms)) if point_mean is not None else None,
         "note": "only sum_mean_over_true is an additive-expectation diagnostic; "
                 "the q50/q95 sums are consumption-scale quantities, not calibration",
     }
@@ -431,7 +443,9 @@ def evaluate_distribution(
     cdf = np.cumsum(probs, axis=-1)
     mean_ms = probs @ reps
     pred = {tau: reps[np.argmax(cdf >= tau, axis=-1)] for tau in TAUS}
-    out = _layers(true_ms, pred, mean_ms, mean_ms, reps, cdf, edges)
+    # layer C uses the conditional median so the comparison against J3 (whose point
+    # estimate is its q50) is like-for-like; the mean is reported as a diagnostic
+    out = _layers(true_ms, pred, pred[0.50], mean_ms, reps, cdf, edges)
     out["video_clusters"] = int(len(set(video_code.tolist()))) if video_code is not None else None
     return {"schema_version": SCHEMA_VERSION, "n_slot_pairs": int(len(true_ms)), **out}
 
