@@ -1,0 +1,23 @@
+{
+  "schema_version": "resource-v2-artifact-manifest-v1",
+  "arm": "r1b",
+  "nodes": 9575,
+  "steps": 35362,
+  "base_pack": "F:\\scheduler\\outputs\\sstar_predictor_artifacts_dist_sched\\prediction_artifacts",
+  "anchors_file": "F:\\scheduler\\outputs\\sstar_predictor_anchors\\features_sstar.jsonl.gz",
+  "checkpoint_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+  "bin_spec": "F:\\scheduler\\outputs\\j_series_resource_dist_v1\\bins.json",
+  "bin_schema_id": "mass_balanced_16",
+  "head_file": "F:\\scheduler\\outputs\\j_series_resource_dist_v1\\R1b_mlp\\seed11_best.pt",
+  "cvar_rule": "discrete_upper_tail_partial_weight: CVaR_a = (1/(1-a)) * sum_k max(0, cdf_k - max(cdf_{k-1}, a)) * m_k",
+  "runtime_semantics": "conditional_on_active (per-step marginals; no joint over the horizon)",
+  "canonical_views": [
+    "p50",
+    "p90",
+    "p95",
+    "runtime_mean_ms",
+    "cvar95_ms"
+  ],
+  "source_of_truth": "runtime_probs + bin_edges_ms + bin_representatives_ms",
+  "producer": "scripts/pack_resource_v2_artifacts.py"
+}

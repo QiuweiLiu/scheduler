@@ -1,0 +1,68 @@
+{
+  "checkpoint": "F:\\scheduler\\experiments\\EXP-20260911_p9d_j_predictor_acceptance\\artifacts\\predictor\\J3_seed11.pt",
+  "checkpoint_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+  "config_sha256": "58d51bc832e0422710b8b40922978fba46ab127dd11a132b677e5d8bc6f2ce69",
+  "dataset_file_sha256": {
+    "train": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2",
+    "validation": "9547d38fb3fa42e7e9c78e5885a5390204a1d7b7b2563f3533e5feee95efc279",
+    "test": "39ecccc77e28bc06c8ff8d30fdbe79548bfb7a790b37355cd225646beae5310b"
+  },
+  "feature_equivalence_tolerance": 1e-06,
+  "splits": {
+    "train": {
+      "rows": 13754,
+      "feature_shape": [
+        13754,
+        5,
+        128
+      ],
+      "label_shape": [
+        13754,
+        5
+      ],
+      "mask_positive_count": 48343,
+      "positive_runtime_count": 48343,
+      "max_abs_feature_equivalence": 0.0,
+      "file": "cache_train.npz",
+      "file_sha256": "b1d49dd3ae6b3035c0b1af1c9deffbaa2d6df4d0f2bd5d2319c268b933d6082d"
+    },
+    "validation": {
+      "rows": 2029,
+      "feature_shape": [
+        2029,
+        5,
+        128
+      ],
+      "label_shape": [
+        2029,
+        5
+      ],
+      "mask_positive_count": 7195,
+      "positive_runtime_count": 7195,
+      "max_abs_feature_equivalence": 0.0,
+      "file": "cache_validation.npz",
+      "file_sha256": "8031ef590324e0d8504d497971e87cda8c33dd44c94ecbb3914eddfa71e4f966"
+    },
+    "test": {
+      "rows": 1520,
+      "feature_shape": [
+        1520,
+        5,
+        128
+      ],
+      "label_shape": [
+        1520,
+        5
+      ],
+      "mask_positive_count": 5387,
+      "positive_runtime_count": 5387,
+      "max_abs_feature_equivalence": 0.0,
+      "file": "cache_test.npz",
+      "file_sha256": "51b477156720a8e6d7b680977ba27991c7e40d492898878a78cd0857fac9f295"
+    }
+  },
+  "checkpoint_meta": {
+    "variant": "J3",
+    "seed": 11
+  }
+}
