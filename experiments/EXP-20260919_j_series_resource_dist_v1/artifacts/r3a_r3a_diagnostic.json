@@ -1,0 +1,30 @@
+{
+  "n_pairs": 7195,
+  "video_clusters": 30,
+  "bootstrap": 1000,
+  "spearman": {
+    "F": 0.6276218205317308,
+    "U": 0.6417563754386619,
+    "delta": 0.014134554906931163,
+    "ci_lower": -0.011608378227498273,
+    "ci95": [
+      -0.011608378227498273,
+      0.04354953794249239
+    ]
+  },
+  "bucket_8_12s": {
+    "F": 0.36310310258214046,
+    "U": 0.5355495434052288,
+    "delta": 0.1724464408230883,
+    "ci_lower": 0.0,
+    "halves_needed": 0.065
+  },
+  "criteria": {
+    "ci_lower_positive": false,
+    "closes_half_spearman": false,
+    "closes_half_bucket": true,
+    "half_spearman_required": 0.0315
+  },
+  "verdict": "no evidence that the frozen representation is limiting",
+  "rule": "limiting requires Spearman delta CI lower bound > 0 AND (>= +0.0315 Spearman OR >= +0.065 on the 8-12 s ratio)"
+}

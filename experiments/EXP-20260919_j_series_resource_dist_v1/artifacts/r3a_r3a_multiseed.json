@@ -1,0 +1,47 @@
+{
+  "seeds": [
+    11,
+    22,
+    33
+  ],
+  "video_clusters": 30,
+  "n_pairs": 7195,
+  "per_seed": {
+    "11": {
+      "spearman_F": 0.6276218205317308,
+      "spearman_U": 0.6417563754386619,
+      "delta": 0.014134554906931163,
+      "bucket_F": 0.36310310258214046,
+      "bucket_U": 0.5355495434052288
+    },
+    "22": {
+      "spearman_F": 0.6278365792440143,
+      "spearman_U": 0.6440631543229624,
+      "delta": 0.01622657507894809,
+      "bucket_F": 0.2999513104321581,
+      "bucket_U": 0.5355495434052288
+    },
+    "33": {
+      "spearman_F": 0.625349172560473,
+      "spearman_U": 0.6377988485751278,
+      "delta": 0.012449676014654854,
+      "bucket_F": 0.36310310258214046,
+      "bucket_U": 0.5355495434052288
+    }
+  },
+  "mean_delta_spearman": 0.014270268666844702,
+  "mean_delta_spearman_ci95": [
+    -0.00962246121344242,
+    0.04245210372704733
+  ],
+  "mean_delta_spearman_fraction_le_zero": 0.1725,
+  "mean_delta_bucket": 0.1724464408230883,
+  "mean_delta_bucket_ci95": [
+    0.0,
+    0.273356421058943
+  ],
+  "mean_delta_bucket_fraction_le_zero": 0.149,
+  "seeds_with_positive_spearman_delta": 3,
+  "sign_consistency": "3/3",
+  "note": "deltas are paired per seed; the bootstrap resamples video clusters and averages over seeds"
+}

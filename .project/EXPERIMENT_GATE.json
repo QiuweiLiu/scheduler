@@ -11,7 +11,8 @@
         "R1": "executed twice. v2 uses the mass-balanced 16-bin layout (0 empty bins, min 242 samples, overflow 0.5 %%) and per-slot reporting: R1 linear viability PASS, R1b MLP viability PASS, both strong FAIL (Spearman 0.6354 needs +0.08; 8-12 s 0.4395 needs 0.50); tail recall +0.086 and log-MAE -15.7 %% both clear the strong bar; crossing 0; sum(mean)/sum(y) = 0.9961",
         "R2": "not enabled - j_series_dataset_v1 has no slot_activity label",
         "R3": "not enabled - only after R2 passes",
-        "R4": "not enabled - winner x seeds after R1/R2"
+        "R4": "not enabled - winner x seeds after R1/R2",
+        "R3a": "executed, 3 seeds. Pre-registered verdict: NO EVIDENCE that the frozen representation is limiting (Spearman delta CI covers 0). But 3/3 seeds move in the same direction on every metric, and the 8-12 s median predicted value shifts from bin 3 (3790 ms) to bin 8 (5590 ms) in all three seeds. The CI cannot be narrowed with more seeds - 30 video clusters dominate the variance."
       },
       "gates": "two-tier, pre-registered in experiments/EXP-20260919_j_series_resource_dist_v1/config.json: viability (log-MAE <= 0.95x J3, expensive bucket >= 0.25, plus Spearman +0.03 or tail recall +0.04) and strong (Spearman/tail recall +0.08, log-MAE -10%, expensive bucket >= 0.50, 3 of 4)",
       "guards": {
@@ -117,6 +118,50 @@
           "overflow_fraction": 0.005005895372649608
         },
         "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R1_REPORT.md"
+      },
+      "r3a_seeds_11_22_33": {
+        "per_seed_spearman_delta": {
+          "11": 0.014134554906931163,
+          "22": 0.01622657507894809,
+          "33": 0.012449676014654854
+        },
+        "per_seed_bucket": {
+          "11": {
+            "F": 0.36310310258214046,
+            "U": 0.5355495434052288
+          },
+          "22": {
+            "F": 0.2999513104321581,
+            "U": 0.5355495434052288
+          },
+          "33": {
+            "F": 0.36310310258214046,
+            "U": 0.5355495434052288
+          }
+        },
+        "mean_delta_spearman": 0.014270268666844702,
+        "mean_delta_spearman_ci95": [
+          -0.00962246121344242,
+          0.04245210372704733
+        ],
+        "mean_delta_bucket": 0.1724464408230883,
+        "mean_delta_bucket_ci95": [
+          0.0,
+          0.273356421058943
+        ],
+        "sign_consistency": "3/3",
+        "verdict": "inconclusive due to power (30 video clusters); directionally consistent",
+        "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R3A_REPORT.md"
+      },
+      "input_information_finding_20260919": {
+        "claim": "the remaining error is a MAPPING problem, not a missing-input problem",
+        "evidence": [
+          "action_family=other (5858 slots) splits exactly into planner.generate (node_type=planner, role=plan, median 5032 ms) and generalist.generate (node_type=answer_generation, role=aggregate, median 10329 ms); both fields are already model inputs",
+          "select_frames and temporal_ops are internally uniform (0.1 ms)",
+          "the only cell where a finer action label would add information is node_type=videotool_spatial + role=execute (~10 % of slots), which mixes image-qa (6027 ms), image-grid-qa (9838 ms), yolo-tracker (7301 ms) and patch-zoomer (0 ms)",
+          "therefore adding raw_action as a prediction target has a low ceiling and was NOT done"
+        ],
+        "residual_is_intrinsic_in_one_case": "summarize has a 64x internal spread (166 ms -> 10680 ms) with a single raw_action, so that part is execution randomness, not label coarseness"
       }
     },
     "EXP-20260911_forecast_aware_scheduling": {

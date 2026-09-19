@@ -1,0 +1,33 @@
+{
+  "checkpoint_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+  "splits": {
+    "train": {
+      "rows": 13754,
+      "feature_shape": [
+        13754,
+        5,
+        180
+      ],
+      "mask_positive_count": 48343
+    },
+    "validation": {
+      "rows": 2029,
+      "feature_shape": [
+        2029,
+        5,
+        180
+      ],
+      "mask_positive_count": 7195
+    },
+    "test": {
+      "rows": 1520,
+      "feature_shape": [
+        1520,
+        5,
+        180
+      ],
+      "mask_positive_count": 5387
+    }
+  },
+  "res_hidden_state": "res_hidden_init.pt"
+}
