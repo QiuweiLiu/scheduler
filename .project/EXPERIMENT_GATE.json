@@ -222,6 +222,75 @@
         "conclusion": "the ties hypothesis is REFUTED; the ranking gain is genuinely small. Adapting the last shared module improves magnitude/likelihood but not ordering.",
         "review_next_step": "oracle-q(A) paired probe (predicted distribution vs true one-hot attributes, train and validate with each arm's own input type)",
         "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R3A_RANK_AUDIT.md"
+      },
+      "original_metric_recompute_20260919": {
+        "trigger": "project owner: ranking is not the objective, relative error is; the review agreed and instructed restoring J3's original acceptance metrics for every arm first",
+        "validation_table": [
+          {
+            "arm": "J3 (3-quantile, frozen acceptance baseline)",
+            "PB50": 1194.3275888463559,
+            "PB90": 797.8594772451294,
+            "PB95": 542.925744744913,
+            "RuntimeQScore": 845.0376036121328,
+            "cal_error": 0.030055594162612942,
+            "cov50": 0.5555246699096595,
+            "cov90": 0.9166087560806115,
+            "cov95": 0.9680333564975677
+          },
+          {
+            "arm": "R1 linear + 16 bin",
+            "PB50": 1070.2805713501314,
+            "PB90": 702.9477368549095,
+            "PB95": 461.07249150452833,
+            "RuntimeQScore": 744.7669332365231,
+            "cal_error": 0.025909196201065538,
+            "cov50": 0.4446143154968728,
+            "cov90": 0.8847810979847116,
+            "cov95": 0.942876997915219
+          },
+          {
+            "arm": "R1b MLP + 16 bin",
+            "PB50": 975.9303609461573,
+            "PB90": 612.5335272828497,
+            "PB95": 413.29638668534665,
+            "RuntimeQScore": 667.2534249714512,
+            "cal_error": 0.0245193421357424,
+            "cov50": 0.44211257817929117,
+            "cov90": 0.8874218207088256,
+            "cov95": 0.946907574704656
+          },
+          {
+            "arm": "R3a-F frozen (3-seed mean)",
+            "PB50": 998.7959720379225,
+            "PB90": 613.3991884529341,
+            "PB95": 411.6794730732149,
+            "RuntimeQScore": 674.6248778546905,
+            "cal_error": 0.043313257663500894,
+            "cov50": 0.41116516099142925,
+            "cov90": 0.8689830901088719,
+            "cov95": 0.9399119759091962
+          },
+          {
+            "arm": "R3a-U adapt (3-seed mean)",
+            "PB50": 902.4649382454395,
+            "PB90": 618.9517271121881,
+            "PB95": 414.2855081984717,
+            "RuntimeQScore": 645.2340578520331,
+            "cal_error": 0.07614469925102312,
+            "cov50": 0.4047718322909428,
+            "cov90": 0.8025943942552698,
+            "cov95": 0.914199675700718
+          }
+        ],
+        "verdict": "R1b improves BOTH original criteria (RuntimeQScore -21.0 %, calibration error 0.0245 vs J3 0.0301). R3a-U gains a little more pinball (-23.6 %) but breaks calibration (cov90 0.80 vs 0.91, cal error ~0.076) and would fail the original integrity gate. R1b is the winner by the project's own criterion.",
+        "metric_governance": {
+          "protocol_v1": "preserved unchanged; R3a strong gate: FAIL (Spearman +0.014 vs the +0.08 requirement)",
+          "amendment": "Metric Amendment / Evaluation Protocol v2 - Spearman/pairwise-concordance/tail-recall demoted from acceptance criteria to diagnostics, because they are Phase-R-introduced node-level proxies and are not what the scheduler consumes; RuntimeQScore and PB95+coverage95 restored as the predictive primaries, and the scheduler benchmark's original objective as the system-level primary",
+          "disclosure": "validation results were already seen; test remains untouched",
+          "forbidden_phrasing": "never claim R3a passed retroactively"
+        },
+        "next_step": "300 paired-episode scheduler smoke: J3 vs R1b vs R3a-U, everything else locked, read the ORIGINAL scheduler objective plus decision disagreement / candidate-cost rank agreement / decision regret",
+        "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_ORIGINAL_METRIC_RECOMPUTE.md"
       }
     },
     "EXP-20260911_forecast_aware_scheduling": {
