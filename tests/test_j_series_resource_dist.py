@@ -155,11 +155,10 @@ class LossTests(unittest.TestCase):
             edge = float(self.edges[edge_index])
             bin_idx = int(dist.bin_index(np.asarray([edge]), self.edges)[0])
             train_indicator = (bin_idx < np.arange(1, self.n_bins)).astype(np.float64)
-            # evaluation builds 1[y <= e_k] for k = 1..K-1 under the same left binning
-            eval_indicator = (edge <= self.edges[1:-1]).astype(np.float64)
-            bin_indicator = (bin_idx < np.arange(1, self.n_bins)).astype(np.float64)
-            np.testing.assert_allclose(bin_indicator, train_indicator)
-            del eval_indicator
+            # evaluation builds 1[y < e_{i+1}] for i = 0..K-2, which equals 1[bin(y) <= i]
+            # under the same left-closed binning -- i.e. exactly the training indicator
+            eval_indicator = (edge < self.edges[1:-1]).astype(np.float64)
+            np.testing.assert_allclose(eval_indicator, train_indicator)
 
     def test_pseudo_huber_is_subquadratic(self):
         small = float(dist.pseudo_huber_point(torch.tensor([100.0]), torch.tensor([110.0]), 100.0, 2.0, torch.ones(1)))
@@ -182,6 +181,27 @@ class LossTests(unittest.TestCase):
         self.assertLess(
             float(dist.coarse_band_ce(self._onehot(cheap_bin), band, mask, self.band_of_bin)),
             float(dist.coarse_band_ce(self._onehot(expensive_bin), band, mask, self.band_of_bin)),
+        )
+
+    def test_state_snapshot_survives_later_updates(self):
+        """A best-epoch snapshot must not be aliased to the live parameters.
+
+        ``state_dict()`` returns references, so a naive ``{k: v for ...}`` capture keeps
+        mutating as training continues and the recorded ``selected_epoch`` would lie.
+        """
+
+        head = dist.DiscreteRuntimeHead(8, 5)
+        snapshot = {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}
+        frozen = {k: v.clone() for k, v in snapshot.items()}
+        naive = {k: v for k, v in head.state_dict().items()}
+        with torch.no_grad():
+            for parameter in head.parameters():
+                parameter.add_(1.0)
+        for key, value in frozen.items():
+            self.assertTrue(torch.equal(snapshot[key], value), "cloned snapshot changed for %s" % key)
+        self.assertTrue(
+            any(not torch.equal(naive[key], frozen[key]) for key in frozen),
+            "the naive capture should have been aliased (this documents the trap)",
         )
 
 

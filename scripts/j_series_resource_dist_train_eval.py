@@ -203,6 +203,14 @@ def load_cache(ctx: base.Ctx, split: str) -> Dict[str, np.ndarray]:
     summary = dist.read_json(summary_path)
     if summary.get("checkpoint_sha256") != J3_SHA256:
         raise SystemExit("cache was built from a different checkpoint; rebuild with --stage cache")
+    # fail closed on a stale config or dataset, not only on a stale cache file
+    config_path = PROJECT_ROOT / "experiments" / str(ctx.config["experiment_id"]) / "config.json"
+    if config_path.is_file() and sha256_file(config_path) != summary.get("config_sha256"):
+        raise SystemExit("config changed since the cache was built; rebuild with --stage cache")
+    for name, expected in (summary.get("dataset_file_sha256") or {}).items():
+        candidate = Path(ctx.config["output_root"]) / ("j_%s.jsonl.gz" % name)
+        if candidate.is_file() and sha256_file(candidate) != expected:
+            raise SystemExit("dataset %s changed since the cache was built; rebuild with --stage cache" % name)
     recorded = summary["splits"][split]
     if sha256_file(path) != recorded["file_sha256"]:
         raise SystemExit("cache %s changed on disk since it was written; rebuild with --stage cache" % path.name)
@@ -323,7 +331,7 @@ def resolve_hidden(args: argparse.Namespace, ctx: base.Ctx) -> Optional[int]:
     return int(value) if value else None
 
 
-def train_head(ctx: base.Ctx, args: argparse.Namespace) -> Dict[str, Any]:
+def train_head(ctx: base.Ctx, args: argparse.Namespace, variant_dir_name: str = "R1_dist") -> Dict[str, Any]:
     cfg = ctx.config["resource_dist"]
     weights = cfg["loss_weights"]
     spec = load_spec(ctx)
@@ -400,10 +408,22 @@ def train_head(ctx: base.Ctx, args: argparse.Namespace) -> Dict[str, Any]:
         if row["calibration_eligible"]:
             key = (row["val_mae_log"], -row["val_spearman"])
             if best is None or key < best[0]:
-                best = (key, epoch, {k: v for k, v in head.state_dict().items()})
+                # state_dict() returns references to the live tensors, so the snapshot
+                # MUST be cloned: otherwise later epochs mutate the "best" weights while
+                # the metadata keeps claiming the earlier epoch.
+                snapshot = {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}
+                best = (key, epoch, snapshot)
 
-    variant_dir = ctx.run_root / "R1_dist"
+    variant_dir = ctx.run_root / variant_dir_name
     variant_dir.mkdir(parents=True, exist_ok=True)
+    if variant_dir_name != "R1_dist_smoke" and not args.force:
+        existing = [
+            name
+            for name in ("seed%d_best.pt" % seed, "seed%d_last.pt" % seed, "seed%d_history.json" % seed)
+            if (variant_dir / name).is_file()
+        ]
+        if existing:
+            raise SystemExit("formal run would overwrite %s; move it away or pass --force" % ", ".join(existing))
     payload = {
         "spec": spec,
         "in_dim": int(features.shape[1]),
@@ -542,8 +562,8 @@ def main() -> int:
     elif args.stage == "smoke":
         args.epochs = args.epochs or 3
         args.max_rows = args.max_rows or 512
-        train_head(ctx, args)
-        print("smoke finished")
+        train_head(ctx, args, variant_dir_name="R1_dist_smoke")
+        print("smoke finished (written to %s)" % (ctx.run_root / "R1_dist_smoke"))
     elif args.stage == "train":
         train_head(ctx, args)
     elif args.stage == "eval-val":

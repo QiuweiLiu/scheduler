@@ -234,8 +234,8 @@ if _HAS_TORCH:
     def rps_loss(logits: Any, target_idx: Any, mask: Any) -> Any:
         """Discrete ranked probability score: mean_k (F_k - 1[bin(y) < k])^2.
 
-        ``1[y <= e_k] == 1[bin(y) < k]`` under the same ``side='left'`` binning used
-        by :func:`bin_index`, so training and evaluation agree on exact edges.
+        ``1[y <= e_k] == 1[bin(y) < k]`` under the same left-closed ``side='right'``
+        binning used by :func:`bin_index`, so training and evaluation agree on exact edges.
         """
 
         probs = F.softmax(logits, dim=-1)
