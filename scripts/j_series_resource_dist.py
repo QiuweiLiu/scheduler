@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 import numpy as np
 
@@ -51,9 +51,11 @@ COARSE_BANDS: Tuple[Tuple[str, float, float], ...] = (
 BAND_NAMES = tuple(name for name, _, _ in COARSE_BANDS)
 BAND_BOUNDARIES: Tuple[float, ...] = (1000.0, 5000.0)
 SCHEMA_VERSION = "j-resource-dist-v2"
-# the only acceptable overflow mass: the design puts it just above p99.9, so ties aside
-# it should be ~0.1 %.  Anything above this is a construction failure, not a tail.
-MAX_OVERFLOW_FRACTION = 0.005
+# The mass-balanced design puts the overflow edge at train p99.5, so the expected
+# overflow mass is ~0.5 %; ties in the quantile can push it marginally above that, hence
+# the budget is 0.6 % rather than exactly 0.5 %.  The earlier log-uniform layout started
+# at p99.9 and still leaked 2.08 % through the lost upper edge - that is what this guards.
+MAX_OVERFLOW_FRACTION = 0.006
 
 
 # --------------------------------------------------------------------------- #
@@ -61,52 +63,73 @@ MAX_OVERFLOW_FRACTION = 0.005
 # --------------------------------------------------------------------------- #
 def build_bin_spec(
     train_runtimes: Sequence[float],
-    n_bins: int = 24,
+    n_bins: int = 16,
     near_zero_edge_ms: float = 1.0,
-    upper_quantile: float = 0.999,
+    upper_quantile: float = 0.995,
+    mode: str = "mass_balanced",
+    min_support_abs: float = 200.0,
+    min_support_frac: float = 0.005,
 ) -> Dict[str, Any]:
-    """Train-only bin edges, empirical representatives and the bin->band map.
+    """Train-only bin spec.
 
-    Layout (``n_bins`` bins, ``n_bins + 1`` edges)::
+    ``mode="mass_balanced"`` (default) puts one dedicated bin on the near-zero
+    metadata cluster and then lays the remaining bins out on **empirical quantiles of
+    ``log1p(ms)``**, so every bin carries real probability mass.  ``mode="log_uniform"``
+    keeps the earlier equal-log-spacing behaviour (kept for the ablation that the
+    review asked for).
 
-        [0, 1 ms)  then n_bins-2 log1p-spaced bins covering [1 ms, train p99.9]
-        then the overflow bin [train p99.9, inf)
-
-    The coarse-band boundaries (1 s, 5 s) are snapped onto the nearest interior
-    edges so that no bin straddles a band boundary -- otherwise NLL (which only
-    knows the bin) and the band CE would supervise the same sample differently.
+    After the quantile layout the coarse-band boundaries are snapped onto exact edges
+    (so NLL and the band CE cannot disagree), any bin below the minimum support is
+    merged into its smaller neighbour (the metadata bin is exempt), and the last finite
+    edge is the train ``upper_quantile`` -- the overflow bin therefore starts above it.
     """
 
     values = np.asarray([float(v) for v in train_runtimes if float(v) > 0.0], dtype=np.float64)
     if values.size == 0:
         raise ValueError("build_bin_spec needs at least one positive runtime")
     if n_bins < 6:
-        raise ValueError("n_bins must be >= 6 to hold the near-zero bin, the log grid, "
-                         "the two snapped band edges and the overflow bin")
+        raise ValueError("n_bins must be >= 6")
     if not 0.5 < upper_quantile <= 1.0:
         raise ValueError("upper_quantile must be in (0.5, 1.0]")
 
-    log_lo = float(np.log1p(max(1.0, near_zero_edge_ms)))
-    log_hi = float(np.quantile(np.log1p(values), upper_quantile))
+    nz_edge = float(near_zero_edge_ms)
+    log_values = np.log1p(values)
+    log_hi = float(np.quantile(log_values, upper_quantile))
+    log_lo = float(np.log1p(max(1.0, nz_edge)))
     if log_hi <= log_lo:
         log_hi = log_lo + 1e-3
-    inner = n_bins - 2  # log-spaced bins between 1 ms and p99.9
-    interior = np.linspace(log_lo, log_hi, inner + 1)[1:]  # excludes 1 ms itself
 
-    # snap the coarse-band boundaries onto the nearest interior edge
-    snapped = []
+    inner = n_bins - 2  # log-layout bins between the near-zero bin and the overflow bin
+    if mode == "log_uniform":
+        interior = np.linspace(log_lo, log_hi, inner + 1)[1:]
+    elif mode == "mass_balanced":
+        tail = log_values[(log_values > log_lo) & (log_values <= log_hi)]
+        if tail.size < inner:
+            raise ValueError("not enough mass above the near-zero bin for %d bins" % inner)
+        quantiles = np.linspace(0.0, 1.0, inner + 1)[1:]
+        interior = np.quantile(tail, quantiles)
+    else:
+        raise ValueError("unknown binning mode: %r" % mode)
+
+    interior = np.unique(interior)
+    merged, support_threshold = _merge_small_bins(
+        values, np.concatenate(([log_lo], interior, [log_hi])), min_support_abs, min_support_frac, nz_edge, n_bins
+    )
+    # _merge_small_bins returns log1p([0, nz_edge, expm1(interior...), +inf]); drop the
+    # two sentinels at the front and the +inf sentinel at the back
+    interior = merged[2:-1]
+    if len(interior) != inner:
+        raise ValueError("bin layout collapsed to %d interior edges (want %d)" % (len(interior), inner))
+
     for boundary in BAND_BOUNDARIES:
         target = math.log1p(boundary)
         index = int(np.argmin(np.abs(interior - target)))
         interior[index] = target
-        snapped.append(boundary)
-    interior = np.unique(interior)  # collapsing is possible in principle; dedupe
+    interior = np.unique(interior)
     if len(interior) != inner:
-        raise ValueError("band-boundary snapping collapsed log edges; reduce n_bins or bands")
+        raise ValueError("band-boundary snapping collapsed log edges; reduce n_bins")
 
-    edges = np.concatenate(([0.0, float(near_zero_edge_ms)], np.expm1(interior), [math.inf]))
-    # expm1(log1p(x)) is only exact to ~1e-12 relative, so pin the band boundaries
-    # onto their exact values before any set-membership or straddle check.
+    edges = np.concatenate(([0.0, nz_edge], np.expm1(interior), [math.inf]))
     for boundary in BAND_BOUNDARIES:
         index = int(np.argmin(np.abs(edges[:-1] - boundary)))
         if abs(float(edges[index]) - boundary) > 1e-6 * boundary:
@@ -126,19 +149,58 @@ def build_bin_spec(
     overflow_fraction = float(counts[-1] / values.size)
     return {
         "schema_version": SCHEMA_VERSION,
+        "mode": mode,
         "n_bins": int(n_bins),
-        "near_zero_edge_ms": float(near_zero_edge_ms),
+        "near_zero_edge_ms": nz_edge,
         "upper_quantile": float(upper_quantile),
+        "min_support": int(round(support_threshold)),
         "edges": [float(e) for e in edges],
         "representatives_ms": [float(r) for r in reps],
         "band_of_bin": [int(b) for b in band_of_bin],
         "band_names": list(BAND_NAMES),
         "band_boundaries_ms": list(BAND_BOUNDARIES),
         "fill_counts": counts.tolist(),
+        "empty_bins": int(np.sum(counts == 0)),
+        "min_bin_count": int(counts[1:].min()) if n_bins > 1 else int(counts[0]),
         "overflow_fraction": overflow_fraction,
         "train_positive_slots": int(values.size),
         "max_overflow_fraction": MAX_OVERFLOW_FRACTION,
     }
+
+
+def _merge_small_bins(
+    values: np.ndarray,
+    log_edges: np.ndarray,
+    min_support_abs: float,
+    min_support_frac: float,
+    nz_edge: float,
+    n_bins: int,
+) -> Tuple[np.ndarray, float]:
+    """Drop interior edges until every non-metadata bin meets the minimum support.
+
+    The threshold is ``max(min_support_abs, min_support_frac * N)`` but capped at half
+    the average bin mass, so the rule can never force a collapse below the requested
+    number of bins (which would happen on small samples or very peaked data).
+    """
+
+    n = float(values.size)
+    threshold = max(float(min_support_abs), float(min_support_frac) * n)
+    threshold = min(threshold, 0.5 * n / max(1, n_bins))
+    edges = np.expm1(np.concatenate(([0.0], log_edges, [math.inf])))
+    edges[0] = 0.0
+    edges[1] = nz_edge
+    while len(edges) - 2 > 2:
+        counts = np.bincount(bin_index(values, edges), minlength=len(edges) - 1)
+        # never touch the near-zero bin; never drop the overflow bin
+        small = [k for k in range(1, len(counts) - 1) if counts[k] < threshold]
+        if not small:
+            break
+        k = small[0]
+        remove = k if counts[k - 1] <= counts[k + 1] else k + 1
+        if remove >= len(edges) - 2:
+            remove = k
+        edges = np.delete(edges, remove)
+    return np.log1p(edges), threshold
 
 
 def edges_from_spec(spec: Mapping[str, Any]) -> np.ndarray:
@@ -426,12 +488,126 @@ def _layers(
     }
 
 
+def bucket_ratio_ci(
+    true: np.ndarray,
+    pred: np.ndarray,
+    lo: float,
+    hi: float,
+    video_code: np.ndarray | None = None,
+    n_boot: int = 1000,
+    seed: int = 20260911,
+) -> Dict[str, Any]:
+    """median(pred)/median(true) inside a true-runtime interval, with a video-cluster CI."""
+
+    block = bucket_ratio(true, pred, lo, hi)
+    sel = (true >= lo) & (true < hi)
+    if not sel.any() or video_code is None or block["pred_over_true"] is None:
+        block["ci95"] = None
+        return block
+    groups: Dict[Any, List[int]] = {}
+    for i in np.where(sel)[0]:
+        groups.setdefault(video_code[i], []).append(int(i))
+    keys = sorted(groups)
+    if len(keys) < 2:
+        block["ci95"] = None
+        return block
+    rng = np.random.default_rng(seed)
+    draws = []
+    for _ in range(int(n_boot)):
+        picked = []
+        for _ in range(len(keys)):
+            picked.extend(groups[keys[int(rng.integers(len(keys)))]])
+        idx = np.asarray(picked)
+        denom = np.median(true[idx])
+        if denom:
+            draws.append(float(np.median(pred[idx]) / denom))
+    if len(draws) < 10:
+        block["ci95"] = None
+        return block
+    draws.sort()
+    block["ci95"] = [draws[int(0.025 * (len(draws) - 1))], draws[int(0.975 * (len(draws) - 1))]]
+    block["ci_clusters"] = len(keys)
+    return block
+
+
+def _slot_blocks(
+    true_ms: np.ndarray,
+    pred: Dict[float, np.ndarray],
+    point: np.ndarray,
+    point_mean: np.ndarray | None,
+    cdf: np.ndarray | None,
+    edges: np.ndarray | None,
+    reps: np.ndarray,
+    slot_index: np.ndarray,
+    video_code: np.ndarray | None,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Per-slot layer reports + a macro average over slots (diagnostic only)."""
+
+    slots = sorted({int(s) for s in slot_index.tolist()})
+    top_true_global: set = set()
+    top_pred_global: set = set()
+    k = max(1, int(round(0.10 * len(true_ms))))
+    top_true_global = set(np.argsort(-true_ms, kind="mergesort")[:k].tolist())
+    top_pred_global = set(np.argsort(-point, kind="mergesort")[:k].tolist())
+
+    by_slot: Dict[str, Any] = {}
+    for slot in slots:
+        sel = slot_index == slot
+        sub_pred = {tau: pred[tau][sel] for tau in TAUS}
+        sub_layers = _layers(
+            true_ms[sel],
+            sub_pred,
+            point[sel],
+            None if point_mean is None else point_mean[sel],
+            reps,
+            None if cdf is None else cdf[sel],
+            edges,
+        )
+        # global-tail recall restricted to this slot: of the nodes that are in the global
+        # truth top-10 % AND live in this slot, how many are in the global predicted top-10 %?
+        members = set(np.where(sel)[0].tolist())
+        denom = len(top_true_global & members)
+        sub_layers["tail_recall_top10_global_within_slot"] = (
+            len(top_true_global & top_pred_global & members) / denom if denom else None
+        )
+        lo, hi = EXPENSIVE_BUCKET
+        sub_layers["expensive_bucket"] = bucket_ratio_ci(true_ms[sel], point[sel], lo, hi, None if video_code is None else video_code[sel])
+        a, b, c = sub_layers["A_distribution_calibration"], sub_layers["B_distribution_accuracy"], sub_layers["C_node_discrimination"]
+        sub_layers["support"] = {
+            "n_active": int(sel.sum()),
+            "active_rate": float(sel.sum() / len(true_ms)),
+            "n_8_12s": int(((true_ms[sel] >= lo) & (true_ms[sel] < hi)).sum()),
+            "n_tail_global": int(len(top_true_global & members)),
+            "truth_mean_ms": float(true_ms[sel].mean()),
+            "truth_median_ms": float(np.median(true_ms[sel])),
+            "truth_p90_ms": float(np.quantile(true_ms[sel], 0.90)),
+            "truth_p95_ms": float(np.quantile(true_ms[sel], 0.95)),
+        }
+        sub_layers["sharpness"] = {
+            "median_q90_over_q50": float(np.median(sub_pred[0.90] / np.maximum(sub_pred[0.50], 1e-9))),
+            "median_q95_over_q50": float(np.median(sub_pred[0.95] / np.maximum(sub_pred[0.50], 1e-9))),
+        }
+        del a, b, c
+        by_slot["slot%d" % slot] = sub_layers
+
+    macro = {
+        "spearman_point": float(np.mean([by_slot[k2]["C_node_discrimination"]["spearman_point"] for k2 in by_slot])),
+        "tail_recall_top10_point": float(np.mean([by_slot[k2]["C_node_discrimination"]["tail_recall_top10_point"] for k2 in by_slot])),
+        "log_mae": float(np.mean([by_slot[k2]["C_node_discrimination"]["mae_log"] for k2 in by_slot])),
+        "raw_mae_ms": float(np.mean([by_slot[k2]["C_node_discrimination"]["mae_raw_ms"] for k2 in by_slot])),
+        "mean_abs_calibration_error": float(np.mean([by_slot[k2]["A_distribution_calibration"]["mean_abs_calibration_error"] for k2 in by_slot])),
+        "note": "unweighted mean of the five per-slot values; pooled micro is the primary gate",
+    }
+    return by_slot, macro
+
+
 def evaluate_distribution(
     probs: np.ndarray,
     true_ms: np.ndarray,
     reps: np.ndarray,
     edges: np.ndarray,
     video_code: np.ndarray | None = None,
+    slot_index: np.ndarray | None = None,
 ) -> Dict[str, Any]:
     probs = np.asarray(probs, dtype=np.float64)
     true_ms = np.asarray(true_ms, dtype=np.float64).reshape(-1)
@@ -439,6 +615,8 @@ def evaluate_distribution(
     probs = probs.reshape(len(keep), -1)[keep]
     true_ms = true_ms[keep]
     video_code = _align_video_code(video_code, len(keep))[keep] if video_code is not None else None
+    if slot_index is not None:
+        slot_index = np.asarray(slot_index).reshape(-1)[keep]
     reps = np.asarray(reps, dtype=np.float64)
     cdf = np.cumsum(probs, axis=-1)
     mean_ms = probs @ reps
@@ -447,6 +625,10 @@ def evaluate_distribution(
     # estimate is its q50) is like-for-like; the mean is reported as a diagnostic
     out = _layers(true_ms, pred, pred[0.50], mean_ms, reps, cdf, edges)
     out["video_clusters"] = int(len(set(video_code.tolist()))) if video_code is not None else None
+    if slot_index is not None:
+        by_slot, macro = _slot_blocks(true_ms, pred, pred[0.50], mean_ms, cdf, edges, reps, slot_index, video_code)
+        out["by_slot"] = by_slot
+        out["macro_over_slots"] = macro
     return {"schema_version": SCHEMA_VERSION, "n_slot_pairs": int(len(true_ms)), **out}
 
 
@@ -457,6 +639,7 @@ def evaluate_quantiles(
     true_ms: np.ndarray,
     slot_mask: np.ndarray | None = None,
     video_code: np.ndarray | None = None,
+    slot_index: np.ndarray | None = None,
 ) -> Dict[str, Any]:
     """Same four-layer report for a three-point quantile predictor (the J3 baseline)."""
 
@@ -469,9 +652,15 @@ def evaluate_quantiles(
         keep &= np.asarray(slot_mask, dtype=bool).reshape(-1)
     true_ms, q50, q90, q95 = true_ms[keep], q50[keep], q90[keep], q95[keep]
     video_code = _align_video_code(video_code, len(keep))[keep] if video_code is not None else None
+    if slot_index is not None:
+        slot_index = np.asarray(slot_index).reshape(-1)[keep]
     pred = {0.50: q50, 0.90: q90, 0.95: q95}
     out = _layers(true_ms, pred, q50, None, np.asarray([1.0]), None, None)
     out["video_clusters"] = int(len(set(video_code.tolist()))) if video_code is not None else None
+    if slot_index is not None:
+        by_slot, macro = _slot_blocks(true_ms, pred, q50, None, None, None, np.asarray([1.0]), slot_index, video_code)
+        out["by_slot"] = by_slot
+        out["macro_over_slots"] = macro
     return {"schema_version": SCHEMA_VERSION, "n_slot_pairs": int(len(true_ms)), **out}
 
 

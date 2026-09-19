@@ -111,12 +111,16 @@ def stage_bins(ctx: base.Ctx, args: argparse.Namespace) -> Dict[str, Any]:
         n_bins=int(cfg["bins"]),
         near_zero_edge_ms=float(cfg["near_zero_edge_ms"]),
         upper_quantile=float(cfg["upper_quantile"]),
+        mode=str(cfg.get("mode", "mass_balanced")),
+        min_support_abs=float(cfg.get("min_support_abs", 200.0)),
+        min_support_frac=float(cfg.get("min_support_frac", 0.005)),
     )
     spec["train_positive_slots"] = int(len(runtimes))
     spec["checkpoint_sha256"] = checkpoint_guard()
     dist.write_json(spec_path(ctx), spec)
-    print("n_bins=%d  overflow_fraction=%.5f (budget %.4f)  last_finite_edge=%.1f ms"
-          % (spec["n_bins"], spec["overflow_fraction"], dist.MAX_OVERFLOW_FRACTION, spec["edges"][-2]))
+    print("mode=%s n_bins=%d  overflow_fraction=%.5f (budget %.4f)  last_finite_edge=%.1f ms  empty_bins=%d  min_bin_count=%d"
+          % (spec["mode"], spec["n_bins"], spec["overflow_fraction"], dist.MAX_OVERFLOW_FRACTION,
+             spec["edges"][-2], spec["empty_bins"], spec["min_bin_count"]))
     print("first bin representative = %.4f ms   band_of_bin = %s" % (spec["representatives_ms"][0], spec["band_of_bin"]))
     if spec["overflow_fraction"] > dist.MAX_OVERFLOW_FRACTION:
         raise SystemExit("overflow fraction %.4f exceeds budget %.4f" % (spec["overflow_fraction"], dist.MAX_OVERFLOW_FRACTION))
@@ -234,7 +238,8 @@ def stage_r0(ctx: base.Ctx, args: argparse.Namespace) -> Dict[str, Any]:
     preds, cache = j3_quantiles_from_cache(ctx, "validation")
     report: Dict[str, Any] = {"stage": "r0", "checkpoint": str(J3_CHECKPOINT), "checkpoint_sha256": checkpoint_guard()}
     report["validation"] = dist.evaluate_quantiles(
-        preds["q50"], preds["q90"], preds["q95"], cache["runtime_ms"], cache["mask"], cache["video_code"]
+        preds["q50"], preds["q90"], preds["q95"], cache["runtime_ms"], cache["mask"],
+        cache["video_code"], slot_index=slot_index_array(cache["runtime_ms"]),
     )
     dist.write_json(ctx.run_root / "j3_baseline_validation.json", report["validation"])
 
@@ -344,6 +349,20 @@ def train_head(ctx: base.Ctx, args: argparse.Namespace, variant_dir_name: str = 
     weight_decay = float(cfg.get("weight_decay", ctx.config["training"]["weight_decay"]))
     base.set_seed(seed)
 
+    # refuse BEFORE burning a training run: a stale lane must be moved away explicitly
+    variant_dir_name = args.variant or variant_dir_name
+    variant_dir = ctx.run_root / variant_dir_name
+    if "smoke" not in variant_dir_name and not args.force:
+        existing = [
+            name
+            for name in ("seed%d_best.pt" % seed, "seed%d_last.pt" % seed, "seed%d_history.json" % seed)
+            if (variant_dir / name).is_file()
+        ]
+        if existing:
+            raise SystemExit(
+                "lane %s already holds %s; move it away or pass --force" % (variant_dir_name, ", ".join(existing))
+            )
+
     features, labels, target_idx = training_tensors(ctx, spec, "train")
     if args.max_rows:
         features, labels, target_idx = features[: args.max_rows], labels[: args.max_rows], target_idx[: args.max_rows]
@@ -414,16 +433,7 @@ def train_head(ctx: base.Ctx, args: argparse.Namespace, variant_dir_name: str = 
                 snapshot = {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}
                 best = (key, epoch, snapshot)
 
-    variant_dir = ctx.run_root / variant_dir_name
     variant_dir.mkdir(parents=True, exist_ok=True)
-    if variant_dir_name != "R1_dist_smoke" and not args.force:
-        existing = [
-            name
-            for name in ("seed%d_best.pt" % seed, "seed%d_last.pt" % seed, "seed%d_history.json" % seed)
-            if (variant_dir / name).is_file()
-        ]
-        if existing:
-            raise SystemExit("formal run would overwrite %s; move it away or pass --force" % ", ".join(existing))
     payload = {
         "spec": spec,
         "in_dim": int(features.shape[1]),
@@ -453,6 +463,12 @@ def train_head(ctx: base.Ctx, args: argparse.Namespace, variant_dir_name: str = 
     return {"seed": seed, "epochs": epochs, "selected_epoch": selected_epoch, "history": history}
 
 
+def slot_index_array(runtime: np.ndarray) -> np.ndarray:
+    """Flattened slot id for every (row, slot) pair, matching the reshape order."""
+
+    return np.tile(np.arange(runtime.shape[1]), runtime.shape[0])
+
+
 def evaluate_head(ctx: base.Ctx, head: Any, spec: Mapping[str, Any], split: str, max_rows: Optional[int] = None) -> Dict[str, Any]:
     edges = dist.edges_from_spec(spec)
     reps = dist.reps_from_spec(spec)
@@ -469,7 +485,10 @@ def evaluate_head(ctx: base.Ctx, head: Any, spec: Mapping[str, Any], split: str,
     probs = np.concatenate(chunks, axis=0).reshape(runtime.shape[0], runtime.shape[1], -1)
     keep = mask.reshape(-1) & (runtime.reshape(-1) > 0)
     video = np.repeat(cache["video_code"], runtime.shape[1])[keep]
-    return dist.evaluate_distribution(probs.reshape(-1, probs.shape[-1])[keep], runtime.reshape(-1)[keep], reps, edges, video)
+    slots = slot_index_array(runtime)[keep]
+    return dist.evaluate_distribution(
+        probs.reshape(-1, probs.shape[-1])[keep], runtime.reshape(-1)[keep], reps, edges, video, slot_index=slots
+    )
 
 
 def load_trained_head(ctx: base.Ctx, variant: str, seed: int, which: str) -> Tuple[Any, Dict[str, Any]]:
@@ -562,6 +581,7 @@ def main() -> int:
     elif args.stage == "smoke":
         args.epochs = args.epochs or 3
         args.max_rows = args.max_rows or 512
+        args.variant = None
         train_head(ctx, args, variant_dir_name="R1_dist_smoke")
         print("smoke finished (written to %s)" % (ctx.run_root / "R1_dist_smoke"))
     elif args.stage == "train":

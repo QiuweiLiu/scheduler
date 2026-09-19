@@ -50,10 +50,14 @@
   },
   "resource_dist": {
     "_comment": "Phase R line: replaces the 3-point quantile resource head with a coherent discrete distribution. The frozen J3 encoder and every other head stay untouched; R1 trains only the new head on cached resource features.",
-    "bins": 24,
+    "bins": 16,
     "near_zero_edge_ms": 1.0,
-    "upper_quantile": 0.999,
+    "upper_quantile": 0.995,
     "overflow_bin": true,
+    "_binning_note": "mass_balanced: one dedicated near-zero metadata bin plus empirical-quantile log bins; every non-metadata bin must hold at least max(200, 0.5% of train positive slots) samples, and the overflow bin starts above train p99.5 instead of p99.9",
+    "mode": "mass_balanced",
+    "min_support_abs": 200.0,
+    "min_support_frac": 0.005,
     "hidden": null,
     "epochs": 30,
     "learning_rate": 0.0003,
@@ -66,7 +70,8 @@
     },
     "coarse_bands": ["ultra_cheap<1ms", "light 1ms-1s", "medium 1s-5s", "expensive>=5s"],
     "stages": {
-      "R1_dist": "distribution head only, frozen J3 features (this config)",
+      "R1_dist": "distribution head only, frozen J3 features, linear head",
+      "R1b_mlp": "same frozen features, 128 -> 64 GELU -> 16 head (second model-selection run)",
       "R2_activity": "NOT ENABLED: needs slot_activity labels, absent from j_series_dataset_v1",
       "R3_joint": "NOT ENABLED: only after R2 passes its gates"
     },
