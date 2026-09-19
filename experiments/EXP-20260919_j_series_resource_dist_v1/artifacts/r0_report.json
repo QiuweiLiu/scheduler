@@ -38,6 +38,7 @@
       "rps": null
     },
     "C_node_discrimination": {
+      "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, so log-MAE/Spearman/tail-recall are like-for-like comparable",
       "spearman_point": 0.5898169740388616,
       "tail_recall_top10_point": 0.4166666666666667,
       "mae_log": 1.8020267338295621,
@@ -101,7 +102,647 @@
       "sum_mean_over_true": null,
       "note": "only sum_mean_over_true is an additive-expectation diagnostic; the q50/q95 sums are consumption-scale quantities, not calibration"
     },
-    "video_clusters": 30
+    "video_clusters": 30,
+    "by_slot": {
+      "slot0": {
+        "A_distribution_calibration": {
+          "q50": {
+            "coverage": 0.5744064852345108,
+            "calibration_error": 0.07440648523451077
+          },
+          "q90": {
+            "coverage": 0.944991314418066,
+            "calibration_error": 0.04499131441806603
+          },
+          "q95": {
+            "coverage": 0.9722061378112333,
+            "calibration_error": 0.022206137811233373
+          },
+          "mean_abs_calibration_error": 0.04720131248793672,
+          "quantile_crossing_rate": 0.0052113491603937466
+        },
+        "B_distribution_accuracy": {
+          "q50": {
+            "pinball_ms": 1133.5781149693073,
+            "normalized_pinball": 0.23461652685330844
+          },
+          "q90": {
+            "pinball_ms": 787.8183038575717,
+            "normalized_pinball": 0.16305466010830005
+          },
+          "q95": {
+            "pinball_ms": 530.5989648608034,
+            "normalized_pinball": 0.10981800428545939
+          },
+          "runtime_qscore_ms": 817.3317945625608,
+          "rps": null
+        },
+        "C_node_discrimination": {
+          "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, so log-MAE/Spearman/tail-recall are like-for-like comparable",
+          "spearman_point": 0.7731879363847324,
+          "tail_recall_top10_point": 0.6994219653179191,
+          "mae_log": 1.2489984405958627,
+          "mae_raw_ms": 2267.1562299386146,
+          "buckets": {
+            "0.0-0": {
+              "n": 550,
+              "median_true_ms": 0.08299999684095383,
+              "median_pred_ms": 0.7056809663772583,
+              "pred_over_true": 8.502180641398066,
+              "median_abs_log_error": 0.47646478524688174
+            },
+            "10.0-1000": {
+              "n": 199,
+              "median_true_ms": 296.7539978027344,
+              "median_pred_ms": 704.440673828125,
+              "pred_over_true": 2.3738203328145158,
+              "median_abs_log_error": 0.7700172746626368
+            },
+            "1000.0-2000": {
+              "n": 32,
+              "median_true_ms": 1768.7965087890625,
+              "median_pred_ms": 1361.5521850585938,
+              "pred_over_true": 0.7697619134214185,
+              "median_abs_log_error": 0.43015972684868764
+            },
+            "2000.0-5000": {
+              "n": 275,
+              "median_true_ms": 3431.549072265625,
+              "median_pred_ms": 3457.36767578125,
+              "pred_over_true": 1.007523891680377,
+              "median_abs_log_error": 0.4807876108702782
+            },
+            "5000.0-8000": {
+              "n": 310,
+              "median_true_ms": 6707.37646484375,
+              "median_pred_ms": 5813.361328125,
+              "pred_over_true": 0.8667116507617145,
+              "median_abs_log_error": 0.2541454183994398
+            },
+            "8000.0-12000": {
+              "n": 188,
+              "median_true_ms": 10419.3095703125,
+              "median_pred_ms": 924.3836669921875,
+              "pred_over_true": 0.08871832252935576,
+              "median_abs_log_error": 2.375869184637086
+            },
+            "12000.0-30000": {
+              "n": 173,
+              "median_true_ms": 19747.232421875,
+              "median_pred_ms": 13147.703125,
+              "pred_over_true": 0.6657997862239992,
+              "median_abs_log_error": 0.3820336572984715
+            }
+          },
+          "expensive_bucket_pred_over_true": 0.08871832252935576
+        },
+        "D_scheduler_consumption": {
+          "sum_q50_over_true": 0.7252658076732283,
+          "sum_q95_over_true": 2.717674949374438,
+          "sum_mean_over_true": null,
+          "note": "only sum_mean_over_true is an additive-expectation diagnostic; the q50/q95 sums are consumption-scale quantities, not calibration"
+        },
+        "tail_recall_top10_global_within_slot": 0.7224334600760456,
+        "expensive_bucket": {
+          "n": 188,
+          "median_true_ms": 10419.3095703125,
+          "median_pred_ms": 924.3836669921875,
+          "pred_over_true": 0.08871832252935576,
+          "median_abs_log_error": 2.375869184637086,
+          "ci95": [
+            0.07877324045278429,
+            0.8833007231157706
+          ],
+          "ci_clusters": 30
+        },
+        "support": {
+          "n_active": 1727,
+          "active_rate": 0.24002779708130648,
+          "n_8_12s": 188,
+          "n_tail_global": 263,
+          "truth_mean_ms": 4831.620901446833,
+          "truth_median_ms": 2677.73291015625,
+          "truth_p90_ms": 12037.375390625013,
+          "truth_p95_ms": 19746.1923828125
+        },
+        "sharpness": {
+          "median_q90_over_q50": 10.220334285687496,
+          "median_q95_over_q50": 12.85249423708921
+        }
+      },
+      "slot1": {
+        "A_distribution_calibration": {
+          "q50": {
+            "coverage": 0.5470139771283354,
+            "calibration_error": 0.04701397712833544
+          },
+          "q90": {
+            "coverage": 0.909148665819568,
+            "calibration_error": 0.00914866581956797
+          },
+          "q95": {
+            "coverage": 0.9701397712833545,
+            "calibration_error": 0.020139771283354535
+          },
+          "mean_abs_calibration_error": 0.025434138077085982,
+          "quantile_crossing_rate": 0.0031766200762388818
+        },
+        "B_distribution_accuracy": {
+          "q50": {
+            "pinball_ms": 1163.409657616727,
+            "normalized_pinball": 0.3242390617787597
+          },
+          "q90": {
+            "pinball_ms": 755.1117778746795,
+            "normalized_pinball": 0.2104475691715774
+          },
+          "q95": {
+            "pinball_ms": 521.1779970420024,
+            "normalized_pinball": 0.14525086986711505
+          },
+          "runtime_qscore_ms": 813.233144177803,
+          "rps": null
+        },
+        "C_node_discrimination": {
+          "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, so log-MAE/Spearman/tail-recall are like-for-like comparable",
+          "spearman_point": 0.5869288117920435,
+          "tail_recall_top10_point": 0.2802547770700637,
+          "mae_log": 1.7092899248101747,
+          "mae_raw_ms": 2326.819315233454,
+          "buckets": {
+            "0.0-0": {
+              "n": 553,
+              "median_true_ms": 0.08299999684095383,
+              "median_pred_ms": 0.6993558406829834,
+              "pred_over_true": 8.42597430483163,
+              "median_abs_log_error": 0.4717702573190844
+            },
+            "10.0-1000": {
+              "n": 194,
+              "median_true_ms": 302.10699462890625,
+              "median_pred_ms": 677.4455871582031,
+              "pred_over_true": 2.2424028546255435,
+              "median_abs_log_error": 0.8285317974984663
+            },
+            "1000.0-2000": {
+              "n": 32,
+              "median_true_ms": 1768.7965087890625,
+              "median_pred_ms": 1674.5169067382812,
+              "pred_over_true": 0.9466984463264652,
+              "median_abs_log_error": 0.3714466425177019
+            },
+            "2000.0-5000": {
+              "n": 271,
+              "median_true_ms": 3373.23388671875,
+              "median_pred_ms": 3185.720703125,
+              "pred_over_true": 0.9444114491046602,
+              "median_abs_log_error": 0.4961731865657324
+            },
+            "5000.0-8000": {
+              "n": 287,
+              "median_true_ms": 6744.9140625,
+              "median_pred_ms": 5145.2587890625,
+              "pred_over_true": 0.7628353365788343,
+              "median_abs_log_error": 0.32362756499496825
+            },
+            "8000.0-12000": {
+              "n": 186,
+              "median_true_ms": 10442.89990234375,
+              "median_pred_ms": 319.7434387207031,
+              "pred_over_true": 0.030618261374787435,
+              "median_abs_log_error": 3.4945075516212944
+            },
+            "12000.0-30000": {
+              "n": 51,
+              "median_true_ms": 16229.87109375,
+              "median_pred_ms": 2178.4755859375,
+              "pred_over_true": 0.1342263024366481,
+              "median_abs_log_error": 1.9237557462032466
+            }
+          },
+          "expensive_bucket_pred_over_true": 0.030618261374787435
+        },
+        "D_scheduler_consumption": {
+          "sum_q50_over_true": 0.6012435987591552,
+          "sum_q95_over_true": 3.1028098618329856,
+          "sum_mean_over_true": null,
+          "note": "only sum_mean_over_true is an additive-expectation diagnostic; the q50/q95 sums are consumption-scale quantities, not calibration"
+        },
+        "tail_recall_top10_global_within_slot": 0.23776223776223776,
+        "expensive_bucket": {
+          "n": 186,
+          "median_true_ms": 10442.89990234375,
+          "median_pred_ms": 319.7434387207031,
+          "pred_over_true": 0.030618261374787435,
+          "median_abs_log_error": 3.4945075516212944,
+          "ci95": [
+            0.024693594419966828,
+            0.703174748358636
+          ],
+          "ci_clusters": 30
+        },
+        "support": {
+          "n_active": 1574,
+          "active_rate": 0.21876302988186241,
+          "n_8_12s": 186,
+          "n_tail_global": 143,
+          "truth_mean_ms": 3588.1230695472595,
+          "truth_median_ms": 2055.85400390625,
+          "truth_p90_ms": 10317.5583984375,
+          "truth_p95_ms": 10855.948095703125
+        },
+        "sharpness": {
+          "median_q90_over_q50": 15.205630857695176,
+          "median_q95_over_q50": 16.8510249180444
+        }
+      },
+      "slot2": {
+        "A_distribution_calibration": {
+          "q50": {
+            "coverage": 0.5755244755244755,
+            "calibration_error": 0.0755244755244755
+          },
+          "q90": {
+            "coverage": 0.9062937062937063,
+            "calibration_error": 0.0062937062937062915
+          },
+          "q95": {
+            "coverage": 0.9622377622377623,
+            "calibration_error": 0.012237762237762295
+          },
+          "mean_abs_calibration_error": 0.03135198135198136,
+          "quantile_crossing_rate": 0.0006993006993006993
+        },
+        "B_distribution_accuracy": {
+          "q50": {
+            "pinball_ms": 1188.067188754784,
+            "normalized_pinball": 0.3314663357638667
+          },
+          "q90": {
+            "pinball_ms": 811.0854330525216,
+            "normalized_pinball": 0.2262898252136296
+          },
+          "q95": {
+            "pinball_ms": 558.5158611599478,
+            "normalized_pinball": 0.15582385214991315
+          },
+          "runtime_qscore_ms": 852.5561609890843,
+          "rps": null
+        },
+        "C_node_discrimination": {
+          "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, so log-MAE/Spearman/tail-recall are like-for-like comparable",
+          "spearman_point": 0.532206707264926,
+          "tail_recall_top10_point": 0.3356643356643357,
+          "mae_log": 1.9164176136327153,
+          "mae_raw_ms": 2376.134377509568,
+          "buckets": {
+            "0.0-0": {
+              "n": 470,
+              "median_true_ms": 0.08249999955296516,
+              "median_pred_ms": 1.4431370496749878,
+              "pred_over_true": 17.492570393876075,
+              "median_abs_log_error": 0.8297112975769025
+            },
+            "10.0-1000": {
+              "n": 180,
+              "median_true_ms": 313.5885009765625,
+              "median_pred_ms": 587.895751953125,
+              "pred_over_true": 1.8747363188456458,
+              "median_abs_log_error": 0.6931202451585494
+            },
+            "1000.0-2000": {
+              "n": 32,
+              "median_true_ms": 1768.7965087890625,
+              "median_pred_ms": 2869.3447265625,
+              "pred_over_true": 1.622201713031922,
+              "median_abs_log_error": 0.6474199129128486
+            },
+            "2000.0-5000": {
+              "n": 254,
+              "median_true_ms": 3420.6544189453125,
+              "median_pred_ms": 3366.5166015625,
+              "pred_over_true": 0.9841732572916545,
+              "median_abs_log_error": 0.4645828718527203
+            },
+            "5000.0-8000": {
+              "n": 289,
+              "median_true_ms": 6720.98193359375,
+              "median_pred_ms": 3992.96435546875,
+              "pred_over_true": 0.594104313167479,
+              "median_abs_log_error": 0.4852417035564116
+            },
+            "8000.0-12000": {
+              "n": 181,
+              "median_true_ms": 10425.3515625,
+              "median_pred_ms": 1391.34912109375,
+              "pred_over_true": 0.13345824481338683,
+              "median_abs_log_error": 1.951271408024354
+            },
+            "12000.0-30000": {
+              "n": 24,
+              "median_true_ms": 20109.0849609375,
+              "median_pred_ms": 4175.304443359375,
+              "pred_over_true": 0.20763274169212717,
+              "median_abs_log_error": 1.6615926707981945
+            }
+          },
+          "expensive_bucket_pred_over_true": 0.13345824481338683
+        },
+        "D_scheduler_consumption": {
+          "sum_q50_over_true": 0.6394630162015787,
+          "sum_q95_over_true": 3.244829058066192,
+          "sum_mean_over_true": null,
+          "note": "only sum_mean_over_true is an additive-expectation diagnostic; the q50/q95 sums are consumption-scale quantities, not calibration"
+        },
+        "tail_recall_top10_global_within_slot": 0.2857142857142857,
+        "expensive_bucket": {
+          "n": 181,
+          "median_true_ms": 10425.3515625,
+          "median_pred_ms": 1391.34912109375,
+          "pred_over_true": 0.13345824481338683,
+          "median_abs_log_error": 1.951271408024354,
+          "ci95": [
+            0.06723016594375673,
+            0.6486618193583144
+          ],
+          "ci_clusters": 30
+        },
+        "support": {
+          "n_active": 1430,
+          "active_rate": 0.19874913134120917,
+          "n_8_12s": 181,
+          "n_tail_global": 112,
+          "truth_mean_ms": 3584.2770760320927,
+          "truth_median_ms": 2207.49755859375,
+          "truth_p90_ms": 10104.886914062503,
+          "truth_p95_ms": 10683.947314453124
+        },
+        "sharpness": {
+          "median_q90_over_q50": 10.199318699313578,
+          "median_q95_over_q50": 14.011225170403481
+        }
+      },
+      "slot3": {
+        "A_distribution_calibration": {
+          "q50": {
+            "coverage": 0.5408950617283951,
+            "calibration_error": 0.04089506172839508
+          },
+          "q90": {
+            "coverage": 0.8942901234567902,
+            "calibration_error": -0.005709876543209869
+          },
+          "q95": {
+            "coverage": 0.9606481481481481,
+            "calibration_error": 0.010648148148148184
+          },
+          "mean_abs_calibration_error": 0.01908436213991771,
+          "quantile_crossing_rate": 0.016975308641975308
+        },
+        "B_distribution_accuracy": {
+          "q50": {
+            "pinball_ms": 1237.8159426328334,
+            "normalized_pinball": 0.3548313833736543
+          },
+          "q90": {
+            "pinball_ms": 798.7247491467925,
+            "normalized_pinball": 0.22896183343035076
+          },
+          "q95": {
+            "pinball_ms": 533.475272488707,
+            "normalized_pinball": 0.15292561875570726
+          },
+          "runtime_qscore_ms": 856.6719880894443,
+          "rps": null
+        },
+        "C_node_discrimination": {
+          "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, so log-MAE/Spearman/tail-recall are like-for-like comparable",
+          "spearman_point": 0.4636653416220724,
+          "tail_recall_top10_point": 0.3230769230769231,
+          "mae_log": 2.148802459872825,
+          "mae_raw_ms": 2475.631885265667,
+          "buckets": {
+            "0.0-0": {
+              "n": 448,
+              "median_true_ms": 0.0820000022649765,
+              "median_pred_ms": 1.5243499279022217,
+              "pred_over_true": 18.58963275362366,
+              "median_abs_log_error": 0.8634575333035422
+            },
+            "10.0-1000": {
+              "n": 177,
+              "median_true_ms": 314.0,
+              "median_pred_ms": 670.5933837890625,
+              "pred_over_true": 2.1356477190734475,
+              "median_abs_log_error": 0.7704213071380908
+            },
+            "1000.0-2000": {
+              "n": 18,
+              "median_true_ms": 1748.7769775390625,
+              "median_pred_ms": 925.9328918457031,
+              "pred_over_true": 0.5294745434885052,
+              "median_abs_log_error": 0.690858704008154
+            },
+            "2000.0-5000": {
+              "n": 217,
+              "median_true_ms": 3442.844970703125,
+              "median_pred_ms": 2995.8662109375,
+              "pred_over_true": 0.8701716854609519,
+              "median_abs_log_error": 0.42177694896661233
+            },
+            "5000.0-8000": {
+              "n": 252,
+              "median_true_ms": 6715.173583984375,
+              "median_pred_ms": 3677.171630859375,
+              "pred_over_true": 0.5475914486602989,
+              "median_abs_log_error": 0.5443059258530889
+            },
+            "8000.0-12000": {
+              "n": 161,
+              "median_true_ms": 10448.171875,
+              "median_pred_ms": 243.0478973388672,
+              "pred_over_true": 0.023262241495129232,
+              "median_abs_log_error": 3.6552065005706567
+            },
+            "12000.0-30000": {
+              "n": 23,
+              "median_true_ms": 20064.138671875,
+              "median_pred_ms": 4997.61083984375,
+              "pred_over_true": 0.24908175334977994,
+              "median_abs_log_error": 1.3018781397152903
+            }
+          },
+          "expensive_bucket_pred_over_true": 0.023262241495129232
+        },
+        "D_scheduler_consumption": {
+          "sum_q50_over_true": 0.5691661275133936,
+          "sum_q95_over_true": 3.218474585450145,
+          "sum_mean_over_true": null,
+          "note": "only sum_mean_over_true is an additive-expectation diagnostic; the q50/q95 sums are consumption-scale quantities, not calibration"
+        },
+        "tail_recall_top10_global_within_slot": 0.2621359223300971,
+        "expensive_bucket": {
+          "n": 161,
+          "median_true_ms": 10448.171875,
+          "median_pred_ms": 243.0478973388672,
+          "pred_over_true": 0.023262241495129232,
+          "median_abs_log_error": 3.6552065005706567,
+          "ci95": [
+            0.020217803475822613,
+            0.5390941115589675
+          ],
+          "ci_clusters": 30
+        },
+        "support": {
+          "n_active": 1296,
+          "active_rate": 0.18012508686587908,
+          "n_8_12s": 161,
+          "n_tail_global": 103,
+          "truth_mean_ms": 3488.4624095646986,
+          "truth_median_ms": 2055.0625,
+          "truth_p90_ms": 10189.0439453125,
+          "truth_p95_ms": 10626.431396484375
+        },
+        "sharpness": {
+          "median_q90_over_q50": 18.485891641314513,
+          "median_q95_over_q50": 19.311167490356258
+        }
+      },
+      "slot4": {
+        "A_distribution_calibration": {
+          "q50": {
+            "coverage": 0.5308219178082192,
+            "calibration_error": 0.03082191780821919
+          },
+          "q90": {
+            "coverage": 0.9220890410958904,
+            "calibration_error": 0.022089041095890383
+          },
+          "q95": {
+            "coverage": 0.9743150684931506,
+            "calibration_error": 0.024315068493150682
+          },
+          "mean_abs_calibration_error": 0.025742009132420085,
+          "quantile_crossing_rate": 0.0
+        },
+        "B_distribution_accuracy": {
+          "q50": {
+            "pinball_ms": 1285.2271014874277,
+            "normalized_pinball": 0.3527595745105128
+          },
+          "q90": {
+            "pinball_ms": 853.1603985296108,
+            "normalized_pinball": 0.23416911985921818
+          },
+          "q95": {
+            "pinball_ms": 581.858321213048,
+            "normalized_pinball": 0.15970414378825948
+          },
+          "runtime_qscore_ms": 906.7486070766954,
+          "rps": null
+        },
+        "C_node_discrimination": {
+          "point_definition": "q50 (the conditional median) -- the same point estimate the J3 baseline reports, so log-MAE/Spearman/tail-recall are like-for-like comparable",
+          "spearman_point": 0.4626702028700366,
+          "tail_recall_top10_point": 0.3504273504273504,
+          "mae_log": 2.2198754502170095,
+          "mae_raw_ms": 2570.4542029748554,
+          "buckets": {
+            "0.0-0": {
+              "n": 377,
+              "median_true_ms": 0.0820000022649765,
+              "median_pred_ms": 3.972425937652588,
+              "pred_over_true": 48.4442174137509,
+              "median_abs_log_error": 1.527345829414558
+            },
+            "10.0-1000": {
+              "n": 167,
+              "median_true_ms": 310.3590087890625,
+              "median_pred_ms": 687.854736328125,
+              "pred_over_true": 2.2163195423646616,
+              "median_abs_log_error": 0.7620650925918282
+            },
+            "1000.0-2000": {
+              "n": 16,
+              "median_true_ms": 1699.9954833984375,
+              "median_pred_ms": 2006.4662475585938,
+              "pred_over_true": 1.180277399059611,
+              "median_abs_log_error": 0.6736944150846806
+            },
+            "2000.0-5000": {
+              "n": 194,
+              "median_true_ms": 3395.8529052734375,
+              "median_pred_ms": 2653.630859375,
+              "pred_over_true": 0.7814328044816555,
+              "median_abs_log_error": 0.36546554294209255
+            },
+            "5000.0-8000": {
+              "n": 239,
+              "median_true_ms": 6709.365234375,
+              "median_pred_ms": 2953.994140625,
+              "pred_over_true": 0.44027922723455293,
+              "median_abs_log_error": 0.7504596675599506
+            },
+            "8000.0-12000": {
+              "n": 152,
+              "median_true_ms": 10442.89990234375,
+              "median_pred_ms": 1648.9459228515625,
+              "pred_over_true": 0.15790115181334657,
+              "median_abs_log_error": 1.7775780976800295
+            },
+            "12000.0-30000": {
+              "n": 23,
+              "median_true_ms": 20009.5859375,
+              "median_pred_ms": 4020.44091796875,
+              "pred_over_true": 0.20092574281779788,
+              "median_abs_log_error": 1.6247303856263322
+            }
+          },
+          "expensive_bucket_pred_over_true": 0.15790115181334657
+        },
+        "D_scheduler_consumption": {
+          "sum_q50_over_true": 0.5493370639480506,
+          "sum_q95_over_true": 3.5509599038344235,
+          "sum_mean_over_true": null,
+          "note": "only sum_mean_over_true is an additive-expectation diagnostic; the q50/q95 sums are consumption-scale quantities, not calibration"
+        },
+        "tail_recall_top10_global_within_slot": 0.1717171717171717,
+        "expensive_bucket": {
+          "n": 152,
+          "median_true_ms": 10442.89990234375,
+          "median_pred_ms": 1648.9459228515625,
+          "pred_over_true": 0.15790115181334657,
+          "median_abs_log_error": 1.7775780976800295,
+          "ci95": [
+            0.08029788878393634,
+            0.5666415060688593
+          ],
+          "ci_clusters": 30
+        },
+        "support": {
+          "n_active": 1168,
+          "active_rate": 0.1623349548297429,
+          "n_8_12s": 152,
+          "n_tail_global": 99,
+          "truth_mean_ms": 3643.351433538839,
+          "truth_median_ms": 2200.4219970703125,
+          "truth_p90_ms": 10260.369531249999,
+          "truth_p95_ms": 10691.244189453124
+        },
+        "sharpness": {
+          "median_q90_over_q50": 10.592562698608578,
+          "median_q95_over_q50": 13.920858429443058
+        }
+      }
+    },
+    "macro_over_slots": {
+      "spearman_point": 0.5637317999867621,
+      "tail_recall_top10_point": 0.39776907031131836,
+      "log_mae": 1.8486767778257174,
+      "raw_mae_ms": 2403.2392021844316,
+      "mean_abs_calibration_error": 0.02976276063786837,
+      "note": "unweighted mean of the five per-slot values; pooled micro is the primary gate"
+    }
   },
   "reproduction": {
     "coverage_q50": {
@@ -133,13 +774,7 @@
     "cache_path_crossing_rate": 0.005142460041695622,
     "previously_reported_rate": 0.0655,
     "note": "if these disagree, compute the rate from the packer artifact before trusting either",
-    "reconciliation": "not attempted; pass --packer-artifacts to --stage r0",
-    "packer": "F:\\scheduler\\outputs\\a2a_jval_full5\\j_future_h5.jsonl.gz",
-    "packer_rows": 2029,
-    "packer_crossing_pairs": 10145,
-    "packer_crossing_rate": 0.06545096106456383,
-    "cache_crossing_rate": 0.06545096106456383,
-    "cache_rows": 2029
+    "reconciliation": "not attempted; pass --packer-artifacts to --stage r0"
   },
   "reproduction_pass": true
 }

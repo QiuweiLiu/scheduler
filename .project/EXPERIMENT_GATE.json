@@ -2,13 +2,13 @@
   "experiments": {
     "EXP-20260919_j_series_resource_dist_v1": {
       "active": true,
-      "conclusion": "R1 viability PASS, strong FAIL; R1b (MLP) is the pre-registered next step",
+      "conclusion": "R1 and R1b both viability PASS / strong FAIL (2 of 4); R3a partial-unfreeze is the next pre-registered step",
       "smoke_passed": true,
       "ledger_registered": true,
       "commit": "a591db6",
       "stage_status": {
         "R0": "passed - new metric code reproduces the recorded J3:seed11 acceptance numbers (coverage 0.5555/0.9166/0.9680, RuntimeQScore 845.04 ms) and the cache equivalence is exact (max|head(cached_z) - forward| = 0.00e+00)",
-        "R1": "executed seed 11: viability PASS, strong FAIL, test untouched. 8-12 s bucket 0.083->0.369, tail recall +0.111, log-MAE -9.6%, crossing 0, sum(mean)/sum(y)=0.941",
+        "R1": "executed twice. v2 uses the mass-balanced 16-bin layout (0 empty bins, min 242 samples, overflow 0.5 %%) and per-slot reporting: R1 linear viability PASS, R1b MLP viability PASS, both strong FAIL (Spearman 0.6354 needs +0.08; 8-12 s 0.4395 needs 0.50); tail recall +0.086 and log-MAE -15.7 %% both clear the strong bar; crossing 0; sum(mean)/sum(y) = 0.9961",
         "R2": "not enabled - j_series_dataset_v1 has no slot_activity label",
         "R3": "not enabled - only after R2 passes",
         "R4": "not enabled - winner x seeds after R1/R2"
@@ -71,6 +71,52 @@
         },
         "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R1_REPORT.md",
         "artifacts": "experiments/EXP-20260919_j_series_resource_dist_v1/artifacts/"
+      },
+      "r1_r1b_seed11": {
+        "R1_linear": {
+          "best_epoch": 30,
+          "wall_seconds": 96,
+          "gates": {
+            "integrity_pass": true,
+            "viability_pass": true,
+            "strong_pass": false
+          }
+        },
+        "R1b_mlp": {
+          "best_epoch": 28,
+          "wall_seconds": 100,
+          "gates": {
+            "integrity_pass": true,
+            "viability_pass": true,
+            "strong_pass": false
+          }
+        },
+        "pooled": {
+          "J3": {
+            "spearman": 0.5898,
+            "tail_recall": 0.4167,
+            "log_mae": 1.802,
+            "b8_12": 0.0833,
+            "crossing": 0.0051
+          },
+          "R1b": {
+            "spearman": 0.6354,
+            "tail_recall": 0.5028,
+            "log_mae": 1.5185,
+            "b8_12": 0.4395,
+            "crossing": 0.0,
+            "sum_mean_over_true": 0.9961,
+            "cal_error": 0.0245
+          }
+        },
+        "binning": {
+          "mode": "mass_balanced",
+          "n_bins": 16,
+          "empty_bins": 0,
+          "min_bin_count": 242,
+          "overflow_fraction": 0.005005895372649608
+        },
+        "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_R1_REPORT.md"
       }
     },
     "EXP-20260911_forecast_aware_scheduling": {
