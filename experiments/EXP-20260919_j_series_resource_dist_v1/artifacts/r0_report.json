@@ -1,0 +1,233 @@
+{
+  "stage": "r0",
+  "checkpoint": "F:\\scheduler\\experiments\\EXP-20260911_p9d_j_predictor_acceptance\\artifacts\\predictor\\J3_seed11.pt",
+  "validation": {
+    "schema_version": "j-resource-dist-v1",
+    "n_slot_pairs": 7195,
+    "A_distribution_calibration": {
+      "q50": {
+        "coverage": 0.5555246699096595,
+        "calibration_error": 0.05552466990965954
+      },
+      "q90": {
+        "coverage": 0.9166087560806115,
+        "calibration_error": 0.01660875608061152
+      },
+      "q95": {
+        "coverage": 0.9680333564975677,
+        "calibration_error": 0.018033356497567765
+      },
+      "mean_abs_calibration_error": 0.030055594162612942,
+      "quantile_crossing_rate": 0.005142460041695622
+    },
+    "B_distribution_accuracy": {
+      "q50": {
+        "pinball_ms": 1194.3275888463559,
+        "normalized_pinball": 0.30806674583909927
+      },
+      "q90": {
+        "pinball_ms": 797.8594772451294,
+        "normalized_pinball": 0.20580113453563703
+      },
+      "q95": {
+        "pinball_ms": 542.925744744913,
+        "normalized_pinball": 0.14004312466514712
+      },
+      "runtime_qscore_ms": 845.0376036121328,
+      "rps": null
+    },
+    "C_node_discrimination": {
+      "spearman_point": 0.5898169740388616,
+      "tail_recall_top10_point": 0.4166666666666667,
+      "mae_log": 1.8020267338295621,
+      "mae_raw_ms": 2388.6551776927117,
+      "buckets": {
+        "0.0-0": {
+          "n": 2398,
+          "median_true_ms": 0.0820000022649765,
+          "median_pred_ms": 1.1188561916351318,
+          "pred_over_true": 13.644587325981245,
+          "median_abs_log_error": 0.6789465287471959
+        },
+        "10.0-1000": {
+          "n": 917,
+          "median_true_ms": 308.1919860839844,
+          "median_pred_ms": 671.7973022460938,
+          "pred_over_true": 2.1798013335201536,
+          "median_abs_log_error": 0.7558662269403396
+        },
+        "1000.0-2000": {
+          "n": 130,
+          "median_true_ms": 1755.7349853515625,
+          "median_pred_ms": 1649.2601318359375,
+          "pred_over_true": 0.9393559652202836,
+          "median_abs_log_error": 0.5349916417938112
+        },
+        "2000.0-5000": {
+          "n": 1211,
+          "median_true_ms": 3422.8369140625,
+          "median_pred_ms": 3118.747802734375,
+          "pred_over_true": 0.9111587496094847,
+          "median_abs_log_error": 0.4577626836693014
+        },
+        "5000.0-8000": {
+          "n": 1377,
+          "median_true_ms": 6720.98193359375,
+          "median_pred_ms": 4496.67529296875,
+          "pred_over_true": 0.6690503467198505,
+          "median_abs_log_error": 0.3988267317738714
+        },
+        "8000.0-12000": {
+          "n": 868,
+          "median_true_ms": 10437.6279296875,
+          "median_pred_ms": 869.217041015625,
+          "pred_over_true": 0.0832772586713243,
+          "median_abs_log_error": 2.423274888250894
+        },
+        "12000.0-30000": {
+          "n": 294,
+          "median_true_ms": 19381.1630859375,
+          "median_pred_ms": 10028.35205078125,
+          "pred_over_true": 0.51742777284907,
+          "median_abs_log_error": 0.6039446262336599
+        }
+      },
+      "expensive_bucket_pred_over_true": null
+    },
+    "D_scheduler_consumption": {
+      "sum_q50_over_true": 0.6322486747123839,
+      "sum_q95_over_true": 3.100812085451565,
+      "sum_mean_over_true": null,
+      "note": "three-point predictor: no conditional mean, so no additive diagnostic is available",
+      "video_clusters": 30
+    }
+  },
+  "test": {
+    "schema_version": "j-resource-dist-v1",
+    "n_slot_pairs": 5387,
+    "A_distribution_calibration": {
+      "q50": {
+        "coverage": 0.5305364767031743,
+        "calibration_error": 0.030536476703174276
+      },
+      "q90": {
+        "coverage": 0.9047707443846297,
+        "calibration_error": 0.004770744384629655
+      },
+      "q95": {
+        "coverage": 0.9576758863931687,
+        "calibration_error": 0.0076758863931687404
+      },
+      "mean_abs_calibration_error": 0.014327702493657557,
+      "quantile_crossing_rate": 0.006125858548357156
+    },
+    "B_distribution_accuracy": {
+      "q50": {
+        "pinball_ms": 1132.3388626529452,
+        "normalized_pinball": 0.28742435515906073
+      },
+      "q90": {
+        "pinball_ms": 802.7139097933934,
+        "normalized_pinball": 0.20375484363313656
+      },
+      "q95": {
+        "pinball_ms": 548.2085809074764,
+        "normalized_pinball": 0.13915313079587283
+      },
+      "runtime_qscore_ms": 827.7537844512717,
+      "rps": null
+    },
+    "C_node_discrimination": {
+      "spearman_point": 0.6150117680477872,
+      "tail_recall_top10_point": 0.49536178107606677,
+      "mae_log": 1.7912788849952164,
+      "mae_raw_ms": 2264.6777253058904,
+      "buckets": {
+        "0.0-0": {
+          "n": 2030,
+          "median_true_ms": 0.08399999886751175,
+          "median_pred_ms": 0.872114360332489,
+          "pred_over_true": 10.3823139534564,
+          "median_abs_log_error": 0.555420091239128
+        },
+        "10.0-1000": {
+          "n": 378,
+          "median_true_ms": 309.2510070800781,
+          "median_pred_ms": 516.8098754882812,
+          "pred_over_true": 1.6711663459658754,
+          "median_abs_log_error": 0.6273300078346864
+        },
+        "1000.0-2000": {
+          "n": 89,
+          "median_true_ms": 1701.56201171875,
+          "median_pred_ms": 1328.933837890625,
+          "pred_over_true": 0.7810081729247512,
+          "median_abs_log_error": 0.7124099606909908
+        },
+        "2000.0-5000": {
+          "n": 907,
+          "median_true_ms": 3437.758056640625,
+          "median_pred_ms": 3171.868408203125,
+          "pred_over_true": 0.9226560903773062,
+          "median_abs_log_error": 0.45931557160077574
+        },
+        "5000.0-8000": {
+          "n": 1240,
+          "median_true_ms": 6839.33984375,
+          "median_pred_ms": 4594.825439453125,
+          "pred_over_true": 0.6718229455511,
+          "median_abs_log_error": 0.39056507343722924
+        },
+        "8000.0-12000": {
+          "n": 554,
+          "median_true_ms": 10465.998046875,
+          "median_pred_ms": 4986.57666015625,
+          "pred_over_true": 0.4764549580290789,
+          "median_abs_log_error": 0.6982776761000382
+        },
+        "12000.0-30000": {
+          "n": 189,
+          "median_true_ms": 20673.23046875,
+          "median_pred_ms": 10109.15234375,
+          "pred_over_true": 0.48899722561653647,
+          "median_abs_log_error": 0.583214460719157
+        }
+      },
+      "expensive_bucket_pred_over_true": null
+    },
+    "D_scheduler_consumption": {
+      "sum_q50_over_true": 0.6805305248433933,
+      "sum_q95_over_true": 2.930954277006825,
+      "sum_mean_over_true": null,
+      "note": "three-point predictor: no conditional mean, so no additive diagnostic is available",
+      "video_clusters": 30
+    }
+  },
+  "reproduction": {
+    "coverage_q50": {
+      "computed": 0.5555246699096595,
+      "recorded": 0.5555,
+      "tolerance": 0.002,
+      "pass": true
+    },
+    "coverage_q90": {
+      "computed": 0.9166087560806115,
+      "recorded": 0.9166,
+      "tolerance": 0.002,
+      "pass": true
+    },
+    "coverage_q95": {
+      "computed": 0.9680333564975677,
+      "recorded": 0.968,
+      "tolerance": 0.002,
+      "pass": true
+    },
+    "runtime_qscore_ms": {
+      "computed": 845.0376036121328,
+      "recorded": 845.0,
+      "tolerance": 5.0,
+      "pass": true
+    }
+  },
+  "reproduction_pass": true
+}

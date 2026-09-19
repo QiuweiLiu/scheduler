@@ -1,0 +1,36 @@
+{
+  "checkpoint": "F:\\scheduler\\experiments\\EXP-20260911_p9d_j_predictor_acceptance\\artifacts\\predictor\\J3_seed11.pt",
+  "splits": {
+    "train": {
+      "rows": 13754,
+      "feature_shape": [
+        13754,
+        5,
+        128
+      ],
+      "file": "cache_train.npz"
+    },
+    "validation": {
+      "rows": 2029,
+      "feature_shape": [
+        2029,
+        5,
+        128
+      ],
+      "file": "cache_validation.npz"
+    },
+    "test": {
+      "rows": 1520,
+      "feature_shape": [
+        1520,
+        5,
+        128
+      ],
+      "file": "cache_test.npz"
+    }
+  },
+  "checkpoint_meta": {
+    "variant": "J3",
+    "seed": 11
+  }
+}

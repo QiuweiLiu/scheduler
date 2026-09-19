@@ -1,0 +1,103 @@
+{
+  "schema_version": "j-series-resource-dist-config-v1",
+  "experiment_id": "EXP-20260919_j_series_resource_dist_v1",
+  "design_doc": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_PLAN.md",
+  "dataset_root": "F:/scheduler/results/processed/topology_predictor_p9d_v3",
+  "dataset_registry": "F:/scheduler/data/manifests/topology_predictor_p9d_v3.json",
+  "resource_table": "F:/scheduler/experiments/EXP-20260911_p9d_r0_oracle_signature_ceiling/artifacts/node_table.jsonl.gz",
+  "output_root": "F:/scheduler/results/processed/j_series_dataset_v1",
+  "run_root_name": "j_series_resource_dist_v1",
+  "splits": ["train", "validation", "test"],
+  "include_holdout_default": false,
+  "horizon": 5,
+  "expected": {
+    "_comment": "inherited from the frozen v1 dataset so that make_ctx validates against the same split sizes",
+    "rows_by_split": {"train": 13754, "validation": 2029, "test": 1520},
+    "r0_unique_resource_nodes": 15481
+  },
+  "variants": {
+    "_comment": "the J-series variants are NOT retrained here; the key exists only because j_series_train_eval.build_manifest records it. R1_dist is trained by j_series_resource_dist_train_eval.py.",
+    "J3": {"encoder": "trainable", "use_attribute_distribution": true, "attribute_gradient": "full"}
+  },
+  "ni_manifest": [
+    {"endpoint": "future_length", "metric": "MAE(argmax L_H, L_H_GT)", "direction": "lower_is_better", "delta": 0.02},
+    {"endpoint": "termination", "metric": "BCE", "direction": "lower_is_better", "delta": 0.02},
+    {"endpoint": "future_content", "metric": "accuracy", "direction": "higher_is_better", "delta": 0.02},
+    {"endpoint": "next_role", "metric": "accuracy", "direction": "higher_is_better", "delta": 0.01},
+    {"endpoint": "next_family", "metric": "accuracy", "direction": "higher_is_better", "delta": 0.02}
+  ],
+  "core_success": {
+    "_comment": "unchanged from the frozen J line; the Phase R line adds its own gates under 'gates'",
+    "primary": "RuntimeQScore = mean(PB_0.50, PB_0.90, PB_0.95) on raw ms",
+    "comparison": "paired video bootstrap CI",
+    "load_noninferiority": {"brier": "CI_upper(Delta) < +0.005", "duration": "CI_upper(Delta) < +5%"}
+  },
+  "model": {
+    "hidden": 128,
+    "history_embedding_dim": 16,
+    "context_embedding_dim": 12,
+    "slot_embedding_dim": 16,
+    "dropout": 0.1
+  },
+  "training": {
+    "batch_size": 256,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "max_history": 64,
+    "max_epochs": 30,
+    "early_stopping": false,
+    "seeds": [11, 22, 33]
+  },
+  "resource_dist": {
+    "_comment": "Phase R line: replaces the 3-point quantile resource head with a coherent discrete distribution. The frozen J3 encoder and every other head stay untouched; R1 trains only the new head on cached resource features.",
+    "bins": 24,
+    "near_zero_edge_ms": 1.0,
+    "upper_quantile": 0.999,
+    "overflow_bin": true,
+    "hidden": null,
+    "epochs": 30,
+    "learning_rate": 0.0003,
+    "point_delta": 2.0,
+    "loss_weights": {
+      "nll": 1.0,
+      "ranked_probability": 0.5,
+      "point_pseudohuber": 0.25,
+      "coarse_band_ce": 0.25
+    },
+    "coarse_bands": ["ultra_cheap<1ms", "light 1ms-1s", "medium 1s-5s", "expensive>=5s"],
+    "stages": {
+      "R1_dist": "distribution head only, frozen J3 features (this config)",
+      "R2_activity": "NOT ENABLED: needs slot_activity labels, absent from j_series_dataset_v1",
+      "R3_joint": "NOT ENABLED: only after R2 passes its gates"
+    },
+    "budget": {
+      "max_model_selection_runs": 3,
+      "seeds_for_winner_only": [11, 22, 33],
+      "stop_if_peak_vram_gb_gt": 5.5,
+      "profile_if_minutes_per_30_epochs_gt": 45
+    }
+  },
+  "bootstrap": {
+    "B": 1000,
+    "seed": 20260911,
+    "unit": "video",
+    "min_valid_replicate_ratio": 0.95
+  },
+  "environment": {
+    "conda_env": "scheduler",
+    "python": "D:/anaconda/envs/scheduler/python.exe",
+    "torch": "2.6.0+cu124",
+    "device": "cuda",
+    "unified_batch_required": true
+  },
+  "gates": {
+    "_comment": "pre-registered in the R1 review; see PHASE_R_PLAN.md",
+    "calibration_not_worse_by": 0.02,
+    "spearman_min_delta": 0.08,
+    "tail_recall_min_delta": 0.08,
+    "log_mae_max_relative": 0.9,
+    "expensive_bucket_min_pred_over_true": 0.5,
+    "quantile_crossing_max": 0.0,
+    "improved_required_of_four": 3
+  }
+}

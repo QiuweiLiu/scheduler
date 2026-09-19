@@ -6,8 +6,8 @@
     "seed": 20260911,
     "unit": "video"
   },
-  "config_sha256": "2da8bb0ae511852713214ff4da77ac4c63c6f3cece746213a0dd7de6be93c551",
-  "created_at": "2026-09-19T10:47:14+0800",
+  "config_sha256": "9002641567ad97a53cd1494fd48609d9ab8aa6d7600a3e90912f34833b37a870",
+  "created_at": "2026-09-19T16:27:22+0800",
   "dataset_files": {
     "j_test.jsonl.gz": {
       "bytes": 128650,
@@ -29,7 +29,7 @@
     "python": "3.10.21",
     "torch": "2.6.0+cu124"
   },
-  "experiment_id": "EXP-20260911_p9d_j_predictor_acceptance",
+  "experiment_id": "EXP-20260919_j_series_resource_dist_v1",
   "max_epochs": 30,
   "schema_version": "j-series-run-v1",
   "seeds": [
@@ -38,31 +38,12 @@
     33
   ],
   "variants": {
-    "B1": {
-      "attribute_gradient": "none",
-      "encoder": "frozen",
-      "use_attribute_distribution": true
-    },
-    "J0": {
-      "attribute_gradient": "none",
-      "encoder": "frozen",
-      "use_attribute_distribution": false
-    },
-    "J1": {
-      "attribute_gradient": "none",
-      "encoder": "trainable",
-      "use_attribute_distribution": false
-    },
-    "J2": {
-      "attribute_gradient": "stopgrad",
-      "encoder": "trainable",
-      "use_attribute_distribution": true
-    },
     "J3": {
       "attribute_gradient": "full",
       "encoder": "trainable",
       "use_attribute_distribution": true
-    }
+    },
+    "_comment": "the J-series variants are NOT retrained here; the key exists only because j_series_train_eval.build_manifest records it. R1_dist is trained by j_series_resource_dist_train_eval.py."
   },
   "vocab_sha256": "a5306bd136a0984e5e47d360afacd545b4d97cd17e9eac8178d91c079e5e95dc"
 }

@@ -271,3 +271,58 @@
   该 profile 与 `chatgpt-automation` MCP **共用**，两者不可同时运行。
   本机**直连** chatgpt.com 可用，**不需要** `--proxy-server=7897`（那是 Windows 的坑）。
   绑定会话：`https://chatgpt.com/c/6a9822da-e278-83e9-9c1a-675923acda0e`（标题「架构设计评估」）。
+
+
+## Phase 21-C（2026-09-18，用户质疑"预测器没道理这么差"）
+
+**已推仓库 `ed32351`**（含 v03 workload：templates + validation episodes；Phase 21/21-B 脚本、审计、报告、测试；.gitignore）。
+GPT 审查 + 本机 raw-trace 审计已完成，**三个候选解释全部被排除或量级不足**：
+
+- **nested 重复计时**（GPT 的 P0，`videotool_phase1.py` 行号已核）：包含关系真实
+  （169/169 summarizer 内嵌 `generalist.generate`，内/外 runtime 比中位 0.758、p90 0.992），
+  但只占总 runtime **0.48%** → R50 只会从 0.436 → 0.438。**不足以解释。**
+- **`answer` 残留容器**：`answer` 的 `runtime_ms` 与 `run` 容器**逐 run 完全相等（640/640，比值恒 1.000）**，
+  是同一节点的双标签 → v03 已正确移除，**无残留 50% 膨胀**。
+- **尺度域偏移**：J 训练槽位中位 **2223.0 ms** vs R7 v03 非容器节点中位 **2213.0 ms**；
+  J `planner` 中位 4992 ms vs R7 `api_call` 中位 4658 ms → **尺度相同**。
+
+**留下的矛盾**：同 checkpoint、同尺度，J 域内 p50 覆盖 **0.556**，R7 S_* 锚点只有 **0.39–0.43**（R50 0.40–0.44）。
+⇒ 差异**不在数据分布、也不在模型**，只能在 **S_* 推理路径**（锚点/history/current_node 的构造）。
+
+结构性差异（尚未量化）：J 行来自 **chain**（`build_p9d_topology_dataset`：去 `run_control`、
+把 nested `generalist.generate` 合并进 summarizer、处理 retry），而 S_* 锚点来自**原始事件表**
+（每个原始事件一个锚点，`history = events[:index]`）→ S_* 的 history/`current_node` 可能包含
+J chain 从未出现过的 `event_type='run'` 容器与 nested generate。
+
+- 报告：`experiments/EXP-20260911_forecast_aware_scheduling/PHASE21C_PREDICTOR_SUSPICION_AUDIT.md`
+- 审查：`docs/research/2026-09-18_fas_predictor_suspicion_review_gpt.md`
+- **下一步（仍无需 GPU）**：对同一 run 比对 chain 口径 vs raw-event 口径的 model_input
+  （history token 序列、`current_node`、`stack_context`、编码后的 context id），
+  再用 **chain 口径锚点**重跑 pilot，看 p50 覆盖是否回到 0.55 附近。
+- GPT 另纠正两处我的误判：① artifact 没序列化 `node_type` ≠ runtime head 不知道预测的 node_type
+  （J3 内部吃的是 `softmax(node_type/role/action_family/model_class)` 的完整分布，属 artifact observability 缺失，P1）；
+  ② `load-duration p50 > runtime p50`（82.5%）不是 packer bug，而是"条件 load 时长 vs 无条件 runtime 分位"的合法差异
+  （runtime 含 load；load head 只在 load 发生的槽位上训练），但多头非 joint-coherent，manifest 需明确标注。
+
+
+## 指标口径审计（2026-09-18，用户质疑"预测器没道理这么差"）
+
+**结论：前提撤回——预测器没有严重失准。**
+
+- 用 packer 在 **J 验证集**（2,029 行 → 7,195 槽位）跑冻结 J3:seed11，再用 **R7 那套统计代码**打分，
+  **逐位复现验收报告全部数字**：覆盖 `0.5555/0.9166/0.9680`（验收 0.556/0.917/0.968）、
+  RuntimeQScore `845.0`（验收 845.0，= (1194.3+797.9+542.9)/3）⇒ **同一把尺子**。
+- **域内 `Σp50/Σ真值 = 0.6322`，不是 1.0**；验收报告从未公布这个比值。
+- **主指标 RuntimeQScore：R7 = 782.1，优于域内 845.0**（越低越好）。
+- **0.63 是结构性的**：域内每槽位真值 中位 2209 ms / 均值 3877 ms（1.76×）→ 完美模型也只能 ≈0.57；
+  实测 0.632 正在该量级。**"逐步中位数之和 ≠ 总和的中位数"**。
+- **90%+ 是分类头**（7 字段 0.9013 / next-role 0.9444 / next-family 0.8396），与资源头（覆盖率/pinball）无关。
+- 资源头三个覆盖率**都略高于目标**（0.5555/0.9166/0.9680 vs 0.50/0.90/0.95）→ 偏保守，方向安全。
+- **唯一真实残余**：p50 覆盖率 R7 0.427 vs 域内 0.556（对应已知 OOV 字段与栈分层）。
+
+**连带修正**：
+1. Phase 18 的"Σp50 = 0.456× ⇒ 预测乐观"必须**改基准为域内 0.632**（乐观仍在，但远小于原描述）。
+2. **C2 需重新论证**：若 Σp50 天然低估总量，q95 式聚合可能是**数学上正确的聚合**而非"补偿预测误差"（假设，未证实）。
+3. **禁止**对外写"预测器低估约 60%"。
+
+产物 `outputs/a2a_jval_full5/`；门禁 `metric_audit_20260918`；待与 GPT 讨论 C2 如何重述。

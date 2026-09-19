@@ -1227,7 +1227,43 @@
           "no_fix_performed": "no pipeline change was made and none is needed; the anchor builder, the encoder resolution rule and the pilot artefacts are unchanged",
           "lesson_recorded": "audit code must test key presence explicitly (`field in mapping`) and must never infer presence from `.get()`. This is the second silent-failure class in this project, so the coverage audit should assert the encoder-equivalent resolution directly instead of re-implementing it.",
           "secondary_observation": "coverage_report.json resolves the stack fields from stack_context and therefore reported them as populated and non-missing, which was correct here; the earlier 'the audit and the model disagree about the resolution rule' claim was also part of the false positive",
-          "gpt_review": "COMPLETED - see independent_review_20260918 and phase21b_20260918",
+          "gpt_review": "COMPLETED - see independent_review_20260918, phase21b_20260918 and metric_audit_20260918",
+        "metric_audit_20260918": {
+          "status": "COMPLETED - the premise 'the S_* predictor is badly miscalibrated' is withdrawn",
+          "trigger": "owner objection: 'my predictor cannot possibly be this bad'",
+          "method": "ran the frozen J3:seed11 over the J validation split with pack_j_predictor_artifacts.py (--split validation, --min-steps 5) and scored it with the SAME statistics used on R7",
+          "exact_reproduction": {
+            "p50_coverage": {"mine": 0.5555, "acceptance": 0.556},
+            "p90_coverage": {"mine": 0.9166, "acceptance": 0.917},
+            "p95_coverage": {"mine": 0.9680, "acceptance": 0.968},
+            "RuntimeQScore_ms": {"mine": 845.0, "acceptance": 845.0},
+            "note": "RuntimeQScore = mean(pinball p50, p90, p95) = (1194.3 + 797.9 + 542.9)/3 = 845.0. Every acceptance number is reproduced bit-for-bit, so the R7 scoring code and the acceptance scoring code are the SAME yardstick."
+          },
+          "key_facts": {
+            "ratio_of_sums_in_domain": 0.6322,
+            "ratio_of_sums_R7_B1": 0.4363,
+            "truth_median_ms_in_domain": 2209.4,
+            "truth_mean_ms_in_domain": 3876.8,
+            "truth_mean_over_median": 1.76,
+            "runtime_qscore_in_domain": 845.0,
+            "runtime_qscore_R7_B1": 782.1,
+            "R7_pinballs": {"p50": 1117.3, "p90": 737.4, "p95": 491.6}
+          },
+          "why_sum_of_p50_is_low_by_construction": "summing per-slot p50 (medians) does NOT equal the median of the sum. Runtime is extremely right-skewed: in-domain the per-slot truth median is 2209 ms but the mean is 3877 ms (1.76x). A perfectly calibrated model would therefore give ratio_of_sums ~ 1/1.76 = 0.57; the measured 0.632 is in that range. This is a property of aggregating medians, not a calibration failure.",
+          "the_0_90_numbers_are_a_different_head": "the acceptance table's 90%+ figures (7-field mean accuracy 0.9013, next-role 0.9444, next-family 0.8396) are CLASSIFICATION accuracies from the structure/behavior heads. They say nothing about the resource head, which has its own metrics (coverage, pinball). Conflating the two produced the false 'predictor is bad' narrative.",
+          "coverage_vs_target": {"p50": "0.5555 vs target 0.50", "p90": "0.9166 vs target 0.90", "p95": "0.9680 vs target 0.95", "reading": "all three are slightly ABOVE target, i.e. the predicted quantiles are mildly conservative - which is the safe direction for a scheduler"},
+          "verdict": "by the project's own primary metric the frozen predictor scores BETTER on the R7 deployment workload (782.1) than on its own validation split (845.0). The genuine residual is a modest p50 coverage drop (0.427 on R7 vs 0.556 in domain), consistent with the OOV input fields and the stack stratification already documented.",
+          "consequences_to_re_examine": [
+            "Phase 18's 'sum p50 = 0.456x truth => forecast optimism' must be re-based against the in-domain 0.632, not against 1.0; optimism still exists (0.456 vs 0.632) but is far smaller than stated",
+            "the C2 narrative 'conservative tail aggregation compensates for forecast error' needs re-argument: if summing p50 under-estimates the aggregate BY CONSTRUCTION, then q95-style aggregation may be the CORRECT aggregation rather than an error compensation - this is a hypothesis, not yet established",
+            "do NOT quote 'the predictor under-predicts by ~60%' anywhere"
+          ],
+          "not_done": "no model change, no artifact regeneration, no scheduler rerun",
+          "artifacts": {
+            "j_validation_pack": "outputs/a2a_jval_full5/",
+            "scoring_script": ".scratch/a2a_jval_score.py"
+          }
+        },
         "phase21b_20260918": {
           "status": "B1 executed and sealed; B2 correctly REFUSED; review verdict = association only, no causal attribution",
           "arm_B1": {
