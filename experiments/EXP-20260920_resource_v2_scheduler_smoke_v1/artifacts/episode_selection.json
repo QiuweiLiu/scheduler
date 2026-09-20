@@ -1,0 +1,35 @@
+{
+  "episode_selection_version": "resource_v2_smoke_v1",
+  "selection_seed": "20260920",
+  "n_episodes": 300,
+  "n_cells": 135,
+  "n_base_per_cell": 2,
+  "n_extra_cells": 30,
+  "marginals": {
+    "arrival": {
+      "alibaba_replay": 100,
+      "burst": 100,
+      "poisson": 100
+    },
+    "load": {
+      "0.50": 60,
+      "0.70": 60,
+      "0.85": 60,
+      "0.95": 60,
+      "1.05": 60
+    },
+    "gpu": {
+      "24576,24576": 100,
+      "32760,24576": 100,
+      "32760,32760": 100
+    },
+    "state": {
+      "cold": 100,
+      "skewed": 100,
+      "warm": 100
+    }
+  },
+  "extra_cells_sha256": "e7fc0755a7b40c545ffec29ea4f76cb309d894873e6fc1d9bb263d201704e506",
+  "episode_list": "F:\\scheduler\\outputs\\resource_v2_scheduler_smoke_v1\\resource_v2_smoke_v1_episode_ids.txt",
+  "episode_list_sha256": "c98556c8003aabb484b4d4caa41049094c24b2ba01c9d56014407f2ba7d07430"
+}

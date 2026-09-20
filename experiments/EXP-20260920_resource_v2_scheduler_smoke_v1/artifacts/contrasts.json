@@ -1,0 +1,146 @@
+{
+  "primary_metric": "mean_completion_ms",
+  "non_inferiority_margin_ms": 485.0,
+  "non_inferiority_source": "0.1 x 4853 ms, the frozen Phase 20B dev700 benefit of p95 over E0",
+  "arms": {
+    "A0": {
+      "description": "J3 three-quantile pack + legacy sum-q95 consumption",
+      "consumer_policy_id": "legacy_sum_q95_v1",
+      "simulator_policy": "sameshape_h5_p95",
+      "eligible_for_model_selection": true,
+      "role": "candidate",
+      "n_episodes": 300,
+      "mean": 85789.22204374993,
+      "median": 73112.68156250002
+    },
+    "A1": {
+      "description": "R1b discrete head + legacy sum-q95 consumption",
+      "consumer_policy_id": "legacy_sum_q95_v1",
+      "simulator_policy": "sameshape_h5_p95",
+      "eligible_for_model_selection": true,
+      "role": "candidate",
+      "n_episodes": 300,
+      "mean": 86585.77654031254,
+      "median": 74189.8886875
+    },
+    "A2": {
+      "description": "R3a-U adapted res_hidden + legacy sum-q95 consumption",
+      "consumer_policy_id": "legacy_sum_q95_v1",
+      "simulator_policy": "sameshape_h5_p95",
+      "eligible_for_model_selection": false,
+      "role": "diagnostic_only",
+      "n_episodes": 300,
+      "mean": 86880.62378773437,
+      "median": 74033.37150000001
+    },
+    "B1": {
+      "description": "R1b + sum of conditional runtime means",
+      "consumer_policy_id": "sum_conditional_runtime_mean_plus_legacy_load_v1",
+      "simulator_policy": "sameshape_h5_condmean",
+      "eligible_for_model_selection": true,
+      "role": "candidate",
+      "n_episodes": 300,
+      "mean": 86631.15810882812,
+      "median": 74146.76604687501
+    },
+    "B2": {
+      "description": "R1b + sum of marginal step CVaR95",
+      "consumer_policy_id": "sum_marginal_step_cvar95_plus_legacy_load_v1",
+      "simulator_policy": "sameshape_h5_stepcvar95",
+      "eligible_for_model_selection": true,
+      "role": "candidate",
+      "n_episodes": 300,
+      "mean": 86158.11150356765,
+      "median": 73837.30585156247
+    },
+    "O": {
+      "description": "joint future truth, same key shape (headroom ceiling)",
+      "consumer_policy_id": "samekey_true_future_h5_v1",
+      "simulator_policy": "sameshape_h5_truth",
+      "eligible_for_model_selection": true,
+      "role": "candidate",
+      "n_episodes": 300,
+      "mean": 84246.15897833329,
+      "median": 71881.70023437499
+    }
+  },
+  "contrasts": {
+    "A1-A0": {
+      "point": 796.5544965625016,
+      "ci_low": 471.0421299479206,
+      "ci_high": 1104.6469451302087,
+      "prob_le_zero": 0.0,
+      "n": 300,
+      "label": "A1 vs the frozen champion"
+    },
+    "A2-A1": {
+      "point": 294.8472474218733,
+      "ci_low": -18.14490020833786,
+      "ci_high": 624.802228619789,
+      "prob_le_zero": 0.03,
+      "n": 300,
+      "label": "extra unfreezing, diagnostic control",
+      "verdict": "inconclusive"
+    },
+    "B1-A1": {
+      "point": 45.381568515623755,
+      "ci_low": -290.62774520833557,
+      "ci_high": 394.30075307291776,
+      "prob_le_zero": 0.3845,
+      "n": 300,
+      "label": "mean vs legacy risk consumption",
+      "verdict": "non_inferior"
+    },
+    "B2-A1": {
+      "point": -427.66503674479446,
+      "ci_low": -687.6747210937508,
+      "ci_high": -145.22725932292155,
+      "prob_le_zero": 0.9995,
+      "n": 300,
+      "label": "step-CVaR vs legacy risk consumption",
+      "verdict": "non_inferior"
+    },
+    "O-A1": {
+      "point": -2339.617561979168,
+      "ci_low": -2856.312100546874,
+      "ci_high": -1855.0378096874979,
+      "prob_le_zero": 1.0,
+      "n": 300,
+      "label": "remaining joint-future-information headroom",
+      "verdict": "material_improvement"
+    },
+    "A2-A0": {
+      "point": 1091.4017439843744,
+      "ci_low": 774.0639752604135,
+      "ci_high": 1415.8349521354155,
+      "prob_le_zero": 0.0,
+      "n": 300,
+      "label": "A2 vs the frozen champion"
+    },
+    "B1-A0": {
+      "point": 841.9360650781256,
+      "ci_low": 550.9212297395818,
+      "ci_high": 1147.5124207552033,
+      "prob_le_zero": 0.0,
+      "n": 300,
+      "label": "B1 vs the frozen champion"
+    },
+    "B2-A0": {
+      "point": 368.8894598177077,
+      "ci_low": 90.1586068489558,
+      "ci_high": 643.0392865364554,
+      "prob_le_zero": 0.005,
+      "n": 300,
+      "label": "B2 vs the frozen champion"
+    },
+    "A1-O": {
+      "point": 2339.617561979168,
+      "ci_low": 1860.1795368749986,
+      "ci_high": 2856.8033540364604,
+      "prob_le_zero": 0.0,
+      "n": 300,
+      "label": "A1 vs joint-future-truth ceiling",
+      "practically_saturated": false
+    }
+  }
+}

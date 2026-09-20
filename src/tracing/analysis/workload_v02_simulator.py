@@ -81,6 +81,8 @@ POLICIES = (
     "sameshape_h5_p50",
     "sameshape_h5_p95",
     "sameshape_h5_truth",
+    "sameshape_h5_condmean",
+    "sameshape_h5_stepcvar95",
     "predopt_h10_lam0",
     "predopt_h10_lam25",
     "predopt_h10_lam50",
@@ -186,6 +188,250 @@ def load_future_artifacts(root: Path) -> dict[str, dict[str, Any]]:
             # made length-based consumers degenerate.
             result.setdefault(node_id, {}).update(row)
     return result
+
+
+# --------------------------------------------------------------------------- #
+# resource-v2 artifact contract
+#
+# The resource-v2 arms publish only a repaired ``b05_future_h5.jsonl.gz`` plus a
+# manifest; the legacy H1/H3 files stay owned by the frozen base pack.  Rather
+# than copying those files (which would let the two drift apart silently), the
+# overlay loader splices the new H5 onto the base root and refuses to return
+# anything unless the packs agree on everything except the runtime block.
+RESOURCE_V2_OWNED_KEYS: tuple[str, ...] = (
+    "runtime_probs",
+    "runtime_ms_quantiles",
+    "runtime_mean_ms",
+    "cvar95_ms",
+    "resource_head_id",
+    "bin_schema_id",
+)
+RESOURCE_V2_PRESERVED_KEYS: tuple[str, ...] = (
+    "load_occurrence_probability",
+    "load_duration_ms_quantiles",
+)
+RESOURCE_V2_VIEW_TOLERANCE = 1e-6
+
+
+def _resource_v2_views(
+    probs: Sequence[float], reps: Sequence[float], alpha: float
+) -> dict[str, float]:
+    """Re-derive every canonical view from the distribution (pure stdlib)."""
+
+    if len(probs) != len(reps):
+        raise ValueError("runtime_probs and bin representatives have different lengths")
+    cdf = 0.0
+    views: dict[str, float] = {}
+    mean = 0.0
+    tail = 0.0
+    prev = 0.0
+    for prob, rep in zip(probs, reps):
+        mean += float(prob) * float(rep)
+        cdf += float(prob)
+        if cdf > alpha:
+            tail += (cdf - max(prev, alpha)) * float(rep)
+        prev = cdf
+    views["runtime_mean_ms"] = mean
+    views["cvar95_ms"] = tail / max(1e-9, 1.0 - alpha)
+    running = 0.0
+    for tau, key in ((0.50, "p50"), (0.90, "p90"), (0.95, "p95")):
+        running = 0.0
+        for prob, rep in zip(probs, reps):
+            running += float(prob)
+            if running >= tau - 1e-12:
+                views[key] = float(rep)
+                break
+        else:
+            views[key] = float(reps[-1])
+    return views
+
+
+def _strip_resource_v2_keys(record: Mapping[str, Any], horizon: int) -> list[Any]:
+    """The node's horizon block with every runtime-owned key removed.
+
+    Only the ``future_h<horizon>`` block is compared: the base root merges H1/H3/H5
+    while a resource-v2 arm deliberately publishes H5 alone, so a whole-record
+    comparison would flag the intentionally absent horizons as drift.
+    """
+
+    import copy as _copy
+
+    scenarios = record.get(f"future_h{int(horizon)}") or []
+    clone = _copy.deepcopy(list(scenarios))
+    for scenario in clone:
+        if not isinstance(scenario, dict):
+            continue
+        for step in scenario.get("steps") or []:
+            resource = step.get("resource")
+            if isinstance(resource, dict):
+                for key in RESOURCE_V2_OWNED_KEYS:
+                    resource.pop(key, None)
+    return clone
+
+
+def load_resource_v2_overlay(
+    base_root: Path, arm_root: Path
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Splice a resource-v2 H5 pack onto a frozen base artifact root.
+
+    Returns ``(artifacts, preflight)``.  Every counter in ``preflight`` is either
+    zero or within tolerance on success; any real disagreement raises instead of
+    returning a partially repaired artifact (the review's P0-2).
+    """
+
+    manifest_path = arm_root / "resource_v2_manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(manifest_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not str(manifest.get("schema_version", "")).startswith("resource-v2-artifact-manifest"):
+        raise ValueError(f"unexpected resource-v2 manifest schema: {manifest.get('schema_version')!r}")
+
+    horizon = int(manifest["horizon"])
+    identity = bool(manifest.get("identity_copy"))
+    edges = [float(e) for e in manifest["bin_edges_ms"]]
+    reps = [float(r) for r in manifest["bin_representatives_ms"]]
+    alpha = float(manifest["cvar_alpha"])
+    bin_schema_id = str(manifest["bin_schema_id"])
+
+    base = load_future_artifacts(base_root)
+    overlay_path = arm_root / "b05_future_h5.jsonl.gz"
+    overlay: dict[str, dict[str, Any]] = {}
+    for row in read_gzip_jsonl(overlay_path):
+        node_id = str(row.get("node_id") or "")
+        if not node_id:
+            raise ValueError(f"resource-v2 row without node_id: {overlay_path}")
+        if node_id in overlay:
+            raise ValueError(f"duplicate node_id in resource-v2 pack: {node_id}")
+        overlay[node_id] = row
+
+    preflight: dict[str, Any] = {
+        "base_root": str(base_root),
+        "arm_root": str(arm_root),
+        "artifact_sha256": manifest.get("artifact_sha256"),
+        "artifact_id": manifest.get("artifact_id"),
+        "base_pack_sha256": manifest.get("base_pack_sha256"),
+        "producer_checkpoint_sha256": manifest.get("producer_checkpoint_sha256"),
+        "resource_head_id": manifest.get("resource_head_id"),
+        "bin_schema_id": bin_schema_id,
+        "identity_copy": identity,
+        "node_count": len(overlay),
+        "step_count": 0,
+        "missing_nodes": 0,
+        "duplicate_nodes": 0,
+        "multi_scenario_rows": 0,
+        "unupgraded_steps": 0,
+        "prob_sum_max_abs_error": 0.0,
+        "canonical_view_max_abs_error": 0.0,
+        "nonresource_mismatch_count": 0,
+        "bin_schema_mismatch_count": 0,
+        "load_field_missing_count": 0,
+        "nan_prob_count": 0,
+    }
+
+    missing = sorted(set(base) - set(overlay))
+    extra = sorted(set(overlay) - set(base))
+    if missing or extra:
+        raise ValueError(
+            "node sets differ: %d missing, %d extra (e.g. %s)"
+            % (len(missing), len(extra), (missing or extra)[:3])
+        )
+
+    result: dict[str, dict[str, Any]] = {}
+    for node_id, arm_record in overlay.items():
+        base_record = base[node_id]
+        base_scen = base_record.get(f"future_h{horizon}") or []
+        arm_scen = arm_record.get(f"future_h{horizon}") or []
+        if len(arm_scen) != 1:
+            preflight["multi_scenario_rows"] += 1
+            raise ValueError(f"node {node_id} carries {len(arm_scen)} scenarios, expected exactly 1")
+        if len(base_scen) != 1:
+            raise ValueError(f"base node {node_id} carries {len(base_scen)} scenarios")
+
+        if _strip_resource_v2_keys(base_record, horizon) != _strip_resource_v2_keys(arm_record, horizon):
+            preflight["nonresource_mismatch_count"] += 1
+
+        base_steps = base_scen[0].get("steps") or []
+        arm_steps = arm_scen[0].get("steps") or []
+        if len(base_steps) != len(arm_steps):
+            raise ValueError(
+                "node %s step count changed: %d -> %d" % (node_id, len(base_steps), len(arm_steps))
+            )
+        if identity and base_scen != arm_scen:
+            # an identity arm must reproduce the H5 block exactly, runtime keys included
+            raise ValueError("identity arm changed the H5 block of node %s" % node_id)
+
+        for base_step, step in zip(base_steps, arm_steps):
+            preflight["step_count"] += 1
+            resource = step.get("resource") or {}
+            # only require what the base step actually carried, so a packer that never
+            # emits a load field is not reported as damage
+            base_resource = base_step.get("resource") or {}
+            for key in RESOURCE_V2_PRESERVED_KEYS:
+                if key in base_resource and key not in resource:
+                    preflight["load_field_missing_count"] += 1
+            if identity:
+                # declared identity artifact: it publishes no distribution by design, and
+                # the exact H5 comparison above is the real guarantee
+                continue
+            probs = resource.get("runtime_probs")
+            if not isinstance(probs, list) or len(probs) != len(reps):
+                preflight["unupgraded_steps"] += 1
+                continue
+            if not all(isinstance(p, (int, float)) for p in probs):
+                preflight["nan_prob_count"] += 1
+                continue
+            total = sum(float(p) for p in probs)
+            preflight["prob_sum_max_abs_error"] = max(
+                preflight["prob_sum_max_abs_error"], abs(total - 1.0)
+            )
+            if resource.get("bin_schema_id") != bin_schema_id:
+                preflight["bin_schema_mismatch_count"] += 1
+            want = _resource_v2_views(probs, reps, alpha)
+            quantiles = resource.get("runtime_ms_quantiles") or {}
+            err = 0.0
+            for key in ("p50", "p90", "p95"):
+                got = optional_number(quantiles.get(key))
+                if got is None:
+                    err = float("inf")
+                else:
+                    err = max(err, abs(got - want[key]))
+            for key in ("runtime_mean_ms", "cvar95_ms"):
+                got = optional_number(resource.get(key))
+                if got is None:
+                    err = float("inf")
+                else:
+                    err = max(err, abs(got - want[key]))
+            preflight["canonical_view_max_abs_error"] = max(
+                preflight["canonical_view_max_abs_error"], err
+            )
+
+        merged = dict(base_record)
+        merged[f"future_h{horizon}"] = arm_scen
+        result[node_id] = merged
+
+    if preflight["multi_scenario_rows"]:
+        raise ValueError("multi-scenario rows: %d" % preflight["multi_scenario_rows"])
+    if preflight["unupgraded_steps"]:
+        raise ValueError("unupgraded steps: %d" % preflight["unupgraded_steps"])
+    if preflight["nonresource_mismatch_count"]:
+        raise ValueError(
+            "resource-v2 pack disagrees with the base pack outside the runtime block: %d node(s)"
+            % preflight["nonresource_mismatch_count"]
+        )
+    if preflight["bin_schema_mismatch_count"]:
+        raise ValueError("steps carrying the wrong bin_schema_id: %d" % preflight["bin_schema_mismatch_count"])
+    if preflight["load_field_missing_count"]:
+        raise ValueError("steps missing a preserved load field: %d" % preflight["load_field_missing_count"])
+    if preflight["nan_prob_count"]:
+        raise ValueError("steps carrying non-finite probabilities: %d" % preflight["nan_prob_count"])
+    if preflight["prob_sum_max_abs_error"] > RESOURCE_V2_VIEW_TOLERANCE:
+        raise ValueError("runtime_probs do not sum to 1 (max err %.3e)" % preflight["prob_sum_max_abs_error"])
+    if preflight["canonical_view_max_abs_error"] > RESOURCE_V2_VIEW_TOLERANCE:
+        raise ValueError(
+            "canonical views disagree with runtime_probs (max err %.3e)"
+            % preflight["canonical_view_max_abs_error"]
+        )
+    return result, preflight
 
 
 def write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> None:
@@ -920,21 +1166,80 @@ def _mix_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[st
     return _step_estimate_cost(step, train_stats)
 
 
+def _legacy_p95_load_cost(step: Mapping[str, Any]) -> float:
+    """The frozen load surcharge: conditional p95 load on GPU steps at occ>=0.5.
+
+    Extracted verbatim from the original ``_q95_step_cost`` so that every
+    same-shape consumer shares one load rule.  The resource-v2 arms must not
+    change the load semantics at the same time as the runtime functional, or the
+    measured consumer effect would be confounded.
+    """
+
+    lane = text(step.get("execution_lane"), "unknown")
+    if lane != "gpu":
+        return 0.0
+    resource = step.get("resource") or {}
+    occurrence = resource.get("load_occurrence_probability")
+    duration = (resource.get("load_duration_ms_quantiles") or {}).get("p95")
+    if isinstance(occurrence, (int, float)) and isinstance(duration, (int, float)) and float(occurrence) >= 0.5:
+        return max(0.0, float(duration))
+    return 0.0
+
+
 def _q95_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[str, Any]]) -> float:
-    """CVaR-proxy step cost: predicted p95 runtime (+ conditional p95 load at occ>=0.5)."""
+    """Legacy risk score: predicted p95 runtime + the legacy p95 load surcharge.
+
+    This is the frozen champion consumer, not a CVaR and not runtime-only: the
+    load term is part of the definition and must stay that way.  A missing p95
+    falls back to the statistics estimate, which is why the resource-v2 arms are
+    deliberately fail-closed instead.
+    """
 
     resource = step.get("resource") or {}
     runtime = (resource.get("runtime_ms_quantiles") or {}).get("p95")
     if not (isinstance(runtime, (int, float)) and float(runtime) > 0.0):
         return _step_estimate_cost(step, train_stats)
-    lane = text(step.get("execution_lane"), "unknown")
-    load = 0.0
-    if lane == "gpu":
-        occurrence = resource.get("load_occurrence_probability")
-        duration = (resource.get("load_duration_ms_quantiles") or {}).get("p95")
-        if isinstance(occurrence, (int, float)) and isinstance(duration, (int, float)) and float(occurrence) >= 0.5:
-            load = max(0.0, float(duration))
-    return float(runtime) + load
+    return float(runtime) + _legacy_p95_load_cost(step)
+
+
+def _required_runtime_field(step: Mapping[str, Any], key: str, stat: str) -> float:
+    """Fail-closed read of a resource-v2 field.
+
+    The legacy consumer silently falls back to ``_step_estimate_cost`` when a
+    quantile is missing; an experimental arm must not do that, because a single
+    missing field would quietly turn it into a different consumer.  NaN and
+    negative values are errors too: they cannot be distinguished from a real
+    measurement once they enter a sum.
+    """
+
+    resource = step.get("resource") or {}
+    value = resource.get(key)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"{stat} consumer requires resource.{key}; got {value!r}")
+    value = float(value)
+    if value != value or value in (float("inf"), float("-inf")):
+        raise ValueError(f"{stat} consumer requires a finite resource.{key}; got {value!r}")
+    if value < 0.0:
+        raise ValueError(f"{stat} consumer requires a non-negative resource.{key}; got {value!r}")
+    return value
+
+
+def _mean_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[str, Any]]) -> float:
+    """Conditional-mean step cost: E[T | active] + the legacy p95 load surcharge."""
+
+    return _required_runtime_field(step, "runtime_mean_ms", "condmean") + _legacy_p95_load_cost(step)
+
+
+def _cvar95_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[str, Any]]) -> float:
+    """Marginal step CVaR95 of the discretised distribution + the legacy load.
+
+    This is ``sum_h CVaR_0.95(T_h)``, a sum of per-step marginal risk scores.  It
+    is NOT ``CVaR_0.95(sum_h T_h)``: the artifact carries per-step marginals only,
+    so no joint over the horizon exists and the total-runtime CVaR is simply not
+    identified.  Papers and reports must use the former phrasing.
+    """
+
+    return _required_runtime_field(step, "cvar95_ms", "stepcvar95") + _legacy_p95_load_cost(step)
 
 
 # Truth-same-consumer arms: identical current cost, chain, structure and key
@@ -945,8 +1250,12 @@ SAMESHAPE_POLICIES: tuple[str, ...] = (
     "sameshape_h5_p50",
     "sameshape_h5_p95",
     "sameshape_h5_truth",
+    # resource-v2 consumption functionals; same key shape and same load rule, only
+    # the runtime functional differs from sameshape_h5_p95
+    "sameshape_h5_condmean",
+    "sameshape_h5_stepcvar95",
 )
-_SAMESHAPE_PREDICTED_STATS = ("p50", "p95")
+_SAMESHAPE_PREDICTED_STATS = ("p50", "p95", "condmean", "stepcvar95")
 
 
 def sameshape_future_cost(
@@ -969,9 +1278,14 @@ def sameshape_future_cost(
     row = future_artifacts.get(str(node_id)) or {}
     scenarios = row.get(f"future_h{int(horizon)}") or []
     steps = (scenarios[0].get("steps") or []) if scenarios else []
+    window = steps[: int(horizon)]
     if stat == "p50":
-        return sum(_mix_step_cost(step, train_stats, 0.0) for step in steps[: int(horizon)])
-    return sum(_q95_step_cost(step, train_stats) for step in steps[: int(horizon)])
+        return sum(_mix_step_cost(step, train_stats, 0.0) for step in window)
+    if stat == "p95":
+        return sum(_q95_step_cost(step, train_stats) for step in window)
+    if stat == "condmean":
+        return sum(_mean_step_cost(step, train_stats) for step in window)
+    return sum(_cvar95_step_cost(step, train_stats) for step in window)
 
 
 def _risk_step_cost(step: Mapping[str, Any], train_stats: Mapping[str, Mapping[str, Any]]) -> float:

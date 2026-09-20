@@ -1,0 +1,48 @@
+{
+  "claim": "the scheduler consumes conservatism: a larger predicted future-cost score schedules better, independently of distributional accuracy",
+  "consumed_score_per_node_mean": {
+    "B2_stepcvar95": 48020.3,
+    "A0_j3_p95": 37885.1,
+    "A1_r1b_p95": 36559.9,
+    "A2_r3a_p95": 32702.3,
+    "B1_condmean": 15078.8
+  },
+  "scheduler_mean_completion_ms": {
+    "O": 84246.2,
+    "A0": 85789.2,
+    "B2": 86158.1,
+    "A1": 86585.8,
+    "B1": 86631.2,
+    "A2": 86880.6
+  },
+  "rank_by_consumed_score_desc": [
+    "B2",
+    "A0",
+    "A1",
+    "A2",
+    "B1"
+  ],
+  "rank_by_scheduler_mean_asc": [
+    "O",
+    "A0",
+    "B2",
+    "A1",
+    "B1",
+    "A2"
+  ],
+  "spearman_consumed_vs_completion_over_predicted_arms": -0.8,
+  "arm_ordering_of_the_three_p95_arms_exactly_predicted": true,
+  "cvar95_over_p95_within_r1b": {
+    "median": 1.323,
+    "p25": 1.254,
+    "p75": 1.433,
+    "fraction_of_nodes_above_1": 1.0
+  },
+  "condmean_over_p95_within_r1b": {
+    "median": 0.372,
+    "p25": 0.273,
+    "p75": 0.494,
+    "fraction_of_nodes_above_1": 0.015
+  },
+  "note": "B1 is the exception to a strict monotone relation: it is much less conservative (0.372x) yet still beats A1 slightly, so conservatism explains the ranking of the three p95 arms exactly and B2 over A1, but not the full five-arm ordering"
+}

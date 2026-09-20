@@ -291,6 +291,139 @@
         },
         "next_step": "300 paired-episode scheduler smoke: J3 vs R1b vs R3a-U, everything else locked, read the ORIGINAL scheduler objective plus decision disagreement / candidate-cost rank agreement / decision regret",
         "report": "experiments/EXP-20260919_j_series_resource_dist_v1/PHASE_R_ORIGINAL_METRIC_RECOMPUTE.md"
+      },
+      "smoke_preregistration_20260920": {
+        "status": "FROZEN_BEFORE_RESULTS",
+        "experiment_id": "EXP-20260920_resource_v2_scheduler_smoke_v1",
+        "question": "does a better runtime-distribution predictor (R1b) and/or a different risk consumption functional improve the v03 scheduler, and how much joint-future-truth headroom remains?",
+        "review": "docs/research/2026-09-20_fas_resource_v2_packer_review_gpt.md (commit 78f000a; Q2 a/b/c all VERIFIED; 5 P0 blocking the smoke)",
+        "non_inferiority_margin": {
+          "delta_ms": 485,
+          "ratio": 0.1,
+          "derivation": "0.1 x 4853 ms, where 4853 ms is the already-frozen Phase 20B dev700 benefit of the p95 policy over E0 (mean completion time)",
+          "governance": "INFERENCE, not a theorem; the 10 percent ratio was signed off by the project owner on 2026-09-20 BEFORE seeing any smoke result",
+          "rule_non_inferior": "CI_upper95(delta) < +485 ms",
+          "rule_material_improvement": "CI_upper95(delta) < 0 and point delta <= -485 ms",
+          "rule_saturated_against_O": "CI_upper95(A1-O) <= 485 ms -> remaining space against the joint-future-truth ceiling is below the pre-registered practical margin"
+        },
+        "arms": {
+          "A0": {
+            "predictor_artifact_id": "j3_seed11@<base_pack_sha256>",
+            "consumer_policy_id": "legacy_sum_q95_v1",
+            "simulator_policy": "sameshape_h5_p95"
+          },
+          "A1": {
+            "predictor_artifact_id": "r1b_seed11@<artifact_sha256>",
+            "consumer_policy_id": "legacy_sum_q95_v1",
+            "simulator_policy": "sameshape_h5_p95"
+          },
+          "A2": {
+            "predictor_artifact_id": "r3a_u_seed11@<artifact_sha256>",
+            "consumer_policy_id": "legacy_sum_q95_v1",
+            "simulator_policy": "sameshape_h5_p95",
+            "eligible_for_model_selection": false,
+            "role": "diagnostic_only",
+            "reason": "violates the original Phase-R calibration integrity gate (cov90 0.803); it may not become the winner even if it happens to score best"
+          },
+          "B1": {
+            "predictor_artifact_id": "same as A1",
+            "consumer_policy_id": "sum_conditional_runtime_mean_plus_legacy_load_v1",
+            "simulator_policy": "sameshape_h5_condmean"
+          },
+          "B2": {
+            "predictor_artifact_id": "same as A1",
+            "consumer_policy_id": "sum_marginal_step_cvar95_plus_legacy_load_v1",
+            "simulator_policy": "sameshape_h5_stepcvar95",
+            "drop_if": "the overflow-bin representative is not credible"
+          },
+          "O": {
+            "predictor_artifact_id": "oracle_truth_v03",
+            "consumer_policy_id": "samekey_true_future_h5_v1",
+            "simulator_policy": "sameshape_h5_truth",
+            "naming": "joint-future-truth headroom, NOT resource-head oracle (it also removes topology/length error)"
+          }
+        },
+        "contrasts": [
+          "A1-A0 predictor effect",
+          "A2-A1 extra unfreezing (diagnostic control)",
+          "B1-A1 mean vs legacy risk consumption",
+          "B2-A1 step-CVaR vs legacy risk consumption",
+          "A1-O remaining joint-future-information headroom"
+        ],
+        "episode_selection": {
+          "version": "resource_v2_smoke_v1",
+          "n": 300,
+          "rule": "2 episodes from each of the 135 cells (270) + a 3rd episode from 30 cells, chosen so that each arrival gets +10, each load +6, each GPU topology +10, each state/deadline +10; within a cell ordered by episode_id",
+          "marginals": {
+            "arrival": [
+              100,
+              100,
+              100
+            ],
+            "load": [
+              60,
+              60,
+              60,
+              60,
+              60
+            ],
+            "gpu_topology": [
+              100,
+              100,
+              100
+            ],
+            "state": [
+              100,
+              100,
+              100
+            ]
+          },
+          "forbidden": "taking validation_000000:000299 in order",
+          "freeze": "resource_v2_smoke_v1_episode_ids.txt + SHA256 recorded before the run"
+        },
+        "statistics": {
+          "design": "paired episode bootstrap",
+          "B": 2000,
+          "cluster": "episode_id"
+        },
+        "runner_requirement": "call simulate_episode(episode, templates, policy, future_artifacts=arm_artifacts, train_stats=..., collect_events=...) per episode x arm; do NOT call run() (it has no per-policy artifact binding)",
+        "preflight_all_must_pass": [
+          "anchor node set == base-pack node set",
+          "exactly one scenario per H5 row",
+          "every emitted step upgraded",
+          "no silent fallback",
+          "probs -> q50/q90/q95/mean/CVaR rederive match",
+          "non-resource fields unchanged",
+          "artifact/head/bin/base SHA frozen",
+          "overlay loader works",
+          "sameshape_h5_p95 regression test remains bit-for-bit identical"
+        ],
+        "blocking_p0": [
+          "pack_resource_v2_artifacts.py:209-218 silent continue/break -> fail-closed + post-conditions",
+          "workload_v02_simulator.py:158 load_future_artifacts requires H1/H3/H5 -> need load_resource_v2_overlay (do NOT copy H1/H3)",
+          "no post-pack validator",
+          "manifest lacks immutable artifact/head/base/bin SHA",
+          "new consumers must not change the load rule at the same time as the runtime rule"
+        ],
+        "consumer_specs": {
+          "refactor_first": "extract _legacy_p95_load_cost(step) from _q95_step_cost; the existing q95 arm is runtime_p95 + 1[GPU]*1[P(load)>=0.5]*load_p95, NOT runtime-only q95",
+          "B1": "sameshape_h5_condmean; C_h = E[T_h | active] + legacy p95 load; fail-closed (raise on missing/NaN/negative runtime_mean_ms, no fallback to _step_estimate_cost)",
+          "B2": "sameshape_h5_stepcvar95; C_h = CVaR95_disc(T_h | active) + legacy p95 load",
+          "stats_tuple": [
+            "p50",
+            "p95",
+            "condmean",
+            "stepcvar95"
+          ]
+        },
+        "naming_discipline": {
+          "B2_forbidden": "CVaR_0.95(sum_h T_h) -- we have no joint distribution",
+          "B2_required": "sum of marginal step-wise CVaR_0.95 scores under the discretized per-step predictive distributions",
+          "B2_extra_caveat": "CVaR of the discretized representative-valued predictive distribution, not the exact CVaR of the true continuous runtime distribution; the overflow bin has an infinite upper edge so the worst-case tail bias is unbounded (example: p_overflow=0.005, mu_overflow=30000 ms -> ~498 ms per-step underestimate)",
+          "O_required": "joint-future-truth headroom",
+          "O_forbidden": "resource-head oracle",
+          "sum_q95_required": "legacy scheduler risk score (never total-runtime q95)"
+        }
       }
     },
     "EXP-20260911_forecast_aware_scheduling": {
@@ -1893,5 +2026,5 @@
     "Add new experiments here before formal runs (gate + registration)."
   ],
   "schema": "experiment-gate-v1",
-  "updated_at": "2026-09-18"
+  "updated_at": "2026-09-20"
 }

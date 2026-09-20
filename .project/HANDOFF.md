@@ -1,6 +1,84 @@
 # Handoff
 
-**Last Updated:** 2026-09-18
+**Last Updated:** 2026-09-20
+
+## 当前状态（2026-09-20，权威）
+
+**阶段：Phase R 资源头 v2 → 6 臂调度 smoke 的「写代码」阶段。**
+
+- **Phase R 已完成并封存**：R1b（MLP + 16 格 mass-balanced 离散分布）在**原验收协议**下 pinball **−21.0%**、
+  校准同时改善；R3a-U pinball −23.6% 但**违反原 calibration integrity gate**（cov90 0.803）→ 只能作诊断臂。
+- **资源头 v2 artifact 打包器已写完并推送**：`scripts/pack_resource_v2_artifacts.py`，
+  提交 `78f000a`，实测每臂 9,575 节点 / 35,362 步 / 22 秒，已生成 `outputs/resource_v2_artifacts/{r1b,r3a_u}`。
+- **GPT 审查已完成（2026-09-20，Sol+High，思考 10m02s）**：
+  `docs/research/2026-09-20_fas_resource_v2_packer_review_gpt.md`
+  - 裁决：**地基正确，不需要返工 Phase R**；Q2(a) 受控对比 / Q2(b) res_hidden 重放等价性 /
+    Q2(c) probs-quantiles 不会新旧混用 —— **三项全部 VERIFIED**。
+  - 但 artifact 契约仍是「能用的研究脚本」，**未达 fail-closed 标准**：
+    **消费臂可以写，正式 300 集 smoke 不得启动**，直到 5 个 P0 修完。
+  - 三个最关键修复（都不是算法）：**严格完备性断言 / resource-v2 overlay loader / 打包后分布-视图不变性审计**。
+- **下一步（按序）**：
+  0. ~~用户签字冻结 NI margin~~ **已于 2026-09-20 冻结**：`δ_NI = 485 ms = 0.1 × 4853`
+     （4853 = Phase 20B 已冻结的 dev700 上 `p95 − E0`），落盘于
+     `.project/EXPERIMENT_GATE.json → ...smoke_preregistration_20260920`（`status = FROZEN_BEFORE_RESULTS`）。
+  1. ~~修 packer 的 P0-1 / P0-3 / P0-4~~ **已完成并实测通过**（2026-09-20）：
+     - P0-1 fail-closed：锚点/节点集不符、重复 node_id、scenario ≠ 1、step 多于预测槽位**全部 raise**；
+       收尾硬后置条件 `len(records) == len(rows) == len(base_pack)` 与 `steps_upgraded == base_step_count`。
+     - P0-3 post-pack validator：`validate_post_pack()` 复核节点集、scenario 数、每步是否升级、
+       `probs→各视图`重推导、非 resource 字段不变、bin_schema_id、load 字段未丢、无 NaN；
+       同时写 `resource_v2_validation.json`。
+     - P0-4 manifest 补不可变 SHA：`artifact_sha256` / `base_pack_sha256` / `bin_spec_sha256` /
+       `resource_head_sha256` / `producer_checkpoint_sha256` / `producer_commit_sha`，
+       另加 `resource_head_training` 溯源与 `consumer_compat`。
+     - **验证器抓到两个真实缺陷并已修**：① 打包器在 float32 上算视图（CVaR 跨界权重是近乎相消，
+       误差被放大到 6.99e-02）→ 改为全程 float64，视图误差现为 **0.0**；
+       ② r3a checkpoint 不带 bin spec → 改为**从权重推导维度契约**（`n_bins`/`hidden`/`in_dim`/
+       `res_hidden` 输出维度逐项交叉断言），比信任元数据更强。
+     - **实测四臂全绿**（各 9,575 节点 / 35,362 步）：`j3` 语义身份（逐记录深度相等）已断言；
+       `r1b` / `r3a_u` / `r3a_f` 均 `unupgraded=0`、`nonresource_mismatch=0`、`bin_schema_mismatch=0`、
+       `load_field_missing=0`、`nan_prob=0`、`canonical_view_max_abs_error=0.0`。
+  2. 写 **overlay loader**（P0-2）：`load_resource_v2_overlay(base_root, resource_v2_h5)`，
+     断言节点集相同、非 resource 内容与 base 一致、逐节点只替换 `future_h5`；**不要复制 H1/H3 文件**。
+  3. 写两个消费臂：`sameshape_h5_condmean`（`sum_conditional_runtime_mean_plus_legacy_load_v1`）与
+     `sameshape_h5_stepcvar95`（`sum_marginal_step_cvar95_plus_legacy_load_v1`）；
+     先抽出 `_legacy_p95_load_cost()`，且**不得同时改 load 规则**。
+  4. 写 300 集 runner（规格见 DECISIONS 2026-09-20）：135 cell × 2 + 30 extras，冻结 episode 清单 + SHA256；
+     逐 episode × arm 调 `simulate_episode(...)`；O 臂直接用**已有** `sameshape_h5_truth`
+     （命名 **joint-future-truth headroom**）。
+  5. 九个 preflight 全 PASS 后，才跑 300 × 6。
+
+## 2026-09-20 · resource-v2 6 臂调度 smoke（已跑完，结果与预期相反）
+
+**跑完**：300 集配对 × 6 臂，586 秒。产物 outputs/resource_v2_scheduler_smoke_v1/
+（per_episode.jsonl、contrasts.json、episode_selection.json、mechanism_conservatism.json）。
+清单冻结 SHA256 c98556c8…；边际**精确命中**预注册（arrival 100/100/100、load 60×5、gpu 100×100×100、state 100×100×100）。
+
+**主指标（mean_completion_ms，越低越好）**
+O 84246.2 < **A0 85789.2** < B2 86158.1 < A1 86585.8 < B1 86631.2 < A2 86880.6
+
+**预注册 contrasts（δ_NI = 485 ms）**
+
+| contrast | point | CI95 | 判定 |
+|---|---|---|---|
+| A1−A0（预测器效应） | **+796.6** | [471.0, 1104.7] | **显著更差**，且超过 +485 |
+| A2−A1（解冻附加） | +294.9 | [−18.1, 624.8] | inconclusive |
+| B1−A1（均值 vs 旧风险） | +45.4 | [−290.6, 394.3] | non_inferior |
+| B2−A1（CVaR vs 旧风险） | **−427.7** | [−687.7, −145.2] | non_inferior（未达 −485 的实质改进） |
+| O−A1（剩余 headroom） | **−2339.6** | [−2856.3, −1855.0] | material_improvement |
+
+**核心结论：更好的预测器（R1b）在原验收协议下 pinball −21%、校准同时改善，但在真实调度器上显著更差。**
+预测质量提升**没有**转化为调度收益。
+
+**机制（已量化，mechanism_conservatism.json）**：调度器实际消费的是**保守性**。
+按各臂真实喂给调度器的每节点未来成本分数排序：B2(CVaR95) 48020 > A0(J3 p95) 37885 >
+A1(R1b p95) 36560 > A2(R3a-U p95) 32702 > B1(condmean) 15079；
+三个 p95 臂的调度排序 **A0 < A1 < A2 被完全预测**（分数越大越好），
+Spearman(分数, 完成时间) = **−0.800**。
+R1b 的 p95 **比 J3 低 6.2%**（中位比 0.938），因为 J3 的 q95 是直接分位头、
+R1b 的 q95 由离散 CDF 反演取 bin 代表值 → **同一个消费规则看到系统性不同的数字**。
+CVaR95 在每个节点上都是 p95 的 1.32×（100% 节点），因此 B2 比 A1 更保守、调度更好。
+
+**不得写成**「R1b 预测更准」或「预测质量提升了调度」——两者都不成立。
 
 ## Goal
 

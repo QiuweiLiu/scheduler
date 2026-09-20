@@ -284,3 +284,64 @@
   - **禁止**在任何对外文本中写"预测器低估约 60%"。
   - 唯一真实残余：p50 覆盖率 R7 0.427 vs 域内 0.556（对应已知的 OOV 输入字段与栈分层）。
   - 产物：`outputs/a2a_jval_full5/`（J 验证集预测包）；门禁 `metric_audit_20260918`。
+
+## 2026-09-20 · resource-v2 artifact 契约审查（GPT，提交 78f000a）
+
+- **裁决**：地基正确（Q2(a)(b)(c) 全部 VERIFIED，无需返工 Phase R）；但 artifact 契约未达
+  fail-closed 标准，**正式 300 集 smoke 不得启动**，直到 P0 修完。
+- **P0（阻塞正式 smoke）**
+  1. pack_resource_v2_artifacts.py 的 missing-node / missing-scenario continue 与越界 reak 全部静默
+     → 改为 fail-closed 断言；收尾断言 written == len(rows) == len(base_pack) 且 steps_written == base_step_count。
+  2. workload_v02_simulator.py:158 的 load_future_artifacts() 强制要求 H1/H3/H5，
+     resource-v2 目录只有 H5 → 必须新增 **overlay loader**（读 base root + 单独读 H5，断言节点集相同、
+     非 resource 内容与 base 相同、每次只替换 future_h5），**不要复制 H1/H3 文件**。
+  3. 缺 **打包后 validator**：probs→q50/q90/q95/mean/CVaR 重推导一致、每个 step 都已升级、
+     无静默回退、非 resource 字段未变。
+  4. manifest 缺 immutable SHA（artifact/head/base/bin + producer commit），runner 无法真正冻结
+     predictor_artifact_id。
+  5. 新消费臂**不得同时**改 runtime 与 load 规则，否则 consumer effect 被混淆。
+- **Q3 消费臂规格（已定）**
+  - 先抽出 _legacy_p95_load_cost(step)，原 _q95_step_cost 重构为
+    
+untime_p95 + _legacy_p95_load_cost(step)（注意：现有 q95 臂**不只是 runtime q95**）。
+  - B1 sameshape_h5_condmean / consumer sum_conditional_runtime_mean_plus_legacy_load_v1，**fail-closed 不复用 fallback**。
+  - B2 sameshape_h5_stepcvar95 / consumer sum_marginal_step_cvar95_plus_legacy_load_v1。
+  - _SAMESHAPE_PREDICTED_STATS = (p50, p95, condmean, stepcvar95)。
+  - **论文措辞**：B2 必须写成「各预测未来步边际 CVaR95 的加和风险分数」，
+    **严禁**写成 CVaR_0.95(Σ_h T_h)（我们没有联合分布）。
+- **Q4 O 臂**：用仓库**已有**的 sameshape_h5_truth，不需新造 artifact；但必须命名为
+  **joint-future-truth headroom**，**不得**称为 resource-head oracle（它同时消除 runtime 误差与
+  topology/length 误差）。当前 artifact 不存在无歧义的 resource-only oracle 映射。
+- **Q5 runner 规格（已定）**
+  - 300 集 = 135 个 cell 各取 2（=270）+ 30 个 cell 各加 1；30 个 extras 需满足
+    arrival 各 +10、load 各 +6、GPU topology 各 +10、state/deadline 各 +10；cell 内按 episode_id 排序。
+    最终边际：arrival 100/100/100，load 60×5，GPU 100/100/100，state 100/100/100。
+    **禁止**直接取 alidation_000000:000299。选出 
+esource_v2_smoke_v1_episode_ids.txt 后**永久冻结并记 SHA256**。
+  - 不要调 
+un(...)（无 per-policy artifact binding）；逐 episode × arm 调用 simulate_episode(...)，天然 paired。
+  - **NI margin δ = 485 ms = 0.1 × 4853**，其中 4853 ms 来自 Phase 20B 已冻结的 p95 − E0（dev700）。
+    **这是一项治理选择，需项目负责人在跑 300 集之前签字冻结 10% 比例。**
+  - A2（R3a-U）已违反原 calibration integrity gate → 必须标
+    eligible_for_model_selection = false、
+ole = diagnostic_only；即使 scheduler 偶然最好也不得成为最终 winner。
+  - **启动前必须全部 PASS**：节点集一致 / 每行恰好一个 scenario / 每个 step 都已升级 / 无静默回退 /
+    probs→各视图重推导一致 / 非 resource 字段未变 / artifact-head-bin-base SHA 冻结 /
+    overlay loader 可用 / sameshape_h5_p95 回归测试逐位不变。
+
+## 2026-09-20 · 用户签字冻结：6 臂 smoke 的 NI margin
+
+- **决定**：接受 GPT 提议，δ_NI = 485 ms = 0.1 x 4853 ms。
+- **来源**：4853 ms 是 **Phase 20B 已冻结**的 dev700 上 p95 − E0（平均完成时间），
+  **完全来自本次 Phase R 之前的数据**。
+- **签字时点**：2026-09-20，**在任何 smoke 结果产生之前**。用户原话：就按照这个吧。
+- **判据（预注册）**：
+  - 非劣：CI_upper95(Δ) < +485 ms
+  - 实质改进：CI_upper95(Δ) < 0 且 Δ ≤ −485 ms
+  - 相对 O 饱和：CI_upper95(A1 − O) ≤ 485 ms
+- **性质**：治理选择（INFERENCE），不是数学定理；10% 这个比例是人为约定，论文中必须如实标注。
+- **落盘位置**：.project/EXPERIMENT_GATE.json
+  → experiments.EXP-20260919_j_series_resource_dist_v1.smoke_preregistration_20260920（status = FROZEN_BEFORE_RESULTS），
+  其中同时冻结了 6 臂的 immutable identity、contrasts、300 集抽样规则、统计设计（paired bootstrap B=2000）、
+  9 条 preflight 与 5 个阻塞 P0。
+- **纪律**：此后**不得**再改 δ、抽样规则或 contrasts；任何修改都必须作为新的 amendment 并显式声明未失效的部分。
