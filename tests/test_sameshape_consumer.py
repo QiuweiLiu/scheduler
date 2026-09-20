@@ -157,6 +157,16 @@ TEST_EDGES = (0.0, 1000.0, 5000.0)
 TEST_REPS = (1.0, 3000.0, 25000.0)
 
 
+def _sha256_file(path):
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def views_for(probs):
     from tracing.analysis.workload_v02_simulator import _resource_v2_views
 
@@ -343,8 +353,9 @@ class ResourceV2OverlayTests(unittest.TestCase):
         manifest = {
             "schema_version": "resource-v2-artifact-manifest-v2",
             "artifact_id": "resource_v2_test",
-            "artifact_sha256": "deadbeef",
-            "base_pack_sha256": "cafef00d",
+            # real digests: the loader recomputes both and refuses on mismatch (P0-3)
+            "artifact_sha256": _sha256_file(self.arm_root / "b05_future_h5.jsonl.gz"),
+            "base_pack_sha256": _sha256_file(self.base_root / "b05_future_h5.jsonl.gz"),
             "producer_checkpoint_sha256": "0" * 64,
             "resource_head_id": "test_seed11",
             "bin_schema_id": "test_3",
@@ -421,6 +432,43 @@ class ResourceV2OverlayTests(unittest.TestCase):
         self.write_gz(path, rows)
         with self.assertRaises(ValueError):
             self.load()
+
+    def test_manifest_sha_mismatch_raises(self) -> None:
+        """P0-3: the loader must recompute the digests, not trust the manifest."""
+
+        import json
+
+        path = self.arm_root / "resource_v2_manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["artifact_sha256"] = "0" * 64
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            self.load()
+
+    def test_base_pack_sha_mismatch_raises(self) -> None:
+        import json
+
+        path = self.arm_root / "resource_v2_manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["base_pack_sha256"] = "0" * 64
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            self.load()
+
+    def test_out_of_range_probability_raises(self) -> None:
+        """P0-2: bool and out-of-range values must not slip through."""
+
+        import gzip
+        import json
+
+        for bad in (1.5, -0.1, True):
+            self.write_packs()
+            path = self.arm_root / "b05_future_h5.jsonl.gz"
+            rows = [json.loads(line) for line in gzip.open(path, "rt", encoding="utf-8")]
+            rows[0]["future_h5"][0]["steps"][0]["resource"]["runtime_probs"][0] = bad
+            self.write_gz(path, rows)
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                self.load()
 
 
 if __name__ == "__main__":

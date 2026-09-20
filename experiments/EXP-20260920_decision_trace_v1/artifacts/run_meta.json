@@ -1,0 +1,61 @@
+{
+  "experiment_id": "EXP-20260920_resource_v2_decision_trace_v1",
+  "trajectory_policy": "sameshape_h5_p95",
+  "episodes": 300,
+  "wall_seconds": 317.5,
+  "trace": {
+    "path": "F:\\scheduler\\outputs\\resource_v2_decision_trace\\decision_trace_v1.jsonl.gz",
+    "decisions": 72773,
+    "candidates": 291285,
+    "chosen_sequence_sha256": "0fe1bd4d6e58dfd55d6fe8585baf7ac9b864698728446795187627ef4906af22"
+  },
+  "methods": [
+    {
+      "method_id": "j3_q95_v1",
+      "consumer_policy_id": "legacy_sum_q95_v1",
+      "predictor_artifact_id": "j3_seed11"
+    },
+    {
+      "method_id": "r1b_q95_v1",
+      "consumer_policy_id": "legacy_sum_q95_v1",
+      "predictor_artifact_id": "resource_v2_r1b_seed11"
+    },
+    {
+      "method_id": "r1b_mean_v1",
+      "consumer_policy_id": "sum_conditional_runtime_mean_plus_legacy_load_v1",
+      "predictor_artifact_id": "resource_v2_r1b_seed11"
+    },
+    {
+      "method_id": "r1b_stepcvar95_v1",
+      "consumer_policy_id": "sum_marginal_step_cvar95_plus_legacy_load_v1",
+      "predictor_artifact_id": "resource_v2_r1b_seed11"
+    },
+    {
+      "method_id": "attr_argmax_stats_v1",
+      "consumer_policy_id": "legacy_argmax_point_stats_v1",
+      "predictor_artifact_id": "attribute_argmax_stats"
+    },
+    {
+      "method_id": "attrmix_stats_atom_v1",
+      "consumer_policy_id": "sum_attribute_mixture_atom_mean_plus_legacy_load_v1",
+      "predictor_artifact_id": "attribute_stats_mixture_atom"
+    },
+    {
+      "method_id": "attrmix_stats_hist16_v1",
+      "consumer_policy_id": "sum_attribute_mixture_hist16_plus_legacy_load_v1",
+      "predictor_artifact_id": "attribute_stats_mixture_hist16"
+    },
+    {
+      "method_id": "truth_h5_v1",
+      "consumer_policy_id": "samekey_true_future_h5_v1",
+      "predictor_artifact_id": "oracle_truth_v03"
+    }
+  ],
+  "cost_semantics": "legacy_runtime_plus_load_no_eviction_v1",
+  "templates_sha256": "94c6036ef2bd8b6a82feba23b9959f0d7cfc5206bb41e72b80a47aecac9e296b",
+  "episodes_sha256": "d3080a015be297a9830a97dfbfeb9170fb51f9599339f70fe77d10211bd00eea",
+  "stats_bank_sha256": "9635e3d8b0d4babf90ce23f9440b3a9d1bbec8a5ac98f299e590d7804e1f1c57",
+  "base_pack_sha256": "37163d3ba59c3e6489ffcd2d24870ea49efab4bbb18300fe70724b199702a528",
+  "r1b_pack_sha256": "7d45f2f7e4801f82237050dbaf82455fd02380997e274834bf52960ebcc1e622",
+  "bins_sha256": "f781a7f3aa5caa261e28bf7bdf3602fcc34b3d82300d5b857e8f98ddd1b14b4a"
+}

@@ -397,31 +397,69 @@ def report(
         deltas = [a[k] - b_series[k] for k in shared]
         stats = bootstrap_ci(deltas)
         stats["label"] = label
+        # the old rule had no way to say "worse", so a clearly harmful arm came out
+        # as merely "inconclusive"
         stats["verdict"] = (
             "material_improvement" if stats["ci_high"] < 0.0 and stats["point"] <= -margin
             else "non_inferior" if stats["ci_high"] < margin
+            else "materially_inferior" if stats["ci_low"] > margin
+            else "statistically_worse" if stats["ci_low"] > 0.0
             else "inconclusive"
         )
         result["contrasts"]["%s-%s" % (left, right)] = stats
 
+    # P0-5: every arm must be measured on exactly the same episode set.  The old
+    # code intersected the two episode sets, so an arm that silently ran fewer
+    # episodes shrank the paired sample instead of failing.
+    expected = None
+    for arm, rows in per_arm.items():
+        ids = {str(r["episode_id"]) for r in rows}
+        if expected is None:
+            expected = ids
+            expected_arm = arm
+        elif ids != expected:
+            raise SystemExit(
+                "arm %s covers %d episodes but arm %s covers %d; missing=%s extra=%s"
+                % (arm, len(ids), expected_arm, len(expected),
+                   sorted(expected - ids)[:3], sorted(ids - expected)[:3])
+            )
+    if expected is None:
+        raise SystemExit("no arms to compare")
+    reference_count = len(expected)
+    for arm, rows in per_arm.items():
+        if len(rows) != reference_count:
+            raise SystemExit(
+                "arm %s has %d rows for %d episodes (duplicate episode_id?)"
+                % (arm, len(rows), reference_count)
+            )
+
+    def paired(left: str, right: str, label: str, **extra: Any) -> Dict[str, Any]:
+        a, b_series = series(left), series(right)
+        if set(a) != set(b_series):
+            raise SystemExit("%s and %s do not cover the same episodes" % (left, right))
+        keys = sorted(a)
+        deltas = [a[k] - b_series[k] for k in keys]
+        for k in keys:
+            if not (a[k] == a[k]) or not (b_series[k] == b_series[k]):
+                raise SystemExit("non-finite primary metric on episode %s" % k)
+        stats = bootstrap_ci(deltas)
+        stats["label"] = label
+        stats.update(extra)
+        return stats
+
+    # P0-4: this used to overwrite the pre-registered A1-A0 entry written by the
+    # CONTRASTS loop above, which is why contrasts.json lost its verdict.
     for arm in ("A1", "A2", "B1", "B2"):
-        if arm in per_arm and arm != "A0":
-            key = "%s-A0" % arm
-            a, b_series = series(arm), series("A0")
-            shared = sorted(set(a) & set(b_series))
-            deltas = [a[k] - b_series[k] for k in shared]
-            stats = bootstrap_ci(deltas)
-            stats["label"] = "%s vs the frozen champion" % arm
-            result["contrasts"][key] = stats
+        if arm in per_arm and arm != "A0" and "%s-A0" % arm not in result["contrasts"]:
+            result["contrasts"]["%s-A0" % arm] = paired(
+                arm, "A0", "%s vs the frozen champion" % arm
+            )
 
     if "O" in per_arm and "A1" in per_arm:
-        a, b_series = series("A1"), series("O")
-        shared = sorted(set(a) & set(b_series))
-        deltas = [a[k] - b_series[k] for k in shared]
-        stats = bootstrap_ci(deltas)
-        stats["label"] = "A1 vs joint-future-truth ceiling"
+        stats = paired("A1", "O", "A1 vs joint-future-truth reference")
         stats["practically_saturated"] = stats["ci_high"] <= margin
         result["contrasts"]["A1-O"] = stats
+    result["paired_episode_count"] = reference_count
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "contrasts.json").write_text(

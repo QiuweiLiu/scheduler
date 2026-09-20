@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import copy
 import gzip
+import hashlib
 import heapq
 import json
 import math
@@ -269,6 +270,14 @@ def _strip_resource_v2_keys(record: Mapping[str, Any], horizon: int) -> list[Any
     return clone
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def load_resource_v2_overlay(
     base_root: Path, arm_root: Path
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
@@ -326,7 +335,30 @@ def load_resource_v2_overlay(
         "bin_schema_mismatch_count": 0,
         "load_field_missing_count": 0,
         "nan_prob_count": 0,
+        "out_of_range_prob_count": 0,
     }
+
+    # the manifest is the artifact's identity: verify it against the bytes on disk
+    # instead of trusting the numbers it carries
+    declared_artifact = manifest.get("artifact_sha256")
+    actual_artifact = _sha256_file(overlay_path)
+    preflight["artifact_sha256_recomputed"] = actual_artifact
+    preflight["artifact_sha256_match"] = (declared_artifact == actual_artifact)
+    if declared_artifact and declared_artifact != actual_artifact:
+        raise ValueError(
+            "resource-v2 pack sha256 mismatch: manifest=%s disk=%s"
+            % (declared_artifact, actual_artifact)
+        )
+    base_h5 = base_root / "b05_future_h5.jsonl.gz"
+    if base_h5.is_file():
+        declared_base = manifest.get("base_pack_sha256")
+        actual_base = _sha256_file(base_h5)
+        preflight["base_pack_sha256_recomputed"] = actual_base
+        preflight["base_pack_sha256_match"] = (declared_base == actual_base)
+        if declared_base and declared_base != actual_base:
+            raise ValueError(
+                "base pack sha256 mismatch: manifest=%s disk=%s" % (declared_base, actual_base)
+            )
 
     missing = sorted(set(base) - set(overlay))
     extra = sorted(set(overlay) - set(base))
@@ -377,8 +409,13 @@ def load_resource_v2_overlay(
             if not isinstance(probs, list) or len(probs) != len(reps):
                 preflight["unupgraded_steps"] += 1
                 continue
-            if not all(isinstance(p, (int, float)) for p in probs):
+            # bool is a subclass of int in Python, and NaN/Inf compare false against
+            # every bound, so the earlier isinstance-only check let all three through.
+            if any(isinstance(p, bool) or not isinstance(p, (int, float)) for p in probs):
                 preflight["nan_prob_count"] += 1
+                continue
+            if any(not (0.0 <= float(p) <= 1.0) for p in probs):
+                preflight["out_of_range_prob_count"] += 1
                 continue
             total = sum(float(p) for p in probs)
             preflight["prob_sum_max_abs_error"] = max(
@@ -424,6 +461,10 @@ def load_resource_v2_overlay(
         raise ValueError("steps missing a preserved load field: %d" % preflight["load_field_missing_count"])
     if preflight["nan_prob_count"]:
         raise ValueError("steps carrying non-finite probabilities: %d" % preflight["nan_prob_count"])
+    if preflight["out_of_range_prob_count"]:
+        raise ValueError(
+            "steps carrying probabilities outside [0, 1]: %d" % preflight["out_of_range_prob_count"]
+        )
     if preflight["prob_sum_max_abs_error"] > RESOURCE_V2_VIEW_TOLERANCE:
         raise ValueError("runtime_probs do not sum to 1 (max err %.3e)" % preflight["prob_sum_max_abs_error"])
     if preflight["canonical_view_max_abs_error"] > RESOURCE_V2_VIEW_TOLERANCE:
@@ -1061,6 +1102,31 @@ def set_artifact_context(value: str) -> None:
 def set_train_stats_context(value: str) -> None:
     global _STATS_CONTEXT
     _STATS_CONTEXT = str(value)
+
+
+# --------------------------------------------------------------------------- #
+# Decision tracing (opt-in, shadow-only)
+#
+# When a trace is registered the same-shape branch additionally scores the whole
+# candidate pool with every registered shadow method and writes one record per
+# decision state.  The live decision is unchanged: the trace only observes.
+_DECISION_TRACE: dict[str, Any] = {"writer": None, "methods": (), "truth": None}
+
+
+def set_decision_trace(
+    writer: Any = None,
+    methods: Sequence[Any] = (),
+    truth_cost: Any = None,
+) -> None:
+    """Register (or clear) the decision tracer for the current process."""
+
+    _DECISION_TRACE["writer"] = writer
+    _DECISION_TRACE["methods"] = tuple(methods)
+    _DECISION_TRACE["truth"] = truth_cost
+
+
+def decision_trace_active() -> bool:
+    return _DECISION_TRACE["writer"] is not None
 
 
 def lookup_path_report() -> dict[str, int]:
@@ -3036,6 +3102,70 @@ def choose_action(
             )
 
         chosen = min(pool, key=sameshape_score)
+
+        if _DECISION_TRACE["writer"] is not None:
+            from tracing.analysis import decision_trace as _dt
+
+            views = []
+            owners = {}
+            for candidate in pool:
+                item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+                resident = model_id in gpu.resident
+                cid = _dt.candidate_id(
+                    jobs[job_index].job_instance_id, str(node_id), int(gpu.index)
+                )
+                owners[cid] = (jobs[job_index], gpu)
+                views.append(
+                    _dt.CandidateView(
+                        candidate_id=cid,
+                        job_instance_id=jobs[job_index].job_instance_id,
+                        node_id=str(node_id),
+                        model_id=str(model_id),
+                        gpu_index=int(gpu.index),
+                        priority=float(item[0]),
+                        model_resident=bool(resident),
+                        current_runtime_p50_ms=float(estimate_row["runtime_p50_ms"]),
+                        current_load_ms=0.0 if resident else float(estimate_row["load_p50_ms"]),
+                        legacy_tiebreak_1=float(item[1]),
+                        legacy_tiebreak_2=item[2],
+                        legacy_tiebreak_3=item[3],
+                    )
+                )
+
+            def _truth(view: Any, _owners: dict = owners) -> float:
+                job, gpu = _owners[view.candidate_id]
+                return limited_future_truth_cost(job, view.node_id, gpu, train_stats, horizon)
+
+            item, job_index, node_id, model_id, gpu, _estimate_row, _fit = chosen
+            chosen_id = _dt.candidate_id(
+                jobs[job_index].job_instance_id, str(node_id), int(gpu.index)
+            )
+            context = _dt.DecisionContext(
+                episode_id=str(_DECISION_TRACE.get("episode_id") or "unknown"),
+                decision_index=int(_DECISION_TRACE.get("index", 0)),
+                time_ms=float(decision_time_ms),
+                trajectory_policy_id=str(policy),
+                candidates=views,
+                truth_future_cost=(_truth if _DECISION_TRACE["truth"] is not None else None),
+            )
+            scored = _dt.score_decision(context, _DECISION_TRACE["methods"])
+            _DECISION_TRACE["index"] = int(_DECISION_TRACE.get("index", 0)) + 1
+            _DECISION_TRACE["writer"].write(
+                {
+                    "schema_version": _dt.SCHEMA_VERSION,
+                    "episode_id": context.episode_id,
+                    "decision_id": context.decision_index,
+                    "time_ms": context.time_ms,
+                    "trajectory_policy_id": context.trajectory_policy_id,
+                    "cost_semantics": _dt.COST_SEMANTICS,
+                    "competitive_priority": scored["competitive_priority"],
+                    "competitive_candidate_count": scored["competitive_candidate_count"],
+                    "candidate_count": len(views),
+                    "actual_choice": {"candidate_id": chosen_id},
+                    "method_timings": scored["method_timings"],
+                    "candidates": scored["candidate_records"],
+                }
+            )
     elif policy == "predopt_h5_risk":
         if future_artifacts is None:
             raise ValueError(f"{policy} requires finite-horizon artifacts")
@@ -3684,6 +3814,10 @@ def simulate_episode(
     if policy_context is None and (policy.startswith("pred_mpc_h") or policy == "risk_aware"):
         policy_context = {}
     jobs = build_jobs(episode, templates)
+    if _DECISION_TRACE["writer"] is not None:
+        # choose_action has no access to the episode record, so publish the id here
+        _DECISION_TRACE["episode_id"] = str(episode["episode_id"])
+        _DECISION_TRACE["index"] = 0
     train_stats = train_stats if train_stats is not None else train_resource_stats(templates)
     future_provider = future_provider or FutureProvider("none")
     truth_rows = {

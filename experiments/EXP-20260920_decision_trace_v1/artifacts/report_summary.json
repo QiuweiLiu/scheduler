@@ -1,0 +1,35 @@
+{
+  "decisions": 72773,
+  "method_ids": [
+    "attr_argmax_stats_v1",
+    "attrmix_stats_atom_v1",
+    "attrmix_stats_hist16_v1",
+    "j3_q95_v1",
+    "r1b_mean_v1",
+    "r1b_q95_v1",
+    "r1b_stepcvar95_v1",
+    "truth_h5_v1"
+  ],
+  "observability_gates": {
+    "episodes_traced": 300,
+    "missing_decisions": 0,
+    "missing_candidates": 0,
+    "duplicate_candidate_ids": 0,
+    "non_finite_scores": 0,
+    "malformed_scheduler_keys": 0,
+    "identical_candidate_sets": 0,
+    "timing_fields_valid": 0
+  },
+  "top1_agreement_with_truth": {
+    "attr_argmax_stats_v1": 0.41030327181784454,
+    "attrmix_stats_atom_v1": 0.4100696686958075,
+    "attrmix_stats_hist16_v1": 0.411361356547071,
+    "j3_q95_v1": 0.47157599659214267,
+    "r1b_mean_v1": 0.46513129869594494,
+    "r1b_q95_v1": 0.39331895070974127,
+    "r1b_stepcvar95_v1": 0.3867093564921056,
+    "truth_h5_v1": 0.0
+  },
+  "j3_vs_r1b_top1_disagreements": 11209,
+  "j3_vs_r1b_disagreement_rate": 0.1540269055831146
+}

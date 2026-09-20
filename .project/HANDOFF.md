@@ -80,6 +80,167 @@ CVaR95 在每个节点上都是 p95 的 1.32×（100% 节点），因此 B2 比 
 
 **不得写成**「R1b 预测更准」或「预测质量提升了调度」——两者都不成立。
 
+## 2026-09-20 - 推送 eb88a7b + GPT 审查受阻
+
+- **已推送 `eb88a7b`**：resource-v2 六臂 smoke 的全部实现代码、测试、结果与报告（仓库 170.0 MB / 1,035 文件）。
+- **审查状态：未完成**。GPT 明确声明其检索拿不到 `QiuweiLiu/scheduler@eb88a7b`（返回的是别的同名项目），
+  **拒绝在未读文件的情况下伪造行级结论**，要求上传文件或提供 `git show` 补丁。
+  已构建审查包 `.scratch/review_bundle_eb88a7b.md`（129 KB，内联全部指定文件 + 模拟器 diff + 数据）；
+  bridge `upload` 报 `upload_already_present` 但 CDP 复核 `attachment_nodes = 0`，
+  随后宣告附件就绪的跟进消息**未成功提交**（send 再被 MCP 超时打断）。
+  **=> 下一步必须先解决文件投递（重试 upload，或把审查包分段内联粘贴）。**
+- **GPT 的重要预判（显式声明非代码审查结论）**：我的"调度器消费保守性"表述**大概率要改写** ——
+  因为 p95 是 A0>A1>A2 而 **p90 是 A1>A0>A2**，"R1b 更不保守"解释不了 p90 变大。
+  它建议改为：**调度器消费的是预测分布经 consumer function 映射后的排序信号**
+  （`score_i = f(pred_i)`，而非 `d(pred_i, P_i)`）；pinball/NLL 优化分布距离，
+  而调度器需要决策分数的**排序质量** -> 可引出 decision-focused / ranking / regret-aware。
+  它要求用数据判别 `mechanism_conservatism.json` 到底证明的是
+  **(1) scale 改变 / (2) pairwise ordering 改变 / (3) calibration 改变 / (4) 单纯数值变化**。
+- **用户已决定**：不管审查结果如何，**都要先整体解冻预测器重训一次**。
+  因此下一步顺序 = (1) 打通审查投递并拿到 Q1-Q6 -> (2) 按审查修代码 ->
+  (3) 写整体解冻训练代码（训练目标待 GPT 的 Q4 建议）-> (4) 训练 -> (5) 回看调度器。
+  注意：本次 smoke 已证明**预测指标改善不代表调度改善**，所以解冻重训的**成功判据必须与调度结果挂钩**。
+
+## 2026-09-20 - GPT 审查 eb88a7b（已完成，13/13 文件读到）
+
+归档：`docs/research/2026-09-20_fas_smoke_review_gpt.md`。
+它独立下载了完整 1,800 行 `per_episode.jsonl` 并复算：A1−A0 +796.5545 / B2−A1 −427.6650 / O−A1 −2339.6176，与仓库一致。
+
+### 一句话结论
+本次**没有**证明"越保守越好"，而是证明：**提高概率预测质量不足以保证下游收益** ——
+predictor replacement 同时改变了 scheduler 消费的 future-cost statistic 的
+**尺度、当前/未来相对权重、局部候选排序**。下一轮应**保留 calibrated distribution 目标** +
+**显式学习 decision-aligned scheduler score**，以**真实调度结果**为最终 gate。
+
+### Q1 代码：5 个新 P0（全部阻塞下一轮）
+1. `pack_resource_v2_artifacts.py:393-397` —— `max(0.0, nan)` 会**静默吞掉**缺失/NaN 的 canonical view。
+2. `workload_v02_simulator.py:380-383` —— overlay 的 probs 检查允许 NaN/Inf/bool/负值部分漏过。
+3. `workload_v02_simulator.py:310-313` —— loader 只读 manifest 里的 SHA，**没有现场重算** artifact/base SHA。
+4. `resource_v2_scheduler_smoke.py:392-415` —— 第二轮 `A1-A0` 写入**覆盖**第一轮，导致正式 verdict 丢失
+   （这就是 `contrasts.json` 里 A1-A0 没有 verdict 的原因）。
+5. `resource_v2_scheduler_smoke.py:364-415` —— pairing 用 episode set 交集，**某臂少 episode 会静默缩样本**。
+- **Q1(a) 两套 validator 确实分歧（VERIFIED）**：存在 `validate_post_pack PASS → load_resource_v2_overlay FAIL`
+  的理论路径。它要求抽出公共的 `validate_resource_v2_step()` / `validate_resource_v2_record()`，两者调同一实现。
+- Q1(b) `_required_runtime_field()` **实现正确**（0 ✅ / int ✅ / bool ❌ / NaN,Inf ❌ / 负 ❌），建议补 0 与 int 的测试。
+- Q1(c) bootstrap 核心正确；verdict 缺 `materially_inferior` / `statistically_worse` 分支；
+  `prob_le_zero` 应改名 `bootstrap_fraction_mean_le_zero`。
+  **措辞红线**：可以写"A1 显著差于 A0、点估计 +796.6 超过 485、不满足 non-inferiority"；
+  **不能**写"95% 置信下退化幅度超过 485 ms"（因为 CI_low = 471 < 485）。
+- Q1(d) `balanced_extra_cells()` 对 v03 **验证成立**；但 `n_extra` 参数没真正传进构造（P1 API bug）。
+
+### Q2 机制：我的"保守性"表述**过强**（INFERENCE）
+- (1) score scale/distribution 改变：**VERIFIED**。R1b/J3 p95 ratio 中位 0.938，但 **p10 0.775 / p90 1.444，
+  仅 61.5% 节点 <1** → 是**异质性变换**，**不是**统一降低保守性。
+- (2) pairwise ordering 是否改变：**UNVERIFIED** —— `mechanism_conservatism.json` 没测
+  同一 decision state 内的 Kendall τ / flip rate / top-1 disagreement / margin crossing。
+- (3) calibration 改善：VERIFIED，但 scheduler **不直接读** calibration。
+- (4) "越保守越好"作为一般规律：**被数据否定** —— B1 是反例（0.372× 却略优于 A1）。
+- **决定性新证据**：它从 1,800 行重算三个 p95 臂的 episode 级排序，**六种 permutation 全都出现**
+  （A0<A1<A2 83 / A0<A2<A1 69 / A1<A0<A2 49 / A1<A2<A0 32 / A2<A0<A1 32 / A2<A1<A0 35）。
+  所以 **Spearman −0.8 只是 5 个 arm 均值上的描述性相关**，不是 episode 级机制。
+- **更准确的机制**：决策 key 含 `current + future, future, ...`（`workload_v02_simulator.py:3017-3038`），
+  future score 从 15k→36k→48k 改变的是 **future cost 相对 current cost 的隐式权重**。
+- **它给的论文级表述**（英文/中文均已给出，可直接用）："prediction-consumption mismatch" ——
+  尤其是 **被消费的决策统计量的尺度与局部排序几何**的错位，
+  **不是**"更保守的预测对调度更好"。
+
+### Q3 A1−A0 的正确定性
+**可以**叫 `predictor replacement effect`（scheduler 代码/consumer ID/workload/load 规则全同，只换 artifact）；
+**不能**叫 `prediction-quality effect`（替换同时改变了参数化、分位提取、marginal scale、局部排序、不确定性形状）。
+- **零训练最小机制实验**（它推荐，先别动模型）：记录每个 decision 的
+  `candidate_node_ids / A0_current,future,total / A1_current,future,total / chosen_A0,A1 / truth_future_cost`，
+  算 within-decision `Kendall τ`、`pairwise_flip_rate`、`top1_disagreement_rate`、`margin_crossing_rate`、
+  score-ratio 分布、decision disagreement → downstream delta。
+- **分离 scale 与 ordering 的诊断**：单调分位映射 `g = F_J3^{-1} ∘ F_R1b`，把 R1b 的 marginal score 分布对齐到 J3
+  但**保持其 ranking 不变**（g 单调）。比较 A0 / A1 / **A1-M**：
+  若 A1-M ≈ A0 → **scale 是主因**；若 A1-M ≈ A1 → **局部排序几何是主因**。
+  仅作机制诊断，**不是**部署校正，也**不是**"p50 乘系数"。
+
+### Q4 整体解冻重训（它给了完整可执行方案）
+- **(a) pinball/NLL 没有被否定**（VERIFIED）：被否定的只是"predictive score 更好 ⇒ scheduler 自动更好"。
+  R1b 的 RuntimeQScore −21% / calibration / log-MAE 改善都是**真实进展**，完整分布仍应用 proper loss 训练。
+- **(b) 不建议**把 Σq95 / ΣCVaR95 当唯一目标 —— 会让分布不再 calibrated，损失 Phase R 最有价值的成果。
+- **(c) 它推荐的做法**：把"概率预测"与"调度消费量"**拆开** ——
+  - 保留 `P(T_h|x)` 作为 calibrated distribution，`L_dist = NLL + 0.5·RPS + 0.25·pseudoHuber(mean) + 0.25·bandCE`（不变）
+  - **新增 scheduler-facing head** `scheduler_runtime_score_ms ≥ 0`（明确不叫 q95/CVaR/mean），
+    `S_j = Σ_h s^sched_{j,h} + legacy load`
+  - `L_horizon = SmoothL1[log(1+Ŝ_j), log(1+S*_j)]`，权重 0.25（解决"单步不错但聚合尺度不对"）
+  - `L_decision` = **decision-state 内**的 pairwise ranking（logistic），
+    `w_ij` 用真实 cost gap 加权（近乎 tie 的候选权重低），权重 0.25
+    —— 与之前被降级的 **global Spearman 完全不同**：这里问的是"scheduler 正在多选一时有没有把更便宜的排前面"
+  - 三项先除以 **train-only** moving mean 归一化
+- **数据纪律（重要）**：**不能**用这 300 集 smoke episode 构造 decision loss（已经看过结果并据此设计 loss）。
+  必须来自 scheduler train/dev-training split，或按冻结的 v03 generator **新生成 train-only episodes**。**J test 继续封存。**
+- **现在就该冻结的预注册成功门**：
+  - Prediction integrity：`RuntimeQScore < 845.0`（不得退回 J3 以下）、`calibration error ≤ 0.0501`、`quantile crossing = 0`
+  - Dev scheduler gate：consumer 冻结为 `sum_scheduler_runtime_score_v1`，primary 仍 `mean_completion_ms`，
+    δ_NI = 485 ms；viability `CI_high < +485`；strong `CI_high < 0` **且** `point ≤ −485`
+  - Final test gate：全部锁死 → 只留一个 winner → **打开 J test 一次** → 复用同一 metric/contrast/485 规则 → 不再据 test 调模型
+
+### Q5 全解冻前必须修的（阻塞）
+上面 5 个 P0 + 冻结 `scheduler_runtime_score_v1` + 冻结 decision-state training protocol。
+**另有一条 provenance 缺陷**：`manifest_r1b.json` 记 `producer_commit_sha = 78f000a`，
+但最终逻辑（float64 validator 等）在工作树里、后来才提交为 `eb88a7b` ——
+典型的"**未提交代码生成 artifact → commit 后 manifest 指向旧 HEAD**"。
+要求：**artifact 只允许在 clean git tree 上生成**，并保存 `producer_commit_sha` / `packer_source_sha256` / `git_dirty = false`。
+
+### Q6 "相对 O 还有 2339.6 ms headroom" 的边界
+**能写**：在 300 集开发 smoke 中，以同一 scheduler key 形状使用真实 H=5 后继执行信息时，
+平均完成时间相对 A1 降低 2339.6 ms，表明距 **truth-informed future-information reference** 仍有显著空间。
+**不能写**："resource predictor 还有 2339.6 ms 提升空间"（O 同时消除了 runtime 误差、topology/suffix 误差、length 误差）；
+**更不能写** "O 是理论 oracle lower bound / ceiling" —— 它从 300 集重算发现
+**O 在约 76% episode 优于 A1，但在约 24% episode 反而更差**，真正的下界不该如此。
+统一改称 **joint-future-truth reference** / **truth-informed H5 reference**。
+
+## 2026-09-20 - 老族验证 + 属性分布混合路线规划中
+
+### 实测：老族（`predopt_h1/h3/h5`）**没有坏，全部能跑**
+在 v03 validation 第 1 集上（`templates=640, train_stat_groups=78, artifact_nodes=9575`）：
+
+| policy | mean_completion_ms |
+|---|---|
+| `predopt_h1` | 60695.2 |
+| `predopt_h3` | 60090.3 |
+| `predopt_h5` | 59996.6 |
+| `predopt_h5_jres` | 59776.2 |
+| `predopt_h5_jrt` | 65007.8 |
+| `sameshape_h5_p95`（冠军） | 59550.2 |
+
+**项目负责人的怀疑（"老族用的旧模型，代码可能不能用了"）不成立。**
+
+### 关键发现：老族就是"属性 + 统计量"，但只用 argmax
+- `predicted_future_cost()`（`workload_v02_simulator.py:1124`）→ `_step_estimate_cost()`（:1107）
+  → `_hierarchical_train_row()`（:1073）三级查表 → `runtime_p50_ms + load_p50_ms`，**不用学习头**
+- 被 `_predicted_candidate_key`(:2418) / `_predicted_visible_terminal_work`(:2496) /
+  `choose_action`(:3152,3405,3429) / `_rl_features`(:2107) / `_cp_rho_choose`(:2185) 当**主路径**
+- **缺口**：artifact 里存了 `role` / `role_probability`（`pack_j_predictor_artifacts.py:145,154-155`），
+  **但没有任何消费者读概率** —— 正是 GPT 上轮列为 P1 的 "artifact observability 缺失"。
+  项目负责人的"属性**分布** + 统计量混合"就是填这个缺口。
+
+### `current` 差距的静态量化（已完成，`mechanism_conservatism.json` 之外的新证据）
+- 恒等式验证：`truth == compute + load` **逐位相等**（mean 6133.2 / median 5208.3）
+  → 证实 `runtime_p50_ms` 已含加载，再加 `load_p50_ms` 是重复计
+- `estimate_cold / truth`：中位 **1.075**，但 **p10 0.502 / p90 2.398**，**14.3% 的节点差 >2 倍**
+- 重复计的加载：中位 0（一半的组训练时没发生过加载），发生时占估计值 **p90 达 27%**
+- 组中位数偏差：mean −192 ms（总体几乎无偏）
+- **分模型**：`Qwen3-VL-8B` p10 = **0.081**（低估到 8%）；`Qwen2.5-VL-3B` p90 = **30.8×**（高估 30 倍）
+- **驱逐成本 `current` 里完全没有**，但实际执行时长含它 —— 只能从事件日志拿
+- 推论：决策间距很小，系统处在"小扰动就翻盘"的区间（这解释了 6% 的 future 变化造成 797 ms 差异）
+
+### 项目负责人的新指示（2026-09-20）
+原话："老族用的是之前的模型我怀疑代码可能不能用了。我希望重新跑一下**属性分布 + 统计量混合**，
+不过**得先能够看到每一个方式的分数以及排序情况以及所需时间**。
+你让网页版 gpt 规划一下 然后你来实现 写完代码之后上传到 github 让网页版 gpt 审查 审查完你修改完再跑代码"
+
+**流程**：GPT 规划 → 我实现 → 推 GitHub → GPT 审查 → 我修改 → 才跑。
+
+已发出规划请求 `.scratch/gpt_plan_request.md`（含需求 A 可观测性 / 需求 B 混合构造 / 需求 C 分步计划），
+GPT 正在生成。**硬前置 = 可观测性（逐决策、逐候选的分数 + 排序 + 耗时）必须先做。**
+
+### 上一轮审查的 5 个 P0 仍未修（阻塞项，见下条）
+`packer:393-397` nan 吞错 / `simulator:380-383` probs 检查宽松 / `simulator:310-313` 不重算 SHA /
+`runner:392-415` verdict 覆盖 / `runner:364-415` 静默缩样本。
+
 ## Goal
 
 验证"视频 Agent 工作流的未来预测能否改进 GPU 调度"，并形成可发表的论文主线

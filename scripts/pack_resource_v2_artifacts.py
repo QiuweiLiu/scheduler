@@ -310,6 +310,26 @@ def head_provenance(arm: str) -> Dict[str, Any]:
     }
 
 
+def _view_error(got: Any, want: float, label: str) -> float:
+    """Absolute error of a canonical view, or inf when it is missing or non-finite.
+
+    ``max(0.0, nan)`` silently returns 0.0 in Python, so the previous inline
+    ``abs(float(...) - want)`` could pass an artifact whose view was absent
+    entirely.  The review found exactly that divergence: validate_post_pack would
+    PASS a pack that load_resource_v2_overlay then rejects.  Returning inf keeps
+    the two validators agreeing on what "missing" means.
+    """
+
+    if got is None:
+        return float("inf")
+    if isinstance(got, bool) or not isinstance(got, (int, float)):
+        return float("inf")
+    value = float(got)
+    if value != value or value in (float("inf"), float("-inf")):
+        return float("inf")
+    return abs(value - float(want))
+
+
 def validate_post_pack(
     base_pack_path: Path,
     new_pack_path: Path,
@@ -392,9 +412,9 @@ def validate_post_pack(
             for key, want in (
                 ("p50", views["p50"]), ("p90", views["p90"]), ("p95", views["p95"]),
             ):
-                view_err = max(view_err, abs(float(quantiles.get(key, np.nan)) - want))
-            view_err = max(view_err, abs(float(resource.get("runtime_mean_ms", np.nan)) - views["runtime_mean_ms"]))
-            view_err = max(view_err, abs(float(resource.get("cvar95_ms", np.nan)) - views["cvar95_ms"]))
+                view_err = max(view_err, _view_error(quantiles.get(key), want, "p" + key[1:]))
+            view_err = max(view_err, _view_error(resource.get("runtime_mean_ms"), views["runtime_mean_ms"], "runtime_mean_ms"))
+            view_err = max(view_err, _view_error(resource.get("cvar95_ms"), views["cvar95_ms"], "cvar95_ms"))
             if resource.get("bin_schema_id") != manifest["bin_schema_id"]:
                 report["bin_schema_mismatch_count"] += 1
 
