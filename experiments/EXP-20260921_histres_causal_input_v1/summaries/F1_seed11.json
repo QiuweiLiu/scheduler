@@ -1,0 +1,205 @@
+{
+  "dataset_manifest": {},
+  "device": "cuda",
+  "duration_seconds": 6.24,
+  "epochs": 2,
+  "gradient_probe": null,
+  "history": [
+    {
+      "epoch": 1,
+      "ni": {
+        "future_content": {
+          "ci_lower": 0.04431461279466352,
+          "ci_upper": 0.059675193571580944,
+          "delta_mean": 0.05241174253913108,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "future_length": {
+          "ci_lower": -0.29895290438008826,
+          "ci_upper": -0.19313965336134453,
+          "delta_mean": -0.25184820108427797,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_family": {
+          "ci_lower": -0.003923689668174962,
+          "ci_upper": 0.007780178129420084,
+          "delta_mean": 0.0023161551823972205,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_role": {
+          "ci_lower": 0.04694778704589999,
+          "ci_upper": 0.06744647108208279,
+          "delta_mean": 0.05848291835552982,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "termination": {
+          "ci_lower": -0.06776088180018826,
+          "ci_upper": -0.02542703450664701,
+          "delta_mean": -0.047107178117513866,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        }
+      },
+      "ni_feasible": 1,
+      "selection_score": 1156.8193834488868,
+      "train": {
+        "behavior": 0.4395995447546205,
+        "content": 0.24726020021807477,
+        "resource": 3.568747157809241,
+        "structure": 0.20107999221259673
+      },
+      "val": {
+        "content_accuracy": 0.9006817492486283,
+        "length_mae": 0.04879250862493839,
+        "load_brier": 0.014645726137458032,
+        "load_dur_qscore": 246.6252493579165,
+        "next_family_acc": 0.842501447596989,
+        "next_role_acc": 0.9478865083960626,
+        "runtime_qscore": 1156.8193834488868,
+        "termination_bce": 0.08611519700937936
+      }
+    },
+    {
+      "epoch": 2,
+      "ni": {
+        "future_content": {
+          "ci_lower": 0.044347120219841746,
+          "ci_upper": 0.05820119017737616,
+          "delta_mean": 0.051264234703725146,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "future_length": {
+          "ci_lower": -0.3002354716976719,
+          "ci_upper": -0.19444232723577237,
+          "delta_mean": -0.2538196155741745,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_family": {
+          "ci_lower": -0.003055490840040783,
+          "ci_upper": 0.007852188467077243,
+          "delta_mean": 0.003474232773595831,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_role": {
+          "ci_lower": 0.044805401997866354,
+          "ci_upper": 0.06281066640033957,
+          "delta_mean": 0.05442964678633468,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "termination": {
+          "ci_lower": -0.06825676102943153,
+          "ci_upper": -0.03103208050231872,
+          "delta_mean": -0.05009294654232409,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        }
+      },
+      "ni_feasible": 1,
+      "selection_score": 1076.1228906669908,
+      "train": {
+        "behavior": 0.43604484876089356,
+        "content": 0.24804693008901005,
+        "resource": 3.0357173138516265,
+        "structure": 0.197601575390863
+      },
+      "val": {
+        "content_accuracy": 0.8995342414132224,
+        "length_mae": 0.046821094135041895,
+        "load_brier": 0.015331935178281547,
+        "load_dur_qscore": 264.5070027285712,
+        "next_family_acc": 0.8436595251881877,
+        "next_role_acc": 0.9438332368268674,
+        "runtime_qscore": 1076.1228906669908,
+        "termination_bce": 0.08312942858456915
+      }
+    }
+  ],
+  "init": "shared-F0F1:F0F1_seed11.pt:seed11 (sha256 8371eea257ffd482)",
+  "schema_version": "j-series-run-v1",
+  "seed": 11,
+  "selected_epoch": 2,
+  "selected_record": {
+    "epoch": 2,
+    "ni": {
+      "future_content": {
+        "ci_lower": 0.044347120219841746,
+        "ci_upper": 0.05820119017737616,
+        "delta_mean": 0.051264234703725146,
+        "n_rows": 1727,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "future_length": {
+        "ci_lower": -0.3002354716976719,
+        "ci_upper": -0.19444232723577237,
+        "delta_mean": -0.2538196155741745,
+        "n_rows": 2029,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "next_family": {
+        "ci_lower": -0.003055490840040783,
+        "ci_upper": 0.007852188467077243,
+        "delta_mean": 0.003474232773595831,
+        "n_rows": 1727,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "next_role": {
+        "ci_lower": 0.044805401997866354,
+        "ci_upper": 0.06281066640033957,
+        "delta_mean": 0.05442964678633468,
+        "n_rows": 1727,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "termination": {
+        "ci_lower": -0.06825676102943153,
+        "ci_upper": -0.03103208050231872,
+        "delta_mean": -0.05009294654232409,
+        "n_rows": 2029,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      }
+    },
+    "ni_feasible": 1,
+    "selection_score": 1076.1228906669908,
+    "train": {
+      "behavior": 0.43604484876089356,
+      "content": 0.24804693008901005,
+      "resource": 3.0357173138516265,
+      "structure": 0.197601575390863
+    },
+    "val": {
+      "content_accuracy": 0.8995342414132224,
+      "length_mae": 0.046821094135041895,
+      "load_brier": 0.015331935178281547,
+      "load_dur_qscore": 264.5070027285712,
+      "next_family_acc": 0.8436595251881877,
+      "next_role_acc": 0.9438332368268674,
+      "runtime_qscore": 1076.1228906669908,
+      "termination_bce": 0.08312942858456915
+    }
+  },
+  "selected_score": 1076.1228906669908,
+  "status": "ok",
+  "variant": "F1"
+}

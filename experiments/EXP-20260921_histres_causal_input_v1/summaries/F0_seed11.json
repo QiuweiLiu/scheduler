@@ -1,0 +1,205 @@
+{
+  "dataset_manifest": {},
+  "device": "cuda",
+  "duration_seconds": 5.75,
+  "epochs": 2,
+  "gradient_probe": null,
+  "history": [
+    {
+      "epoch": 1,
+      "ni": {
+        "future_content": {
+          "ci_lower": 0.04436937462181852,
+          "ci_upper": 0.059765296135017146,
+          "delta_mean": 0.052475850405786714,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "future_length": {
+          "ci_lower": -0.2989537127344218,
+          "ci_upper": -0.19435893962421066,
+          "delta_mean": -0.2528339083292262,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_family": {
+          "ci_lower": -0.003923689668174962,
+          "ci_upper": 0.007780178129420084,
+          "delta_mean": 0.0023161551823972205,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_role": {
+          "ci_lower": 0.04561480376371309,
+          "ci_upper": 0.0671852916594152,
+          "delta_mean": 0.05790387955993052,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "termination": {
+          "ci_lower": -0.06822812263488773,
+          "ci_upper": -0.026708042411105082,
+          "delta_mean": -0.04795180552780445,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        }
+      },
+      "ni_feasible": 1,
+      "selection_score": 1157.2651337102714,
+      "train": {
+        "behavior": 0.43955806436815353,
+        "content": 0.24719813816662148,
+        "resource": 3.5686331738631045,
+        "structure": 0.20072289644562438
+      },
+      "val": {
+        "content_accuracy": 0.9007458571152839,
+        "length_mae": 0.04780680137999014,
+        "load_brier": 0.014618109591565155,
+        "load_dur_qscore": 250.61395418811574,
+        "next_family_acc": 0.842501447596989,
+        "next_role_acc": 0.9473074696004632,
+        "runtime_qscore": 1157.2651337102714,
+        "termination_bce": 0.08527056959908878
+      }
+    },
+    {
+      "epoch": 2,
+      "ni": {
+        "future_content": {
+          "ci_lower": 0.04434629920177935,
+          "ci_upper": 0.058157034025351044,
+          "delta_mean": 0.051225632117351864,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "future_length": {
+          "ci_lower": -0.3002354716976719,
+          "ci_upper": -0.19444232723577237,
+          "delta_mean": -0.2538196155741745,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_family": {
+          "ci_lower": -0.003055490840040783,
+          "ci_upper": 0.007852188467077243,
+          "delta_mean": 0.003474232773595831,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "next_role": {
+          "ci_lower": 0.044805401997866354,
+          "ci_upper": 0.06281066640033957,
+          "delta_mean": 0.05442964678633468,
+          "n_rows": 1727,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        },
+        "termination": {
+          "ci_lower": -0.06821149602823257,
+          "ci_upper": -0.03069101058195346,
+          "delta_mean": -0.049909017877090664,
+          "n_rows": 2029,
+          "reliable": 1,
+          "valid_ratio": 1.0
+        }
+      },
+      "ni_feasible": 1,
+      "selection_score": 1076.254898074116,
+      "train": {
+        "behavior": 0.4360004909703841,
+        "content": 0.2480162095283377,
+        "resource": 3.035809208872846,
+        "structure": 0.1975434402514981
+      },
+      "val": {
+        "content_accuracy": 0.8994956388268491,
+        "length_mae": 0.046821094135041895,
+        "load_brier": 0.015327649528126184,
+        "load_dur_qscore": 263.33755513521737,
+        "next_family_acc": 0.8436595251881877,
+        "next_role_acc": 0.9438332368268674,
+        "runtime_qscore": 1076.254898074116,
+        "termination_bce": 0.08331335724980257
+      }
+    }
+  ],
+  "init": "shared-F0F1:F0F1_seed11.pt:seed11 (sha256 8371eea257ffd482)",
+  "schema_version": "j-series-run-v1",
+  "seed": 11,
+  "selected_epoch": 2,
+  "selected_record": {
+    "epoch": 2,
+    "ni": {
+      "future_content": {
+        "ci_lower": 0.04434629920177935,
+        "ci_upper": 0.058157034025351044,
+        "delta_mean": 0.051225632117351864,
+        "n_rows": 1727,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "future_length": {
+        "ci_lower": -0.3002354716976719,
+        "ci_upper": -0.19444232723577237,
+        "delta_mean": -0.2538196155741745,
+        "n_rows": 2029,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "next_family": {
+        "ci_lower": -0.003055490840040783,
+        "ci_upper": 0.007852188467077243,
+        "delta_mean": 0.003474232773595831,
+        "n_rows": 1727,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "next_role": {
+        "ci_lower": 0.044805401997866354,
+        "ci_upper": 0.06281066640033957,
+        "delta_mean": 0.05442964678633468,
+        "n_rows": 1727,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      },
+      "termination": {
+        "ci_lower": -0.06821149602823257,
+        "ci_upper": -0.03069101058195346,
+        "delta_mean": -0.049909017877090664,
+        "n_rows": 2029,
+        "reliable": 1,
+        "valid_ratio": 1.0
+      }
+    },
+    "ni_feasible": 1,
+    "selection_score": 1076.254898074116,
+    "train": {
+      "behavior": 0.4360004909703841,
+      "content": 0.2480162095283377,
+      "resource": 3.035809208872846,
+      "structure": 0.1975434402514981
+    },
+    "val": {
+      "content_accuracy": 0.8994956388268491,
+      "length_mae": 0.046821094135041895,
+      "load_brier": 0.015327649528126184,
+      "load_dur_qscore": 263.33755513521737,
+      "next_family_acc": 0.8436595251881877,
+      "next_role_acc": 0.9438332368268674,
+      "runtime_qscore": 1076.254898074116,
+      "termination_bce": 0.08331335724980257
+    }
+  },
+  "selected_score": 1076.254898074116,
+  "status": "ok",
+  "variant": "F0"
+}

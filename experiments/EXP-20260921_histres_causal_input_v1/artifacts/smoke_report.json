@@ -1,0 +1,24 @@
+{
+  "arms": {
+    "F0": {
+      "elapsed_s": 8.4,
+      "epochs": 2
+    },
+    "F1": {
+      "elapsed_s": 6.5,
+      "epochs": 2
+    }
+  },
+  "checks": {
+    "shared_init_state_exists": true,
+    "shared_init_state_sha256": "8371eea257ffd482159bdec6af4f62e34ab20f3da460ab251119029e1ed54bc2",
+    "runtime_logits_shape": [
+      32,
+      5,
+      16
+    ],
+    "resource_loss_finite": true,
+    "f1_telemetry_grad": 0.08051157612913398,
+    "f0_telemetry_grad": 0.0
+  }
+}

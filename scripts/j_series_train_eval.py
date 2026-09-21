@@ -285,10 +285,13 @@ def load_runtime_bins(path: Path | None = None) -> Dict[str, Any]:
 def make_model(ctx: Ctx, variant: Optional[str] = None) -> common.JSeriesModel:
     mode = duration_mode(ctx, variant) if variant else "shared"
     model_cfg = dict(ctx.config["model"])
-    if model_cfg.get("runtime_bins_path"):
-        model_cfg["runtime_bins"] = load_runtime_bins(Path(model_cfg["runtime_bins_path"]))
-    elif model_cfg.get("runtime_distribution_head"):
-        model_cfg["runtime_bins"] = load_runtime_bins()
+    wants_distribution_head = bool(
+        variant_config(ctx, variant).get("runtime_distribution_head")
+        if variant else model_cfg.get("runtime_distribution_head")
+    )
+    if wants_distribution_head:
+        bins_path = model_cfg.get("runtime_bins_path")
+        model_cfg["runtime_bins"] = load_runtime_bins(Path(bins_path) if bins_path else None)
     return common.JSeriesModel(ctx.vocabs, model_cfg, horizon=ctx.horizon, duration_mode=mode).to(ctx.device)
 
 
@@ -838,7 +841,15 @@ def run_training(ctx: Ctx, variant: str, seed: int, epochs: int, max_train_rows:
     duration_gate_limit = None
     duration_gate_base = None
     cfg = variant_config(ctx, variant)
-    if variant != BACKBONE:
+    if variant in TELEMETRY_VARIANTS:
+        # pre-registered NI reference: the frozen J3 interface metrics, not a locally
+        # trained backbone
+        reference_model = make_model(ctx, "J3")
+        _j3_payload = torch.load(J3_FROZEN_CHECKPOINT, map_location=ctx.device, weights_only=False)
+        load_j3_compatible(reference_model, _j3_payload["model_state"])
+        reference_model.eval()
+        reference_metrics = per_row_metrics(reference_model, ctx.validation, "J3", ctx, max_val_rows)
+    elif variant != BACKBONE:
         backbone_model, _ = load_checkpoint(init_root / "runs" / BACKBONE / f"seed{seed}" / "checkpoint.pt", ctx, BACKBONE)
         reference_metrics = per_row_metrics(backbone_model, ctx.validation, BACKBONE, ctx, max_val_rows)
         if cfg.get("duration_gate"):
