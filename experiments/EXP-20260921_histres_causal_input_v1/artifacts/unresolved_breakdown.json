@@ -3,45 +3,21 @@
   "splits": {
     "train": {
       "rows": 13754,
-      "unresolved_tokens": 1794,
+      "unresolved_tokens": 0,
       "explained_by_resource_applicable_rule": 0,
       "explained_fraction": 0.0,
-      "by_node_type": {
-        "answer_generation": 1794
-      },
-      "by_event_type": {
-        "api_call": 1794
-      },
-      "top_combinations": [
-        {
-          "event_type": "api_call",
-          "node_type": "answer_generation",
-          "raw_action": "generalist.generate",
-          "count": 1794,
-          "fraction": 1.0
-        }
-      ]
+      "by_node_type": {},
+      "by_event_type": {},
+      "top_combinations": []
     },
     "validation": {
       "rows": 2029,
-      "unresolved_tokens": 171,
+      "unresolved_tokens": 0,
       "explained_by_resource_applicable_rule": 0,
       "explained_fraction": 0.0,
-      "by_node_type": {
-        "answer_generation": 171
-      },
-      "by_event_type": {
-        "api_call": 171
-      },
-      "top_combinations": [
-        {
-          "event_type": "api_call",
-          "node_type": "answer_generation",
-          "raw_action": "generalist.generate",
-          "count": 171,
-          "fraction": 1.0
-        }
-      ]
+      "by_node_type": {},
+      "by_event_type": {},
+      "top_combinations": []
     }
   }
 }

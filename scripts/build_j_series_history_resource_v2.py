@@ -56,6 +56,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 from build_p9d_topology_dataset import (  # noqa: E402
     FORBIDDEN_MODEL_INPUT_KEYS,
+    _resource_applicable,
     audit_model_input,
 )
 
@@ -81,7 +82,8 @@ RESOURCE_FIELDS: Tuple[Tuple[str, str, str, str], ...] = (
 )
 CLIP = 6.0
 CURRENT_STATUS = "UNOBSERVED"
-JOIN_STATUSES = ("identity_exact", "unresolved", "current_forbidden", "run_container")
+JOIN_STATUSES = ("identity_exact", "merged_into_composite_parent", "not_resource_applicable",
+                 "unexpected_node_table_missing", "current_forbidden", "run_container")
 MODEL_CHANNEL_KEYS = tuple(
     key
     for _field, mode, z_key, present_key in RESOURCE_FIELDS
@@ -184,6 +186,38 @@ def load_v3_current_event_index(root: Path, split: str) -> Dict[str, int]:
         if sample_id is not None and value is not None:
             index[str(sample_id)] = int(value)
     return index
+
+
+def load_nested_child_map(root: Path, split: str) -> Dict[str, str]:
+    """child event_id -> composite parent node_id, from the persisted v3 labels.
+
+    build_chain() deletes nested children from chain_events before the resource
+    table is written, so a nested child legitimately has no node_table row.  The
+    parent label preserves ``merged_nested_call`` and ``nested_calls[].event_id``,
+    which is the identity-level evidence needed to prove that.
+
+    Fail-closed: a child mapping to more than one parent is an error.
+    """
+
+    path = root / ("labels_%s.jsonl.gz" % split)
+    if not path.is_file():
+        return {}
+    children: Dict[str, set] = defaultdict(set)
+    for row in read_jsonl_gz(path):
+        for layer in row.get("future_layers") or []:
+            for node in layer.get("nodes") or []:
+                if not node.get("merged_nested_call"):
+                    continue
+                parent_id = str(node.get("node_id"))
+                for nested in node.get("nested_calls") or []:
+                    child_id = nested.get("event_id")
+                    if child_id:
+                        children[str(child_id)].add(parent_id)
+    ambiguous = {child: parents for child, parents in children.items() if len(parents) != 1}
+    if ambiguous:
+        raise SystemExit("nested children with != 1 parent: %d (first %s)"
+                         % (len(ambiguous), list(ambiguous.items())[:1]))
+    return {child: next(iter(parents)) for child, parents in children.items()}
 
 
 def build_anchor_identity(rows_by_split: Mapping[str, Sequence[Mapping[str, Any]]]) -> Tuple[Dict[Tuple[str, int], str], int]:
@@ -289,7 +323,8 @@ def augment_row(row: Mapping[str, Any],
                 identity: Mapping[Tuple[str, int], str],
                 truth_by_run_node: Mapping[str, Mapping[str, Mapping[str, Any]]],
                 scaler: Mapping[str, Any],
-                counters: Counter) -> Dict[str, Any]:
+                counters: Counter,
+                nested_child_to_parent: Mapping[str, str] | None = None) -> Dict[str, Any]:
     """Attach the model-visible telemetry channel and the model-invisible audit trail."""
 
     clone = json.loads(json.dumps(row, ensure_ascii=False))
@@ -331,12 +366,34 @@ def augment_row(row: Mapping[str, Any],
             else:
                 truth = truth_by_run_node.get(run_id, {}).get(node_id)
                 if truth is None:
-                    entry["join_status"] = "unresolved"
-                    entry["unresolved_reason"] = "identity_found_but_node_table_missing"
-                    counters["unresolved_tokens"] += 1
-                    counters["unresolved_node_table_missing"] += 1
+                    # identity is known, the resource table has no row.  Classify by
+                    # evidence, not assumption.
+                    parent_id = (nested_child_to_parent or {}).get(node_id)
                     entry["joined_node_id"] = node_id
                     entry["causal_role"] = "past"
+                    if parent_id is not None:
+                        parent_truth = truth_by_run_node.get(run_id, {}).get(parent_id)
+                        if parent_truth is None:
+                            raise SystemExit(
+                                "nested child %s maps to parent %s which is not in node_table"
+                                % (node_id, parent_id)
+                            )
+                        entry["join_status"] = "merged_into_composite_parent"
+                        entry["parent_node_id"] = parent_id
+                        entry["parent_is_in_node_table"] = True
+                        counters["merged_child_tokens"] += 1
+                    else:
+                        probe = {
+                            "node_type": token.get("node_type"),
+                            "event_type": token.get("event_type"),
+                            "action": token.get("raw_action"),
+                        }
+                        if not _resource_applicable(probe):
+                            entry["join_status"] = "not_resource_applicable"
+                            counters["not_resource_applicable_tokens"] += 1
+                        else:
+                            entry["join_status"] = "unexpected_node_table_missing"
+                            counters["unexpected_missing_tokens"] += 1
                 else:
                     if not (i < current_index):
                         raise SystemExit("causal violation: event index %d not < %d" % (i, current_index))
@@ -377,17 +434,30 @@ def augment_row(row: Mapping[str, Any],
 
 # --------------------------------------------------------------------------- #
 def validate_augmented_dataset(rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
-    """Independent post-build scan: the audit's zeros must be verified, not asserted."""
+    """Independent post-build scan, plus honest occurrence/unique coverage statistics.
 
-    report = Counter()
-    per_run_eligible: Dict[str, int] = defaultdict(int)
-    per_run_exact: Dict[str, int] = defaultdict(int)
+    Coverage denominator is ``identity_exact + unexpected_node_table_missing``:
+    a nested child deliberately carries no independent telemetry (its time is inside
+    the composite parent), so counting it as missing would understate coverage.
+    Run-level coverage is deduplicated by ``(run_id, token_event_index)`` because the
+    same historical event recurs in every later anchor prefix.
+    """
+
+    occ: Counter = Counter()
+    unique_exact: Dict[Tuple[str, int], str] = {}
+    unique_eligible: Dict[Tuple[str, int], str] = {}
+    unique_exact_nodes: Dict[str, set] = defaultdict(set)
+    unique_merged_nodes: Dict[str, set] = defaultdict(set)
+    unique_unexpected_nodes: Dict[str, set] = defaultdict(set)
+    runs_with_unexpected: set = set()
+    runs_with_merged: set = set()
+
     for row in rows:
         model_input = row.get("model_input") or {}
         history = model_input.get("history") or []
         current_index = len(history) - 1
         run_id = str(row.get("run_id"))
-        row_unresolved = 0
+        occ["rows"] += 1
         for i, token in enumerate(history):
             channel = token.get("history_resource") or {}
             resources_present = any(
@@ -396,42 +466,62 @@ def validate_augmented_dataset(rows: Sequence[Mapping[str, Any]]) -> Dict[str, A
             )
             status_observed = channel.get("status_class") != CURRENT_STATUS
             if resources_present or status_observed:
-                report["resource_bearing_tokens"] += 1
+                occ["resource_bearing_tokens"] += 1
                 if i >= current_index:
-                    report["current_truth_exposure_count"] += 1
+                    occ["current_truth_exposure_count"] += 1
                 if i > current_index:
-                    report["future_truth_exposure_count"] += 1
-            if i == current_index and (resources_present or status_observed):
-                report["current_exposure_via_status"] += 1
+                    occ["future_truth_exposure_count"] += 1
         for entry in row.get("history_resource_audit") or []:
-            if entry.get("join_status") == "unresolved":
-                row_unresolved += 1
-            if entry.get("join_status") == "identity_exact":
-                per_run_exact[run_id] += 1
-            if entry.get("causal_role") == "past":
-                per_run_eligible[run_id] += 1
-        report["rows"] += 1
-        if row_unresolved:
-            report["rows_with_any_unresolved"] += 1
-        report["max_unresolved_tokens_in_one_row"] = max(
-            report["max_unresolved_tokens_in_one_row"], row_unresolved
-        )
+            status = entry.get("join_status")
+            key = (run_id, int(entry.get("token_index", -1)))
+            if status == "identity_exact":
+                occ["identity_exact_occurrences"] += 1
+                unique_exact[key] = run_id
+                if entry.get("joined_node_id"):
+                    unique_exact_nodes[str(entry["joined_node_id"])].add(run_id)
+            elif status == "merged_into_composite_parent":
+                occ["merged_child_occurrences"] += 1
+                runs_with_merged.add(run_id)
+                if entry.get("joined_node_id"):
+                    unique_merged_nodes[str(entry["joined_node_id"])].add(run_id)
+            elif status == "not_resource_applicable":
+                occ["not_resource_applicable_occurrences"] += 1
+            elif status == "unexpected_node_table_missing":
+                occ["unexpected_missing_occurrences"] += 1
+                runs_with_unexpected.add(run_id)
+                if entry.get("joined_node_id"):
+                    unique_unexpected_nodes[str(entry["joined_node_id"])].add(run_id)
+            else:
+                continue
+            # eligible for resource telemetry, and deduplicated by unique event
+            unique_eligible[key] = status
         if audit_model_input(model_input):
-            report["forbidden_key_violations"] += 1
+            occ["forbidden_key_violations"] += 1
 
-    coverages = []
-    for run_id, eligible in per_run_eligible.items():
-        if eligible:
-            coverages.append(per_run_exact.get(run_id, 0) / eligible)
-    report["runs_with_any_unresolved"] = sum(
-        1 for run_id, eligible in per_run_eligible.items()
-        if per_run_exact.get(run_id, 0) < eligible
-    )
-    report["per_run_coverage_p10"] = percentile(coverages, 0.10)
-    report["per_run_coverage_p50"] = percentile(coverages, 0.50)
-    report["per_run_coverage_p90"] = percentile(coverages, 0.90)
-    report["prob_row_has_unresolved"] = report["rows_with_any_unresolved"] / max(1, report["rows"])
-    return dict(report)
+    per_run: Dict[str, List[int]] = defaultdict(lambda: [0, 0])   # run -> [exact, eligible]
+    for key, status in unique_eligible.items():
+        run_id = key[0]
+        per_run[run_id][1] += 1
+        if status == "identity_exact":
+            per_run[run_id][0] += 1
+    coverages = [exact / eligible for exact, eligible in per_run.values() if eligible]
+
+    report = dict(occ)
+    report.update({
+        "eligible_resource_event_occurrences": occ["identity_exact_occurrences"]
+        + occ["unexpected_missing_occurrences"],
+        "unique_identity_exact_nodes": len(unique_exact_nodes),
+        "unique_merged_child_nodes": len(unique_merged_nodes),
+        "unique_unexpected_missing_nodes": len(unique_unexpected_nodes),
+        "unique_eligible_events": len(unique_eligible),
+        "unique_resource_coverage_per_run_p10": percentile(coverages, 0.10),
+        "unique_resource_coverage_per_run_p50": percentile(coverages, 0.50),
+        "unique_resource_coverage_per_run_p90": percentile(coverages, 0.90),
+        "runs_with_unexpected_missing": len(runs_with_unexpected),
+        "runs_with_merged_child": len(runs_with_merged),
+        "runs_with_eligible_events": len(per_run),
+    })
+    return report
 
 
 # --------------------------------------------------------------------------- #
@@ -469,6 +559,9 @@ def main() -> int:
 
     identity, conflicts = build_anchor_identity(rows_by_split)
     print("anchor identity map: %d entries, %d conflicts" % (len(identity), conflicts))
+    nested_maps = {split: load_nested_child_map(args.v3_root, split) for split in args.splits}
+    for split, mapping in nested_maps.items():
+        print("nested child->parent map (%-11s): %d children" % (split + ":", len(mapping)))
 
     scaler = fit_scaler(rows_by_split["train"], identity, truth_by_run_node)
     scaler["train_split_sha256"] = sha256_file(args.j_root / "j_train.jsonl.gz")
@@ -482,31 +575,38 @@ def main() -> int:
     for split in args.splits:
         counters: Counter = Counter()
         augmented = [
-            augment_row(row, identity, truth_by_run_node, scaler, counters)
+            augment_row(row, identity, truth_by_run_node, scaler, counters, nested_maps[split])
             for row in rows_by_split[split]
         ]
         out_path = args.output_root / ("histres_%s.jsonl.gz" % split)
         count = write_jsonl_gz(out_path, augmented)
         validation = validate_augmented_dataset(augmented)
         eligible = counters["eligible_tokens"]
+        telemetry_denominator = (
+            validation.get("identity_exact_occurrences", 0)
+            + validation.get("unexpected_missing_occurrences", 0)
+        )
         output["splits"][split] = {
             "rows": count,
             "sha256": sha256_file(out_path),
             "eligible_tokens": eligible,
             "identity_exact_tokens": counters["identity_exact_tokens"],
-            "unresolved_tokens": counters["unresolved_tokens"],
-            "unresolved_identity_key_missing": counters["unresolved_identity_key_missing"],
-            "unresolved_node_table_missing": counters["unresolved_node_table_missing"],
+            "merged_child_tokens": counters["merged_child_tokens"],
+            "not_resource_applicable_tokens": counters["not_resource_applicable_tokens"],
+            "unexpected_missing_tokens": counters["unexpected_missing_tokens"],
             "current_tokens": counters["current_tokens"],
             "run_container_tokens": counters["run_container_tokens"],
             "identity_exact_coverage": counters["identity_exact_tokens"] / max(1, eligible),
-            "unresolved_coverage": counters["unresolved_tokens"] / max(1, eligible),
+            "telemetry_denominator": telemetry_denominator,
+            "identity_exact_coverage_of_telemetry": (
+                validation.get("identity_exact_occurrences", 0) / max(1, telemetry_denominator)
+            ),
             "monotonic_unique_coverage": 0.0,
             "post_build_validation": validation,
         }
 
     dev = [s for s in args.splits if s in ("train", "validation")]
-    cov = [output["splits"][s]["identity_exact_coverage"] for s in dev]
+    cov = [output["splits"][s]["identity_exact_coverage_of_telemetry"] for s in dev]
     output["development_splits"] = dev
     output["identity_exact_coverage_min"] = min(cov)
     output["identity_exact_coverage_spread_pp"] = 100.0 * (max(cov) - min(cov))
@@ -522,6 +622,15 @@ def main() -> int:
         "coverage_min_ge_0_90": min(cov) >= 0.90,
         "coverage_spread_le_5pp": output["identity_exact_coverage_spread_pp"] <= 5.0,
         "test_sealed_during_development": "test" not in dev,
+        "unexpected_node_table_missing_occurrences": sum(
+            output["splits"][s]["post_build_validation"].get("unexpected_missing_occurrences", 0)
+            for s in args.splits),
+        "merged_child_occurrences": sum(
+            output["splits"][s]["post_build_validation"].get("merged_child_occurrences", 0)
+            for s in args.splits),
+        "not_resource_applicable_occurrences": sum(
+            output["splits"][s]["post_build_validation"].get("not_resource_applicable_occurrences", 0)
+            for s in args.splits),
     }
     output["schema_version"] = "j-series-dataset-histres-v2.1"
     output["causal_contract"] = {
