@@ -42,6 +42,32 @@ MAX_HISTORY = 64
 POSITION_BUCKETS = 64
 
 HISTORY_FIELDS = ("event_type", "node_type", "role", "raw_action", "action_family", "model_id")
+
+# ---- causal historical telemetry channel (Stage 0 contract) --------------- #
+# Frozen order.  j_series_dataset_histres_v2 writes these keys inside
+# model_input.history[*].history_resource; the model reads ONLY this block and
+# never history_resource_audit.  A merged nested child keeps mask=0 by design
+# (its runtime is already inside the composite parent), so mask=0 never means
+# "forgot to fill it in".
+HISTRES_NUMERIC_FIELDS = (
+    "runtime_z",
+    "runtime_present",
+    "load_positive_z",
+    "load_present",
+    "load_nonzero",
+    "peak_alloc_z",
+    "peak_alloc_present",
+    "peak_reserved_z",
+    "peak_reserved_present",
+)
+HISTRES_OBSERVED_SOURCES = (
+    "runtime_present",
+    "load_present",
+    "peak_alloc_present",
+    "peak_reserved_present",
+)
+STATUS_VALUES = ("UNOBSERVED", "success", "failed", "timeout", "unknown")
+STATUS_INDEX = {value: index for index, value in enumerate(STATUS_VALUES)}
 CONTEXT_FIELDS = (
     "answer_type",
     "domain",
@@ -163,6 +189,9 @@ def encode_rows(rows: Sequence[Mapping[str, Any]], vocabs: VocabCollection, hori
     slot_merged = np.full((n, horizon), MISSING_INT, dtype=np.int64)
     slot_retry = np.full((n, horizon), MISSING_INT, dtype=np.int64)
     slot_present = np.zeros((n, horizon), dtype=np.float32)
+    hist_res_num = np.zeros((n, MAX_HISTORY, len(HISTRES_NUMERIC_FIELDS)), dtype=np.float32)
+    hist_res_mask = np.zeros((n, MAX_HISTORY), dtype=np.float32)
+    hist_status = np.zeros((n, MAX_HISTORY), dtype=np.int64)
     runtime_ms = np.full((n, horizon), MISSING_FLOAT, dtype=np.float64)
     load_ms = np.full((n, horizon), MISSING_FLOAT, dtype=np.float64)
     load_occ = np.full((n, horizon), MISSING_FLOAT, dtype=np.float64)
@@ -175,6 +204,20 @@ def encode_rows(rows: Sequence[Mapping[str, Any]], vocabs: VocabCollection, hori
         for j, step in enumerate(history):
             for field in HISTORY_FIELDS:
                 hist_ids[field][i, j] = vocabs.history[field].encode(step.get(field))
+            # causal telemetry: read only the model-visible block
+            channel = step.get("history_resource")
+            if not isinstance(channel, dict):
+                continue
+            observed = False
+            for k, key in enumerate(HISTRES_NUMERIC_FIELDS):
+                value = channel.get(key)
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    continue
+                hist_res_num[i, j, k] = float(value)
+                if key in HISTRES_OBSERVED_SOURCES and float(value) > 0.0:
+                    observed = True
+            hist_res_mask[i, j] = 1.0 if observed else 0.0
+            hist_status[i, j] = STATUS_INDEX.get(str(channel.get("status_class")), STATUS_INDEX["unknown"])
         for field_idx, field in enumerate(CONTEXT_FIELDS):
             if field in model_input["task_context"]:
                 value = model_input["task_context"].get(field)
@@ -202,6 +245,9 @@ def encode_rows(rows: Sequence[Mapping[str, Any]], vocabs: VocabCollection, hori
 
     fields = {
         "hist_len": hist_len,
+        "hist_res_num": hist_res_num,
+        "hist_res_mask": hist_res_mask,
+        "hist_status": hist_status,
         "ctx_ids": ctx_ids,
         "mod_vec": mod_vec,
         "slot_present": slot_present,
@@ -272,6 +318,16 @@ if nn is not None:
             self.hist_emb = nn.ModuleDict({field: nn.Embedding(len(vocabs.history[field]), self.hist_dim, padding_idx=0) for field in HISTORY_FIELDS})
             self.pos_emb = nn.Embedding(POSITION_BUCKETS, self.hist_dim)
             self.gru = nn.GRU(self.hist_dim, self.hidden, batch_first=True)
+            # causal historical-telemetry branch.  F0 keeps the mask at zero; F1
+            # feeds the real observed mask.  The projection is multiplied by the
+            # mask so an all-zero input cannot leak a bias-only pseudo-signal.
+            self.hist_res_dim = int(model_cfg.get("history_resource_dim", self.hist_dim))
+            self.hist_res_proj = nn.Sequential(
+                nn.Linear(len(HISTRES_NUMERIC_FIELDS), self.hist_res_dim),
+                nn.SiLU(),
+                nn.Linear(self.hist_res_dim, self.hist_dim),
+            )
+            self.hist_status_emb = nn.Embedding(len(STATUS_VALUES), self.hist_dim)
             # context embeddings
             self.ctx_emb = nn.ModuleDict({field: nn.Embedding(len(vocabs.context[field]), self.ctx_dim) for field in CONTEXT_FIELDS})
             self.mod_proj = nn.Linear(len(vocabs.modalities), self.ctx_dim)
@@ -312,6 +368,11 @@ if nn is not None:
                 emb = value if emb is None else emb + value
             positions = torch.arange(steps, device=device).unsqueeze(0).clamp(max=POSITION_BUCKETS - 1)
             emb = emb + self.pos_emb(positions)
+            if "hist_res_num" in batch:
+                observed = batch["hist_res_mask"].unsqueeze(-1)
+                if observed.max() > 0.0 or self.training:
+                    emb = emb + observed * self.hist_res_proj(batch["hist_res_num"])
+                emb = emb + self.hist_status_emb(batch["hist_status"])
             packed = nn.utils.rnn.pack_padded_sequence(emb, lengths.cpu().clamp(min=1), batch_first=True, enforce_sorted=False)
             _, hidden = self.gru(packed)
             h = hidden[-1]

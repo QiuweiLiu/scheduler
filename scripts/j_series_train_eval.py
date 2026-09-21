@@ -68,7 +68,8 @@ INTERFACE_ENDPOINTS = {
     "next_role": "next_role_acc",
     "next_family": "next_family_acc",
 }
-FLOAT_KEYS = {"mod_vec", "runtime_ms", "load_ms", "load_occ", "memory_mb"}
+FLOAT_KEYS = {"mod_vec", "runtime_ms", "load_ms", "load_occ", "memory_mb",
+              "hist_res_num", "hist_res_mask"}
 VARIANT_ORDER = ("J0", "B1", "J1", "J2", "J3")
 JOINT_VARIANTS = ("J1", "J2", "J3")
 BACKBONE = "backbone"
