@@ -327,7 +327,13 @@ if nn is not None:
                 nn.SiLU(),
                 nn.Linear(self.hist_res_dim, self.hist_dim),
             )
-            self.hist_status_emb = nn.Embedding(len(STATUS_VALUES), self.hist_dim)
+            # padding_idx=0 pins UNOBSERVED to the zero vector, so a token with no
+            # observed outcome contributes exactly nothing - including padding and the
+            # current node - which is what makes the telemetry-off arm equal to the
+            # old categorical encoder.
+            self.hist_status_emb = nn.Embedding(len(STATUS_VALUES), self.hist_dim, padding_idx=0)
+            # single switch for the whole telemetry branch; F0 sets it False
+            self.use_history_telemetry = bool(model_cfg.get("use_history_telemetry", True))
             # context embeddings
             self.ctx_emb = nn.ModuleDict({field: nn.Embedding(len(vocabs.context[field]), self.ctx_dim) for field in CONTEXT_FIELDS})
             self.mod_proj = nn.Linear(len(vocabs.modalities), self.ctx_dim)
@@ -357,7 +363,9 @@ if nn is not None:
             if self.duration_mode != "shared":
                 self.dur_adapter = nn.Linear(self.hidden + self.slot_dim + self.attr_dim, self.duration_branch_hidden)
 
-        def encode(self, batch: Mapping[str, Any]) -> Any:
+        def encode(self, batch: Mapping[str, Any], *, use_history_telemetry: bool | None = None) -> Any:
+            if use_history_telemetry is None:
+                use_history_telemetry = self.use_history_telemetry
             device = next(self.parameters()).device
             hist_ids = {field: batch[f"hist_{field}"] for field in HISTORY_FIELDS}
             lengths = batch["hist_len"]
@@ -368,10 +376,12 @@ if nn is not None:
                 emb = value if emb is None else emb + value
             positions = torch.arange(steps, device=device).unsqueeze(0).clamp(max=POSITION_BUCKETS - 1)
             emb = emb + self.pos_emb(positions)
-            if "hist_res_num" in batch:
+            # the whole telemetry branch (numeric magnitudes AND outcome status) is
+            # gated by one switch: with it off, F0 is the categorical encoder plus
+            # nothing, which is the arm the F1 - F0 contrast needs
+            if use_history_telemetry and "hist_res_num" in batch:
                 observed = batch["hist_res_mask"].unsqueeze(-1)
-                if observed.max() > 0.0 or self.training:
-                    emb = emb + observed * self.hist_res_proj(batch["hist_res_num"])
+                emb = emb + observed * self.hist_res_proj(batch["hist_res_num"])
                 emb = emb + self.hist_status_emb(batch["hist_status"])
             packed = nn.utils.rnn.pack_padded_sequence(emb, lengths.cpu().clamp(min=1), batch_first=True, enforce_sorted=False)
             _, hidden = self.gru(packed)

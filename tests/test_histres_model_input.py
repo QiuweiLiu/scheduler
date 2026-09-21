@@ -105,14 +105,63 @@ class HistResModelInputTests(unittest.TestCase):
             outputs = model.encode(batch)
         self.assertTrue(torch.isfinite(outputs).all())
 
-        # F0 = same architecture with the observed mask forced to zero
-        zeroed = dict(batch)
-        zeroed["hist_res_mask"] = torch.zeros_like(batch["hist_res_mask"])
+        # F0 = the whole telemetry branch disabled, not just the numeric mask
         with torch.no_grad():
-            f0 = model.encode(zeroed)
-            f1 = model.encode(batch)
+            f0 = model.encode(batch, use_history_telemetry=False)
+            f1 = model.encode(batch, use_history_telemetry=True)
         self.assertFalse(torch.equal(f0, f1),
-                         "zeroing the mask should change the representation")
+                         "disabling telemetry should change the representation")
+
+    def test_f0_ignores_every_historical_outcome(self) -> None:
+        """P0 from the review: F0 must not read runtime, load, memory or status."""
+
+        import torch
+
+        from j_series_train_eval import to_torch_batch
+
+        arrays = common.encode_rows(self.augmented, self.vocabs, 5)
+        model = common.JSeriesModel(self.vocabs, {"hidden": 32, "history_embedding_dim": 8,
+                                                  "context_embedding_dim": 4, "slot_embedding_dim": 8}, horizon=5)
+        model.eval()
+        indices = np.arange(min(16, len(arrays["hist_len"])), dtype=np.int64)
+        batch = to_torch_batch(arrays, indices, torch.device("cpu"))
+        with torch.no_grad():
+            baseline = model.encode(batch, use_history_telemetry=False)
+
+        # scatter extreme values into every telemetry field, including status
+        mutated = dict(batch)
+        mutated["hist_res_num"] = torch.full_like(batch["hist_res_num"], 6.0)
+        mutated["hist_res_mask"] = torch.ones_like(batch["hist_res_mask"])
+        mutated["hist_status"] = torch.full_like(batch["hist_status"], 2)   # "failed"
+        with torch.no_grad():
+            after = model.encode(mutated, use_history_telemetry=False)
+        self.assertTrue(torch.equal(baseline, after),
+                        "F0 changed when historical outcomes changed")
+
+        # and F1 must react to a legitimate historical status change
+        with torch.no_grad():
+            f1_a = model.encode(batch, use_history_telemetry=True)
+            f1_b = model.encode(mutated, use_history_telemetry=True)
+        self.assertFalse(torch.equal(f1_a, f1_b), "F1 ignored a telemetry change")
+
+    def test_unobserved_status_is_the_zero_vector(self) -> None:
+        import torch
+
+        model = common.JSeriesModel(self.vocabs, {"hidden": 32, "history_embedding_dim": 8,
+                                                  "context_embedding_dim": 4, "slot_embedding_dim": 8}, horizon=5)
+        index = common.STATUS_INDEX["UNOBSERVED"]
+        weight = model.hist_status_emb.weight.detach()[index]
+        self.assertTrue(torch.equal(weight, torch.zeros_like(weight)),
+                        "UNOBSERVED must be the zero vector")
+
+        arrays = common.encode_rows(self.augmented, self.vocabs, 5)
+        lengths = arrays["hist_len"]
+        for i in range(len(lengths)):
+            last = int(lengths[i]) - 1
+            if last < 0:
+                continue
+            self.assertEqual(int(arrays["hist_status"][i, last]), index,
+                             "the anchor token must be UNOBSERVED")
 
 
 if __name__ == "__main__":
