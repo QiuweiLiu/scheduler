@@ -1,0 +1,40 @@
+{
+  "schema_version": "f0f1-contrast-bootstrap-v1",
+  "contrast": "F1 - F0 (runtime qscore per validation row, lower is better)",
+  "metric": "runtime_qscore",
+  "n_validation_rows": 2029,
+  "n_video_clusters": 30,
+  "bootstrap": {
+    "B": 2000,
+    "seed": 20260921,
+    "unit": "video cluster",
+    "paired": true
+  },
+  "point_mean_over_seeds": 0.2491124902966112,
+  "ci_low": -0.3613001536189384,
+  "ci_high": 0.7921763175802397,
+  "prob_le_zero": 0.2075,
+  "per_seed": {
+    "seed11": {
+      "F0_mean": 976.8025851146961,
+      "F1_mean": 976.3208240111273,
+      "delta_mean": -0.48176110356865554,
+      "delta_sum": -832.0014258630681
+    },
+    "seed22": {
+      "F0_mean": 943.4887793675997,
+      "F1_mean": 944.019653034222,
+      "delta_mean": 0.5308736666224708,
+      "delta_sum": 916.818822257007
+    },
+    "seed33": {
+      "F0_mean": 969.5317577244303,
+      "F1_mean": 970.2299826322662,
+      "delta_mean": 0.6982249078360185,
+      "delta_sum": 1205.834415832804
+    }
+  },
+  "preregistered_rule": "CI_upper < 0 required to claim the telemetry improves prediction",
+  "verdict": "no measurable improvement detected",
+  "wording_note": "the interval crosses zero, so the correct statement is 'no measurable improvement was detected', NOT 'the two arms are statistically equivalent': no equivalence margin was pre-registered"
+}
