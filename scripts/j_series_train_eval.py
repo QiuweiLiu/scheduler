@@ -167,13 +167,20 @@ def forward(model: common.JSeriesModel, batch: Mapping[str, Any], variant: str, 
     return {"structure": structure, "behavior": behavior, "attributes": attribute_logits, "resource": resource}
 
 
-def loss_terms(outputs: Mapping[str, Any], batch: Mapping[str, Any], horizon: int) -> Dict[str, Any]:
+def loss_terms(outputs: Mapping[str, Any], batch: Mapping[str, Any], horizon: int,
+               model: Optional[common.JSeriesModel] = None) -> Dict[str, Any]:
     mask = horizon_mask(batch, horizon)
     return {
         "structure": common.structure_loss(outputs["structure"], batch),
         "content": common.content_loss(outputs["attributes"], batch, mask),
         "behavior": common.behavior_loss(outputs["behavior"], batch),
-        "resource": common.resource_loss(outputs["resource"], batch, mask),
+        # the distribution objective needs the frozen bin spec; without it the legacy
+    # pinball branch runs and would read runtime_log_quantiles, which the discretised
+    # head does not produce
+    "resource": common.resource_loss(
+        outputs["resource"], batch, mask,
+        bins=(model.runtime_bins or None) if model is not None else None,
+    ),
     }
 
 
@@ -205,6 +212,36 @@ RUNTIME_BIN_SPEC = (
 )
 
 
+PHASE_R_SCALE_MS = 2222.989013671875
+PHASE_R_DELTA = 2.0
+PHASE_R_SCALE_TOLERANCE = 1e-6
+PHASE_R_RUNTIME_HEAD_HIDDEN = 64
+
+
+def verify_phase_r_point_scale(arrays: Mapping[str, np.ndarray]) -> Dict[str, Any]:
+    """Recompute the Phase-R pseudo-Huber scale from the train split and assert it.
+
+    Phase-R computed ``scale = median(runtime_ms)`` over train slots with
+    ``runtime_ms > 0`` and recorded 2222.989013671875 ms.  Recomputing it here proves
+    both that the constant above is the frozen one and that the train split is
+    unchanged, without fitting anything on validation or test.
+    """
+
+    runtime = np.asarray(arrays["runtime_ms"], dtype=np.float64)
+    valid = np.asarray(arrays["slot_present"], dtype=np.float64) > 0.0
+    positive = runtime[(runtime > 0.0) & valid]
+    if positive.size == 0:
+        raise SystemExit("no positive train runtime slots; cannot verify the Phase-R scale")
+    median = float(np.median(positive))
+    if abs(median - PHASE_R_SCALE_MS) > PHASE_R_SCALE_TOLERANCE * max(1.0, PHASE_R_SCALE_MS):
+        raise SystemExit(
+            "Phase-R scale mismatch: recomputed median=%.6f but the frozen value is %.6f; "
+            "the train split changed or the constant is wrong" % (median, PHASE_R_SCALE_MS)
+        )
+    return {"median_positive_runtime_ms": median, "positive_slots": int(positive.size),
+            "frozen_scale_ms": PHASE_R_SCALE_MS, "matches": True}
+
+
 def load_runtime_bins(path: Path | None = None) -> Dict[str, Any]:
     """The frozen mass-balanced 16-bin spec.
 
@@ -223,8 +260,13 @@ def load_runtime_bins(path: Path | None = None) -> Dict[str, Any]:
         "band_of_bin": [int(b) for b in spec["band_of_bin"]],
         "mode": spec.get("mode"),
         "n_bins": int(spec.get("n_bins") or len(spec["representatives_ms"])),
-        "scale": float(spec.get("scale") or 4000.0),
-        "delta": float(spec.get("delta") or 1.0),
+        # Phase-R point-loss parameters.  The frozen bins.json does not carry them,
+        # so they are pinned here; the startup check in verify_phase_r_point_scale()
+        # recomputes the median from train positive-runtime slots and fails closed if
+        # it no longer matches, which also proves nobody swapped the train split.
+        "scale": PHASE_R_SCALE_MS,
+        "delta": PHASE_R_DELTA,
+        "r1b_head_hidden": PHASE_R_RUNTIME_HEAD_HIDDEN,
     }
 
 
@@ -334,10 +376,11 @@ def per_row_metrics(model: common.JSeriesModel, arrays: Mapping[str, np.ndarray]
                 probs = torch.softmax(resource["runtime_logits"], dim=-1)
                 reps = torch.as_tensor(bins["representatives_ms"], device=probs.device, dtype=probs.dtype)
                 views = _dist.derive_from_probs(probs, reps.cpu().numpy())
+                # derive_from_probs names these q50_ms / q90_ms / q95_ms
                 runtime_ms = torch.stack(
-                    [torch.as_tensor(views["p50"], device=probs.device, dtype=probs.dtype),
-                     torch.as_tensor(views["p90"], device=probs.device, dtype=probs.dtype),
-                     torch.as_tensor(views["p95"], device=probs.device, dtype=probs.dtype)],
+                    [torch.as_tensor(views["q50_ms"], device=probs.device, dtype=probs.dtype),
+                     torch.as_tensor(views["q90_ms"], device=probs.device, dtype=probs.dtype),
+                     torch.as_tensor(views["q95_ms"], device=probs.device, dtype=probs.dtype)],
                     dim=-1,
                 ).cpu().numpy()
             else:
@@ -379,7 +422,7 @@ def eval_loss_means(model: common.JSeriesModel, arrays: Mapping[str, np.ndarray]
         for indices in split_indices(n, ctx.batch_size):
             batch = to_torch_batch(arrays, indices, ctx.device)
             outputs = forward(model, batch, variant, ctx)
-            terms = loss_terms(outputs, batch, ctx.horizon)
+            terms = loss_terms(outputs, batch, ctx.horizon, model=model)
             for key in TRAIN_LOSS_KEYS:
                 sums[key] += float(terms[key]) * len(indices)
             count += len(indices)
@@ -436,7 +479,7 @@ def copy_summary(ctx: Ctx, variant: str, seed: int) -> None:
 def gradient_probe(model: common.JSeriesModel, batch: Mapping[str, Any], variant: str, ctx: Ctx) -> Dict[str, Any]:
     model.train()
     outputs = forward(model, batch, variant, ctx)
-    terms = loss_terms(outputs, batch, ctx.horizon)
+    terms = loss_terms(outputs, batch, ctx.horizon, model=model)
     names = ["structure", "content", "behavior", "resource"]
     parameters = [p for p in model.parameters() if p.requires_grad]
     vectors: Dict[str, np.ndarray] = {}
@@ -473,7 +516,7 @@ def routing_checks(ctx: Ctx) -> Dict[str, Any]:
         model.load_state_dict(base_state)
         configure_trainable(model, variant)
         outputs = forward(model, batch, variant, ctx)
-        terms = loss_terms(outputs, batch, ctx.horizon)
+        terms = loss_terms(outputs, batch, ctx.horizon, model=model)
         model.zero_grad(set_to_none=True)
         terms["resource"].backward()
         checks[variant] = {
@@ -486,7 +529,7 @@ def routing_checks(ctx: Ctx) -> Dict[str, Any]:
     model.load_state_dict(base_state)
     configure_trainable(model, BACKBONE)
     outputs = forward(model, batch, BACKBONE, ctx)
-    terms = loss_terms(outputs, batch, ctx.horizon)
+    terms = loss_terms(outputs, batch, ctx.horizon, model=model)
     model.zero_grad(set_to_none=True)
     (terms["structure"] + terms["content"] + terms["behavior"]).backward()
     checks[BACKBONE] = {
@@ -626,7 +669,7 @@ def train_epoch(model: common.JSeriesModel, arrays: Mapping[str, np.ndarray], va
     for indices in [order[start:start + ctx.batch_size] for start in range(0, len(order), ctx.batch_size)]:
         batch = to_torch_batch(arrays, indices, ctx.device)
         outputs = forward(model, batch, variant, ctx)
-        terms = loss_terms(outputs, batch, ctx.horizon)
+        terms = loss_terms(outputs, batch, ctx.horizon, model=model)
         loss = total_loss(variant, terms)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()

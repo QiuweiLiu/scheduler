@@ -372,10 +372,16 @@ if nn is not None:
                 # implementation rather than being re-searched here
                 import j_series_resource_dist as _dist
 
-                self.head_runtime = _dist.DiscreteRuntimeHead(
-                    self.hidden, int(len(self.runtime_bin_reps)),
-                    hidden=int(model_cfg.get("runtime_head_hidden", 0)) or None,
-                )
+                head_hidden = int(model_cfg.get("runtime_head_hidden") or 0)
+                if head_hidden != 64:
+                    # Phase-R R1b is 128 -> 64 GELU -> 16.  A missing config would
+                    # silently build the linear R1 variant instead, which is a
+                    # different model, so this fails closed rather than defaulting.
+                    raise SystemExit(
+                        "runtime_distribution_head requires runtime_head_hidden=64 "
+                        "(the Phase-R R1b shape); got %r" % model_cfg.get("runtime_head_hidden")
+                    )
+                self.head_runtime = _dist.DiscreteRuntimeHead(self.hidden, int(len(self.runtime_bin_reps)), hidden=head_hidden)
             else:
                 self.head_runtime = nn.Linear(self.hidden, len(TARGET_TAUS))
             self.head_load_occ = nn.Linear(self.hidden, 1)
