@@ -1,0 +1,34 @@
+{
+  "version": "histres-numeric-scaler-v1",
+  "fields": {
+    "runtime_ms": {
+      "n": 81053,
+      "log1p_median": 8.045351073184845,
+      "log1p_iqr": 8.779476637389072,
+      "scale": 6.508136869821403,
+      "clip": 6.0
+    },
+    "load_ms": {
+      "n": 80748,
+      "log1p_median": 0.0,
+      "log1p_iqr": 0.0,
+      "scale": 1e-06,
+      "clip": 6.0
+    },
+    "peak_allocated_mb": {
+      "n": 50805,
+      "log1p_median": 8.985255312153475,
+      "log1p_iqr": 0.7628293119588143,
+      "scale": 0.5654776219116489,
+      "clip": 6.0
+    },
+    "peak_reserved_mb": {
+      "n": 50805,
+      "log1p_median": 8.993551586299981,
+      "log1p_iqr": 0.8874798045397476,
+      "scale": 0.6578797661525186,
+      "clip": 6.0
+    }
+  },
+  "train_split_sha256": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2"
+}

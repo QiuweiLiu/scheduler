@@ -241,6 +241,170 @@ GPT 正在生成。**硬前置 = 可观测性（逐决策、逐候选的分数 +
 `packer:393-397` nan 吞错 / `simulator:380-383` probs 检查宽松 / `simulator:310-313` 不重算 SHA /
 `runner:392-415` verdict 覆盖 / `runner:364-415` 静默缩样本。
 
+## 2026-09-21 - GPT 规划：放开历史资源输入 + 重训预测器 + 重跑 risk/CP
+
+归档：`docs/research/2026-09-21_fas_hist_resource_and_risk_cp_plan_gpt.md`（~28 KB）
+
+### 项目负责人给的硬因果边界（逐字）
+> 历史信息（包括属性和运行用时）都可以用；当前节点的类别可以用；
+> **但是耗时不可以用**；未来节点的所有信息**绝对不可以用**
+
+### 关键设计决定
+- **正确契约**：`categorical visible(i) ⟺ i ≤ current` 但 **`resource visible(i) ⟺ i < current`**
+- **不要把 `runtime_ms`/`load_ms`/`memory`/`status` 从 `FORBIDDEN_MODEL_INPUT_KEYS` 里删掉** ——
+  改用**派生白名单**（`hist_runtime_z` / `hist_load_z` / `hist_memory_z` / `hist_status_class`），
+  这样旧递归 guard 仍然会拦截粗暴写法
+- **数值表示**：`log1p` → train-only robust z-score（median + IQR/1.349）→ clip ±6 → 加 missing mask；
+  scaler 只由 train split 拟合并记 SHA。**不喂原始毫秒**（跨机器会脆）
+- **反事实 mutation test（强 guard）**：把 current 事件的 runtime/load/memory 设成哨兵值 →
+  `model_input` 必须 **byte-identical**；改一个**已完成**事件 → 只有对应通道变化
+- **模型改动最小**：token embedding 加 `observed_mask × hist_resource_proj([z_r,z_l,z_m,mask×3])`，
+  其他 J3 结构不动（不上注意力、不上 K-step 分支）
+- **三个角色（关键）**：`J3-frozen`（外部历史基线）/ **`F0-NoHistRes`**（资源全 mask）/ **`F1-HistRes`**；
+  **真正的对照是 `F1 − F0`，不是 `F1 − J3`**
+- **本轮不加 `L_decision`** —— 先单独测干净"历史耗时有没有增量"
+- **资源头**：沿用 Phase R 的 mass-balanced 16-bin（`train` 未变，不重搜 bin edges）
+- **训练**：3 seeds(11/22/33) × 30 epochs，J3 同 shape 参数从 J3 初始化，全参数可训练
+- **预注册判据**：完整性 `RuntimeQScore ≤ 845.0` + `cal err ≤ 0.05` + `crossing = 0`；
+  增量 `Δ_hist = RuntimeQScore_F1 − RuntimeQScore_F0`，paired video-cluster bootstrap，
+  仅当 `CI_upper(Δ_hist) < 0` 才可称 "历史资源遥测改善运行时预测"
+- **调度侧**：`δ_NI = 485 ms` 继续沿用（同 v03 / 同 `mean_completion_ms` / 同配对协议）；
+  但这 300 集已看过 → 只能是 **development gate**，不是最终确认证据
+
+### risk v2
+- 唯一改动：加 `+F_norm = MinMax_C(Σ_h q95_j,h)`，来自最终选定的新 predictor
+- **权重固定 1/1/1/1，不 sweep**（原三个 normalized 分量本就等权，新增 future 也等权进入）
+- **三臂**：`risk_v1_no_future` / `risk_v2_pred_future` / `risk_v2_truth_future`（诊断）
+- 这轮**只固定 q95**，不同时 sweep mean/CVaR
+
+### CP-v2（新建 `cp_rho_v2_clean`，不覆盖原 cp_rho）
+- 对齐 greedy 的：candidate feasibility / **hard priority tier**（不再 soft flow weight）/
+  current-cost 定义 / future coefficient
+- `priority_weight = 0`、`memory_weight = 0`（memory 仅作可行性）、`future_weight = 1`
+- legacy load double-count **本轮不修**（否则多一个变量）
+
+### 干净 2×2
+|  | predicted future | truth-informed future |
+|---|---|---|
+| Greedy | G-P | G-T |
+| CP-v2 | CP-P | CP-T |
+核心 contrast：`G_T−G_P`（信息效应）、`CP_T−CP_P`、`CP_P−G_P`（框架效应）、`CP_T−G_T`、
+以及 interaction `(CP_T−CP_P)−(G_T−G_P)`
+→ 这才回答"**是 prediction 限制更大，还是 greedy framework 限制更大**"
+
+### CP 时间预算（不许拍脑袋）
+- 固定 **train-only** 500 个 decision states（≥2 competitive candidate），分别跑 50/100/250/500/1000 ms
+- **提前冻结选择规则**：取最小预算使 `nonFallbackRate ≥ 95%` **且** 相对下一档 `FirstActionAgreement ≥ 99%`
+- 到 1s 仍达不到就简化模型，不继续加时间
+- 外推 300 集单臂 wall time 目标约半小时量级
+- 若仍慢：先 `hard priority filtering`（同时让 CP/greedy 比较更公平），再考虑候选 cap（K 由 train-only 分布覆盖 ≥99% 决定），
+  且必须报告 `candidate_truncation_rate`
+- **每次 CP 调用记录**：`objective / bestBound / gap / status / fallback / solve_ms`
+
+### "预测 vs 真值"三层对比
+1. **预测器本身**：`predictor_truth_comparison.csv`，逐 future slot 含 `truth_runtime_ms` /
+   `pred_mean/p50/p90/p95` / `pred_bin` / `truth_bin` / `pred/truth` / role / family / model，再按 band/role/family/model 聚合
+2. **决策 trace**：同一候选并列显示 J3 / F0 / F1 / truth-H5 的 future、risk-v2 分数、CP-v2 first-action、排名、winner
+3. **Truth-Q**：抽样 **300 episodes × 每集 3 个 competitive decision（早/中/晚各一，固定 hash 选）≈ 900 states**，
+   每 state ~4 候选 ≈ **3,600 次 counterfactual rollout**；continuation 固定为冻结 A0
+   - 报 `Top1Agreement_m = P(a_m = a*_Q)`、`Regret_m = Q(s,a_m) − min_a Q(s,a)`
+   - 必报 `P(a_truthH5 ≠ a_TruthQ)` 与 `Regret_H5`
+
+### 8 个 stage
+| Stage | 内容 | 成本 |
+|---|---|---|
+| 0 | 新 causal input contract | CPU 1–5 min |
+| 1 | dataset-v2 hist-resource | CPU 数分钟 |
+| 2 | model-v2 + 单测 | <1 min |
+| 3 | F0/F1 3 seeds × 30 ep | **GPU 10–20 min** |
+| 4 | predictor 评估 + pack | 2–5 min |
+| 5 | CP budget calibration + risk-v2 smoke | CPU 5–20 min |
+| 6 | 300 paired risk + 2×2 | risk 数分钟；**CP 约 30–60 min** |
+| 7 | 抽样 Truth-Q | 10–30 min |
+
+**阻塞项 = Stage 0–2**；之后 predictor 训练 / risk-v2 / CP-v2 / Truth-Q 代码可并行开发，
+但**正式 scheduler run 必须等最终 predictor artifact + CP budget 都冻结**。
+
+### 最大风险
+**不是训练失败，而是「过去的资源耗时对未来资源条件信息增量很小」** ——
+因为 categorical context 已经知道 model / family / role / prefix，而 summarize 内部本身就有 64× 波动。
+- 若 `F1 ≈ F0`：这是**可解释且有价值的负结果**
+- 若 **F1 预测更好但调度仍不改善**：进一步坐实"瓶颈已不在预测，而在 consumer/framework"
+- 若 `CP−P ≈ G−P` 且 CP gap 小、fallback 低：才是相对可信的"当前 rolling ready-window 下复杂优化没带来额外价值"
+
+### 33 条提交前验收清单
+（全文见归档文档，含：J3 SHA 未改、新数据写全新 root、categorical history 逐 token 一致、
+current resource mask 恒 0、可见 resource 的 source index 严格 < current、
+sentinel mutation 后 byte-identical、raw key 仍在 forbidden list、scaler 仅 train 拟合、
+F0/F1 行数/sample ID/labels/split hash 完全一致、architecture 除 mask 外一致、
+matched seeds 同初始化、16-bin spec 与 Phase R 相同、30 epochs 不 early-stop、
+risk-v1 逐位 regression 不变、risk 权重固定、CP-P/G-P 同系数、CP budget 不读 scheduler completion、
+2×2 contrasts 运行前写进 manifest、Truth-Q sampling IDs rollout 前冻结、
+300 smoke/trace 未进任何训练 loss、J test 仍完全未读）
+
+## 2026-09-21 - GPT 因果边界裁决 + Stage 0 规格 + identity join 实测覆盖率
+
+归档：`docs/research/2026-09-21_fas_causal_boundary_ruling_gpt.md`
+
+### 唯一因果契约
+```
+i <  anchor : attributes + observed resource outcomes
+i == anchor : attributes only
+i >  anchor : nothing
+```
+「身份字段可以用于证明这条边界，但身份本身不进入模型。」
+
+### 冻结的字段边界（要点）
+- 历史可带 `runtime_ms` / `load_ms` / `peak_allocated_mb` / `peak_reserved_mb` / `status_class`
+- **当前节点禁止**全部资源字段；**`merged_nested_call` 当前也禁止**（它是执行结果不是类别）
+- `is_retry`：历史可以，**当前第一版不开放**
+- nested-call runtime：因果上可用但**本版不用**（避免与 outer composite runtime 重复计）
+- `node_id` / `event_id` / `run_id` / `video_id`：**仅 JOIN/AUDIT，不进模型**
+
+### 数值表示（冻结）
+`log1p` → **仅 train** 的 median + IQR/1.349 → clip ±6 → **每字段独立 presence mask**。
+**不做** per-model/per-family 归一化（会抹掉绝对信息）；**不做**分桶作主版本；**不做** K-step 手工聚合。
+
+### join：放弃位置对齐，改用 identity join
+- 放弃 `history[i] → chain_position i−1`（position 只是 audit signal）
+- 第一层：`(run_id, current_event_index) → current_node_id` 映射（每个 anchor 自己给出），
+  历史 token `i` 若 `(run_id, i)` 有唯一身份 → `node_table[(run_id, node_id)]`
+  （`current_event_index = len(history) − 1`）
+- 第二层：`monotonic categorical alignment`（签名 `(node_type, role, action_family, model)`，
+  唯一匹配才接受，否则 missing）；**GPT 偏好主实验只用 `identity_exact`**
+- provenance 落盘：`identity_exact` / `monotonic_unique` / `unresolved` / `current_forbidden` / `run_container`
+
+### **实测覆盖率（我本机跑出，满足 GPT 的硬 gate）**
+| split | 行数 | 身份冲突 | 可对齐历史 token | **identity_exact** | 未解析 |
+|---|---|---|---|---|---|
+| train | 13,754 | **0** | 82,847 | **81,053 (97.8%)** | 1,794 (2.2%) |
+| validation | 2,029 | **0** | 12,261 | **12,090 (98.6%)** | 171 (1.4%) |
+| test | 1,520 | **0** | 9,276 | **9,174 (98.9%)** | 102 (1.1%) |
+
+跨 split 差异 **1.1 pp** ≤ 5 pp。→ **可以用 identity_exact-only 的最保守方案。**
+
+### 覆盖率 gate
+- **硬 gate 无条件 100%**：current exposure = 0、future exposure = 0、ambiguous accepted = 0、
+  duplicate identity joins = 0、split mismatch = 0
+- 历史 coverage 预注册 **≥90%**，跨 split ≤5 pp；不足则标 partial，**绝不偷偷补齐**
+
+### 三个变异测试（GPT 的验收核心）
+1. current mutation（哨兵值）→ model_input **逐字节相同**
+2. future mutation → **逐字节相同**
+3. past mutation（identity_exact 历史节点）→ **只有对应通道变化**
+
+### GPT 明确要求：第一提交只做 Stage 0，不碰模型
+只包含：historical-resource augmentation / identity join / causal guards / scaler / dataset audit / tests。
+它审核时重点看 6 个数字：`current_truth_exposure_count=0`、`future_truth_exposure_count=0`、
+`ambiguous_join_accepted_count=0`、`identity_exact_coverage`、`monotonic_unique_coverage`、`unresolved_coverage`；
+以及上述 3 个变异测试。
+
+### 其余调整
+- **不改 raw topology builder**（`data/raw` 为空，信息已在本机）→ 新建独立 augment stage
+  `scripts/build_j_series_history_resource_v2.py`，输出 `results/processed/j_series_dataset_histres_v2/`，旧数据不动
+- **F0 / F1 对照继续**（F1−F0 才是归因）；J3 仍为 frozen historical baseline
+- **训练目标仍不加 `L_decision`**；Risk/CP/Truth-Q 规划不变，Predicted future 改用本次选出的 F0/F1 artifact
+
 ## Goal
 
 验证"视频 Agent 工作流的未来预测能否改进 GPU 调度"，并形成可发表的论文主线
