@@ -2019,6 +2019,100 @@
       "detail_archive": ".project/archive/2026-09-15_pre_compact/EXPERIMENT_GATE.json",
       "report": "experiments/EXP-20260911_p9d_r0p_workload_proxy_probe/RESULT.md",
       "status": "completed_no_gain"
+    },
+    "EXP-20260921_histres_causal_input_v1": {
+      "active": true,
+      "smoke_passed": true,
+      "ledger_registered": true,
+      "commit": "a01e7eb",
+      "conclusion": "Stage 0/0.1/0.2 closed the causal input contract; Stage 1 wired the causal historical-telemetry channel, made F0 a genuine telemetry-off arm, migrated the frozen J3 checkpoint into the discretised-head model, reproduced the frozen Phase-R acceptance numbers exactly, and passed a two-epoch implementation smoke. Formal 3-seed training is the next gate.",
+      "question": "does causal historical execution telemetry (past runtime / load / memory / status) add incremental predictive value beyond workflow semantics, and does it change what the scheduler can do?",
+      "causal_contract": {
+        "i_lt_anchor": "attributes + observed resource outcomes",
+        "i_eq_anchor": "attributes only",
+        "i_gt_anchor": "nothing",
+        "identity_never_enters_model": true,
+        "join_provenance_is_not_a_model_feature": true,
+        "source": "project owner, 2026-09-21, verbatim"
+      },
+      "stage_status": {
+        "stage_0_input_contract": "closed - unexpected_node_table_missing = 0",
+        "stage_0_1_blockers": "passed",
+        "stage_0_2_taxonomy_and_coverage": "closed",
+        "stage_1_channel": "passed",
+        "stage_1_1_f0_semantics": "passed",
+        "stage_1_2_j3_compatibility": "passed",
+        "stage_1_3_16bin_head": "passed",
+        "stage_1_4a_wiring_p0s": "passed",
+        "stage_1_4b_migration_and_routing": "passed",
+        "stage_1_4c_matched_init_and_phase_r_reproduction": "passed",
+        "stage_1_5_status_guard_contrasts_taxonomy": "passed",
+        "stage_1_6_two_epoch_smoke": "passed"
+      },
+      "arms": {
+        "F0": "telemetry branch fully disabled; same architecture and parameter count",
+        "F1": "numeric + status telemetry enabled",
+        "J3": "frozen historical baseline, never modified"
+      },
+      "preregistered_contrasts": {
+        "F1-F0": "increment attributable to the causal historical-telemetry channel",
+        "F0-J3": "effect of full retraining plus the discretised 16-bin runtime head",
+        "F1-J3": "new system against the frozen J3 predictor"
+      },
+      "preregistered_gates": {
+        "prediction_integrity": {
+          "runtime_qscore_max": 845.0,
+          "calibration_error_max": 0.05,
+          "quantile_crossing_max": 0
+        },
+        "telemetry_increment": {
+          "metric": "runtime qscore",
+          "contrast": "F1 - F0",
+          "paired_video_cluster_bootstrap": true,
+          "rule": "CI_upper < 0 required before claiming the telemetry helps prediction"
+        },
+        "scheduler_side": {
+          "metric": "mean_completion_ms",
+          "non_inferiority_margin_ms": 485.0,
+          "note": "the 485 ms margin was frozen on 2026-09-20 and is reused unchanged",
+          "development_only": true
+        }
+      },
+      "verified_facts": {
+        "identity_exact_coverage": {
+          "train": 0.9783456250678962,
+          "validation": 0.9860533398580866
+        },
+        "merged_child_occurrences": 1965,
+        "unexpected_node_table_missing": 0,
+        "phase_r_r1b_reproduction": {
+          "runtime_qscore": 667.2534249714512,
+          "q50_coverage": 0.44211257817929117,
+          "q50_calibration_error": -0.05788742182070883,
+          "quantile_crossing": 0,
+          "n_slot_pairs": 7195
+        },
+        "phase_r_point_loss": {
+          "scale_ms": 2222.989013671875,
+          "delta": 2.0
+        },
+        "status_vocabulary": [
+          "UNOBSERVED",
+          "success",
+          "error"
+        ],
+        "frozen_j3_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77"
+      },
+      "guards": {
+        "frozen_checkpoint": "sha256 asserted before every shared-init build",
+        "j_test": "never opened; the smoke constructs its context from train and validation only",
+        "smoke_and_trace": "used for interface design only, never as a training signal",
+        "telemetry_routing": "F0 telemetry grad_norm must be exactly 0; F1 must be > 0",
+        "head_width": "runtime_head_hidden must be 64 (the Phase-R R1b shape)",
+        "status": "out-of-vocabulary status raises instead of merging into a catch-all"
+      },
+      "review": "docs/research/2026-09-21_fas_causal_boundary_ruling_gpt.md and the review chain referenced there; every P0 raised was fixed and re-verified",
+      "artifacts": "experiments/EXP-20260921_histres_causal_input_v1/artifacts/{dataset_audit.json,numeric_scaler.json,unresolved_breakdown.json,join_taxonomy.json,smoke_report.json}"
     }
   },
   "notes": [
@@ -2026,5 +2120,5 @@
     "Add new experiments here before formal runs (gate + registration)."
   ],
   "schema": "experiment-gate-v1",
-  "updated_at": "2026-09-20"
+  "updated_at": "2026-09-21"
 }
