@@ -216,6 +216,53 @@ def cpu_state(model: common.JSeriesModel) -> Dict[str, Any]:
     return {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
 
 
+# keys the Stage 1 architecture added on top of the frozen J3 encoder; anything
+# else that is missing or misshaped is a real defect, not a migration
+J3_COMPATIBLE_MISSING_PREFIXES = ("hist_res_proj", "hist_status_emb")
+
+
+def load_j3_compatible(
+    model: common.JSeriesModel,
+    state: Mapping[str, Any],
+    *,
+    allowed_missing_prefixes: Sequence[str] = J3_COMPATIBLE_MISSING_PREFIXES,
+) -> Dict[str, Any]:
+    """Load a frozen J3 checkpoint into the telemetry-extended model.
+
+    ``strict=False`` alone is not acceptable here: it would also swallow a genuinely
+    missing or misshaped tensor.  This loader permits exactly the keys the Stage 1
+    architecture introduced and raises on anything else, then reports what happened
+    so the run manifest can assert ``unexpected_* == []``.
+    """
+
+    own = model.state_dict()
+    missing = [key for key in own if key not in state]
+    expected_missing = sorted(
+        key for key in missing if any(key.startswith(p) for p in allowed_missing_prefixes)
+    )
+    unexpected_missing = sorted(
+        key for key in missing if not any(key.startswith(p) for p in allowed_missing_prefixes)
+    )
+    shape_mismatch = sorted(
+        key for key in own if key in state and tuple(own[key].shape) != tuple(state[key].shape)
+    )
+    extra_in_checkpoint = sorted(key for key in state if key not in own)
+
+    if unexpected_missing or shape_mismatch or extra_in_checkpoint:
+        raise SystemExit(
+            "J3 compatible load refused: unexpected_missing=%s shape_mismatch=%s extra=%s"
+            % (unexpected_missing[:5], shape_mismatch[:5], extra_in_checkpoint[:5])
+        )
+    model.load_state_dict(state, strict=False)
+    return {
+        "loaded_keys": len([key for key in own if key in state]),
+        "expected_missing_keys": expected_missing,
+        "unexpected_missing_keys": unexpected_missing,
+        "unexpected_shape_mismatch": shape_mismatch,
+        "extra_in_checkpoint": extra_in_checkpoint,
+    }
+
+
 def load_checkpoint(path: Path, ctx: Ctx, variant: Optional[str] = None) -> Tuple[common.JSeriesModel, Dict[str, Any]]:
     payload = torch.load(path, map_location=ctx.device, weights_only=False)
     model = make_model(ctx, variant or payload.get("variant"))
