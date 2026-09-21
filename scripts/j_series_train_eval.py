@@ -198,9 +198,44 @@ def configure_trainable(model: common.JSeriesModel, variant: str) -> List[str]:
     return [name for name, parameter in model.named_parameters() if parameter.requires_grad]
 
 
+RUNTIME_BIN_SPEC = (
+    PROJECT_ROOT / "outputs/j_series_resource_dist_v1/bins.json"
+    if "PROJECT_ROOT" in globals()
+    else Path(__file__).resolve().parents[1] / "outputs/j_series_resource_dist_v1/bins.json"
+)
+
+
+def load_runtime_bins(path: Path | None = None) -> Dict[str, Any]:
+    """The frozen mass-balanced 16-bin spec.
+
+    Read from disk every time rather than re-fitted: the entire point of reusing it
+    is that training and the Phase-R acceptance metrics share one bin convention.
+    """
+
+    import json as _json
+
+    spec_path = Path(path) if path else RUNTIME_BIN_SPEC
+    spec = _json.loads(spec_path.read_text(encoding="utf-8"))
+    return {
+        "spec_path": str(spec_path),
+        "edges": [float(e) for e in spec["edges"]],
+        "representatives_ms": [float(r) for r in spec["representatives_ms"]],
+        "band_of_bin": [int(b) for b in spec["band_of_bin"]],
+        "mode": spec.get("mode"),
+        "n_bins": int(spec.get("n_bins") or len(spec["representatives_ms"])),
+        "scale": float(spec.get("scale") or 4000.0),
+        "delta": float(spec.get("delta") or 1.0),
+    }
+
+
 def make_model(ctx: Ctx, variant: Optional[str] = None) -> common.JSeriesModel:
     mode = duration_mode(ctx, variant) if variant else "shared"
-    return common.JSeriesModel(ctx.vocabs, ctx.config["model"], horizon=ctx.horizon, duration_mode=mode).to(ctx.device)
+    model_cfg = dict(ctx.config["model"])
+    if model_cfg.get("runtime_bins_path"):
+        model_cfg["runtime_bins"] = load_runtime_bins(Path(model_cfg["runtime_bins_path"]))
+    elif model_cfg.get("runtime_distribution_head"):
+        model_cfg["runtime_bins"] = load_runtime_bins()
+    return common.JSeriesModel(ctx.vocabs, model_cfg, horizon=ctx.horizon, duration_mode=mode).to(ctx.device)
 
 
 def load_compatible(model: common.JSeriesModel, state: Mapping[str, Any]) -> Dict[str, Any]:
@@ -289,8 +324,25 @@ def per_row_metrics(model: common.JSeriesModel, arrays: Mapping[str, np.ndarray]
         for indices in split_indices(n, ctx.batch_size):
             batch = to_torch_batch(arrays, indices, ctx.device)
             outputs = forward(model, batch, variant, ctx)
-            runtime_ms = torch.expm1(outputs["resource"]["runtime_log_quantiles"]).clamp(min=0.0).cpu().numpy()
-            load_dur_ms = torch.expm1(outputs["resource"]["load_dur_log_quantiles"]).clamp(min=0.0).cpu().numpy()
+            resource = outputs["resource"]
+            if "runtime_logits" in resource:
+                # discretised head: the quantile views come from the same CDF that the
+                # loss trains, so evaluation cannot drift from the training convention
+                import j_series_resource_dist as _dist
+
+                bins = model.runtime_bins
+                probs = torch.softmax(resource["runtime_logits"], dim=-1)
+                reps = torch.as_tensor(bins["representatives_ms"], device=probs.device, dtype=probs.dtype)
+                views = _dist.derive_from_probs(probs, reps.cpu().numpy())
+                runtime_ms = torch.stack(
+                    [torch.as_tensor(views["p50"], device=probs.device, dtype=probs.dtype),
+                     torch.as_tensor(views["p90"], device=probs.device, dtype=probs.dtype),
+                     torch.as_tensor(views["p95"], device=probs.device, dtype=probs.dtype)],
+                    dim=-1,
+                ).cpu().numpy()
+            else:
+                runtime_ms = torch.expm1(resource["runtime_log_quantiles"]).clamp(min=0.0).cpu().numpy()
+            load_dur_ms = torch.expm1(resource["load_dur_log_quantiles"]).clamp(min=0.0).cpu().numpy()
             attrs = outputs["attributes"]
             numpy_outputs = {
                 "runtime_ms": runtime_ms,

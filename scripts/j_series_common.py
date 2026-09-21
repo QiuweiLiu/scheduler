@@ -332,6 +332,17 @@ if nn is not None:
             # current node - which is what makes the telemetry-off arm equal to the
             # old categorical encoder.
             self.hist_status_emb = nn.Embedding(len(STATUS_VALUES), self.hist_dim, padding_idx=0)
+            # ---- frozen Phase-R runtime distribution head ------------------ #
+            # The caller supplies the mass-balanced 16-bin spec (edges, representatives
+            # and the bin->band map) loaded from the frozen bins.json.  Nothing here
+            # re-fits or re-searches the bins: that would change the experiment.
+            self.runtime_bins = dict(model_cfg.get("runtime_bins") or {})
+            if self.runtime_bins:
+                self.runtime_bin_edges = np.asarray(self.runtime_bins["edges"], dtype=np.float64)
+                self.runtime_bin_reps = np.asarray(self.runtime_bins["representatives_ms"], dtype=np.float64)
+                self.runtime_band_of_bin = np.asarray(self.runtime_bins["band_of_bin"], dtype=np.int64)
+                self.runtime_scale = float(self.runtime_bins.get("scale", 1.0))
+                self.runtime_delta = float(self.runtime_bins.get("delta", 1.0))
             # single switch for the whole telemetry branch; F0 sets it False
             self.use_history_telemetry = bool(model_cfg.get("use_history_telemetry", True))
             # context embeddings
@@ -356,7 +367,17 @@ if nn is not None:
             self.head_next_family = nn.Linear(self.hidden, len(vocabs.slot["action_family"]))
             # resource heads: condition = repr + slot + attribute feature
             self.res_hidden = nn.Linear(self.hidden + self.slot_dim + self.attr_dim, self.hidden)
-            self.head_runtime = nn.Linear(self.hidden, len(TARGET_TAUS))
+            if self.runtime_bins:
+                # the frozen distribution head; hidden shape follows the Phase-R R1b
+                # implementation rather than being re-searched here
+                import j_series_resource_dist as _dist
+
+                self.head_runtime = _dist.DiscreteRuntimeHead(
+                    self.hidden, int(len(self.runtime_bin_reps)),
+                    hidden=int(model_cfg.get("runtime_head_hidden", 0)) or None,
+                )
+            else:
+                self.head_runtime = nn.Linear(self.hidden, len(TARGET_TAUS))
             self.head_load_occ = nn.Linear(self.hidden, 1)
             self.head_load_dur = nn.Linear(self.hidden if self.duration_mode == "shared" else self.duration_branch_hidden, len(TARGET_TAUS))
             self.head_memory = nn.Linear(self.hidden, 1)
@@ -457,8 +478,9 @@ if nn is not None:
                 duration = self.head_load_dur(F.dropout(torch.tanh(self.dur_adapter(dur_input)), p=self.dropout, training=self.training))
             else:
                 raise ValueError(f"unknown duration_mode: {self.duration_mode}")
+            runtime_out = self.head_runtime(z)
             return {
-                "runtime_log_quantiles": self.head_runtime(z),
+                ("runtime_logits" if self.runtime_bins else "runtime_log_quantiles"): runtime_out,
                 "load_occ_logit": self.head_load_occ(z).squeeze(-1),
                 "load_dur_log_quantiles": duration,
                 "memory_log": self.head_memory(z).squeeze(-1),
@@ -508,11 +530,60 @@ def behavior_loss(outputs: Mapping[str, Any], batch: Mapping[str, Any]) -> Any:
     return role_loss + family_loss
 
 
-def resource_loss(outputs: Mapping[str, Any], batch: Mapping[str, Any], slot_mask: Any) -> Any:
-    runtime_target = torch.log1p(batch["runtime_ms"].clamp(min=0.0))
-    runtime_valid = slot_mask * (batch["runtime_ms"] > 0).to(slot_mask.dtype)
-    runtime_parts = [masked_mean(pinball_loss(outputs["runtime_log_quantiles"][:, :, k], runtime_target, tau), runtime_valid) for k, tau in enumerate(TARGET_TAUS)]
-    runtime_part = torch.stack(runtime_parts).mean()
+def runtime_distribution_loss(
+    outputs: Mapping[str, Any],
+    batch: Mapping[str, Any],
+    slot_mask: Any,
+    bins: Mapping[str, Any],
+) -> Any:
+    """The frozen Phase-R runtime objective on the discretised distribution.
+
+        L = NLL + 0.5 * RPS + 0.25 * pseudo-Huber(mean) + 0.25 * coarse-band CE
+
+    with the same binning, representatives and band map that the offline evaluation
+    uses, so training and the acceptance metrics share one convention.  The losses
+    themselves are imported from j_series_resource_dist rather than reimplemented.
+    """
+
+    import j_series_resource_dist as dist
+
+    edges = np.asarray(bins["edges"], dtype=np.float64)
+    reps = torch.as_tensor(np.asarray(bins["representatives_ms"], dtype=np.float64),
+                           device=slot_mask.device, dtype=torch.float32)
+    band_of_bin = np.asarray(bins["band_of_bin"], dtype=np.int64)
+
+    logits = outputs["runtime_logits"]
+    target_ms = batch["runtime_ms"]
+    valid = slot_mask * (target_ms > 0).to(slot_mask.dtype)
+    target_idx = torch.as_tensor(
+        dist.bin_index(target_ms.detach().cpu().numpy(), edges), device=logits.device, dtype=torch.long
+    )
+    band_idx = torch.as_tensor(
+        dist.band_index(target_ms.detach().cpu().numpy()), device=logits.device, dtype=torch.long
+    )
+
+    nll = dist.nll_loss(logits, target_idx, valid)
+    rps = dist.rps_loss(logits, target_idx, valid)
+
+    probs = torch.softmax(logits, dim=-1)
+    pred_ms = (probs * reps).sum(dim=-1)
+    huber = dist.pseudo_huber_point(
+        pred_ms, target_ms.clamp(min=0.0),
+        scale=float(bins.get("scale", 1.0)), delta=float(bins.get("delta", 1.0)), mask=valid,
+    )
+    band = dist.coarse_band_ce(logits, band_idx, valid, band_of_bin)
+    return nll + 0.5 * rps + 0.25 * huber + 0.25 * band
+
+
+def resource_loss(outputs: Mapping[str, Any], batch: Mapping[str, Any], slot_mask: Any,
+                  bins: Mapping[str, Any] | None = None) -> Any:
+    if bins:
+        runtime_part = runtime_distribution_loss(outputs, batch, slot_mask, bins)
+    else:
+        runtime_target = torch.log1p(batch["runtime_ms"].clamp(min=0.0))
+        runtime_valid = slot_mask * (batch["runtime_ms"] > 0).to(slot_mask.dtype)
+        runtime_parts = [masked_mean(pinball_loss(outputs["runtime_log_quantiles"][:, :, k], runtime_target, tau), runtime_valid) for k, tau in enumerate(TARGET_TAUS)]
+        runtime_part = torch.stack(runtime_parts).mean()
 
     occ_valid = slot_mask * (batch["load_occ"] >= 0).to(slot_mask.dtype)
     occ_target = batch["load_occ"].clamp(min=0).to(outputs["load_occ_logit"].dtype)
