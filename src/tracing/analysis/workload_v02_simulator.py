@@ -1110,19 +1110,28 @@ def set_train_stats_context(value: str) -> None:
 # When a trace is registered the same-shape branch additionally scores the whole
 # candidate pool with every registered shadow method and writes one record per
 # decision state.  The live decision is unchanged: the trace only observes.
-_DECISION_TRACE: dict[str, Any] = {"writer": None, "methods": (), "truth": None}
+_DECISION_TRACE: dict[str, Any] = {
+    "writer": None, "methods": (), "truth": None, "trajectory_method_id": None,
+}
 
 
 def set_decision_trace(
     writer: Any = None,
     methods: Sequence[Any] = (),
     truth_cost: Any = None,
+    trajectory_method_id: str | None = None,
 ) -> None:
-    """Register (or clear) the decision tracer for the current process."""
+    """Register (or clear) the decision tracer for the current process.
+
+    `trajectory_method_id` names the shadow method that mirrors the live
+    consumer; every decision asserts that its reconstructed winner equals the
+    candidate the simulator actually chose.
+    """
 
     _DECISION_TRACE["writer"] = writer
     _DECISION_TRACE["methods"] = tuple(methods)
     _DECISION_TRACE["truth"] = truth_cost
+    _DECISION_TRACE["trajectory_method_id"] = trajectory_method_id
 
 
 def decision_trace_active() -> bool:
@@ -3108,7 +3117,7 @@ def choose_action(
 
             views = []
             owners = {}
-            for candidate in pool:
+            for pool_index, candidate in enumerate(pool):
                 item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
                 resident = model_id in gpu.resident
                 cid = _dt.candidate_id(
@@ -3129,6 +3138,7 @@ def choose_action(
                         legacy_tiebreak_1=float(item[1]),
                         legacy_tiebreak_2=item[2],
                         legacy_tiebreak_3=item[3],
+                        pool_index=int(pool_index),
                     )
                 )
 
@@ -3148,7 +3158,29 @@ def choose_action(
                 candidates=views,
                 truth_future_cost=(_truth if _DECISION_TRACE["truth"] is not None else None),
             )
+            # strict guard, per decision: the reconstructed key must equal the live
+            # key for every candidate, and the reconstructed winner must equal the
+            # candidate the simulator actually committed to.  The ON/OFF summary
+            # guard only proves tracing did not change behaviour; it cannot prove the
+            # trace explains the real choice.
+            for view in views:
+                live = sameshape_score(next(c for c in pool
+                                            if c[2] == view.node_id and c[4].index == view.gpu_index))
+                rebuilt = _dt.build_scheduler_key(view, float(live[2]))
+                if tuple(live) != tuple(rebuilt):
+                    raise AssertionError(
+                        "trace key mismatch on %s: live=%r rebuilt=%r"
+                        % (view.candidate_id, tuple(live), tuple(rebuilt))
+                    )
             scored = _dt.score_decision(context, _DECISION_TRACE["methods"])
+            trajectory_method = _DECISION_TRACE.get("trajectory_method_id")
+            if trajectory_method:
+                winners = [c["candidate_id"] for c in scored["candidate_records"]
+                           if c["scores"][trajectory_method].get("would_choose")]
+                if len(winners) != 1 or winners[0] != chosen_id:
+                    raise AssertionError(
+                        "trace winner %r != live choice %r" % (winners, chosen_id)
+                    )
             _DECISION_TRACE["index"] = int(_DECISION_TRACE.get("index", 0)) + 1
             _DECISION_TRACE["writer"].write(
                 {

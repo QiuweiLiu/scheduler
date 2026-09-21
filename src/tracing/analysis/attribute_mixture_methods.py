@@ -23,6 +23,7 @@ from tracing.analysis.attribute_stats_mixture import (  # noqa: E402
     build_lookup_mixture,
     canonical_views_from_atoms,
     canonical_views_from_probs,
+    lane_for_model,
     mix_atomic_runtime_distribution,
     mix_empirical_runtime_distribution,
 )
@@ -97,11 +98,10 @@ class AttrArgmaxStatsMethod(ShadowMethod):
     predictor_artifact_id = "attribute_argmax_stats"
 
     def __init__(self, artifacts: Mapping[str, Mapping[str, Any]], lookup: StatsBankLookup,
-                 *, horizon: int = 5, legacy_load: Callable[[Mapping[str, Any]], float] | None = None) -> None:
+                 *, horizon: int = 5) -> None:
         self.artifacts = artifacts
         self.lookup = lookup
         self.horizon = horizon
-        self.legacy_load = legacy_load or (lambda _step: 0.0)
 
     def future_cost(self, candidate: CandidateView, context: DecisionContext) -> FutureScoreResult:
         total = 0.0
@@ -112,7 +112,10 @@ class AttrArgmaxStatsMethod(ShadowMethod):
             if group is None:
                 raise ValueError("attr_argmax_stats_v1 found no lookup group for %s" % candidate.node_id)
             levels.append(group.lookup_level)
-            total += group.runtime_p50_ms + group.load_p50_ms + float(self.legacy_load(step))
+            # exactly _step_estimate_cost(): runtime_p50 + load_p50 from the SAME group.
+            # Adding the artifact load on top would change the cost semantics and
+            # confound the argmax-vs-mixture comparison.
+            total += group.runtime_p50_ms + group.load_p50_ms
         return FutureScoreResult(
             future_cost_ms=total,
             runtime_statistic="point_p50",
@@ -125,24 +128,25 @@ class AttrMixAtomMethod(ShadowMethod):
     """Attribute uncertainty only: probability-weighted mixture of point statistics."""
 
     method_id = "attrmix_stats_atom_v1"
-    consumer_policy_id = "sum_attribute_mixture_atom_mean_plus_legacy_load_v1"
+    consumer_policy_id = "sum_attribute_mixture_atom_mean_stats_load_v1"
     predictor_artifact_id = "attribute_stats_mixture_atom"
 
     def __init__(self, artifacts: Mapping[str, Mapping[str, Any]], lookup: StatsBankLookup,
-                 *, horizon: int = 5, legacy_load: Callable[[Mapping[str, Any]], float] | None = None) -> None:
+                 *, horizon: int = 5) -> None:
         self.artifacts = artifacts
         self.lookup = lookup
         self.horizon = horizon
-        self.legacy_load = legacy_load or (lambda _step: 0.0)
 
     def future_cost(self, candidate: CandidateView, context: DecisionContext) -> FutureScoreResult:
         total = 0.0
         entropies: List[float] = []
         dropped = 0
         for step in _steps(self.artifacts, candidate.node_id, self.horizon):
-            mixture = build_lookup_mixture(step, lookup_group=self.lookup)
+            mixture = build_lookup_mixture(
+                step, lookup_group=self.lookup, lane_for=lane_for_model
+            )
             views = canonical_views_from_atoms(mix_atomic_runtime_distribution(mixture))
-            total += views["runtime_mean_ms"] + _mixture_load(mixture) + float(self.legacy_load(step))
+            total += views["runtime_mean_ms"] + _mixture_load(mixture)
             entropies.append(mixture.attribute_entropy.get("model_id", 0.0))
             dropped += mixture.dropped_categories
         return FutureScoreResult(
@@ -166,7 +170,7 @@ class AttrMixHist16Method(ShadowMethod):
     """
 
     method_id = "attrmix_stats_hist16_v1"
-    consumer_policy_id = "sum_attribute_mixture_hist16_plus_legacy_load_v1"
+    consumer_policy_id = "sum_attribute_mixture_hist16_stats_load_v1"
     predictor_artifact_id = "attribute_stats_mixture_hist16"
 
     def __init__(self, artifacts: Mapping[str, Mapping[str, Any]], lookup: StatsBankLookup,
@@ -177,7 +181,6 @@ class AttrMixHist16Method(ShadowMethod):
         self.representatives = [float(r) for r in representatives]
         self.statistic = statistic
         self.horizon = horizon
-        self.legacy_load = legacy_load or (lambda _step: 0.0)
 
     def future_cost(self, candidate: CandidateView, context: DecisionContext) -> FutureScoreResult:
         total = 0.0
@@ -185,14 +188,16 @@ class AttrMixHist16Method(ShadowMethod):
         missing_mass = 0.0
         last_views: Dict[str, float] = {}
         for step in _steps(self.artifacts, candidate.node_id, self.horizon):
-            mixture = build_lookup_mixture(step, lookup_group=self.lookup)
+            mixture = build_lookup_mixture(
+                step, lookup_group=self.lookup, lane_for=lane_for_model
+            )
             probs, absent = mix_empirical_runtime_distribution(
                 mixture, n_bins=len(self.representatives)
             )
             missing_mass += absent
             views = canonical_views_from_probs(probs, self.representatives)
             last_views = views
-            total += views[self.statistic] + _mixture_load(mixture) + float(self.legacy_load(step))
+            total += views[self.statistic] + _mixture_load(mixture)
             probs_out.extend(probs)
         return FutureScoreResult(
             future_cost_ms=total,

@@ -59,6 +59,9 @@ class CandidateView:
     legacy_tiebreak_1: Any = None
     legacy_tiebreak_2: Any = None
     legacy_tiebreak_3: Any = None
+    # position in the live candidate pool; Python's min() keeps the first on an
+    # exact key tie, so a stable sort over this index is the only faithful replay
+    pool_index: int = 0
 
     @property
     def current_cost_ms(self) -> float:
@@ -276,6 +279,12 @@ def score_decision(
 
     if not context.candidates:
         raise ValueError("decision %d has an empty candidate pool" % context.decision_index)
+    for index, candidate in enumerate(context.candidates):
+        if candidate.pool_index != index:
+            raise ValueError(
+                "candidate %s carries pool_index %d but sits at %d"
+                % (candidate.candidate_id, candidate.pool_index, index)
+            )
     ids = [c.candidate_id for c in context.candidates]
     if len(set(ids)) != len(ids):
         raise ValueError("duplicate candidate ids in decision %d" % context.decision_index)
@@ -284,11 +293,19 @@ def score_decision(
     competitive = [c for c in context.candidates if c.priority == competitive_priority]
 
     scores_by_method: Dict[str, Dict[str, FutureScoreResult]] = {}
+    timings: Dict[str, Dict[str, int]] = {}
     for method in methods:
         per_candidate: Dict[str, FutureScoreResult] = {}
+        started = time.perf_counter_ns()
         for candidate in context.candidates:
             per_candidate[candidate.candidate_id] = method.future_cost(candidate, context)
+        scored_ns = time.perf_counter_ns() - started
         scores_by_method[method.method_id] = per_candidate
+        timings[method.method_id] = {
+            "score_compute_wall_ns": scored_ns,
+            "candidates_scored": len(context.candidates),
+            "per_candidate_wall_ns": scored_ns // max(1, len(context.candidates)),
+        }
 
     candidate_records: List[Dict[str, Any]] = []
     for candidate in context.candidates:
@@ -326,20 +343,27 @@ def score_decision(
     by_id: Dict[str, Dict[str, Any]] = {entry["candidate_id"]: entry for entry in candidate_records}
     for method in methods:
         method_id = method.method_id
+        started = time.perf_counter_ns()
+        # sorted() is stable and the input is in pool order, so an exact key tie
+        # resolves to the earliest pool entry - exactly what min() does.  The
+        # previous (key, candidate_id) tie-break changed the winner on exact ties.
         ordered = sorted(
             competitive,
-            key=lambda c: (
-                build_scheduler_key(c, scores_by_method[method_id][c.candidate_id].future_cost_ms),
-                c.candidate_id,
+            key=lambda c: build_scheduler_key(
+                c, scores_by_method[method_id][c.candidate_id].future_cost_ms
             ),
         )
         for rank, candidate in enumerate(ordered):
             by_id[candidate.candidate_id]["scores"][method_id]["scheduler_key_rank"] = rank
             by_id[candidate.candidate_id]["scores"][method_id]["would_choose"] = rank == 0
+        timings[method_id]["rank_select_wall_ns"] = time.perf_counter_ns() - started
+        timings[method_id]["total_wall_ns"] = (
+            timings[method_id]["score_compute_wall_ns"] + timings[method_id]["rank_select_wall_ns"]
+        )
 
     return {
         "competitive_priority": float(competitive_priority),
         "competitive_candidate_count": len(competitive),
         "candidate_records": candidate_records,
-        "method_timings": dict(method_timings or {}),
+        "method_timings": {**timings, **(method_timings or {})},
     }

@@ -38,6 +38,21 @@ from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 PACKER_PROBABILITY_FLOOR = 0.01
 
 
+def lane_for_model(model_class: str) -> str:
+    """Canonical model -> lane rule.
+
+    This is the single source of truth: ``scripts/pack_j_predictor_artifacts.py``
+    imports it rather than keeping a second copy, because the mixture must resolve
+    each model alternative's own lane.  Using the argmax step's lane for every
+    alternative would look CPU-side probability mass up in the GPU statistics.
+    """
+
+    name = str(model_class or "")
+    if name.startswith("cpu") or name in ("finish_argument",):
+        return "cpu"
+    return "gpu"
+
+
 @dataclass(frozen=True)
 class GroupRuntime:
     """One lookup group's runtime evidence, from the training split only."""
@@ -61,6 +76,7 @@ class AttributeLookupMixture:
     # diagnostics only - never used to build the mixture
     attribute_entropy: Dict[str, float] = field(default_factory=dict)
     dropped_categories: int = 0
+    mass_renormalised_after_lookup: bool = False
 
     @property
     def weight_sum(self) -> float:
@@ -68,39 +84,56 @@ class AttributeLookupMixture:
 
 
 def _entropy(probabilities: Sequence[float]) -> float:
-    total = 0.0
-    for p in probabilities:
-        if p > 0.0:
-            total -= p * math.log(p)
-    return total
+    """Shannon entropy of a *normalised* distribution."""
+
+    total = sum(probabilities)
+    if total <= 0.0:
+        raise ValueError("cannot take the entropy of a distribution with zero mass")
+    return -sum((p / total) * math.log(p / total) for p in probabilities if p > 0.0)
 
 
 def build_lookup_mixture(
     step: Mapping[str, Any],
     *,
     lookup_group: Any,
+    lane_for: Any,
     renormalise: bool = True,
+    require_distribution: bool = True,
 ) -> AttributeLookupMixture:
     """Pair each predicted ``model_id`` candidate with its train-statistics group.
 
-    ``lookup_group`` is a callable ``(model_id, lane) -> GroupRuntime | None`` so
-    this module stays independent of the simulator's hierarchy (the review was
-    explicit: do not invent a second lookup hierarchy).
+    ``lookup_group`` is a callable ``(model_id, lane) -> GroupRuntime | None`` and
+    ``lane_for`` is a callable ``model_id -> lane``; both are injected so this
+    module stays independent of the simulator's hierarchy (the review was explicit:
+    do not invent a second lookup hierarchy).
+
+    Two failure modes the review found are now hard errors:
+
+    * a step without ``model_probabilities`` used to degrade silently to a one-hot
+      argmax, which would have produced a false negative for "attribute
+      uncertainty does not matter"; and
+    * every alternative used the *argmax* step's ``execution_lane``, so CPU-side
+      probability mass was looked up in the GPU statistics.  Each alternative now
+      resolves its own lane through ``lane_for``.
     """
 
     probabilities = step.get("model_probabilities")
-    lane = str(step.get("execution_lane") or "unknown")
-    mixture = AttributeLookupMixture(raw_probability_sum=0.0, renormalised=False)
-
-    if isinstance(probabilities, Mapping) and probabilities:
-        items = [(str(k), float(v)) for k, v in probabilities.items()]
-    else:
-        # no distribution in the artifact: fall back to the argmax label as a
-        # degenerate one-hot, and say so rather than inventing spread
+    if not (isinstance(probabilities, Mapping) and probabilities):
+        if require_distribution:
+            raise ValueError(
+                "step carries no model_probabilities; refusing to fall back to a one-hot "
+                "argmax because that would understate attribute uncertainty"
+            )
         model_id = step.get("model_id")
         if model_id is None:
             raise ValueError("step carries neither model_probabilities nor model_id")
-        items = [(str(model_id), 1.0)]
+        probabilities = {str(model_id): 1.0}
+
+    mixture = AttributeLookupMixture(raw_probability_sum=0.0, renormalised=False)
+    items = [(str(k), float(v)) for k, v in probabilities.items()]
+    for _name, weight in items:
+        if not math.isfinite(weight) or weight < 0.0:
+            raise ValueError("model_probabilities contains a non-finite or negative weight")
 
     raw_sum = sum(weight for _name, weight in items)
     mixture.raw_probability_sum = raw_sum
@@ -111,6 +144,7 @@ def build_lookup_mixture(
     mixture.renormalised = scale != 1.0
 
     for name, weight in items:
+        lane = str(lane_for(name))
         group = lookup_group(name, lane)
         if group is None:
             mixture.dropped_categories += 1
@@ -120,8 +154,25 @@ def build_lookup_mixture(
     if not mixture.entries:
         raise ValueError("attribute mixture produced no usable lookup group")
 
+    # the retained mass must be closed: anything dropped above would otherwise make
+    # every downstream canonical view a sub-normalised distribution
+    retained = mixture.weight_sum
+    if retained <= 0.0:
+        raise ValueError("attribute mixture retained no probability mass")
+    if abs(retained - 1.0) > 1e-6:
+        if not renormalise:
+            raise ValueError(
+                "attribute mixture retains %.6f of the probability mass after lookup" % retained
+            )
+        mixture.entries = [
+            (name, weight / retained, group) for name, weight, group in mixture.entries
+        ]
+        mixture.mass_renormalised_after_lookup = True
+
     mixture.attribute_entropy = {
         "model_id": _entropy([weight for _name, weight in items]),
+        "model_id_top1_probability": max(weight for _name, weight in items),
+        "model_id_truncated_mass": max(0.0, 1.0 - raw_sum),
     }
     return mixture
 
