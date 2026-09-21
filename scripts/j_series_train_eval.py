@@ -715,13 +715,73 @@ def train_epoch(model: common.JSeriesModel, arrays: Mapping[str, np.ndarray], va
     return {key: sums[key] / max(1, count) for key in TRAIN_LOSS_KEYS}
 
 
+J3_FROZEN_CHECKPOINT = (
+    PROJECT_ROOT / "experiments/EXP-20260911_p9d_j_predictor_acceptance/artifacts/predictor/J3_seed11.pt"
+)
+J3_FROZEN_SHA256 = "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77"
+TELEMETRY_VARIANTS = ("F0", "F1")
+NEW_BRANCH_PREFIXES = ("hist_res_proj", "hist_status_emb", "head_runtime.net")
+
+
+def build_shared_init_state(ctx: Ctx, seed: int, *, force: bool = False) -> Tuple[Path, str, Dict[str, Any]]:
+    """One seed-specific initial state that both telemetry arms clone.
+
+    The pre-registered design is: frozen J3 shared parameters, then a seeded
+    initialisation of the parts J3 never had (the telemetry branch and the
+    discretised runtime head).  Caching it on disk is what makes "F0 and F1 started
+    from the same tensors" a checkable fact rather than an assumption about call
+    order.
+    """
+
+    path = ctx.run_root / "init" / ("F0F1_seed%d.pt" % seed)
+    if path.is_file() and not force:
+        payload = torch.load(path, map_location="cpu", weights_only=False)
+        return path, common.sha256_file(path), payload
+
+    if not J3_FROZEN_CHECKPOINT.is_file():
+        raise FileNotFoundError("frozen J3 checkpoint missing: %s" % J3_FROZEN_CHECKPOINT)
+    actual = common.sha256_file(J3_FROZEN_CHECKPOINT)
+    if actual != J3_FROZEN_SHA256:
+        raise SystemExit(
+            "frozen J3 checkpoint sha256 changed: %s != %s" % (actual, J3_FROZEN_SHA256)
+        )
+
+    torch.manual_seed(seed)
+    model = make_model(ctx, "F1")
+    reference = torch.load(J3_FROZEN_CHECKPOINT, map_location="cpu", weights_only=False)
+    report = load_j3_compatible(model, reference["model_state"])
+    for name, module in (("hist_res_proj", model.hist_res_proj),
+                         ("hist_status_emb", model.hist_status_emb),
+                         ("head_runtime", model.head_runtime)):
+        for parameter in module.parameters():
+            with torch.no_grad():
+                parameter.normal_(0.0, 0.02)
+    state = {key: value.detach().clone().cpu() for key, value in model.state_dict().items()}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "model_state": state,
+        "seed": seed,
+        "j3_checkpoint_sha256": J3_FROZEN_SHA256,
+        "migration": report,
+        "seeded_prefixes": list(NEW_BRANCH_PREFIXES),
+    }
+    torch.save(payload, path)
+    return path, common.sha256_file(path), payload
+
+
 def run_training(ctx: Ctx, variant: str, seed: int, epochs: int, max_train_rows: Optional[int] = None, max_val_rows: Optional[int] = None) -> Dict[str, Any]:
     set_seed(seed)
     init_root = Path(ctx.config.get("init_run_root", ctx.run_root))
     reference_root = Path(ctx.config.get("reference_run_root", init_root))
     model = make_model(ctx, variant)
     init = "scratch"
-    if variant != BACKBONE:
+    if variant in TELEMETRY_VARIANTS:
+        # frozen J3 shared parameters + a seeded new branch, from one cached state so
+        # F0 and F1 start bit-identically for a given seed
+        init_path, init_sha, init_payload = build_shared_init_state(ctx, seed)
+        model.load_state_dict(init_payload["model_state"])
+        init = "shared-F0F1:%s:seed%d (sha256 %s)" % (init_path.name, seed, init_sha[:16])
+    elif variant != BACKBONE:
         backbone_path = init_root / "runs" / BACKBONE / f"seed{seed}" / "checkpoint.pt"
         if not backbone_path.is_file():
             raise FileNotFoundError(f"backbone checkpoint missing: {backbone_path}")
