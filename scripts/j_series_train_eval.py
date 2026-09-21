@@ -60,6 +60,13 @@ DEFAULT_VARIANTS = {
     "J3": {"encoder": "trainable", "use_attribute_distribution": True, "attribute_gradient": "full", "duration_mode": "shared"},
     "J4a": {"encoder": "trainable", "use_attribute_distribution": True, "attribute_gradient": "stopgrad", "duration_mode": "decoupled", "duration_gate": True},
     "J4b": {"encoder": "trainable", "use_attribute_distribution": True, "attribute_gradient": "stopgrad", "duration_mode": "decoupled_shared_frozen", "duration_gate": True},
+    # the Stage 1 arms.  Same architecture, same parameter count, same schedule; the
+    # only difference is whether the causal historical-telemetry branch is enabled.
+    # Both use the frozen Phase-R discretised runtime head.
+    "F0": {"encoder": "trainable", "use_attribute_distribution": True, "attribute_gradient": "full",
+           "duration_mode": "shared", "use_history_telemetry": False, "runtime_distribution_head": True},
+    "F1": {"encoder": "trainable", "use_attribute_distribution": True, "attribute_gradient": "full",
+           "duration_mode": "shared", "use_history_telemetry": True, "runtime_distribution_head": True},
 }
 INTERFACE_ENDPOINTS = {
     "future_length": "length_mae",
@@ -150,7 +157,12 @@ def duration_mode(ctx: Ctx, variant: str) -> str:
 # --------------------------------------------------------------------------- #
 def forward(model: common.JSeriesModel, batch: Mapping[str, Any], variant: str, ctx: Ctx) -> Dict[str, Any]:
     cfg = variant_config(ctx, variant)
-    repr_vec = model.encode(batch)
+    # F0/F1 differ only here: the telemetry branch is switched by the variant, so the
+    # arm identity cannot drift from the config
+    repr_vec = model.encode(
+        batch,
+        use_history_telemetry=bool(variant_config(ctx, variant).get("use_history_telemetry", True)),
+    )
     structure = model.structure(repr_vec)
     behavior = model.behavior(repr_vec)
     attribute_logits = model.attribute_logits(repr_vec)
@@ -293,9 +305,17 @@ def cpu_state(model: common.JSeriesModel) -> Dict[str, Any]:
     return {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
 
 
-# keys the Stage 1 architecture added on top of the frozen J3 encoder; anything
-# else that is missing or misshaped is a real defect, not a migration
-J3_COMPATIBLE_MISSING_PREFIXES = ("hist_res_proj", "hist_status_emb")
+# Keys the Stage 1 architecture added on top of the frozen J3 encoder.  Anything else
+# missing or misshaped is a real defect, not a migration.
+J3_COMPATIBLE_MISSING_PREFIXES = ("hist_res_proj", "hist_status_emb", "head_runtime.net")
+
+# Tensors the frozen J3 checkpoint carries but the distribution model replaces.  They
+# are accepted only at these exact shapes, so the replacement of the three-quantile
+# head is a conscious act rather than something strict=False would swallow.
+J3_REPLACED_HEAD_KEYS = {
+    "head_runtime.weight": (3, 128),
+    "head_runtime.bias": (3,),
+}
 
 
 def load_j3_compatible(
@@ -323,7 +343,19 @@ def load_j3_compatible(
     shape_mismatch = sorted(
         key for key in own if key in state and tuple(own[key].shape) != tuple(state[key].shape)
     )
-    extra_in_checkpoint = sorted(key for key in state if key not in own)
+    replaced_head = sorted(key for key in state if key in J3_REPLACED_HEAD_KEYS)
+    head_shape_violations = sorted(
+        key for key in replaced_head
+        if tuple(state[key].shape) != J3_REPLACED_HEAD_KEYS[key]
+    )
+    if head_shape_violations:
+        raise SystemExit(
+            "the checkpoint's replaced runtime head has unexpected shapes: %s" % head_shape_violations
+        )
+    # a key is only tolerated as extra if it is one of the explicitly replaced tensors
+    extra_in_checkpoint = sorted(
+        key for key in state if key not in own and key not in J3_REPLACED_HEAD_KEYS
+    )
 
     if unexpected_missing or shape_mismatch or extra_in_checkpoint:
         raise SystemExit(
@@ -337,6 +369,8 @@ def load_j3_compatible(
         "unexpected_missing_keys": unexpected_missing,
         "unexpected_shape_mismatch": shape_mismatch,
         "extra_in_checkpoint": extra_in_checkpoint,
+        "replaced_head_keys": replaced_head,
+        "replaced_head_shapes": {key: list(state[key].shape) for key in replaced_head},
     }
 
 
