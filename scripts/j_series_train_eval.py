@@ -720,6 +720,42 @@ J3_FROZEN_CHECKPOINT = (
 )
 J3_FROZEN_SHA256 = "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77"
 TELEMETRY_VARIANTS = ("F0", "F1")
+
+# the telemetry branch, which F0 must never train
+TELEMETRY_GRAD_PREFIXES = ("hist_res_proj", "hist_status_emb")
+
+# Pre-registered contrasts.  Registered here so they land in every run manifest rather
+# than being chosen after a result is seen.
+PREREGISTERED_CONTRASTS = {
+    "F1-F0": "increment attributable to the causal historical-telemetry channel",
+    "F0-J3": "effect of full retraining plus the discretised 16-bin runtime head",
+    "F1-J3": "new system against the frozen J3 predictor",
+}
+PREREGISTERED_DISCLOSURE = (
+    "The 300-episode smoke and decision trace were used for interface design only and "
+    "never as a training signal; J test remains sealed."
+)
+
+
+def telemetry_grad_report(model: common.JSeriesModel) -> Dict[str, float]:
+    """Gradient norm on the telemetry branch, for the F0/F1 routing guard."""
+
+    total = 0.0
+    for name, parameter in model.named_parameters():
+        if any(name.startswith(prefix) for prefix in TELEMETRY_GRAD_PREFIXES):
+            if parameter.grad is not None:
+                total += float(parameter.grad.detach().norm() ** 2)
+    return {"telemetry_grad_norm": float(total ** 0.5)}
+
+
+def assert_telemetry_routing(variant: str, report: Mapping[str, float]) -> None:
+    """F0 must receive no telemetry gradient; F1 must receive some."""
+
+    norm = float(report.get("telemetry_grad_norm", 0.0))
+    if variant == "F0" and norm != 0.0:
+        raise SystemExit("F0 received a telemetry gradient (%.6g); the arm is not isolated" % norm)
+    if variant == "F1" and norm <= 0.0:
+        raise SystemExit("F1 received no telemetry gradient; the channel is not connected")
 NEW_BRANCH_PREFIXES = ("hist_res_proj", "hist_status_emb", "head_runtime.net")
 
 

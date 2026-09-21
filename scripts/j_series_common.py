@@ -66,7 +66,13 @@ HISTRES_OBSERVED_SOURCES = (
     "peak_alloc_present",
     "peak_reserved_present",
 )
-STATUS_VALUES = ("UNOBSERVED", "success", "failed", "timeout", "unknown")
+# Empirically derived from the augmented dataset: these are exactly the values
+# present in histres_{train,validation}.  The first version guessed
+# failed/timeout/unknown, which never occur (the real failure label is
+# "error"), and the fail-closed guard in encode_rows caught it.  Anything
+# outside this tuple raises rather than being folded into a catch-all, so a new
+# outcome class forces a deliberate vocabulary extension.
+STATUS_VALUES = ("UNOBSERVED", "success", "error")
 STATUS_INDEX = {value: index for index, value in enumerate(STATUS_VALUES)}
 CONTEXT_FIELDS = (
     "answer_type",
@@ -217,7 +223,15 @@ def encode_rows(rows: Sequence[Mapping[str, Any]], vocabs: VocabCollection, hori
                 if key in HISTRES_OBSERVED_SOURCES and float(value) > 0.0:
                     observed = True
             hist_res_mask[i, j] = 1.0 if observed else 0.0
-            hist_status[i, j] = STATUS_INDEX.get(str(channel.get("status_class")), STATUS_INDEX["unknown"])
+            status_value = str(channel.get("status_class"))
+            if status_value not in STATUS_INDEX:
+                # fail closed: silently folding a new status into the real "unknown"
+                # class would make the model treat two different outcomes as one
+                raise ValueError(
+                    "status %r is outside STATUS_VALUES %s; extend the vocabulary "
+                    "deliberately or add a separate unknown bucket" % (status_value, STATUS_VALUES)
+                )
+            hist_status[i, j] = STATUS_INDEX[status_value]
         for field_idx, field in enumerate(CONTEXT_FIELDS):
             if field in model_input["task_context"]:
                 value = model_input["task_context"].get(field)
