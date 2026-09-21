@@ -57,7 +57,7 @@ class HistResCausalGuardTests(unittest.TestCase):
         cls.train_rows = load_rows("train", 600)
         cls.validation_rows = load_rows("validation", 200)
         rows_by_split = {"train": cls.train_rows, "validation": cls.validation_rows}
-        cls.identity = build_anchor_identity(rows_by_split)
+        cls.identity, _conflicts = build_anchor_identity(rows_by_split)
         cls.scaler = fit_scaler(cls.train_rows, cls.identity, cls.truth_by_run_node)
 
     # -- helpers ---------------------------------------------------------- #
@@ -109,7 +109,7 @@ class HistResCausalGuardTests(unittest.TestCase):
             json.dumps(after["model_input"], sort_keys=True),
             "mutating the CURRENT node changed the model input",
         )
-        self.assertEqual(before["model_input"]["history"][current_index]["history_resource"]["join_status"],
+        self.assertEqual(before["history_resource_audit"][current_index]["join_status"],
                          "current_forbidden")
 
     def test_future_mutation_leaves_the_input_identical(self) -> None:
@@ -166,7 +166,8 @@ class HistResCausalGuardTests(unittest.TestCase):
                          "expected only token %d to change, got %s" % (past_index, changed))
 
         channel = after["model_input"]["history"][past_index]["history_resource"]
-        self.assertEqual(channel["join_status"], "identity_exact")
+        audit_entry = after["history_resource_audit"][past_index]
+        self.assertEqual(audit_entry["join_status"], "identity_exact")
         self.assertEqual(channel["runtime_present"], 1)
         self.assertEqual(channel["status_class"], "MUTATED_PAST_STATUS")
 
@@ -175,7 +176,7 @@ class HistResCausalGuardTests(unittest.TestCase):
             built = self.build(row)
             history = built["model_input"]["history"]
             current = history[-1]["history_resource"]
-            self.assertEqual(current["join_status"], "current_forbidden")
+            self.assertEqual(built["history_resource_audit"][-1]["join_status"], "current_forbidden")
             self.assertEqual(current["runtime_present"], 0)
             self.assertEqual(current["load_present"], 0)
             self.assertEqual(current["peak_alloc_present"], 0)
@@ -187,12 +188,13 @@ class HistResCausalGuardTests(unittest.TestCase):
             built = self.build(row)
             history = built["model_input"]["history"]
             current_index = len(history) - 1
-            for token in history:
+            for index, token in enumerate(history):
                 channel = token["history_resource"]
-                if channel["join_status"] != "identity_exact":
+                if channel["status_class"] == "UNOBSERVED":
                     continue
-                self.assertLess(channel["token_event_index"], current_index)
-                for _field, _z, present_key in RESOURCE_FIELDS:
+                self.assertLess(index, current_index,
+                                "token %d carries an observed status at/after the anchor" % index)
+                for _field, _mode, _z, present_key in RESOURCE_FIELDS:
                     self.assertIn(channel[present_key], (0, 1))
 
     def test_forbidden_raw_keys_still_rejected(self) -> None:

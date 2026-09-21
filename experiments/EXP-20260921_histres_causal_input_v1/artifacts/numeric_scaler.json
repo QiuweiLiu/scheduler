@@ -1,7 +1,8 @@
 {
-  "version": "histres-numeric-scaler-v1",
+  "version": "histres-numeric-scaler-v2",
   "fields": {
     "runtime_ms": {
+      "mode": "continuous",
       "n": 81053,
       "log1p_median": 8.045351073184845,
       "log1p_iqr": 8.779476637389072,
@@ -9,13 +10,15 @@
       "clip": 6.0
     },
     "load_ms": {
-      "n": 80748,
-      "log1p_median": 0.0,
-      "log1p_iqr": 0.0,
-      "scale": 1e-06,
+      "mode": "zero_inflated",
+      "n": 13472,
+      "log1p_median": 8.354055717718259,
+      "log1p_iqr": 0.5146560032547001,
+      "scale": 0.38150926853573025,
       "clip": 6.0
     },
     "peak_allocated_mb": {
+      "mode": "continuous",
       "n": 50805,
       "log1p_median": 8.985255312153475,
       "log1p_iqr": 0.7628293119588143,
@@ -23,6 +26,7 @@
       "clip": 6.0
     },
     "peak_reserved_mb": {
+      "mode": "continuous",
       "n": 50805,
       "log1p_median": 8.993551586299981,
       "log1p_iqr": 0.8874798045397476,
@@ -30,5 +34,7 @@
       "clip": 6.0
     }
   },
-  "train_split_sha256": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2"
+  "train_split_sha256": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2",
+  "node_table_sha256": "4584cdc1a425b7f33756c9542623914024c16a9ce6e4a49f1d8b56d1752178b4",
+  "builder_source_sha256": "18315c6bc8085c3363b78737504189d043c441868e8a8c6f8ee2e98ccc32f75c"
 }

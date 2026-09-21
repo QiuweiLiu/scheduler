@@ -2,57 +2,64 @@
   "splits": {
     "train": {
       "rows": 13754,
-      "sha256": "3720fd68562cad0f896fc3e5ff31b9d8849e46e5e7119651340473e7b1c7845b",
+      "sha256": "ba10616d1aea550401db0fae6b4636fa9549f33cef2e7da397cbe9508cbd1645",
       "eligible_tokens": 82847,
       "identity_exact_tokens": 81053,
       "unresolved_tokens": 1794,
+      "unresolved_identity_key_missing": 0,
+      "unresolved_node_table_missing": 1794,
       "current_tokens": 13754,
       "run_container_tokens": 12766,
       "identity_exact_coverage": 0.9783456250678962,
       "unresolved_coverage": 0.021654374932103756,
       "monotonic_unique_coverage": 0.0,
-      "current_truth_exposure_count": 0,
-      "future_truth_exposure_count": 0,
-      "ambiguous_join_accepted_count": 0,
-      "duplicate_identity_joins": 0
+      "post_build_validation": {
+        "rows": 13754,
+        "max_unresolved_tokens_in_one_row": 6,
+        "resource_bearing_tokens": 81053,
+        "rows_with_any_unresolved": 1175,
+        "runs_with_any_unresolved": 988,
+        "per_run_coverage_p10": 0.4,
+        "per_run_coverage_p50": 0.8666666666666667,
+        "per_run_coverage_p90": 0.875,
+        "prob_row_has_unresolved": 0.08542969318016577
+      }
     },
     "validation": {
       "rows": 2029,
-      "sha256": "fea9c36cf2e4d10b87e7d27c45cd49d80eb197ff4b84a51fb5116125af497109",
+      "sha256": "e1e6f46a0a54adc9e479ca4e34322e24bffae64d60efda50e3b29ee14a79ca45",
       "eligible_tokens": 12261,
       "identity_exact_tokens": 12090,
       "unresolved_tokens": 171,
+      "unresolved_identity_key_missing": 0,
+      "unresolved_node_table_missing": 171,
       "current_tokens": 2029,
       "run_container_tokens": 1885,
       "identity_exact_coverage": 0.9860533398580866,
       "unresolved_coverage": 0.013946660141913383,
       "monotonic_unique_coverage": 0.0,
-      "current_truth_exposure_count": 0,
-      "future_truth_exposure_count": 0,
-      "ambiguous_join_accepted_count": 0,
-      "duplicate_identity_joins": 0
-    },
-    "test": {
-      "rows": 1520,
-      "sha256": "b4a7dcecd33443cffd57be752dbc557d4a3a6020e28b39e5884e5b7dd9f51c04",
-      "eligible_tokens": 9276,
-      "identity_exact_tokens": 9174,
-      "unresolved_tokens": 102,
-      "current_tokens": 1520,
-      "run_container_tokens": 1412,
-      "identity_exact_coverage": 0.9890038809831824,
-      "unresolved_coverage": 0.010996119016817595,
-      "monotonic_unique_coverage": 0.0,
-      "current_truth_exposure_count": 0,
-      "future_truth_exposure_count": 0,
-      "ambiguous_join_accepted_count": 0,
-      "duplicate_identity_joins": 0
+      "post_build_validation": {
+        "rows": 2029,
+        "max_unresolved_tokens_in_one_row": 3,
+        "resource_bearing_tokens": 12090,
+        "rows_with_any_unresolved": 133,
+        "runs_with_any_unresolved": 144,
+        "per_run_coverage_p10": 0.6,
+        "per_run_coverage_p50": 0.8666666666666667,
+        "per_run_coverage_p90": 0.875,
+        "prob_row_has_unresolved": 0.06554953178905865
+      }
     }
   },
+  "splits_built": [
+    "train",
+    "validation"
+  ],
   "scaler": {
-    "version": "histres-numeric-scaler-v1",
+    "version": "histres-numeric-scaler-v2",
     "fields": {
       "runtime_ms": {
+        "mode": "continuous",
         "n": 81053,
         "log1p_median": 8.045351073184845,
         "log1p_iqr": 8.779476637389072,
@@ -60,13 +67,15 @@
         "clip": 6.0
       },
       "load_ms": {
-        "n": 80748,
-        "log1p_median": 0.0,
-        "log1p_iqr": 0.0,
-        "scale": 1e-06,
+        "mode": "zero_inflated",
+        "n": 13472,
+        "log1p_median": 8.354055717718259,
+        "log1p_iqr": 0.5146560032547001,
+        "scale": 0.38150926853573025,
         "clip": 6.0
       },
       "peak_allocated_mb": {
+        "mode": "continuous",
         "n": 50805,
         "log1p_median": 8.985255312153475,
         "log1p_iqr": 0.7628293119588143,
@@ -74,6 +83,7 @@
         "clip": 6.0
       },
       "peak_reserved_mb": {
+        "mode": "continuous",
         "n": 50805,
         "log1p_median": 8.993551586299981,
         "log1p_iqr": 0.8874798045397476,
@@ -81,23 +91,32 @@
         "clip": 6.0
       }
     },
-    "train_split_sha256": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2"
+    "train_split_sha256": "0d5d2dc6fabcfb53115852febb61e3ad229bbbff39d403479b32752dda6827d2",
+    "node_table_sha256": "4584cdc1a425b7f33756c9542623914024c16a9ce6e4a49f1d8b56d1752178b4",
+    "builder_source_sha256": "18315c6bc8085c3363b78737504189d043c441868e8a8c6f8ee2e98ccc32f75c"
   },
+  "development_splits": [
+    "train",
+    "validation"
+  ],
   "identity_exact_coverage_min": 0.9783456250678962,
-  "identity_exact_coverage_spread_pp": 1.065825591528613,
+  "identity_exact_coverage_spread_pp": 0.770771479019039,
   "hard_gates": {
     "current_truth_exposure_count": 0,
     "future_truth_exposure_count": 0,
     "ambiguous_join_accepted_count": 0,
     "duplicate_identity_joins": 0,
+    "forbidden_key_violations": 0,
     "coverage_min_ge_0_90": true,
-    "coverage_spread_le_5pp": true
+    "coverage_spread_le_5pp": true,
+    "test_sealed_during_development": true
   },
-  "schema_version": "j-series-dataset-histres-v2",
+  "schema_version": "j-series-dataset-histres-v2.1",
   "causal_contract": {
     "i_lt_anchor": "attributes + observed resource outcomes",
     "i_eq_anchor": "attributes only",
     "i_gt_anchor": "nothing",
-    "identity_never_enters_model": true
+    "identity_never_enters_model": true,
+    "join_provenance_is_not_a_model_feature": true
   }
 }
