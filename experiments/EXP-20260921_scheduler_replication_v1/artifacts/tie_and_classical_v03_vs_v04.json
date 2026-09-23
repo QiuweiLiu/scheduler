@@ -1,0 +1,134 @@
+{
+  "episodes": 30,
+  "policies": [
+    "tie_current",
+    "fcfs",
+    "myopic",
+    "round_robin",
+    "sjf_pred"
+  ],
+  "v03_raw": {
+    "tie_current": {
+      "mean_completion_ms": 85839.79192395834,
+      "p95_completion_ms": 162262.68703333335,
+      "makespan_ms": 629860.5939333333,
+      "deadline_miss_rate": 0.035416666666666666,
+      "gpu_utilization": 0.6544356564220881,
+      "evictions": 444,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 3.8,
+      "workload": "v03_raw"
+    },
+    "fcfs": {
+      "mean_completion_ms": 102315.98720729168,
+      "p95_completion_ms": 173577.33500416667,
+      "makespan_ms": 629612.0908,
+      "deadline_miss_rate": 0.06666666666666667,
+      "gpu_utilization": 0.657471029049864,
+      "evictions": 838,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 4.1,
+      "workload": "v03_raw"
+    },
+    "myopic": {
+      "mean_completion_ms": 85640.36320312502,
+      "p95_completion_ms": 162129.50879583336,
+      "makespan_ms": 629211.21895,
+      "deadline_miss_rate": 0.03333333333333333,
+      "gpu_utilization": 0.6538216986709138,
+      "evictions": 432,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 3.5,
+      "workload": "v03_raw"
+    },
+    "round_robin": {
+      "mean_completion_ms": 85640.36320312502,
+      "p95_completion_ms": 162129.50879583336,
+      "makespan_ms": 629211.21895,
+      "deadline_miss_rate": 0.03333333333333333,
+      "gpu_utilization": 0.6538216986709138,
+      "evictions": 432,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.7,
+      "workload": "v03_raw"
+    },
+    "sjf_pred": {
+      "mean_completion_ms": 84175.81010416667,
+      "p95_completion_ms": 158015.86595416671,
+      "makespan_ms": 628313.0094666667,
+      "deadline_miss_rate": 0.03333333333333333,
+      "gpu_utilization": 0.6534892318347117,
+      "evictions": 462,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.3,
+      "workload": "v03_raw"
+    }
+  },
+  "v04_causal": {
+    "tie_current": {
+      "mean_completion_ms": 90869.17471354168,
+      "p95_completion_ms": 165317.58811666668,
+      "makespan_ms": 633326.3107166667,
+      "deadline_miss_rate": 0.035416666666666666,
+      "gpu_utilization": 0.6505309349775167,
+      "evictions": 487,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.3,
+      "workload": "v04_causal"
+    },
+    "fcfs": {
+      "mean_completion_ms": 111715.91833333335,
+      "p95_completion_ms": 185189.0226,
+      "makespan_ms": 634243.5890333334,
+      "deadline_miss_rate": 0.07083333333333333,
+      "gpu_utilization": 0.658378432458387,
+      "evictions": 842,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.3,
+      "workload": "v04_causal"
+    },
+    "myopic": {
+      "mean_completion_ms": 90327.04913020834,
+      "p95_completion_ms": 165217.80007500004,
+      "makespan_ms": 632698.5068333334,
+      "deadline_miss_rate": 0.0375,
+      "gpu_utilization": 0.6503857994315017,
+      "evictions": 453,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.1,
+      "workload": "v04_causal"
+    },
+    "round_robin": {
+      "mean_completion_ms": 90327.04913020834,
+      "p95_completion_ms": 165217.80007500004,
+      "makespan_ms": 632698.5068333334,
+      "deadline_miss_rate": 0.0375,
+      "gpu_utilization": 0.6503857994315017,
+      "evictions": 453,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.1,
+      "workload": "v04_causal"
+    },
+    "sjf_pred": {
+      "mean_completion_ms": 90274.22141770835,
+      "p95_completion_ms": 164742.6075166667,
+      "makespan_ms": 633196.7527,
+      "deadline_miss_rate": 0.035416666666666666,
+      "gpu_utilization": 0.6517642648568664,
+      "evictions": 488,
+      "completed_jobs": 480,
+      "failed_jobs": 0,
+      "wall_seconds": 2.3,
+      "workload": "v04_causal"
+    }
+  }
+}

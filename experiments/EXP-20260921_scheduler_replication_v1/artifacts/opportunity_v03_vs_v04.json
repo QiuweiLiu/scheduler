@@ -1,0 +1,63 @@
+{
+  "policy": "sameshape_h5_p95",
+  "episodes": 30,
+  "results": {
+    "v03_raw": {
+      "decisions": 4156,
+      "candidates_total": 14376,
+      "Pr_feasible_actions_ge2_pct": 68.09,
+      "Pr_ready_GPU_nodes_ge2_pct": 78.08,
+      "competitive_decision_rate_pct": 68.09,
+      "candidate_count_p50": 3,
+      "candidate_count_p90": 7,
+      "candidate_count_max": 16,
+      "competitive_count_p50": 2,
+      "competitive_count_p90": 5,
+      "mean_completion_ms": 83224.85029062502,
+      "gpu_utilization_mean": 0.6493887143808766,
+      "evictions_total": 473,
+      "prefetch_total": 0,
+      "failed_jobs_total": 0,
+      "episodes": 30,
+      "wall_seconds": 3.0,
+      "trace": {
+        "path": "F:\\scheduler\\experiments\\EXP-20260921_scheduler_replication_v1\\artifacts\\opportunity_trace_v03_raw.jsonl.gz",
+        "decisions": 4156,
+        "candidates": 14376,
+        "chosen_sequence_sha256": "b360b74ad1dac2a7e68ae87240ec384c0124e7481e0d94c3dafb9c508f9c1752"
+      }
+    },
+    "v04_causal": {
+      "decisions": 4156,
+      "candidates_total": 11420,
+      "Pr_feasible_actions_ge2_pct": 52.82,
+      "Pr_ready_GPU_nodes_ge2_pct": 68.24,
+      "competitive_decision_rate_pct": 52.82,
+      "candidate_count_p50": 2,
+      "candidate_count_p90": 6,
+      "candidate_count_max": 16,
+      "competitive_count_p50": 2,
+      "competitive_count_p90": 4,
+      "mean_completion_ms": 89381.99767083334,
+      "gpu_utilization_mean": 0.6466227597135409,
+      "evictions_total": 487,
+      "prefetch_total": 0,
+      "failed_jobs_total": 0,
+      "episodes": 30,
+      "wall_seconds": 2.8,
+      "trace": {
+        "path": "F:\\scheduler\\experiments\\EXP-20260921_scheduler_replication_v1\\artifacts\\opportunity_trace_v04_causal.jsonl.gz",
+        "decisions": 4156,
+        "candidates": 11420,
+        "chosen_sequence_sha256": "f00da9ad5d52cd7534b8d3a92a8aa6b07fef81797520c1c0acced41a58ed5024"
+      }
+    }
+  },
+  "delta": {
+    "mean_completion_ms": 6157.14738020832,
+    "Pr_ready_GPU_nodes_ge2_pp": -9.840000000000003,
+    "competitive_decision_rate_pp": -15.270000000000003,
+    "candidate_count_p50_delta": -1,
+    "decisions_delta": 0
+  }
+}

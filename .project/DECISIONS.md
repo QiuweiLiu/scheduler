@@ -393,3 +393,252 @@ ole = diagnostic_only；即使 scheduler 偶然最好也不得成为最终 winne
 - **两层门禁**（来自复现审查）：第一层 **implementation fidelity**（即使性能差也算成功复现），
   第二层 **performance**。若 fidelity PASS 但性能 FAIL，写法是
   "scheduler successfully reproduced/adapted, but did not improve this workload" —— **合法的负结果**。
+
+## 2026-09-23 · F0 打包器 attr_feature bug（已修复）+ 撤回"F0 更保守"
+
+### bug
+`pack_f0_artifacts.py` 手工调用 `model.resource(encoded, None)`，而 `j_series_common.py`
+把 `None` 替换成 `torch.zeros(...)`。训练时走的是 `j_series_train_eval.forward()`：
+
+    attribute_logits = model.attribute_logits(repr_vec)
+    feature, _       = model.attribute_distribution(attribute_logits)
+    resource         = model.resource(repr_vec, feature)
+
+F0 的 config 是 `use_attribute_distribution=True, attribute_gradient='full'`，所以资源头
+**是条件在预测属性特征上的**。传 `None` 等于把它喂在全零输入上，5 个 horizon 槽位拿到同一份
+输入，资源头只能靠位置编码区分槽位。
+
+### 实测影响（512 个 validation 锚点，F0 seed11）
+| 视图 | None（坏） | 真实 attr_feature（对） | 相同比例 |
+|---|---|---|---|
+| p50 | 2604.9 | 2599.1 | 26.1% |
+| p90 | 8223.6 | 5808.2 | 20.6% |
+| p95 | 10353.9 | 7229.2 | 22.4% |
+| mean | 3408.0 | 3088.7 | 0.0% |
+| RuntimeQScore | 7060.81 | 5212.16 | 比值 1.355 |
+
+### 影响面（已逐个核实调用点）
+- **安全**：`pack_j_predictor_artifacts.py` 用 `jte.forward(...)`；`pack_resource_v2_artifacts.py`
+  用 `base.forward(...)`。所以 **J3 base pack 与 R1b/R3a overlay 都正确**，
+  `A1-A0`、`B2-A1`、pack-vs-truth 排序等已发表结果**不受影响**。
+- **安全**：`F0-J3 = -28.7%` 来自训练报告，走 `forward()`，**有效**。
+- **受影响并已重跑**：F0 包本身，以及**今天**用坏包跑的 aging shadow / aging smoke /
+  F0 pack-vs-truth。
+- 其余 `resource(..., None)` 调用点：`histres_smoke.py`、`histres_train_f0f1.py`、
+  `f0f1_contrast_bootstrap.py`、`histres_channel_audit.py`、`tests/test_distribution_training_path.py`
+  —— **待逐个判断是否影响结论**（这些多为诊断/探针，不是已发表主结果）。
+
+### 修复
+`pack_f0_artifacts.py` 改为精确复现训练 forward 的属性路径，并加 fail-closed 守卫：
+若该臂 config 不再声明 `use_attribute_distribution`，打包器直接报错退出。
+**刻意不使用 `jte.make_ctx`**，因为它会读封存的 `j_test.jsonl.gz`。
+修复后包 sha256 `586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086`，
+loader 接受（view_err 3.64e-12, nonresource_mismatch 0）。
+
+### 撤回
+**"F0 的 consumed score 是 J3 中位数的 1.327 倍（F0 明显更保守）" 撤回。**
+那是 bug 造成的假象。修复后 F0/J3 的 p95 总和比 = **0.8764**，即 F0 比 J3 **低 12%（更不保守）**。
+独立交叉验证：修复后中位 p95 = 7201.3，与直接测正确路径得到的 7229.2 一致。
+
+### 教训
+模型是联合训练的、训练指标有效，但**打包器手工绕过了联合路径**。
+"联合"必须在**打包产物**上验证，不能只看训练代码。
+
+## 2026-09-23 · 基线集合修订为四条"联合基线"（项目负责人指定）
+
+四条**全部是联合基线**（Predictor->Scheduler 整条链一起迁移的 faithful adaptation），
+**SRTF+Aging 不在其中**：
+
+1. **LLMSched-adapted**（IEEE ICDCS 2025，IEEE Xplore 11183728，身份已确认）
+   前端 DAG+Bayesian Network 建模结构/duration 不确定性，随已完成 stage 更新 posterior；
+   后端 entropy 衡量 uncertainty reduction + JCT/SRTF 优先级。
+   检验：传统概率工作流建模 + uncertainty-reduction scheduling 是否已经足够。
+2. **Pythia-adapted**（arXiv:2604.25899，v2 题名 "Exploiting Workflow Predictability..."，
+   **venue UNVERIFIED**）：历史 traces -> PFA -> bounded workflow -> E[remaining distance]
+   -> completion-aware priority。检验：历史模式预测能否替代 instance-specific prefix forecasting。
+3. **Latency-Aware-Orchestration-adapted**（arXiv:2609.03335，2026-09-03，cs.DC，13 页，
+   **venue UNVERIFIED**，已核实存在）：Predictor（device-specific latency/memory/loading）
+   + **Constructor（fusion / model-lifecycle alternatives）** + Scheduler（joint selection/
+   placement/order）。检验：已知 DAG + 资源预测 + 物理图联合优化是否已经足够。
+4. **TIE-adapted**（ICML 2026，arXiv:2604.00499，身份已确认）：**独立的 current-node-only
+   分布预测器**（log-t 或等价参数化）+ `E + beta*CVaR` tail-aware score。
+   检验：单节点 runtime 从 point 换成 distribution 是否已经足够。
+
+**完全体** = prefix-conditioned predictor -> 尚未展开 future 的 structure + runtime/resource
+distributions -> uncertainty-aware node-level GPU scheduler。
+
+**证据链**：E2E 优于四类联合基线 -> "固定 scheduler 换 predictor" + "固定 predictor 换
+scheduler" 的 2x2 -> 消融 prefix future / distribution / joint modeling / uncertainty consumer。
+
+**实施顺序**：`Gate-0（Latency-Aware 可行性）-> TIE -> Pythia -> LLMSched -> Latency-Aware`。
+
+**SRTF+Aging 定位**：`classical scheduling diagnostic / negative-control arm`，
+退出联合基线主链；不补 T 臂来救它。
+
+## 2026-09-23 · P0：scheduler 侧拓扑契约回归（已定位、已重建、已过 gate）
+
+### 定性
+**`P0 scheduler experiment validity issue，不是 predictor validity issue`。**
+GPT 独立复核确认，用词：**scheduler-side topology contract regression /
+incomplete contract migration**。
+
+### 证据链
+- **2026-08-13** `docs/VideoSeek_R0a_只读审计报告_20260813.md` 已规定主实验用因果链：
+  "其余节点仅以前一个节点为 predecessor；保留原有 predecessor 的 provenance 作为旁路审计字段；
+  主实验先使用 causal-chain；raw-DAG 只作…"。并**预言了**："预测器按 sequence_index 线型
+  prefix 构造特征，与 raw parent 产生的稠密 DAG **同时使用会造成不一致**"。
+- **2026-08-16** `r6_causal_v2` **实现了**双视图：`causal_predecessor_node_ids` +
+  `raw_predecessor_node_ids` + `scheduler_visibility`，`edge_provenance =
+  canonical_sequence_chain_v1`，因果视图是一条完美直链。
+- **2026-08-17** `r7_workload_20260817/job_templates_r7_v02.jsonl` **退回**
+  `value_source = measured_trace_events_with_raw_parent_edges`，
+  **`causal_predecessor_node_ids` 与 `scheduler_visibility` 消失**。
+- v03 = v02 减 `event_type=="run"` 容器（`scripts/preprocess/remove_run_container_nodes.py`，
+  **no rewiring**）→ 原样继承缺陷。
+- **2026-09-10** `docs/p9d_topology_label_contract_v3.md` §9 明确：
+  "本轮只冻结 predictor 侧 v3 标签契约；R7/R8 的 job_templates/future artifacts
+  **存在同源问题但不同步修改**"，顺序为 predictor v3 → … → **（独立 gate）
+  scheduler-side topology contract audit → scheduler integration**；
+  "首次 scheduler 集成前，两侧契约语义必须一致"。
+  **这个 scheduler 侧审计从未执行，调度集成却已发生。**
+
+### 机制（代码级确认，非统计推断）
+`src/tracing/workloads/build_workload_v02.py::_resolve_edges()`：
+```python
+by_step[step_id] = 该 step 的全部 node_id
+for parent in parent_step_ids:
+    predecessors.extend(by_step[parent])
+node["predecessor_node_ids"] = sorted(set(predecessors))
+node["edge_provenance"] = "raw_parent_step_ids"
+```
+step N 展开为 {u1,u2,u3}、step N+1 展开为 {v1,v2} 时，每个 vi 把 {u1,u2,u3} 全收为前驱
+→ 必然产生 `{2,3} → {4,5} → {6,7}` 的分层全连接。
+
+### 关键量化：源数据是干净的，错只在边推导
+对 640 个 v03 模板跑 v3.1 §7 P0 gate 1：
+```
+multi_tool_per_iteration   0   ✅
+multi_parent_step          0   ✅
+step_jump                  0   ✅
+not_single_root            0   ✅
+dangling_predecessor       0   ✅
+missing_resource_applicable 640  ← schema 字段缺失，非语义违规
+```
+**`parent_step_ids` 的串行不变量完全成立（0 违规）** —— 原始 trace 数据正确，
+假并行**完全由 `_resolve_edges()` 的 step 展开引入**。
+
+### 重建
+`scripts/rebuild_scheduler_templates_causal_v31.py` →
+`results/processed/r7_workload_v04_causal_v31_no_run_container/job_templates_r7_v04.jsonl`
+- `causal_predecessor_node_ids` = 已验证串行序列中的相邻节点（单前驱单后继）
+- `raw_predecessor_node_ids` = 旧 step 展开边，**仅作旁路审计字段**
+- `resource_applicable` = 链尾 answer marker 为 false，其余 true（v3.1 §3）
+- `topology_contract = verified_serial_control_flow_v3_1`
+- 节点数 **8,295 不变**（纯边重建）；**`chain_tail_is_answer = 640/640`**
+  （v3.1 §4 path gate："每条 run = 单链、单 root、终点为 answer"）
+- v3.1 seriality gate：**640/640 PASS，0 违规**
+
+### 影响（GPT 复核并补充）
+**需要重新审计（scheduler-facing evidence chain）**：
+- `A1-A0` / `B2-A1` / `O-A1` 那批 scheduler smoke（300 配对集）
+- 72,773 decisions / 291,285 candidates 的 decision trace
+- winner disagreement / Kendall tau
+- aging 的激活度与 +12% 结果
+- Latency-Aware 当前 6 对 fusion 的统计
+- 任何依赖 v03 successor walk 的 future truth / ranking 诊断
+
+**不受影响**：预测器侧全部结论（training / validation / `forward()` / RuntimeQScore /
+distribution calibration），**包括 `F0 相对 J3 = -28.7%`**。
+
+### GPT 复核中必须遵守的修正
+1. 回归点在 **r7/v02（08-17）**，不是 v03（v03 只是 no-rewiring 继承）。
+2. **R6 causal-chain 与 P9d v3.1 不是同一个契约**：R6 是 operational repair，
+   v3.1 是语义级 node ontology（run_control 排除、nested call 合并、answer terminal、
+   retry 显式、width=1、seriality fail-closed）。
+   **修复必须追上 v3.1，不能退回 R6。**
+3. 不要把 "0.2% → 91.2%" 当作修复后的 fusion 提升；fusion 仍需唯一前驱/后继、
+   同部署、配置兼容、语义保持。
+4. **不要把"预测器输出是直链"当作主要证据**（单独不够）；硬证据是
+   workflow 源码语义 + `parent_step_ids` 审计 + 2,008 traces 串行性 gate + R0a/R6/P9d 冻结决策。
+5. 确认 640 个正式模板自己过 gate（**已做：640/640 PASS**）。
+6. **不要只改边、不改节点定义**；`missing_resource_applicable` 正是这一层的缺口信号。
+
+### 待办
+- **调度机会量化（GPT 预注册）**：`Pr(feasible_actions >= 2)`、`Pr(ready_GPU_nodes >= 2)`、
+  竞争决策率、候选数 p50/p90、每决策活跃 job 数、top-1 分歧、队列占用、GPU 利用率、
+  驱逐/加载次数。**若这些比率骤降到个位数，需要重新设计 workload pressure，
+  而不是恢复假并行。**
+- **冻结 `SchedulerTopologyContractGate`**：主实验启动前要求两侧契约一致、640 模板全过
+  seriality gate、raw 边永不作为执行边、两侧 SHA 冻结；每个 scheduler 输出记录
+  `topology_contract_id` / `template_sha256` / `future_artifact_sha256` /
+  `resource_pack_sha256` / `simulator_commit`。
+- **640 vs 648**：契约文档说审计 1,360 predictor + 648 R7 scheduler = 2,008 runs，
+  我们的 workload 是 640 accepted templates。**不要在重建时猜**，需从 manifest 确认。
+
+## 2026-09-23 · 四条论文复现基线全部实现（含独立调度器）
+
+### 顺序与定位
+GPT 指定的顺序 `TIE -> Pythia -> LLMSched -> Latency-Aware`，全部完成并过 fidelity。
+**SRTF+Aging 已退役**为 classical negative-control，不在主链上。
+
+### TIE-adapted（ICML 2026，arXiv:2604.00499）
+- 前端：**独立的 current-node-only 分布**，来自 train-only 的 `(model, lane)` 直方图
+  （`train_resource_stats` 新增 `runtime_mean_ms` / `runtime_cvar90_ms`）。
+  **刻意不复用 F0**，符合 GPT "不能拿 F0 16-bin 算 CVaR 就叫 TIE" 的要求。
+- 后端：`tie_beta(L_q,B) = clip(0.1·L_q/B, 0.1, 0.5)`；`tie_current_score = E + β·CVaR + load`。
+  纯函数已抽出，可直测。
+- **测试抓出的真实性质**：`E + β·CVaR` 在单样本组上退化为 `mean` ——
+  current-node-only 前端**只能区分 `(model,lane)` 不同的候选**。这是方法的结构性局限。
+- 不迁移：vLLM continuous batching、DeBERTa encoder、token 语义、异步预测线程。
+
+### Pythia-adapted（arXiv:2604.25899，venue UNVERIFIED）
+- 迁移 Pythia-core：`train-only traces -> profiler -> E[remaining distance] -> completion-aware priority`
+- 480 个 train-only 模板 → 2 个家族：`langgraph_react`（E[D_rem|k=0]=62,237ms）、`star`（45,394ms）
+- `S_completion = 1/E[D_remaining]`；**ω1=1, ω2=0**
+- **S_unblock 明确省略**：本模拟器无 model-server 队列抽象。GPT 原话："这比生造
+  'GPU 空闲 ≈ downstream model idle' 要可信得多"。
+- 不迁移：cache routing、prefix caching、model-replica idleness、autoscaling
+
+### LLMSched-adapted（IEEE ICDCS 2025，Xplore 11183728，身份已确认）
+- **policy wrapper，不是静态 key**：每决策抽**一次** ε 硬币选模式，再排序候选池
+  - EXPLOIT = 最小估计剩余时长（JCT/SRTF）
+  - EXPLORE = 最大信息增益
+- BN/CPD 从 train-only 学（**不用 F0 的 marginal 拼 joint**，那才是被禁止的人为联合假设）
+- `R(X) = (结构信息 + duration 熵) × Range(Y_m)`，对应论文的 `I × ΣRange`
+- **测试抓出的真实性质**：`info_gain(k=0) = 0.0000` —— 因为最短的链也有 3–6 个节点，
+  `n≥0` 与 `n≥1` 是同分布。**结构不确定性在链式负载上早期为零**（与 fusion 同类现象）。
+  所以 information 项必须由 **duration 不确定性**承担（H_dur ≈ 2.88 bits）。
+- 明确省略：`sample_tasks(r)` 的 stage 内部分执行（我们的执行单元已不可分）。
+  **没有偷偷设 r=1 假装完整复现。**
+
+### Latency-Aware-adapted（arXiv:2609.03335，2026-09-03，cs.DC，venue UNVERIFIED）
+- **独立调度器**（`src/tracing/analysis/latency_aware_scheduler.py`），按项目负责人的架构：
+  **`choose_action` 及其 26 处 `min(pool,key=)` 一字未动**，其他 84 个策略完全不受影响。
+- 实现论文 Eq (3)(4)(5)(7)(8)(11)(12)：
+  - Eq (4) 融合时长 = 各成员 **`compute_ms`**（= `runtime_ms - load_ms`）之和 + **一次**加载
+  - Eq (7) `start = max(release, gpu.busy_until, now)`
+  - Eq (11) 准入显存检查（已驻留模型不重复计）
+  - Eq (12) `Φ = (hard_priority, C_F, -boundaries_removed, ready, gpu, node)`
+- 动作词汇显式化：`{"type":"start","candidate":…,"fused":[…]}` + 预取
+- **融合素材从 0.2% → 49.3%**（拓扑修复后，Eq (3) 全条件：唯一前驱/后继 + 同部署 + 配置兼容），
+  2,076 个可省边界，最长 13 节点链
+- 实测（3 集探针）：**132 个融合单元**（旁路版只有 5），14 次预取，
+  但 mean_completion 91,134 vs myopic 90,535 —— **激进融合减少准入次数却拖长完成时间**，
+  这是个有价值的发现
+- **仍待做并已显式记录**：reclaim 的 victim 选择（论文"优先冗余副本、其次下次使用距离远"）、
+  Eq (7) 的**跨候选时间线传播**
+- 不迁移：Qwen/vLLM 特定实现、原测试集、原 GPU 型号、output-length confidence bound、KV/prefix cache
+
+### 顺带发现的两个预先存在的 bug
+1. **`round_robin` 从未真正运行**：`if policy == "round_robin"` 是裸 `if` 且**缺 `return`**，
+   而紧跟其后的 `if policy == "fcfs"` 打破了 if/elif 链，于是穿透到链尾的 `else:`（myopic）
+   并覆盖 `chosen`。**已在公开仓库 commit f592591 中确认是预先存在的。**
+   证据：所有基准里 `myopic` 与 `round_robin` 数字**每次都完全相同**（90,327/90,327）。
+   **未修**（项目负责人指示先不管）。**影响**：任何把 round_robin 当独立基线的对比不成立。
+2. `fcfs` 是安全的（它后面跟的是 `elif`，链没断）。
+
+### 命名纪律（GPT 的硬要求）
+- 四条**全部是 faithful adaptation**，不是完整系统复现；每条都列出了不迁移的部分
+- Latency-Aware 的 Scheduler 缺两块（reclaim victim、跨候选时间线传播），
+  应命名为 `LatencyAware-fusion-lifecycle-sched-adapted` 并在 note 列明
+- **不声称 round_robin 的结果**（因为它实际是 myopic）

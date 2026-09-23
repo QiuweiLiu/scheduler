@@ -2147,112 +2147,37 @@
         "margin_reused_unchanged": true
       },
       "routes": {
-        "TIE-inspired": {
+        "TIE-adapted": {
+          "source": "ICML 2026, arXiv:2604.00499",
+          "venue": "CONFIRMED",
           "fidelity": "pending",
           "performance": "pending",
-          "source": "Zheng et al., Scheduling LLM Inference with Uncertainty-Aware Output Length Predictions, ICML 2026",
-          "naming_note": "sum of marginal TIE-style step costs, never total-runtime TIE"
+          "cost": "lowest",
+          "note": "needs its OWN current-node-only distribution predictor; must NOT reuse F0"
         },
-        "Pythia-Graph-inspired": {
+        "Pythia-adapted": {
+          "source": "arXiv:2604.25899",
+          "venue": "UNVERIFIED",
           "fidelity": "pending",
           "performance": "pending",
-          "source": "Yu et al., Pythia: Exploiting Workflow Predictability for Efficient Agent-Native LLM Serving, arXiv:2604.25899 (2026); no confirmed venue as of 2026-09-23",
-          "naming_note": "graph-driven priority only; adapted to node-level GPU scheduling"
+          "cost": "low-medium",
+          "note": "train-only traces -> PFA -> E[remaining distance]; downstream-idle only if a real model-queue abstraction exists"
         },
-        "LLMSched-inspired": {
+        "LLMSched-adapted": {
+          "source": "IEEE ICDCS 2025, Xplore 11183728",
+          "venue": "CONFIRMED",
           "fidelity": "pending",
           "performance": "pending",
-          "source": "Zhu et al., LLMSched: Uncertainty-Aware Workload Scheduling for Compound LLM Applications, IEEE ICDCS 2025, pp. 527-537",
-          "naming_note": "without intra-stage partial execution; epsilon and r must be fixed from the paper or frozen on train-only data"
+          "cost": "medium-high",
+          "note": "epsilon-greedy EXPLORE/EXPLOIT wrapper, not a static key; BN joint learned from train-only traces is allowed, building a joint from F0 marginals is not"
         },
-        "SRTF-Aging": {
-          "fidelity": "PASS 2026-09-21 (12/12 after review-driven fixes)",
+        "Latency-Aware-Orchestration-adapted": {
+          "source": "arXiv:2609.03335, 2026-09-03, cs.DC",
+          "venue": "UNVERIFIED",
+          "fidelity": "pending",
           "performance": "pending",
-          "naming": "SRTF-Aging (project baseline; no single source paper for the aging rule)",
-          "fidelity_evidence": {
-            "tests": "tests/test_srtf_aging_fidelity.py (12/12)",
-            "regressions_all_green": {
-              "total": 88,
-              "suites": {
-                "srtf_aging": 12,
-                "sameshape": 19,
-                "resource_dist": 23,
-                "phase_r": 4,
-                "histres_causal_guard": 7,
-                "histres_model_input": 7,
-                "j3_compat": 6,
-                "dist_training_path": 6,
-                "migration_routing": 4
-              }
-            }
-          },
-          "naming_limitation": "non-preemptive SRTF / SRPT-inspired ranking: the simulator has no node-level preemption, so true SRPT is not implementable",
-          "f0_pack_rebuilt": {
-            "reason": "pack was missing cvar95_ms and derived views in float32",
-            "artifact_sha256": "57f9627a3f5f7b61f50416f01955cf2c944511260e7425e378d02b5bbca95d9b",
-            "loader_check": "ACCEPTED nodes=9575 steps=35362 view_err=3.64e-12 nonresource_mismatch=0"
-          },
-          "next": "shadow scoring: 9 implementation gates + 6 activation diagnostics; only hard threshold is top1_disagreement > 0",
-          "positioning": "classical aging ablation/baseline, NOT an independent framework. It is F0 bounded predicted-remaining-work scheduling + node-level aging; in the paper taxonomy it belongs under classical baselines, not beside TIE/Pythia.",
-          "canonical_name": "sameshape_h5_p95_aging (renamed from srtf_h5_p95_aging per review)",
-          "math_property": "S_j = R_j - W_j and W_j = t - r_j, so at a fixed decision time the ranking is exactly R_j + r_j: only the node ready time separates candidates. Judge whether aging is weak on |dr| vs |dR|, never on W/R. alpha frozen at 1.0; tuning it after seeing results is post-hoc.",
-          "semantics": "node-level aging: item[1] is the node ready time from heappush(ready, (priority, now, job_index, node_id)), so a successor restarts its age when unlocked. Do not describe it as job waiting age / whole-job starvation age.",
-          "review_driven_fixes": [
-            "negative ready age now fails closed (ValueError beyond -1e-9); only float noise clamps",
-            "asserted the heap ready time matches Job.ready_since to 1e-9",
-            "the priority test used event name job_complete (never emitted; the real name is job_finish) so it silently asserted nothing, and its two jobs never competed in the same decision state",
-            "the not-a-silent-alias test compared identical candidates, where the plain arm already picks the same winner; it now constructs a state where the arms provably differ",
-            "the event log is the SECOND return value of simulate_episode and the field is event_type, not event"
-          ],
-          "shadow": {
-            "status": "PASS 2026-09-21 (30 episodes, F0 trajectory, no retraining)",
-            "artifact": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/aging_shadow_30ep.json",
-            "runner": "scripts/aging_shadow_run.py",
-            "methods": {
-              "plain": "sameshape_h5_p95_F0 (same-shape key, faithful replay of the live consumer)",
-              "aged": "sameshape_h5_p95_aging (identical future cost, aging key)"
-            },
-            "implementation_gates": {
-              "result": "ALL_PASS",
-              "plain_shadow_vs_actual_mismatch": 0,
-              "note": "the plain shadow reproduces the live choice on every traced decision, so the comparison is anchored to the real trajectory"
-            },
-            "activation": {
-              "competitive_decisions": 2801,
-              "top1_disagreement_pct": 29.95,
-              "any_flip_pct": 37.17,
-              "micro_pairwise_flip_pct": 32.07,
-              "kendall_tau_b": 0.3789,
-              "kendall_tau_b_ci95": [
-                0.3545,
-                0.4028
-              ],
-              "credit_to_gap_ratio_p50": 0.718,
-              "credit_to_gap_ratio_p90": 16.87,
-              "winner_promotion_age_ms_p50": 95983.0,
-              "winner_promotion_age_positive_share_pct": 100.0
-            },
-            "hard_threshold": {
-              "gate": "top1_disagreement > 0",
-              "observed": 0.2995,
-              "verdict": "PASS with a large margin: the arm is not an exact alias"
-            },
-            "mechanism_confirmed": "winner promotion age is positive in 100% of the 839 disagreement decisions: whenever the aging arm changes the winner it promotes the candidate that has been ready longer. The mechanism is exactly as claimed, not an incidental reordering.",
-            "interpretation": "Aging is technically distinct AND behaviourally active, so it is not a near-redundant ablation and does not need to be dropped on activation grounds. Activation is nonetheless NOT evidence of better performance: the 3-episode smoke had the aging arm worse (87872 vs 80006 ms) while disagreeing on a quarter of decisions. Performance is decided only by the paired 300-episode run.",
-            "known_degeneracy": "credit-to-gap p95 is ~1.7e13 because the denominator max(|dR|, eps) blows up when two candidates have nearly identical remaining work. It is a degenerate tail, not signal; report p50/p90 and note the floor.",
-            "timing": {
-              "total_wall_us_p50": 16.95,
-              "total_wall_us_p95": 58.6,
-              "engineering_bound": "p95 additional overhead < 1 ms/decision",
-              "verdict": "PASS, and timing is an engineering sanity check only"
-            },
-            "bugs_found_and_fixed": [
-              "the aging branch had been inserted in the middle of the same-shape branch, which swallowed the decision-trace block: the trajectory policy traced nothing, and the trace's own key guard (which rebuilds with the same-shape key) would have contradicted the aging choice had it ever run. Moved the aging branch after the trace block.",
-              "the shadow omitted the frozen p95 load surcharge, so its future cost differed from the live _q95_step_cost and the trace guard correctly refused the winner. The aging pair now defaults to _legacy_p95_load_cost.",
-              "the runner read candidate_records/chosen_candidate_id; the trace emits candidates and actual_choice.candidate_id."
-            ],
-            "next": "30-episode actual-arm smoke (no failures, no capacity violation), then the 300 paired run"
-          }
+          "cost": "highest",
+          "note": "cannot be expressed as min(pool,key); Constructor is a reported source of its gains"
         }
       },
       "not_new": {
@@ -2293,6 +2218,232 @@
         "only_hard_threshold": "top1_disagreement > 0 (not an exact alias). Do NOT require >5%; no basis.",
         "if_near_zero": "record technically distinct but behaviorally near-redundant under this workload, and downgrade to ablation; do not tune the aging scale",
         "timing": "report score_compute_wall_us p50/p90/p95/p99, ranking_wall_us p50/p95, total_decision_wall_us. Engineering sanity only (p95 additional overhead < 1 ms/decision); NOT an algorithm-quality gate."
+      },
+      "retired_routes": {
+        "SRTF-Aging": {
+          "status": "retired to classical scheduling diagnostic / negative-control arm",
+          "evidence": "fidelity PASS 12/12, shadow activation 29.95% top-1 disagreement with 100% positive promotion age, but 30-episode actual-arm smoke +9859.7 ms (CI95 [+5943, +13944], 27/30 worse)",
+          "reason": "not a joint baseline; it is F0 bounded predicted-remaining-work + node-level aging",
+          "do_not": "do not add a T arm to rescue it; if written up, run the frozen 300 and add promotion_age vs realized runtime evidence"
+        }
+      },
+      "blockers_resolved": {
+        "physical_state_for_latency_aware": {
+          "verdict": "MOSTLY PRESENT",
+          "present": [
+            "Node.model_id",
+            "GPU.resident",
+            "Node.load_ms / load_p50_ms",
+            "GPU.prefetch_pending / prefetched_models / used_prefetched_models / prefetch_count / prefetch_load_ms / wasted_prefetches",
+            "GPU.evictions",
+            "workspace_peak_mb / resident_model_mb / peak_memory_mb / capacity_mb",
+            "Node.batch_size"
+          ],
+          "missing": [
+            "explicit model loading state machine",
+            "reclaim",
+            "same-deployment fusion legality"
+          ],
+          "consequence": "Predictor side is feasible; Constructor (fusion) is NOT. Per the review, either extend the simulator for Constructor or do not present it as a full joint baseline."
+        },
+        "is_f0_a_complete_predictor": {
+          "verdict": "MODEL YES, PACK WAS BROKEN (now fixed)",
+          "model_heads": [
+            "next_role",
+            "next_family",
+            "termination",
+            "runtime",
+            "length",
+            "memory",
+            "load_occ",
+            "load_dur",
+            "model_class",
+            "node_type",
+            "role",
+            "action_family",
+            "retry",
+            "merged",
+            "nested"
+          ],
+          "defect": "the F0 pack took its future-chain identity from the J3 base pack and fed the resource head a zero attribute feature",
+          "fix": "packer now reproduces the training forward; sha 586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+          "remaining_gap": "the deployed chain identity still comes from J3, not from F0's own structure head; making it truly joint requires regenerating the chain from F0 and conditioning the resource head on it"
+        }
+      },
+      "retracted": {
+        "claim": "F0 consumed score is 1.327x the J3 median (F0 markedly more conservative)",
+        "reason": "artifact of the attr_feature=None packer bug",
+        "corrected": "repaired F0/J3 p95 sum ratio = 0.8764, i.e. F0 is 12% LESS conservative than J3"
+      },
+      "two_by_two": {
+        "shape": {
+          "rows": [
+            "P_no-prefix",
+            "P_full"
+          ],
+          "cols": [
+            "S_point",
+            "S_uncertainty"
+          ]
+        },
+        "cells": {
+          "C00": "no-prefix + point",
+          "C01": "no-prefix + uncertainty",
+          "C10": "full + point",
+          "C11": "full (complete system)"
+        },
+        "estimands": {
+          "predictor_effect": "C10 - C00",
+          "consumer_effect": "C11 - C10",
+          "interaction": "(C11 - C10) - (C01 - C00)"
+        },
+        "s_point_definition": "expected value / point prediction; NO CVaR, no uncertainty bonus, no scenario risk; same horizon, same action space",
+        "warning": "S_point must NOT be p95; p95 is already a risk-aware statistic, so F0 + sameshape_h5_p95 is a strong internal baseline but not a clean no-uncertainty consumer",
+        "must_control": [
+          "same arrival trace",
+          "same simulator RNG",
+          "same realized runtimes",
+          "same tie-break",
+          "same GPU feasibility",
+          "same H=5",
+          "same candidate pool",
+          "same data split",
+          "same output support",
+          "no per-cell hyperparameter tuning"
+        ]
+      },
+      "ablation_plan": {
+        "prefix_future": "split into Full (prefix-conditioned H=5) / NoPrefix (historical prior H=5) / NoFuture (H=0); NoFuture->NoPrefix tests generic future knowledge, NoPrefix->Full tests instance-specific prefix value",
+        "distribution": "needs a new F0-point-collapse arm: same predictor, collapse the distribution to its mean, identical scheduler",
+        "joint_modeling": "no existing arm; needs P_joint vs P_separate on the same data/output/capacity",
+        "uncertainty_consumer": "define strict S_point and S_uncertainty interfaces first"
+      },
+      "criteria": {
+        "layers": [
+          "fidelity qualification",
+          "activation diagnostics (not a pass/fail gate)",
+          "performance evaluation"
+        ],
+        "symbol": "Delta = candidate - F0",
+        "non_inferior": "CI_upper < +485 ms",
+        "statistically_better": "CI_upper < 0",
+        "substantively_better": "point <= -485 ms and CI_upper < 0",
+        "note": "a baseline does NOT need to be close to F0 to count as a successful reproduction; fidelity passing is enough",
+        "delta_ni_reused": true
+      },
+      "open_questions": [
+        "Latency-Aware: extend the simulator for Constructor, or rename it as a cost-prediction-only ablation?",
+        "Which frozen predictor is P_full for the 2x2, given the deployed chain identity still comes from J3?",
+        "TIE must build its own current-node distribution predictor with a pre-defined censoring/support bound",
+        "workflow-state canonicalization for LLMSched/Pythia must use runtime-observable identity only, never future node ids",
+        "all adaptation knobs (TIE beta, LLMSched epsilon, Pythia omega) fixed from the papers or tuned on train/dev only"
+      ],
+      "next": "Gate-0 on Latency-Aware feasibility, then TIE-adapted",
+      "p0_topology_regression": {
+        "status": "located, rebuilt, gate PASS",
+        "classification": "P0 scheduler experiment validity issue; NOT a predictor validity issue",
+        "regression_point": "r7_workload_20260817 / job_templates_r7_v02 (2026-08-17)",
+        "mechanism": "src/tracing/workloads/build_workload_v02.py::_resolve_edges() expands a parent step to ALL of its nodes",
+        "v03_seriality_gate": {
+          "multi_tool_per_iteration": 0,
+          "multi_parent_step": 0,
+          "step_jump": 0,
+          "not_single_root": 0,
+          "dangling_predecessor": 0,
+          "missing_resource_applicable": 640
+        },
+        "interpretation": "source trace data is serial and correct; the fake parallelism is introduced solely by the edge derivation",
+        "rebuild": {
+          "script": "scripts/rebuild_scheduler_templates_causal_v31.py",
+          "output": "results/processed/r7_workload_v04_causal_v31_no_run_container/job_templates_r7_v04.jsonl",
+          "topology_contract": "verified_serial_control_flow_v3_1",
+          "nodes": 8295,
+          "chain_tail_is_answer": "640/640",
+          "seriality_gate": "640/640 PASS, 0 violations"
+        },
+        "pending": [
+          "scheduling-opportunity quantification (Pr(feasible_actions>=2), Pr(ready_GPU_nodes>=2), competitive decision rate, candidate count p50/p90, active jobs per decision, top-1 disagreement, queue occupancy, GPU utilization, eviction/load counts)",
+          "freeze SchedulerTopologyContractGate",
+          "resolve the 640-vs-648 accounting from the manifest, do not guess"
+        ],
+        "must_hold": [
+          "do NOT revert to the R6 chain; track v3.1 node ontology",
+          "do NOT present 0.2% -> 91.2% as a fusion improvement",
+          "the predictor output being a chain is a symptom, not the primary evidence"
+        ]
+      },
+      "four_joint_baselines": {
+        "status": "all implemented with fidelity gates passing",
+        "order": [
+          "TIE",
+          "Pythia",
+          "LLMSched",
+          "Latency-Aware"
+        ],
+        "arms": {
+          "TIE-adapted": {
+            "arm": "tie_current",
+            "fidelity": "10/10",
+            "front_end": "train-only (model,lane) histogram: E[X] and CVaR_0.9[X]",
+            "back_end": "E + beta*CVaR, beta = clip(0.1*L_q/B, 0.1, 0.5)",
+            "measured_property": "collapses to a point criterion on single-sample groups, so a current-node-only front end can only separate candidates with different (model, lane)"
+          },
+          "Pythia-adapted": {
+            "arm": "pythia_completion",
+            "fidelity": "8/8",
+            "front_end": "train-only profiler over 480 templates, 2 families",
+            "back_end": "S_completion = 1/E[D_remaining]; omega1=1, omega2=0",
+            "declared_omission": "S_unblock omitted: no model-server queue abstraction exists to attach it to"
+          },
+          "LLMSched-adapted": {
+            "arm": "llmsched",
+            "fidelity": "12/12",
+            "front_end": "BN/CPDs from train-only traces; posterior advances with completed stages",
+            "back_end": "policy wrapper: one epsilon coin per decision selects EXPLORE (max info) or EXPLOIT (min remaining)",
+            "measured_property": "structural info_gain is exactly 0 at early positions because the shortest workflow is 3-6 nodes; the information term is carried by duration entropy",
+            "declared_omission": "intra-stage sample_tasks(r) omitted because the execution unit is already indivisible"
+          },
+          "Latency-Aware-adapted": {
+            "arm": "latency_aware",
+            "fidelity": "12/12 + 9/9",
+            "scheduler": "src/tracing/analysis/latency_aware_scheduler.py, independent of choose_action",
+            "equations": [
+              "(3) fusible chains",
+              "(4) summed compute + one load",
+              "(5) alpha_N=Prefetch",
+              "(7) start = max(release, device availability)",
+              "(8) feasible device domain",
+              "(11) admission memory",
+              "(12) lexicographic key"
+            ],
+            "measured": "132 fused units vs 5 in the side-channel version; 14 prefetches; 16/16 jobs complete",
+            "pending": [
+              "reclaim victim selection",
+              "cross-candidate timeline propagation"
+            ]
+          }
+        },
+        "fusion_material_v04": {
+          "gpu_nodes_in_multi_chains_pct": 49.3,
+          "boundaries_removed": 2076,
+          "longest_chain": 13,
+          "v03_comparison": {
+            "gpu_nodes_in_multi_chains_pct": 0.2,
+            "boundaries_removed": 6,
+            "longest_chain": 2
+          }
+        }
+      },
+      "pre_existing_bugs": {
+        "round_robin_runs_myopic": {
+          "mechanism": "the branch uses a bare `if` with no `return`, and the immediately following `if policy == \"fcfs\"` breaks the if/elif chain, so execution reaches the chain-final `else:` (myopic) and overwrites the choice",
+          "evidence": "myopic and round_robin produce identical numbers in every benchmark (90327/90327 on v04, 85640/85640 on v03)",
+          "pre_existing": "confirmed in the public repo at commit f592591",
+          "status": "located, NOT fixed (owner deprioritised)",
+          "impact": "any comparison that treats round_robin as an independent baseline is invalid",
+          "fix": "add the same `return chosen[0], chosen[4].index, chosen[5], len(candidates), len(fitting)` used by the ALIGNED_H5_POLICIES branch"
+        },
+        "fcfs_is_safe": "it is followed by `elif`, so its chain is not broken"
       }
     }
   },
@@ -2301,5 +2452,5 @@
     "Add new experiments here before formal runs (gate + registration)."
   ],
   "schema": "experiment-gate-v1",
-  "updated_at": "2026-09-21"
+  "updated_at": "2026-09-23"
 }

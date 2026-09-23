@@ -85,6 +85,10 @@ POLICIES = (
     "sameshape_h5_condmean",
     "sameshape_h5_stepcvar95",
     "sameshape_h5_p95_aging",
+    "tie_current",
+    "pythia_completion",
+    "llmsched",
+    "latency_aware",
     "predopt_h10_lam0",
     "predopt_h10_lam25",
     "predopt_h10_lam50",
@@ -602,7 +606,41 @@ class GPU:
     wasted_prefetches: int = 0
 
 
-def load_templates(path: Path) -> dict[str, Template]:
+TOPOLOGY_VIEWS = ("legacy", "causal_v3")
+
+# A fused Latency-Aware execution unit closes several nodes at one finish time.  The
+# member ids travel in the existing ``node_id`` slot of the finish heap, joined by
+# this separator, so the heap tuple shape is unchanged.  A single-node entry splits
+# back to itself and every pre-existing policy is unaffected.
+FUSED_ID_SEPARATOR = "\x1f"
+CAUSAL_TOPOLOGY_CONTRACT = "verified_serial_control_flow_v3_1"
+
+
+def load_templates(
+    path: Path,
+    *,
+    topology_view: str = "legacy",
+) -> dict[str, Template]:
+    """Load scheduler templates under an EXPLICIT topology view.
+
+    The v03 workload was built by expanding each parent *step* into all of its
+    nodes, which manufactures parallelism that the verified trace does not have.
+    That mistake was possible because the executor silently read a single
+    ambiguous ``predecessor_node_ids`` field.  The view is therefore explicit:
+
+      * ``legacy``    -> ``predecessor_node_ids`` (the v03 step-expansion edges)
+      * ``causal_v3`` -> ``causal_predecessor_node_ids`` (the verified serial chain)
+
+    Fail-closed rules:
+      * a file that declares a causal ``topology_contract`` may NOT be loaded as
+        legacy, because the executor would silently run the old fake-parallel graph;
+      * a causal load on a file without the causal field is refused rather than
+        silently falling back.
+    """
+
+    if topology_view not in TOPOLOGY_VIEWS:
+        raise ValueError("unknown topology_view %r (expected one of %s)"
+                         % (topology_view, TOPOLOGY_VIEWS))
     result: dict[str, Template] = {}
     for row in read_jsonl(path):
         raw_nodes = row.get("nodes") or []
@@ -611,7 +649,24 @@ def load_templates(path: Path) -> dict[str, Template]:
             node_id = text(raw.get("node_id"), "")
             if not node_id or node_id in nodes_by_id:
                 raise ValueError(f"duplicate/empty node_id in template {row.get('template_id')}")
-            predecessors = tuple(str(value) for value in raw.get("predecessor_node_ids") or [])
+            # fail closed: never let a causal template be consumed as legacy
+            declared = row.get("topology_contract")
+            if topology_view == "legacy" and declared == CAUSAL_TOPOLOGY_CONTRACT:
+                raise ValueError(
+                    "template %s declares topology_contract=%s but was loaded with "
+                    "topology_view='legacy'; pass topology_view='causal_v3' so the "
+                    "executor cannot silently run the step-expansion edges"
+                    % (row.get("template_id"), declared)
+                )
+            if topology_view == "causal_v3":
+                if "causal_predecessor_node_ids" not in raw:
+                    raise ValueError(
+                        "topology_view='causal_v3' but node %s in template %s carries no "
+                        "causal_predecessor_node_ids" % (node_id, row.get("template_id"))
+                    )
+                predecessors = tuple(str(value) for value in raw["causal_predecessor_node_ids"])
+            else:
+                predecessors = tuple(str(value) for value in raw.get("predecessor_node_ids") or [])
             nodes_by_id[node_id] = Node(
                 node_id=node_id,
                 sequence_index=int(raw.get("sequence_index") or 0),
@@ -670,10 +725,22 @@ def train_resource_stats(templates: Mapping[str, Template]) -> dict[str, dict[st
                     groups[key]["load"].append(node.load_ms)
                 if node.workspace_peak_mb is not None:
                     groups[key]["memory"].append(node.workspace_peak_mb)
+    def upper_cvar(samples: list[float], alpha: float) -> float:
+        """Mean of the worst (1-alpha) tail: the paper's CVaR term."""
+
+        if not samples:
+            return 0.0
+        ordered = sorted(samples)
+        k = max(1, int(round((1.0 - alpha) * len(ordered))))
+        tail = ordered[-k:]
+        return sum(tail) / len(tail)
+
     return {
         key: {
             "runtime_p50_ms": quantile(values["runtime"], 0.50),
             "runtime_p90_ms": quantile(values["runtime"], 0.90),
+            "runtime_mean_ms": (sum(values["runtime"]) / len(values["runtime"])) if values["runtime"] else 0.0,
+            "runtime_cvar90_ms": upper_cvar(values["runtime"], 0.90),
             "load_p50_ms": quantile(values["load"], 0.50),
             "memory_p95_mb": quantile(values["memory"], 0.95),
             "count": len(values["runtime"]),
@@ -2761,6 +2828,34 @@ def srtf_aging_key(
     )
 
 
+def tie_beta(queue_length: float, batch_capacity: float) -> float:
+    """The paper's adaptive tail weight: clip(0.1 * L_q / B, 0.1, 0.5).
+
+    ``L_q`` is the queue length and ``B`` the batch capacity in the paper.  Our
+    adaptation maps L_q to the number of candidates competing in the top priority
+    tier and B to the simulator's GPU service concurrency; that is a stated
+    deviation, not a tuned parameter.
+    """
+
+    b = max(1e-9, float(batch_capacity))
+    return min(0.5, max(0.1, 0.1 * float(queue_length) / b))
+
+
+def tie_current_score(
+    mean_ms: float,
+    cvar90_ms: float,
+    beta: float,
+    load_ms: float,
+) -> float:
+    """TIE(X) = E[X] + beta * CVaR_0.9[X], plus the model-load surcharge.
+
+    The distribution is the train-only current-node histogram, so this score uses
+    no information about the future workflow.
+    """
+
+    return float(mean_ms) + float(beta) * float(cvar90_ms) + float(load_ms)
+
+
 def choose_action(
     policy: str,
     ready_items: Sequence[tuple[float, int, int, str]],
@@ -3273,6 +3368,175 @@ def choose_action(
             )
 
         chosen = min(pool, key=sameshape_aging_score)
+
+    elif policy == "tie_current":
+        """TIE-adapted: E[X] + beta * CVaR_0.9[X] over a current-node-only distribution.
+
+        The distribution is the train-only (model, lane) histogram; nothing about the
+        future is consulted.  beta is the paper's adaptive coefficient with the queue
+        length mapped to the number of feasible candidates in the competitive tier and
+        B mapped to the simulator's GPU concurrency (2 in the v03/v04 topology).
+        """
+
+        B = max(1.0, float(len(free_gpus)) + 1.0)  # GPU service concurrency
+        # queue pressure: how many candidates compete at the top priority tier
+        competitive_priority = min(item[0] for item, *_rest in pool)
+        L_q = float(sum(1 for item, *_rest in pool if float(item[0]) == float(competitive_priority)))
+        beta = tie_beta(L_q, B)
+
+        def tie_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            mean = float(estimate_row.get("runtime_mean_ms") or estimate_row["runtime_p50_ms"])
+            cvar = float(estimate_row.get("runtime_cvar90_ms") or estimate_row["runtime_p90_ms"])
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            score = tie_current_score(mean, cvar, beta, load)
+            return (
+                float(item[0]),
+                score,
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=tie_score)
+
+    elif policy == "pythia_completion":
+        """Pythia-adapted: history-derived profiler + completion-aware priority.
+
+        S_completion = 1 / E[D_remaining] where E[D_remaining] is read from the
+        train-only workflow profiler (see ``tracing.analysis.pythia_profiler``).
+        The review's guidance is followed literally: omega1 = 1 and omega2 = 0,
+        because S_unblock would need a model-server queue abstraction this simulator
+        does not have, and inventing one would be less honest than omitting it.
+        """
+
+        profiler = (policy_context or {}).get("pythia_profiler")
+        if profiler is None:
+            raise ValueError("pythia_completion requires policy_context['pythia_profiler']")
+
+        from tracing.analysis.pythia_profiler import expected_remaining_ms, s_completion
+
+        def pythia_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            job = jobs[job_index]
+            family = str(getattr(job.template, "baseline", "") or "unknown")
+            consumed = len(job.completed)
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            d_remaining = current + expected_remaining_ms(profiler, family, consumed)
+            return (
+                float(item[0]),          # the hard service priority stays first
+                -s_completion(d_remaining),   # smaller key wins, so negate S
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=pythia_score)
+
+    elif policy == "llmsched":
+        """LLMSched-adapted: posterior uncertainty reduction vs JCT exploitation.
+
+        A policy wrapper, not a static key: ONE epsilon coin per decision selects the
+        mode, then the chosen mode ranks the whole candidate pool.
+
+          EXPLOIT -> smallest estimated remaining job duration (JCT/SRTF flavoured)
+          EXPLORE -> largest entropy reduction about the remaining structure
+
+        The posterior advances with the job's own completed count, i.e. completed
+        stages act as evidence.  The agent's intra-stage ``sample_tasks(r)`` is
+        omitted because our execution unit is already indivisible.
+        """
+
+        ctx = policy_context or {}
+        profiler = ctx.get("llmsched_bn")
+        if profiler is None:
+            raise ValueError("llmsched requires policy_context['llmsched_bn']")
+        rng = ctx.get("llmsched_rng")
+        if rng is None:
+            raise ValueError("llmsched requires policy_context['llmsched_rng']")
+        epsilon = float(ctx.get("llmsched_epsilon", 0.1))
+
+        from tracing.analysis.llmsched_bn import (
+            draw_mode,
+            expected_remaining_ms as _bn_remaining,
+            uncertainty_reduction as _bn_info,
+        )
+
+        # ONE coin per decision, not per candidate
+        mode = draw_mode(rng, epsilon)
+
+        def llmsched_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            job = jobs[job_index]
+            family = str(getattr(job.template, "baseline", "") or "unknown")
+            consumed = len(job.completed)
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            if mode == "EXPLORE":
+                # larger information gain is better -> negate
+                primary = -_bn_info(profiler, family, consumed)
+            else:
+                primary = current + _bn_remaining(profiler, family, consumed)
+            return (
+                float(item[0]),
+                primary,
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=llmsched_score)
+
+    elif policy == "latency_aware":
+        """Delegate to the independent Latency-Aware scheduler.
+
+        This arm does not use the shared ``min(pool, key=...)`` idiom at all: the
+        ranking, the Eq (7) timeline prediction, the Eq (11) admission-memory check
+        and the Eq (12) lexicographic key all live in
+        ``tracing.analysis.latency_aware_scheduler``.  The branch below only adapts
+        the already-built candidate pool to that module and applies its action, so
+        every other arm stays byte-identical.
+        """
+
+        from tracing.analysis.latency_aware_fusion import maximal_fusible_chains
+        from tracing.analysis import latency_aware_scheduler as la
+
+        ctx = policy_context if policy_context is not None else {}
+        cache = ctx.setdefault("_fuse_cache", {})
+
+        def chains_for(template: Any) -> Dict[str, tuple[str, ...]]:
+            tid = str(template.template_id)
+            cached = cache.get(tid)
+            if cached is None:
+                cached = {}
+                for chain in maximal_fusible_chains(template):
+                    if chain.length > 1:
+                        cached[chain.node_ids[0]] = chain.node_ids
+                cache[tid] = cached
+            return cached
+
+        ctx.pop("_fused_chain", None)
+        action = la.choose_action(pool, jobs, decision_time_ms, chains_for=chains_for)
+        if action is None:
+            # nothing is admissible on memory grounds; the caller's prefetch hook will
+            # try to prepare a near-ready deployment instead
+            chosen = min(pool, key=lambda c: (float(c[0][0]), float(c[0][1]),
+                                              c[0][2], c[0][3], c[4].index))
+        else:
+            chosen = action["candidate"]
+            if action["fused"]:
+                ctx["_fused_chain"] = list(action["fused"])
+
     elif policy == "predopt_h5_risk":
         if future_artifacts is None:
             raise ValueError(f"{policy} requires finite-horizon artifacts")
@@ -3909,6 +4173,11 @@ def simulate_episode(
     policy_context: dict[str, Any] | None = None,
     extension_config: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    # the scheduling arms may hand state back through policy_context (for example the
+    # resolved fused unit), so it must always be a real dict the commit path can read
+    if policy_context is None:
+        policy_context = {}
+
     """Simulate one episode, with opt-in batch/prefetch/preemption features.
 
     ``extension_config`` is intentionally absent from the default path so all
@@ -4017,10 +4286,39 @@ def simulate_episode(
                     return candidate
         return None
 
+    def _latency_aware_prefetch_plan() -> list[dict[str, Any]]:
+        """Eq (5) alpha_N = Prefetch, derived from the live pool state.
+
+        A deployment is eligible when it is required by a near-ready successor of a
+        running node, is not already resident anywhere, and fits a device alongside
+        what that device already holds.  Unmeasured deployments are skipped rather
+        than guessed, and a device that is busy right now is not disturbed.
+        """
+
+        from tracing.analysis.latency_aware_lifecycle import prefetch_candidates
+
+        def memory_for(model_id: str) -> float | None:
+            node = find_model_node(model_id)
+            if node is None or node.resident_model_mb is None:
+                return None
+            row = estimate(node, train_stats)
+            return model_memory(node, row)
+
+        free = [gpu for gpu in gpus if gpu.active_node is None and not gpu.prefetch_pending]
+        return prefetch_candidates(jobs, free, model_memory_for=memory_for)
+
     def initialize_prefetch() -> None:
-        """Schedule explicit, paid model loads before the first dispatch."""
+        """Schedule explicit, paid model loads before the first dispatch.
+
+        The plan comes from ``extension_config["prefetch_plan"]`` for the existing
+        static arms.  The Latency-Aware arm supplies one derived from live state
+        instead: the deployments of near-ready successors, which is the paper's
+        alpha_N = Prefetch half of Eq (5).
+        """
 
         plan = extension_config.get("prefetch_plan") or []
+        if not plan and policy == "latency_aware":
+            plan = _latency_aware_prefetch_plan()
         if not plan:
             return
         cursors = {gpu.index: max(0.0, gpu.busy_until) for gpu in gpus}
@@ -4121,16 +4419,19 @@ def simulate_episode(
         while finish_heap and finish_heap[0][0] <= now + 1e-9:
             finish, _order, job_index, lane, gpu_index, node_id = heapq.heappop(finish_heap)
             job = jobs[job_index]
-            node = job.template.by_id[node_id]
-            job.node_state[node_id] = "complete"
-            job.completed.add(node_id)
+            # a fused unit carries several member ids; a plain dispatch carries one
+            member_ids = node_id.split(FUSED_ID_SEPARATOR)
             if gpu_index is not None:
                 gpu = gpus[gpu_index]
                 gpu.busy_until = finish
                 gpu.active_node = None
                 gpu.active_start_ms = None
-            truth = truth_provider.get(job.job_instance_id, node.node_id)
-            log("node_finish", job, node, finish_ms=round(finish, 3), gpu_index=gpu_index, observed_status=truth.status)
+            for member_id in member_ids:
+                node = job.template.by_id[member_id]
+                job.node_state[member_id] = "complete"
+                job.completed.add(member_id)
+                truth = truth_provider.get(job.job_instance_id, node.node_id)
+                log("node_finish", job, node, finish_ms=round(finish, 3), gpu_index=gpu_index, observed_status=truth.status)
             release_ready(job_index)
             complete_job_if_done(job)
 
@@ -4222,6 +4523,15 @@ def simulate_episode(
 
     while arrival_heap or finish_heap or ready or any(gpu.prefetch_pending for gpu in gpus):
         process_prefetch_finish()
+        if policy == "latency_aware":
+            # Eq (5) alpha_N: re-derive eligibility as the workflow progresses;
+            # a deployment becomes preparable once a predecessor is running
+            _la_plan = _latency_aware_prefetch_plan()
+            if _la_plan:
+                _la_saved = extension_config.get("prefetch_plan")
+                extension_config = {**(extension_config or {}), "prefetch_plan": _la_plan}
+                initialize_prefetch()
+                extension_config = {**(extension_config or {}), "prefetch_plan": _la_saved}
         if not ready and not finish_heap and arrival_heap:
             next_prefetch = min(
                 (gpu.busy_until for gpu in gpus if gpu.prefetch_pending and gpu.busy_until > now + 1e-9),
@@ -4411,12 +4721,24 @@ def simulate_episode(
                         )
                     total_memory = sum(gpu.resident.values()) + predicted_workspace
                     gpu.peak_memory_mb = max(gpu.peak_memory_mb, total_memory)
-                    job.node_state[node_id] = "running"
-                    job.started.add(node_id)
+                    fused_members = list((policy_context or {}).get("_fused_chain") or [])
+                    if fused_members and fused_members[0] == node_id:
+                        for member_id in fused_members:
+                            job.node_state[member_id] = "running"
+                            job.started.add(member_id)
+                    else:
+                        fused_members = []
+                        job.node_state[node_id] = "running"
+                        job.started.add(node_id)
                     job.queue_ms += max(0.0, now - ready_time)
                     job.load_ms += load
                     effective_runtime, effective_load = effective_batch_runtime(node, row, batch_size, extension_config)
-                    if _batch_profile(node, batch_size, extension_config) is None:
+                    if fused_members:
+                        # one grant: the model loads once and the members run back to back
+                        duration = eviction_cost + load + sum(
+                            float(job.template.by_id[m].compute_ms) for m in fused_members
+                        )
+                    elif _batch_profile(node, batch_size, extension_config) is None:
                         duration = node.compute_ms + eviction_cost + load
                     else:
                         duration = max(0.1, effective_runtime - effective_load) + eviction_cost + load
@@ -4429,7 +4751,11 @@ def simulate_episode(
                     job.assigned_gpus.append(gpu_index)
                     sequence += 1
                     event_key = int(sequence)
-                    heapq.heappush(finish_heap, (finish, event_key, job_index, "gpu", gpu_index, node_id))
+                    heapq.heappush(
+                        finish_heap,
+                        (finish, event_key, job_index, "gpu", gpu_index,
+                         FUSED_ID_SEPARATOR.join(fused_members) if fused_members else node_id),
+                    )
                     truth = truth_provider.get(job.job_instance_id, node.node_id)
                     log(
                         "node_start",

@@ -142,3 +142,15 @@ chatgpt_web:
 
 
 
+
+## 2026-09-23 状态追加
+
+- **拓扑契约回归已修复**：v04 因果模板（`r7_workload_v04_causal_v31_no_run_container`），
+  seriality gate 640/640 PASS，`chain_tail_is_answer` 640/640。
+- **`load_templates` 有显式 `topology_view`**（`legacy` / `causal_v3`），两条 fail-closed 规则已验证。
+- **调度机会量化**：修正图下 `Pr(feasible_actions>=2)=52.82%`、`Pr(ready_GPU_nodes>=2)=68.24%`
+  —— **调度问题依然成立**，不需要重设 workload pressure，也不能恢复假并行。
+- **四条论文基线全部实现**：TIE / Pythia / LLMSched / Latency-Aware（含独立调度器）。
+- **新增 6 个测试套件**（tie / pythia / llmsched / latency_aware_fusion / latency_aware_fidelity /
+  latency_aware_scheduler），全量 276 个测试，5 个失败套件**全部预先存在**。
+- **两个预先存在的 bug 已定位未修**：`round_robin` 实跑 myopic；`fcfs` 安全。

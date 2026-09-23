@@ -109,6 +109,20 @@ ARMS: Dict[str, Dict[str, Any]] = {
         "simulator_policy": "sameshape_h5_stepcvar95",
         "consumer_policy_id": "sum_marginal_step_cvar95_plus_legacy_load_v1",
     },
+    "F0": {
+        "description": "F0 16-bin distributional head + legacy sum-q95 consumption (selected deployment predictor)",
+        "overlay_arm": "f0_seed11",
+        "simulator_policy": "sameshape_h5_p95",
+        "consumer_policy_id": "legacy_sum_q95_v1",
+    },
+    "AGING": {
+        "description": "F0 pack + aging-augmented predicted remaining work (node-level aging, alpha=1.0)",
+        "overlay_arm": "f0_seed11",
+        "simulator_policy": "sameshape_h5_p95_aging",
+        "consumer_policy_id": "aging_augmented_predicted_remaining_work_v1",
+        "naming": "non-preemptive SRTF-inspired ranking with node-level aging; a classical ablation, "
+                  "not an independent framework",
+    },
     "O": {
         "description": "joint future truth, same key shape (headroom ceiling)",
         "overlay_arm": None,

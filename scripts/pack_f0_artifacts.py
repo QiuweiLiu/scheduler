@@ -93,6 +93,16 @@ def main() -> int:
     model.load_state_dict(payload["model_state"])
     model.eval()
 
+    # fail closed: the replication below assumes this arm conditions its resource head
+    # on the predicted attribute feature.  If the variant config changes, this packer
+    # must stop rather than silently drift from the training forward again.
+    _cfg = te.DEFAULT_VARIANTS.get(args.arm) or {}
+    if not _cfg.get("use_attribute_distribution"):
+        raise SystemExit(
+            "%s does not declare use_attribute_distribution; the manual forward in this "
+            "packer would no longer match training" % args.arm
+        )
+
     rows = list(common.read_jsonl_gz(args.anchors_file))
     rows = [{**r, "future": [], "bounded_future_length": 0, "termination": 0} for r in rows]
     print("anchors: %d | arm %s seed %d | telemetry=%s" % (len(rows), args.arm, args.seed, use_telemetry))
@@ -105,7 +115,15 @@ def main() -> int:
             idx = np.arange(start, min(start + 256, len(rows)), dtype=np.int64)
             batch = te.to_torch_batch(arrays, idx, device)
             encoded = model.encode(batch, use_history_telemetry=use_telemetry)
-            logits = model.resource(encoded, None)["runtime_logits"]
+            # The resource head is trained conditioned on the predicted attribute
+            # feature.  F0 declares use_attribute_distribution=True, so calling
+            # model.resource(encoded, None) would silently substitute torch.zeros
+            # for that feature and run the head out of distribution.  Reproduce the
+            # training forward exactly instead.  jte.make_ctx is deliberately NOT
+            # used here because it reads the sealed test split.
+            attribute_logits = model.attribute_logits(encoded)
+            attr_feature, _ = model.attribute_distribution(attribute_logits)
+            logits = model.resource(encoded, attr_feature)["runtime_logits"]
             probs_out.append(torch.softmax(logits, dim=-1).cpu().numpy())
     probs = np.concatenate(probs_out, axis=0)
     if not np.isfinite(probs).all():
@@ -192,6 +210,7 @@ def main() -> int:
         "quantile_rule": "cdf_inversion_bin_representative",
         "cvar_alpha": 0.95,
         "use_history_telemetry": use_telemetry,
+        "resource_head_conditioning": "predicted_attribute_feature (use_attribute_distribution=True)",
         "horizon": 5,
         "nodes": len(records),
         "steps": upgraded,
