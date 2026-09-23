@@ -2485,7 +2485,14 @@
             "finding": "all 169 merged nested generalist.generate nodes are GPU (104 Qwen3-VL-8B, 65 Qwen2.5-VL-3B) while all 169 parents are CPU (cpu-metadata-adapter-v1)",
             "consequence": "deleting the nested node and keeping the CPU parent makes real GPU work disappear from GPU contention",
             "fix": "v3.1 composite signature: the parent must carry nested_model_class and the simulator must charge the inner GPU model's load and residency",
-            "status": "not fixed; first priority after step 1"
+            "status": "FIXED via option (b): the composite node occupies both lanes",
+            "implementation": {
+              "data_side": "the 169 parents carry nested_model_class / nested_model_mb / nested_reserved_mb / nested_load_ms / nested_runtime_ms; Node gained the fields and load_templates reads them",
+              "execution_side": "admit_nested_gpu_work() charges the inner model's load and residency and occupies the device for the inner interval, with a separate finish entry releasing it; fail-closed when the inner allocation is unmeasured",
+              "conservation_audit_mb_delta_pct": -0.3534,
+              "evidence": "nested_gpu_admit=9 on a 3-episode probe and the policy numbers changed (fcfs 105708->101757, myopic 89749->88456, tie_current 89688->88464)",
+              "lesson": "writing a field into JSON is not a fix; the consumer must demonstrably change behaviour"
+            }
           }
         }
       },

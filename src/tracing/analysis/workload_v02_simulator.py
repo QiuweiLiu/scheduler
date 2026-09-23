@@ -547,6 +547,13 @@ class Node:
     # work.  The v04.1 projection already excludes them, so this defaults to True and
     # exists so the executor can REFUSE rather than silently run such a node.
     resource_applicable: bool = True
+    # v3.1 composite signature: a merged summarizer node keeps the CPU lane and the
+    # R_total duration, but must still record the inner GPU model so its demand is not
+    # lost from GPU contention accounting
+    nested_model_class: str = ""
+    nested_model_mb: float | None = None
+    nested_load_ms: float | None = None
+    nested_runtime_ms: float | None = None
 
     @property
     def workspace_incremental_mb(self) -> float:
@@ -696,6 +703,10 @@ def load_templates(
                 ),
                 raw_action=text(raw.get("raw_action"), "other"),
                 resource_applicable=bool(raw.get("resource_applicable", True)),
+                nested_model_class=text(raw.get("nested_model_class"), ""),
+                nested_model_mb=optional_number(raw.get("nested_model_mb")),
+                nested_load_ms=optional_number(raw.get("nested_load_ms")),
+                nested_runtime_ms=optional_number(raw.get("nested_runtime_ms")),
                 batch_size=max(1, int(raw.get("batch_size") or raw.get("yolo_batch") or 1)),
             )
         successors: dict[str, list[str]] = defaultdict(list)
@@ -4336,6 +4347,69 @@ def simulate_episode(
         free = [gpu for gpu in gpus if gpu.active_node is None and not gpu.prefetch_pending]
         return prefetch_candidates(jobs, free, model_memory_for=memory_for)
 
+    def admit_nested_gpu_work(node: Node, job: Job, job_index: int, now: float, sequence_ref: list) -> None:
+        """Option (b): admit the GPU half of a merged summarizer node.
+
+        The node keeps the CPU lane and its R_total duration (v3.1).  Its inner model
+        call is real GPU work, so the inner model must be resident and the device is
+        occupied for the inner call's own interval.  A separate finish entry releases
+        it.  Fail-closed when the inner allocation is unmeasured, because skipping it
+        is exactly the resource-attribution loss this exists to prevent.
+        """
+
+        model = str(getattr(node, "nested_model_class", "") or "")
+        if not model:
+            return
+        need_mb = getattr(node, "nested_model_mb", None)
+        if not isinstance(need_mb, (int, float)) or need_mb <= 0:
+            raise ValueError(
+                "composite node %s carries nested model %r with no measured allocation"
+                % (node.node_id, model)
+            )
+        inner_ms = getattr(node, "nested_runtime_ms", None)
+        if not isinstance(inner_ms, (int, float)) or inner_ms <= 0:
+            raise ValueError("composite node %s has no inner interval" % node.node_id)
+        load_ms = getattr(node, "nested_load_ms", None)
+        load_ms = float(load_ms) if isinstance(load_ms, (int, float)) else 0.0
+
+        target = None
+        for gpu in gpus:
+            if model in gpu.resident:
+                target = gpu
+                break
+        if target is None:
+            for gpu in gpus:
+                if sum(gpu.resident.values()) + float(need_mb) <= gpu.capacity_mb + 1e-9:
+                    target = gpu
+                    break
+        if target is None:
+            job.node_state[node.node_id] = "failed"
+            job.failed.add(node.node_id)
+            log("node_fail", job, node, reason="nested_gpu_no_capacity", model_id=model)
+            complete_job_if_done(job)
+            return
+
+        if model not in target.resident:
+            target.resident[model] = float(need_mb)
+            log("model_load_start", job, node, gpu_index=target.index,
+                load_ms=round(load_ms, 3), load_source="nested_composite")
+        target.peak_memory_mb = max(target.peak_memory_mb, sum(target.resident.values()))
+
+        finish_inner = now + load_ms + float(inner_ms)
+        if finish_inner > target.busy_until:
+            target.busy_until = finish_inner
+            target.active_node = (int(job_index), node.node_id)
+            target.active_start_ms = now
+        sequence_ref[0] += 1
+        heapq.heappush(
+            finish_heap,
+            (finish_inner, int(sequence_ref[0]), int(job_index), "gpu_nested", target.index, node.node_id),
+        )
+        log("nested_gpu_admit", job, node, gpu_index=target.index, nested_model_id=model,
+            nested_memory_mb=round(float(need_mb), 3),
+            nested_runtime_ms=round(float(inner_ms), 3),
+            nested_finish_ms=round(finish_inner, 3))
+
     def initialize_prefetch() -> None:
         """Schedule explicit, paid model loads before the first dispatch.
 
@@ -4599,6 +4673,8 @@ def simulate_episode(
                 sequence += 1
                 event_key = int(sequence)
                 heapq.heappush(finish_heap, (now + duration, event_key, job_index, node.lane, None, node_id))
+                # option (b): the merged summarizer also admits its inner GPU call
+                admit_nested_gpu_work(node, job, job_index, now, [sequence])
                 log("node_start", job, node, scheduler_view=simulator_view(node, row, now, None), start_ms=round(now, 3), queue_ms=round(max(0.0, now - ready_time), 3))
                 made_progress = True
             for item in deferred:

@@ -782,3 +782,49 @@ parent node lanes : {'cpu': 169}
   lookup 只用 `(model_id, lane)`；support 提前写死否则叫 `Empirical-TIE-adapted`；
   CVaR 小样本严格定义并报告样本数直方图；补 waiting decay；**`B` 不能用 `len(free_gpus)+1`**；
   **加 E2E sentinel mutation test**
+
+## 2026-09-23 · 合并嵌套调用的资源归属（option b，已实现）
+
+### 问题（GPT 发现）
+169 个被合并的 nested `generalist.generate` **全是 GPU 节点**，169 个父
+`summarization-tool` **全是 CPU 节点**。直接删 nested、保留 CPU 父，会让
+**真实的 GPU 工作从 GPU 竞争里消失**。
+
+### 数据侧（已完成）
+v04.1 的 169 个父节点现在携带 v3.1 的 composite signature 资源信息：
+```
+nested_model_class   内层 GPU 模型（Qwen3-VL-8B ×104 / Qwen2.5-VL-3B ×65）
+nested_model_mb      实测 peak_allocated_mb（约 16.8 GB）
+nested_reserved_mb   实测 peak_reserved_mb
+nested_load_ms       实测加载成本
+nested_runtime_ms    内层自身区间（仅作 audit）
+```
+`Node` dataclass 新增这 4 个字段，`load_templates` 读取。
+守恒审计：**−0.35%**（残差来自 v03 的 `workspace_peak_mb` 与 raw `peak_allocated_mb`
+的推导差异）。
+
+### 执行侧（option b，已完成）
+**用户选择 (b)：复合单元同时占 CPU 和 GPU。**
+
+新增 `admit_nested_gpu_work(node, job, job_index, now, sequence_ref)`，在 CPU 准入路径调用：
+- 优先选**已驻留**内层模型的 GPU，否则选**装得下**的
+- 内层模型不在驻留时**收取加载成本**并加入 `resident`
+- **设备被内层调用占住自己的区间**（`busy_until = now + load + nested_runtime_ms`）
+- 推一个**独立的 finish entry**（lane `gpu_nested`）在该区间结束时释放设备
+- **fail-closed**：内层分配未测量时**直接抛错**，不静默跳过
+  （静默跳过正是这个 P0 本身）
+
+CPU 半不变：仍立即运行、在 `now + R_total` 完成（v3.1 的 `R_node = R_total`）。
+
+### 验证
+```
+3 集探针：nested_gpu_admit = 9（三个策略一致），completed=16，failed=0
+结果确实变了：fcfs 105,708 -> 101,757；myopic 89,749 -> 88,456；tie_current 89,688 -> 88,464
+=> 字段真的被消费了，不是 annotation
+```
+**全量 276 个测试，5 个失败套件全部预先存在**（4 个缺数据 + `round_robin` bug）。
+
+### 教训
+我在这个 P0 上**差点重犯同一个错误**：先把字段写进 JSON 就以为修好了
+（"JSON 里有字段但程序不读"正是 F0 打包器和 `resource_applicable` 的同一个坑）。
+**必须有"改动该字段 → 结果必须改变"的测试才算修完。**

@@ -20,7 +20,7 @@
 - v04.1 gate 640/640；嵌套包含 169/169；执行层 648 交集 0；现有臂回归正常
 
 ## Open（GPT 复核指出）
-- **P0 未修**：**合并嵌套调用的资源归属** —— 169 个 nested 全是 GPU、169 个父全是 CPU；
+- ~~**P0 未修**：合并嵌套调用的资源归属~~ **已修（option b，数据侧+执行侧，见 DECISIONS）**。原描述： —— 169 个 nested 全是 GPU、169 个父全是 CPU；
   删 nested 保 CPU 父 → **真实 GPU 工作从 GPU 竞争消失**。
   需 v3.1 的 composite signature（父节点携带 `nested_model_class` + simulator 收内层 GPU 成本）。
   **第 1 步之后的第一优先项。**
@@ -38,7 +38,7 @@
 无长时任务在跑。
 
 ## Next
-1. **修合并嵌套调用的资源归属**（第 1 步的 P0 尾巴）
+1. ~~修合并嵌套调用的资源归属~~ **已完成（option b）**
 2. **第 2 步**：TIE → LLMSched → Pythia → Latency-Aware，每条加 **E2E sentinel mutation test**
 3. 冻结两个 gate
 4. 重跑 30 集 smoke（只看机制）
