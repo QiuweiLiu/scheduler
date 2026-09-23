@@ -2203,7 +2203,56 @@
             "the priority test used event name job_complete (never emitted; the real name is job_finish) so it silently asserted nothing, and its two jobs never competed in the same decision state",
             "the not-a-silent-alias test compared identical candidates, where the plain arm already picks the same winner; it now constructs a state where the arms provably differ",
             "the event log is the SECOND return value of simulate_episode and the field is event_type, not event"
-          ]
+          ],
+          "shadow": {
+            "status": "PASS 2026-09-21 (30 episodes, F0 trajectory, no retraining)",
+            "artifact": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/aging_shadow_30ep.json",
+            "runner": "scripts/aging_shadow_run.py",
+            "methods": {
+              "plain": "sameshape_h5_p95_F0 (same-shape key, faithful replay of the live consumer)",
+              "aged": "sameshape_h5_p95_aging (identical future cost, aging key)"
+            },
+            "implementation_gates": {
+              "result": "ALL_PASS",
+              "plain_shadow_vs_actual_mismatch": 0,
+              "note": "the plain shadow reproduces the live choice on every traced decision, so the comparison is anchored to the real trajectory"
+            },
+            "activation": {
+              "competitive_decisions": 2801,
+              "top1_disagreement_pct": 29.95,
+              "any_flip_pct": 37.17,
+              "micro_pairwise_flip_pct": 32.07,
+              "kendall_tau_b": 0.3789,
+              "kendall_tau_b_ci95": [
+                0.3545,
+                0.4028
+              ],
+              "credit_to_gap_ratio_p50": 0.718,
+              "credit_to_gap_ratio_p90": 16.87,
+              "winner_promotion_age_ms_p50": 95983.0,
+              "winner_promotion_age_positive_share_pct": 100.0
+            },
+            "hard_threshold": {
+              "gate": "top1_disagreement > 0",
+              "observed": 0.2995,
+              "verdict": "PASS with a large margin: the arm is not an exact alias"
+            },
+            "mechanism_confirmed": "winner promotion age is positive in 100% of the 839 disagreement decisions: whenever the aging arm changes the winner it promotes the candidate that has been ready longer. The mechanism is exactly as claimed, not an incidental reordering.",
+            "interpretation": "Aging is technically distinct AND behaviourally active, so it is not a near-redundant ablation and does not need to be dropped on activation grounds. Activation is nonetheless NOT evidence of better performance: the 3-episode smoke had the aging arm worse (87872 vs 80006 ms) while disagreeing on a quarter of decisions. Performance is decided only by the paired 300-episode run.",
+            "known_degeneracy": "credit-to-gap p95 is ~1.7e13 because the denominator max(|dR|, eps) blows up when two candidates have nearly identical remaining work. It is a degenerate tail, not signal; report p50/p90 and note the floor.",
+            "timing": {
+              "total_wall_us_p50": 16.95,
+              "total_wall_us_p95": 58.6,
+              "engineering_bound": "p95 additional overhead < 1 ms/decision",
+              "verdict": "PASS, and timing is an engineering sanity check only"
+            },
+            "bugs_found_and_fixed": [
+              "the aging branch had been inserted in the middle of the same-shape branch, which swallowed the decision-trace block: the trajectory policy traced nothing, and the trace's own key guard (which rebuilds with the same-shape key) would have contradicted the aging choice had it ever run. Moved the aging branch after the trace block.",
+              "the shadow omitted the frozen p95 load surcharge, so its future cost differed from the live _q95_step_cost and the trace guard correctly refused the winner. The aging pair now defaults to _legacy_p95_load_cost.",
+              "the runner read candidate_records/chosen_candidate_id; the trace emits candidates and actual_choice.candidate_id."
+            ],
+            "next": "30-episode actual-arm smoke (no failures, no capacity violation), then the 300 paired run"
+          }
         }
       },
       "not_new": {

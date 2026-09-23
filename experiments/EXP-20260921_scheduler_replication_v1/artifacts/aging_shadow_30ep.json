@@ -1,0 +1,248 @@
+{
+  "experiment_id": "EXP-20260921_scheduler_replication_v1",
+  "arm": "sameshape_h5_p95_aging",
+  "trajectory_policy": "sameshape_h5_p95",
+  "predictor_pack": "f0_seed11",
+  "episodes": 30,
+  "wall_seconds": 3.9,
+  "trace": {
+    "path": "F:\\scheduler\\experiments\\EXP-20260921_scheduler_replication_v1\\artifacts\\aging_shadow_trace.jsonl.gz",
+    "decisions": 4156,
+    "candidates": 14260,
+    "chosen_sequence_sha256": "42400f4fbbe91d9c27b23bed6ed160b33c1084c7287c8cf5d8ba4c25c39944cb"
+  },
+  "implementation_gates": {
+    "decisions_total": 4156,
+    "candidates_total": 14260,
+    "empty_pool": 0,
+    "duplicate_candidate_ids": 0,
+    "nonfinite_scores": 0,
+    "negative_raw_wait": 0,
+    "hard_priority_crossing": 0,
+    "plain_shadow_vs_actual_mismatch": 0,
+    "remaining_residual_bad": 0,
+    "aged_score_residual_bad": 0,
+    "bad_timing_fields": 0,
+    "ALL_PASS": true
+  },
+  "activation_diagnostics": {
+    "competitive_decisions": 2801,
+    "top1_disagreement": 839,
+    "top1_disagreement_pct": 29.9536,
+    "any_flip_decisions": 1041,
+    "any_flip_pct": 37.1653,
+    "comparable_pairs": 15733,
+    "flipped_pairs": 5046,
+    "micro_pairwise_flip_pct": 32.0727,
+    "margin_crossing_pct": 37.88,
+    "kendall_tau_b_mean": 0.37887956551943347,
+    "kendall_tau_b_ci": {
+      "mean": 0.37887956551943347,
+      "lo": 0.3545367622662974,
+      "hi": 0.4028302145646559,
+      "n": 2773
+    },
+    "credit_to_gap_ratio": {
+      "p50": 0.7178105594077862,
+      "p90": 16.8662080889613,
+      "p95": 16717163999999.988,
+      "n": 15733
+    },
+    "winner_promotion_age_ms": {
+      "p50": 95983.48400000001,
+      "mean": 95847.98594815258,
+      "positive_share": 100.0,
+      "n": 839
+    }
+  },
+  "timing": {
+    "score_compute_wall_us_p50": 13.8,
+    "score_compute_wall_us_p95": 52.3,
+    "rank_select_wall_us_p50": 2.8,
+    "rank_select_wall_us_p95": 7.6,
+    "total_wall_us_p50": 16.95,
+    "total_wall_us_p95": 58.6
+  },
+  "per_episode": [
+    {
+      "episode_id": "validation_000000",
+      "mean_completion_ms": 57800.12478124998,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000001",
+      "mean_completion_ms": 65710.02856250008,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000002",
+      "mean_completion_ms": 116508.62925000007,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000003",
+      "mean_completion_ms": 70488.64881249999,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000004",
+      "mean_completion_ms": 53107.93300000002,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000005",
+      "mean_completion_ms": 78835.60587500001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000006",
+      "mean_completion_ms": 56262.0564375,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000007",
+      "mean_completion_ms": 76912.68237500002,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000008",
+      "mean_completion_ms": 129448.37525000001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000009",
+      "mean_completion_ms": 56836.28056250001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000010",
+      "mean_completion_ms": 54355.52825000001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000011",
+      "mean_completion_ms": 53796.27343749998,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000012",
+      "mean_completion_ms": 103335.91543749999,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000013",
+      "mean_completion_ms": 65342.817875,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000014",
+      "mean_completion_ms": 113669.54206250001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000015",
+      "mean_completion_ms": 54237.32565625001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000016",
+      "mean_completion_ms": 87775.09981249996,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000017",
+      "mean_completion_ms": 90377.78600000001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000018",
+      "mean_completion_ms": 118909.88612500005,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000019",
+      "mean_completion_ms": 64529.05409375,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000020",
+      "mean_completion_ms": 67305.43412499999,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000021",
+      "mean_completion_ms": 66200.02675000002,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000022",
+      "mean_completion_ms": 140992.63546875,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000023",
+      "mean_completion_ms": 87571.61975,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000024",
+      "mean_completion_ms": 137394.44806250004,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000025",
+      "mean_completion_ms": 74053.16599999997,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000026",
+      "mean_completion_ms": 79797.42521875001,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000027",
+      "mean_completion_ms": 97194.24593750003,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000028",
+      "mean_completion_ms": 85288.26743749999,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    },
+    {
+      "episode_id": "validation_000029",
+      "mean_completion_ms": 50874.83340625003,
+      "completed_jobs": 16,
+      "failed_jobs": 0
+    }
+  ]
+}

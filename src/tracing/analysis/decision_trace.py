@@ -129,6 +129,13 @@ class ShadowMethod:
     def future_cost(self, candidate: CandidateView, context: DecisionContext) -> FutureScoreResult:
         raise NotImplementedError
 
+    def scheduler_key(
+        self, candidate: CandidateView, future_cost_ms: float, context: DecisionContext
+    ) -> Tuple[Any, ...]:
+        """Ranking key.  Default is the same-shape key; aging arms override this."""
+
+        return build_scheduler_key(candidate, future_cost_ms)
+
     def describe(self) -> Dict[str, Any]:
         return {
             "method_id": self.method_id,
@@ -269,6 +276,34 @@ class DecisionTraceWriter:
 
 
 # --------------------------------------------------------------------------- #
+def build_aging_scheduler_key(
+    candidate: CandidateView, future_cost_ms: float, context: DecisionContext
+) -> Tuple[Any, ...]:
+    """The exact lexicographic key of the aging arm.
+
+    Mirrors ``srtf_aging_key`` in the simulator plus the identity tie-breakers:
+    (priority, R - wait, R, -wait, ready_since, job_index, node_id, gpu_index).
+    The wait is measured from the node's own ready time, so this is node-level
+    aging and a successor restarts its age when it is unlocked.
+    """
+
+    wait = float(context.time_ms) - float(candidate.legacy_tiebreak_1)
+    if wait < -1e-9:
+        raise ValueError("negative ready age: %s" % wait)
+    wait = max(0.0, wait)
+    remaining = candidate.current_cost_ms + float(future_cost_ms)
+    return (
+        float(candidate.priority),
+        remaining - wait,
+        remaining,
+        -wait,
+        candidate.legacy_tiebreak_1,
+        candidate.legacy_tiebreak_2,
+        candidate.legacy_tiebreak_3,
+        candidate.gpu_index,
+    )
+
+
 def score_decision(
     context: DecisionContext,
     methods: Sequence[ShadowMethod],
@@ -333,7 +368,9 @@ def score_decision(
                 "runtime_statistic": result.runtime_statistic,
                 "lookup_level": result.lookup_level,
                 "attribute_entropy": result.attribute_entropy,
-                "scheduler_key": list(build_scheduler_key(candidate, result.future_cost_ms)),
+                "scheduler_key": list(
+                    method.scheduler_key(candidate, result.future_cost_ms, context)
+                ),
                 "runtime_probs": list(result.runtime_probs) if result.runtime_probs is not None else None,
                 **result.extra,
             }
@@ -349,8 +386,8 @@ def score_decision(
         # previous (key, candidate_id) tie-break changed the winner on exact ties.
         ordered = sorted(
             competitive,
-            key=lambda c: build_scheduler_key(
-                c, scores_by_method[method_id][c.candidate_id].future_cost_ms
+            key=lambda c: method.scheduler_key(
+                c, scores_by_method[method_id][c.candidate_id].future_cost_ms, context
             ),
         )
         for rank, candidate in enumerate(ordered):
