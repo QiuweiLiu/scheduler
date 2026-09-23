@@ -2446,7 +2446,7 @@
         "fcfs_is_safe": "it is followed by `elif`, so its chain is not broken"
       },
       "v041_node_ontology": {
-        "status": "step 1 complete; steps 2-4 pending",
+        "status": "STEP 1 FROZEN (three closure proofs satisfied)",
         "contract": "scheduler_projection_of_verified_serial_control_flow_v3_1",
         "authoritative_source": "scripts/build_p9d_topology_dataset.py::build_chain",
         "nested_merged": 169,
@@ -2456,7 +2456,38 @@
         "sequence_index_renumbered": true,
         "seriality_gate": "640/640 PASS",
         "provenance_closure": "640 formal + 8 pilot = 648; pilot-only = 0",
-        "output": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl"
+        "output": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+        "closure_proofs": {
+          "gate": {
+            "script": "scripts/scheduler_projection_gate_v041.py",
+            "result": "640/640 PASS, 0 violations",
+            "method": "semantic checks read source_step_ids / parent_step_ids / retry_of / raw vocabulary; sequence_index is only a projection-index-contiguity check and is explicitly NOT a seriality proof"
+          },
+          "nested_temporal_containment": {
+            "source": "results/raw/r7_trace_full_20260817",
+            "pairs": 169,
+            "contained": 169,
+            "parent_runtime_equals_interval": 169,
+            "violations": 0,
+            "conclusion": "the nested duration is already inside the parent tool's measured wall-clock interval, so removing the nested schedulable node eliminates double counting without altering elapsed work; never subtract the nested runtime from the parent"
+          },
+          "execution_runid_closure": {
+            "formal_executions": 640,
+            "pilot_executions": 8,
+            "intersection": 0,
+            "union": 648,
+            "pilot_source": "experiments/EXP-20260817_r7_trace_pilot/remote_pilot_report.json",
+            "correction": "the earlier task-level check gave |formal UNION pilot| = 640 because the 8 pilot TASKS are a subset of the 640 formal tasks; P9d's 648 counts EXECUTIONS, which differ by run_id"
+          }
+        },
+        "open_p0": {
+          "resource_attribution_of_merged_nested_calls": {
+            "finding": "all 169 merged nested generalist.generate nodes are GPU (104 Qwen3-VL-8B, 65 Qwen2.5-VL-3B) while all 169 parents are CPU (cpu-metadata-adapter-v1)",
+            "consequence": "deleting the nested node and keeping the CPU parent makes real GPU work disappear from GPU contention",
+            "fix": "v3.1 composite signature: the parent must carry nested_model_class and the simulator must charge the inner GPU model's load and residency",
+            "status": "not fixed; first priority after step 1"
+          }
+        }
       },
       "gpt_review_round2_verdicts": {
         "causal_edge_repair": "PASS",
@@ -2469,7 +2500,17 @@
         "scheduling_opportunity": "trustworthy",
         "recurring_pattern": "docs correct + unit test passes + the real E2E consumer takes another path (F0 packer, then TIE)",
         "required_new_test": "E2E sentinel mutation test per baseline"
-      }
+      },
+      "tie_fix_list": [
+        "separate TIE bank; never route through the generic estimate()",
+        "missing mean/CVaR must raise, never fall back to p50/p90",
+        "lookup key is (model_id, lane) only; must not pass through resource_keys() which carries sequence_index",
+        "write the support/censoring down in advance, or rename to Empirical-TIE-adapted with an explicit deviation",
+        "define CVaR strictly for small samples and report the group sample-count histogram",
+        "add the waiting-time decay as a pure function; do not reuse the aging arm",
+        "B must be a frozen system constant (len(gpu_topology)), never len(free_gpus)+1",
+        "add an E2E sentinel mutation test where mean/CVaR and p50/p90 order the candidates oppositely"
+      ]
     }
   },
   "notes": [

@@ -1,0 +1,11 @@
+{
+  "gate": "provenance-only scheduler projection gate",
+  "templates": 640,
+  "expected_templates": 640,
+  "nested_merged": 169,
+  "expected_nested_merged": 169,
+  "pass": 640,
+  "fail": 0,
+  "violations": {},
+  "note": "semantic checks read source_step_ids / parent_step_ids / retry_of / raw node vocabulary; sequence_index is checked only for projection-index contiguity and is explicitly not a seriality proof"
+}

@@ -698,3 +698,87 @@ pilot-only (not in formal) = 0
   每条需重构前端数学模型 + 加 sentinel mutation 测试
 - 第 3 步：冻结 `SchedulerTopologyContractGate` + `BaselineFidelityManifest`
 - 第 4 步：重跑 30 集 smoke
+
+## 2026-09-23 · 第 1 步正式冻结（三个关闭证据）
+
+GPT 对 e8b6248 的复核判定：`~90% 完成，conditional PASS`，还差三个洞。**三个洞已全部补上。**
+
+### 洞 1：scheduler gate 是"自证循环"（必须修）
+GPT 的批评：
+> 你把"重新编号以后 gate PASS"误认为 semantic gate PASS。这是典型的
+> **用 transform 产生的字段验证 transform 本身** → 自证循环。
+> 比如 builder 强制 `sequence_index = 0..n-1`，gate 检查 `sequence_index` 是否每次 +1
+> —— 当然永远通过。
+> **semantic gate 必须使用独立于被验证输出的 provenance 字段。**
+
+它逐条指出我的空门禁：
+| 我声称检查 | 实际 |
+|---|---|
+| `step_jump` | 重编号后**永远通过** |
+| `parent_step_ids` 规范性 | 只查 `len(ps) > 1`，**没查 `()/[N-1]`** |
+| `single successor` / `cycle` / `answer last` | docstring 声称有，**代码没写** |
+
+**修复**：新建 `scripts/scheduler_projection_gate_v041.py`，语义检查全部读
+`source_step_ids` / `parent_step_ids` / `retry_of` / raw node 词表；
+`sequence_index` 只作 **projection-index-contiguity** 检查并**显式标注非串行性证明**。
+覆盖：templates==640、nested merged==169、`parent_step_ids` 规范、`source_step_ids`
+连续 same/+1、每 step ≤1 工具、retry 相邻、单 root、单 tail、无环、链覆盖每节点恰好一次、
+**全部 `resource_applicable == true`**、无嵌套子节点残留。
+
+**结果：640/640 PASS，0 违规。**
+
+### 洞 2：169 对嵌套时间窗 —— VERIFIED
+回原始 trace `results/raw/r7_trace_full_20260817`（640 run 目录）验证：
+```
+pairs checked               : 169
+contained (nested ⊆ parent) : 169
+parent_runtime == interval  : 169
+missing raw trace           : 0
+violations                  : 0
+```
+**结论（可正式写进文档）**：嵌套调用的时长**已经包含在父工具测得的 wall-clock 区间内**，
+删掉嵌套调度节点**消除重复核算且不改变总耗时**。
+（GPT 强调：**绝对不要再从父节点减 nested runtime**，否则会变成 exclusive runtime，
+不再是 v3.1 冻结的 `R_total(parent)`。）
+
+### 洞 3：648 必须在【执行 run_id】层闭环 —— **更正我上轮的结论**
+GPT 指出我上轮写错了：
+> `pilot-only (not in formal) = 0` 只说明 8 个 pilot **任务定义**都在 formal manifest 里，
+> 所以**按 task identity：`|formal ∪ pilot| = 640`，不是 648**。
+> 必须核 **execution run_id**。
+
+**我查证后确认 GPT 对**：两个 manifest 只有 `task_id`，**没有 `run_id`**（它们是任务定义）。
+pilot 的执行记录在 `experiments/EXP-20260817_r7_trace_pilot/remote_pilot_report.json`
+（`expected_runs=8`，`raw_root=results/raw/r7_trace_pilot_20260817`）。
+
+**执行层闭环**：
+```
+formal workload executions : 640
+pilot executions           :   8
+intersection               :   0
+union                      : 648    ← 与 P9d 引用的 648 一致
+```
+
+### 关于 nested 合并的资源归属（GPT 发现的另一个 P0）
+GPT 指出：**169 个 nested `generalist.generate` 全是 GPU 节点，169 个父
+`summarization-tool` 全是 CPU 节点**（104 × Qwen3-VL-8B、65 × Qwen2.5-VL-3B → cpu-metadata-adapter）。
+**我实测确认**：
+```
+nested node lanes : {'gpu': 169}
+parent node lanes : {'cpu': 169}
+```
+所以直接删 nested、保留父节点的 `execution_lane=cpu`，**会让这些真实 GPU 工作从 GPU 竞争里消失**。
+**这一条我还没有修**（v3.1 的 `composite signature` 正是为此设计：父节点应携带
+`nested_model_class`，且 simulator 需为内层 GPU 模型收取加载/驻留成本）。
+**列为第 1 步之后的第一优先项。**
+
+### GPT 的其他判定
+- **Q3**：`resource_applicable=false` 为 0 是可以接受的 fail-closed schema 契约；
+  **它反而建议不要把 terminal marker 塞回 scheduler**（那只会增加"它何时完成/是否占 GPU/是否算 JCT"的无意义问题）
+- **Q4**：我做的是**语义复刻**，不是代码复用。不阻塞，但建议抽三层共享模块
+  （`verify_raw_run` → `canonicalize_v31` → `project_scheduler_chain`），
+  **并让 scheduler 读冻结的 `canonical_v31_manifest`，而不是从 v03 推断本体**
+- **TIE 修复清单（7 条）**：独立 bank 不走 `estimate()`；缺字段 `raise` 不 `or p50`；
+  lookup 只用 `(model_id, lane)`；support 提前写死否则叫 `Empirical-TIE-adapted`；
+  CVaR 小样本严格定义并报告样本数直方图；补 waiting decay；**`B` 不能用 `len(free_gpus)+1`**；
+  **加 E2E sentinel mutation test**
