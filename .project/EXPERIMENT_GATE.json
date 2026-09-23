@@ -2025,7 +2025,7 @@
       "smoke_passed": true,
       "ledger_registered": true,
       "commit": "a01e7eb",
-      "conclusion": "Stage 0/0.1/0.2 closed the causal input contract; Stage 1 wired the causal historical-telemetry channel, made F0 a genuine telemetry-off arm, migrated the frozen J3 checkpoint into the discretised-head model, reproduced the frozen Phase-R acceptance numbers exactly, and passed a two-epoch implementation smoke. Formal 3-seed training is the next gate.",
+      "conclusion": "Historical execution telemetry adds no measurable predictive value under this workload (F1-F0 CI95 [-0.3613, +0.7922], crosses zero; seven of eight metrics flip sign across seeds). Full retraining plus the discretised 16-bin head is worth about 28.7 percent against frozen J3, and F0 is the first predictor that also improves the truth-referenced ordering. F0 seed 11 is selected as the deployment predictor.",
       "question": "does causal historical execution telemetry (past runtime / load / memory / status) add incremental predictive value beyond workflow semantics, and does it change what the scheduler can do?",
       "causal_contract": {
         "i_lt_anchor": "attributes + observed resource outcomes",
@@ -2112,7 +2112,27 @@
         "status": "out-of-vocabulary status raises instead of merging into a catch-all"
       },
       "review": "docs/research/2026-09-21_fas_causal_boundary_ruling_gpt.md and the review chain referenced there; every P0 raised was fixed and re-verified",
-      "artifacts": "experiments/EXP-20260921_histres_causal_input_v1/artifacts/{dataset_audit.json,numeric_scaler.json,unresolved_breakdown.json,join_taxonomy.json,smoke_report.json}"
+      "artifacts": "experiments/EXP-20260921_histres_causal_input_v1/artifacts/{dataset_audit.json,numeric_scaler.json,unresolved_breakdown.json,join_taxonomy.json,smoke_report.json}",
+      "f0_selected": {
+        "deployment_predictor": "F0 seed11",
+        "artifact": "outputs/resource_v2_artifacts/f0_seed11",
+        "runtime_qscore": 605.9236,
+        "vs_frozen_j3_pct": -28.3,
+        "truth_referenced_ranking": {
+          "spearman": 0.6517,
+          "top1_agreement": 0.916,
+          "vs_j3": {
+            "spearman": 0.5917,
+            "top1_agreement": 0.895
+          },
+          "nodes_compared": 7663,
+          "anchors_not_resolvable": 1280,
+          "residency_caveat": "empty-residency GPU at the v03 topology capacity for every anchor"
+        },
+        "consumed_score_scale_vs_j3_median_ratio": 1.327,
+        "selection_reason": "seed 11 is the canonical predictor seed in this project (J3, R1b); picking seed 33 on its better number would be best-of-3 optimism",
+        "telemetry": "disabled by design (F1 showed no gain)"
+      }
     }
   },
   "notes": [

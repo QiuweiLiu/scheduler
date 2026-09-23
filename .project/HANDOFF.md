@@ -729,3 +729,23 @@ J chain 从未出现过的 `event_type='run'` 容器与 nested generate。
 3. **禁止**对外写"预测器低估约 60%"。
 
 产物 `outputs/a2a_jval_full5/`；门禁 `metric_audit_20260918`；待与 GPT 讨论 C2 如何重述。
+
+## 2026-09-21 · F0 结果已保留；下一步复现四个调度方法
+
+- **F0 结果已保留**：pack `outputs/resource_v2_artifacts/f0_seed11`（9,575 节点 / 35,362 步 / 18 秒）；
+  真值参照排序诊断 `experiments/EXP-20260921_histres_causal_input_v1/artifacts/pack_vs_truth_ranking.json`；
+  manifest 副本 `f0_seed11_manifest.json`；消费量对比见 DECISIONS。
+- **F0 已选定为部署预测器**（`F0 seed11`，RuntimeQScore 605.9236，真值参照首选一致率 0.916）。
+- **下一步（用户指定）**：复现四条调度路线并接入本项目的调度器接口：
+  1. **SJF / SRPT + Aging**
+  2. **LLMSched-inspired**
+  3. **Pythia-inspired**
+  4. **TIE-inspired**
+  已向 GPT 发出复现方案讨论请求（`.scratch/gpt_plan_scheduler_replication.md`），
+  要求它逐条给出：论文的确切身份（venue/year，**不得编造**）、可复现的核心算法、
+  如何映射到我们的 `min(pool, key=...)` 接口、**哪些部分无法忠实复现**、以及按成本排序。
+- **接口事实**：本项目的调度决策是 `chosen = min(pool, key=<lexicographic tuple>)`，
+  第一个键是硬优先级，之后是 `current + future` 等。任何新方法必须能表达成候选打分，
+  否则需要扩展接口。
+- **公平性要求**：四条路线应与现有臂在**同一信息预算**下比较；需要逐条标明它需要什么输入
+  （队列长度 / 未来信息 / SLO / 历史遥测），以及我们缺什么。
