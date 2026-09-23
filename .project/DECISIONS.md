@@ -642,3 +642,59 @@ GPT 指定的顺序 `TIE -> Pythia -> LLMSched -> Latency-Aware`，全部完成�
 - Latency-Aware 的 Scheduler 缺两块（reclaim victim、跨候选时间线传播），
   应命名为 `LatencyAware-fusion-lifecycle-sched-adapted` 并在 note 列明
 - **不声称 round_robin 的结果**（因为它实际是 myopic）
+
+## 2026-09-23 · 第 1 步：v04 -> v04.1（节点定义对齐 v3.1）
+
+GPT 复核指出：v04 只修了**边**，**节点本体未迁移**。已按 v3.1 的权威实现
+（`scripts/build_p9d_topology_dataset.py::build_chain` 及其 `_resource_applicable` /
+`_is_terminal_marker` / 嵌套合并规则）重建 v04.1。
+
+### 嵌套合并（v3.1 §4 规则 3）
+- 规则：`node_type == "answer_generation"` 且 `raw_action == "generalist.generate"`，
+  且**同一 step 内**紧跟着 `raw_action == "summarization-tool"` → 前者是**嵌套在
+  Summarizer 工具内部**的调用，必须合并进父节点
+- **实测 169/169 匹配**（与 GPT 从 commit 读出的计数一致）
+- 父节点获得 `merged_nested_call=true` + `nested_calls=[...]`
+- **节点数 8,295 → 8,126（−169）**
+- 理由：v3.1 规定 `R_node = R_total(parent summarizer)`，**禁止重复核算**；
+  保留独立节点会让 simulator 把嵌套调用和父工具**分开执行 → 工作量与时长双重核算**
+
+### run_control 排除（v3.1 §3）
+`node_type == "run_control"` 不是拓扑节点，已排除。
+
+### terminal marker 语义修正（v3.1 §3）
+- 权威定义：`event_type == "run"` **且** `action == "answer"` → `resource_applicable = false`
+- **我原先写的 `node_type == "answer_generation"` 是错的**
+- 本投影（v03 起）已由 `remove_run_container_nodes.py` 删除全部 `run` 容器，
+  **因此不含任何 terminal marker** —— 所以契约**诚实改名为**
+  **`scheduler_projection_of_verified_serial_control_flow_v3_1`**，
+  不再声称与 predictor 侧 v3.1 完全相同（GPT 明确给了这个选项）
+
+### `resource_applicable` 成为真正的执行契约（不是 annotation）
+- `Node` dataclass 新增该字段
+- `load_templates` 读取；**causal 视图下缺该字段 → 直接拒绝**
+- **3 处候选池构建点都会拒绝不可调度节点**（fail-closed）
+- 修好了 GPT 指出的"JSON 里有字段但程序完全不读"的问题
+
+### `sequence_index` 重编号
+合并掉节点后原位置出现空洞，导致 gate 的 `step_jump` 误报 117 个模板。
+已重编号为 `0..n-1` 连续。
+
+### 结果
+- seriality gate：**640/640 PASS，0 违规**
+- 现有臂回归正常：fcfs 105,708 / myopic 90,289 / tie_current 90,367，16 job 全完成
+
+### 640 + 8 = 648 provenance 闭环（GPT 建议的机械验证）
+```
+data/manifests/r7_trace_manifest_v1.jsonl       = 640 rows
+data/manifests/r7_trace_pilot_manifest_v1.jsonl =   8 rows
+sum = 648
+pilot-only (not in formal) = 0
+```
+**确认：640 formal + 8 pilot = 648，没有遗漏 8 个正式 scheduler workload。**
+
+### 仍未做（第 2–4 步）
+- 第 2 步：修四条基线的 fidelity P0（TIE / LLMSched / Pythia / Latency-Aware），
+  每条需重构前端数学模型 + 加 sentinel mutation 测试
+- 第 3 步：冻结 `SchedulerTopologyContractGate` + `BaselineFidelityManifest`
+- 第 4 步：重跑 30 集 smoke

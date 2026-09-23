@@ -2444,6 +2444,31 @@
           "fix": "add the same `return chosen[0], chosen[4].index, chosen[5], len(candidates), len(fitting)` used by the ALIGNED_H5_POLICIES branch"
         },
         "fcfs_is_safe": "it is followed by `elif`, so its chain is not broken"
+      },
+      "v041_node_ontology": {
+        "status": "step 1 complete; steps 2-4 pending",
+        "contract": "scheduler_projection_of_verified_serial_control_flow_v3_1",
+        "authoritative_source": "scripts/build_p9d_topology_dataset.py::build_chain",
+        "nested_merged": 169,
+        "nodes_before": 8295,
+        "nodes_after": 8126,
+        "resource_applicable_enforced": true,
+        "sequence_index_renumbered": true,
+        "seriality_gate": "640/640 PASS",
+        "provenance_closure": "640 formal + 8 pilot = 648; pilot-only = 0",
+        "output": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl"
+      },
+      "gpt_review_round2_verdicts": {
+        "causal_edge_repair": "PASS",
+        "v3.1_node_ontology": "was FAIL -> now addressed in v04.1",
+        "640_vs_648": "closed: 640 formal + 8 pilot",
+        "TIE": "P0 bug: estimate() strips mean/CVaR so the arm ran p50 + beta*p90; 10/10 was a false positive",
+        "Pythia": "conceptual mismatch: workflow family is not a role alphabet; rename to workflow-family progress prior",
+        "LLMSched": "H(X) is not I(X;Y); realized durations never entered the posterior; fidelity FAIL",
+        "Latency-Aware": "key is not Eq.12 (-boundaries_removed is an invented tie-break) AND uses truth compute_ms (truth leakage)",
+        "scheduling_opportunity": "trustworthy",
+        "recurring_pattern": "docs correct + unit test passes + the real E2E consumer takes another path (F0 packer, then TIE)",
+        "required_new_test": "E2E sentinel mutation test per baseline"
       }
     }
   },

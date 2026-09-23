@@ -543,6 +543,10 @@ class Node:
     action_family: str = "other"
     raw_action: str = "other"
     batch_size: int = 1
+    # v3.1 section 3: run_control and the terminal answer marker are not schedulable
+    # work.  The v04.1 projection already excludes them, so this defaults to True and
+    # exists so the executor can REFUSE rather than silently run such a node.
+    resource_applicable: bool = True
 
     @property
     def workspace_incremental_mb(self) -> float:
@@ -659,6 +663,12 @@ def load_templates(
                     % (row.get("template_id"), declared)
                 )
             if topology_view == "causal_v3":
+                if "resource_applicable" not in raw:
+                    raise ValueError(
+                        "topology_view='causal_v3' but node %s in template %s carries no "
+                        "resource_applicable; the node ontology must be part of the contract"
+                        % (node_id, row.get("template_id"))
+                    )
                 if "causal_predecessor_node_ids" not in raw:
                     raise ValueError(
                         "topology_view='causal_v3' but node %s in template %s carries no "
@@ -685,6 +695,7 @@ def load_templates(
                     "other",
                 ),
                 raw_action=text(raw.get("raw_action"), "other"),
+                resource_applicable=bool(raw.get("resource_applicable", True)),
                 batch_size=max(1, int(raw.get("batch_size") or raw.get("yolo_batch") or 1)),
             )
         successors: dict[str, list[str]] = defaultdict(list)
@@ -2856,6 +2867,19 @@ def tie_current_score(
     return float(mean_ms) + float(beta) * float(cvar90_ms) + float(load_ms)
 
 
+def _require_resource_applicable(node: Node, template_id: str) -> None:
+    """v3.1 section 3: run_control and terminal markers are not schedulable work.
+
+    Module level so every pool-building site can enforce it, not just choose_action.
+    """
+
+    if not getattr(node, "resource_applicable", True):
+        raise ValueError(
+            "node %s in template %s is not resource-applicable but reached the "
+            "candidate pool" % (node.node_id, template_id)
+        )
+
+
 def choose_action(
     policy: str,
     ready_items: Sequence[tuple[float, int, int, str]],
@@ -2871,6 +2895,8 @@ def choose_action(
 ) -> tuple[tuple[float, int, int, str], int, dict[str, Any], int, int]:
     if not free_gpus:
         raise RuntimeError("choose_action called without a free GPU")
+
+
     # Candidate tuples intentionally carry scheduler-visible fields only:
     # item, job index, node id, model id, GPU, prediction, predicted fit.
     candidates: list[tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool]] = []
@@ -2880,6 +2906,7 @@ def choose_action(
         node = job.template.by_id[node_id]
         if job.node_state.get(node_id) != "ready" or node.lane != "gpu":
             continue
+        _require_resource_applicable(node, job.template.template_id)
         estimate_row = estimate(node, train_stats)
         for gpu in free_gpus:
             candidates.append(
@@ -4012,6 +4039,7 @@ def choose_action_with_batch(
         node = job.template.by_id[node_id]
         if job.node_state.get(node_id) != "ready" or node.lane != "gpu":
             continue
+        _require_resource_applicable(node, job.template.template_id)
         for gpu in free_gpus:
             for batch_size in _batch_options(node, extension_config):
                 row = estimate_for_batch(node, train_stats, batch_size, extension_config)
@@ -4107,6 +4135,7 @@ def scheduler_state_at_decision(
         node = job.template.by_id[node_id]
         if job.node_state.get(node_id) != "ready" or node.lane != "gpu":
             continue
+        _require_resource_applicable(node, job.template.template_id)
         row = estimate(node, train_stats)
         ready_nodes.append(
             {

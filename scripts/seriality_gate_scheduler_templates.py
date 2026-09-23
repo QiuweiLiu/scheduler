@@ -122,7 +122,7 @@ def check_template(template: Mapping[str, Any]) -> GateResult:
 
 def main() -> int:
     root = Path(r"F:\scheduler")
-    P = root / "results/processed/r7_workload_v04_causal_v31_no_run_container/job_templates_r7_v04.jsonl"
+    P = root / "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl"
     with open(P, "rt", encoding="utf-8") as h:
         rows = [json.loads(l) for l in h if l.strip()]
 
@@ -131,7 +131,7 @@ def main() -> int:
     failed = [r for r in results if not r.passed]
 
     print("=" * 90)
-    print("Seriality gate on the rebuilt v04 causal-v3.1 templates")
+    print("Seriality gate on the rebuilt v04.1 ontology-aligned templates")
     print("=" * 90)
     print("  templates       : %d" % len(results))
     print("  PASS            : %d" % len(passed))
@@ -167,7 +167,7 @@ def main() -> int:
 
     out = root / "experiments/EXP-20260921_scheduler_replication_v1/artifacts"
     out.mkdir(parents=True, exist_ok=True)
-    (out / "seriality_gate_v04.json").write_text(json.dumps({
+    (out / "seriality_gate_v041.json").write_text(json.dumps({
         "templates": len(results),
         "pass": len(passed),
         "fail": len(failed),
