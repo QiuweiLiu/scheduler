@@ -84,7 +84,7 @@ POLICIES = (
     "sameshape_h5_truth",
     "sameshape_h5_condmean",
     "sameshape_h5_stepcvar95",
-    "srtf_h5_p95_aging",
+    "sameshape_h5_p95_aging",
     "predopt_h10_lam0",
     "predopt_h10_lam25",
     "predopt_h10_lam50",
@@ -2746,7 +2746,13 @@ def srtf_aging_key(
     that has not advanced.
     """
 
-    wait = max(0.0, float(wait_age_ms))
+    wait = float(wait_age_ms)
+    if wait < -1e-9:
+        # a ready candidate can never be ready after the current decision time, so a
+        # materially negative age means the simulator invariant broke.  Clamping it
+        # away would hide that, so fail closed; only floating-point noise is tolerated.
+        raise ValueError(f"negative ready age: {wait}")
+    wait = max(0.0, wait)
     return (
         float(hard_priority),
         float(remaining_ms) - wait,
@@ -3139,15 +3145,15 @@ def choose_action(
 
         chosen = min(pool, key=sameshape_score)
 
-    elif policy == "srtf_h5_p95_aging":
+    elif policy == "sameshape_h5_p95_aging":
         if future_artifacts is None:
             raise ValueError(f"{policy} requires finite-horizon artifacts")
         horizon = 5
 
-        def srtf_aging_score(
+        def sameshape_aging_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
-            """SRTF over the H=5 chain with a parameter-free aging credit.
+            """Aging-augmented predicted remaining work over the H=5 chain.
 
             R_j = current + future is the predicted remaining work of the emitted chain,
             and one millisecond of waiting buys one millisecond of credit, so the units
@@ -3163,6 +3169,14 @@ def choose_action(
             current = float(estimate_row["runtime_p50_ms"]) + load
             future = sameshape_future_cost(node_id, future_artifacts, train_stats, horizon, "p95")
             remaining = current + future
+            # the heap carries the node ready time; make sure it has not drifted from
+            # the Job's own bookkeeping, otherwise the aging credit is measuring the
+            # wrong clock
+            ready_from_job = jobs[job_index].ready_since.get(node_id)
+            if ready_from_job is not None and abs(float(item[1]) - float(ready_from_job)) > 1e-9:
+                raise ValueError(
+                    f"ready time drift for {node_id}: heap={item[1]} job={ready_from_job}"
+                )
             wait_age = float(decision_time_ms) - float(item[1])
             return srtf_aging_key(item[0], remaining, wait_age) + (
                 float(item[1]),
@@ -3171,7 +3185,7 @@ def choose_action(
                 gpu.index,
             )
 
-        chosen = min(pool, key=srtf_aging_score)
+        chosen = min(pool, key=sameshape_aging_score)
 
         if _DECISION_TRACE["writer"] is not None:
             from tracing.analysis import decision_trace as _dt

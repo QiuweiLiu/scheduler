@@ -2147,37 +2147,6 @@
         "margin_reused_unchanged": true
       },
       "routes": {
-        "SRTF-Aging": {
-          "fidelity": "PASS 2026-09-21 (10/10 tests)",
-          "performance": "pending",
-          "naming": "SRTF-Aging (project baseline; no single source paper for the aging rule)",
-          "fidelity_evidence": {
-            "tests": "tests/test_srtf_aging_fidelity.py",
-            "key": "srtf_aging_key(hard_priority, remaining_ms, wait_age_ms) -> (prio, R-wait, R, -wait)",
-            "checked": [
-              "exact hand-computed key: (0,1000,300) -> (0,700,1000,-300)",
-              "1 ms waiting == 1 ms credit (dimensional consistency)",
-              "monotone: more waiting -> strictly better (smaller) key",
-              "hard priority is element 0, so no aging amount crosses it (up to 1e12 ms)",
-              "negative wait clamped to zero",
-              "future term is the H=5 chain cost (5 x p95)"
-            ],
-            "regressions": {
-              "sameshape": "19/19",
-              "j_series_resource_dist": "23/23",
-              "phase_r_reproduction": "4/4",
-              "histres_causal_guard": "7/7"
-            }
-          },
-          "naming_limitation": "non-preemptive SRTF / SRPT-inspired ranking: the simulator has no node-level preemption, so true SRPT is not implementable",
-          "f0_pack_rebuilt": {
-            "reason": "pack was missing cvar95_ms and derived views in float32",
-            "fix": "emit cvar95_ms per step; derive views in float64",
-            "artifact_sha256": "57f9627a3f5f7b61f50416f01955cf2c944511260e7425e378d02b5bbca95d9b",
-            "loader_check": "ACCEPTED nodes=9575 steps=35362 view_err=3.64e-12 nonresource_mismatch=0"
-          },
-          "next": "shadow scoring, then 30-episode smoke, then the 300 paired run"
-        },
         "TIE-inspired": {
           "fidelity": "pending",
           "performance": "pending",
@@ -2195,6 +2164,46 @@
           "performance": "pending",
           "source": "Zhu et al., LLMSched: Uncertainty-Aware Workload Scheduling for Compound LLM Applications, IEEE ICDCS 2025, pp. 527-537",
           "naming_note": "without intra-stage partial execution; epsilon and r must be fixed from the paper or frozen on train-only data"
+        },
+        "SRTF-Aging": {
+          "fidelity": "PASS 2026-09-21 (12/12 after review-driven fixes)",
+          "performance": "pending",
+          "naming": "SRTF-Aging (project baseline; no single source paper for the aging rule)",
+          "fidelity_evidence": {
+            "tests": "tests/test_srtf_aging_fidelity.py (12/12)",
+            "regressions_all_green": {
+              "total": 88,
+              "suites": {
+                "srtf_aging": 12,
+                "sameshape": 19,
+                "resource_dist": 23,
+                "phase_r": 4,
+                "histres_causal_guard": 7,
+                "histres_model_input": 7,
+                "j3_compat": 6,
+                "dist_training_path": 6,
+                "migration_routing": 4
+              }
+            }
+          },
+          "naming_limitation": "non-preemptive SRTF / SRPT-inspired ranking: the simulator has no node-level preemption, so true SRPT is not implementable",
+          "f0_pack_rebuilt": {
+            "reason": "pack was missing cvar95_ms and derived views in float32",
+            "artifact_sha256": "57f9627a3f5f7b61f50416f01955cf2c944511260e7425e378d02b5bbca95d9b",
+            "loader_check": "ACCEPTED nodes=9575 steps=35362 view_err=3.64e-12 nonresource_mismatch=0"
+          },
+          "next": "shadow scoring: 9 implementation gates + 6 activation diagnostics; only hard threshold is top1_disagreement > 0",
+          "positioning": "classical aging ablation/baseline, NOT an independent framework. It is F0 bounded predicted-remaining-work scheduling + node-level aging; in the paper taxonomy it belongs under classical baselines, not beside TIE/Pythia.",
+          "canonical_name": "sameshape_h5_p95_aging (renamed from srtf_h5_p95_aging per review)",
+          "math_property": "S_j = R_j - W_j and W_j = t - r_j, so at a fixed decision time the ranking is exactly R_j + r_j: only the node ready time separates candidates. Judge whether aging is weak on |dr| vs |dR|, never on W/R. alpha frozen at 1.0; tuning it after seeing results is post-hoc.",
+          "semantics": "node-level aging: item[1] is the node ready time from heappush(ready, (priority, now, job_index, node_id)), so a successor restarts its age when unlocked. Do not describe it as job waiting age / whole-job starvation age.",
+          "review_driven_fixes": [
+            "negative ready age now fails closed (ValueError beyond -1e-9); only float noise clamps",
+            "asserted the heap ready time matches Job.ready_since to 1e-9",
+            "the priority test used event name job_complete (never emitted; the real name is job_finish) so it silently asserted nothing, and its two jobs never competed in the same decision state",
+            "the not-a-silent-alias test compared identical candidates, where the plain arm already picks the same winner; it now constructs a state where the arms provably differ",
+            "the event log is the SECOND return value of simulate_episode and the field is event_type, not event"
+          ]
         }
       },
       "not_new": {
@@ -2206,6 +2215,35 @@
         "frozen_checkpoint": "J3 sha256 unchanged",
         "j_test": "sealed",
         "no_post_hoc_tuning": "epsilon, r, beta, omega and gamma must be frozen before results"
+      },
+      "parallel_refactor": {
+        "task": "src/tracing/analysis/resource_v2_math.py with canonical_views_from_probs(probs, reps, alpha=0.95)",
+        "rule": "all producers share one implementation; the simulator loader keeps an INDEPENDENT re-derivation so cross-implementation checking survives",
+        "blocks": "nothing: the F0 artifact already passes the validator, so the scheduler experiment is not blocked"
+      },
+      "shadow_gate": {
+        "implementation_gates": [
+          "traced decisions completeness == 100%",
+          "both sides candidate-set hash identical == 100%",
+          "score NaN/Inf == 0",
+          "raw wait < -1e-9 ms == 0",
+          "hard-priority crossing == 0",
+          "F0 shadow winner == actual F0 winner == 100%",
+          "remaining == current + future (residual <= 1e-9 * max(1,|remaining|))",
+          "aged_score == remaining - wait (same residual)",
+          "timing fields finite and nonnegative == 100%"
+        ],
+        "activation_diagnostics": [
+          "top-1 disagreement P(winner_aged != winner_plain)",
+          "within-decision Kendall tau_b on the minimum hard-priority competitive set (episode-cluster bootstrap)",
+          "micro pairwise flip rate pooled over decisions, plus P(any flip in decision)",
+          "aging margin crossing rate P(sign(dR) != sign(dA))",
+          "credit-to-gap ratio G_ij = |dW_ij| / max(|dR_ij|, eps) at p50/p90/p95",
+          "winner promotion age W_agedWinner - W_plainWinner on top-1 disagreement decisions"
+        ],
+        "only_hard_threshold": "top1_disagreement > 0 (not an exact alias). Do NOT require >5%; no basis.",
+        "if_near_zero": "record technically distinct but behaviorally near-redundant under this workload, and downgrade to ablation; do not tune the aging scale",
+        "timing": "report score_compute_wall_us p50/p90/p95/p99, ranking_wall_us p50/p95, total_decision_wall_us. Engineering sanity only (p95 additional overhead < 1 ms/decision); NOT an algorithm-quality gate."
       }
     }
   },
