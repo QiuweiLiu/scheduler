@@ -135,8 +135,11 @@ def main() -> int:
             raise SystemExit("node %s has %d steps but only %d slots" % (row["current_node_id"], len(steps), probs.shape[1]))
         for t, step in enumerate(steps):
             resource = step.setdefault("resource", {})
+            # float64: derive_from_probs casts the representatives to the probability
+            # dtype, and the overlay loader re-derives the views in float64, so a
+            # float32 round trip shows up as a ~1e-3 disagreement on a 20000 ms scale
             views = dist.derive_from_probs(
-                torch.as_tensor(probs[i, t], dtype=torch.float32)[None, :], reps
+                torch.as_tensor(probs[i, t], dtype=torch.float64)[None, :], reps
             )
             resource["runtime_ms_quantiles"] = {
                 "p50": float(np.asarray(views["q50_ms"]).ravel()[0]),
@@ -144,6 +147,20 @@ def main() -> int:
                 "p95": float(np.asarray(views["q95_ms"]).ravel()[0]),
             }
             resource["runtime_mean_ms"] = float(np.asarray(views["mean_ms"]).ravel()[0])
+            # the overlay loader re-derives every canonical view, so all of them must be
+            # written per step; the discrete upper-tail CVaR uses the same bin
+            # representatives as the quantile inversion
+            probs_row = probs[i, t].astype(np.float64)
+            cdf = np.cumsum(probs_row)
+            alpha = 0.95
+            acc = 0.0
+            prev = 0.0
+            for k in range(len(probs_row)):
+                hi = float(cdf[k])
+                if hi > alpha:
+                    acc += (hi - max(prev, alpha)) * float(reps[k])
+                prev = hi
+            resource["cvar95_ms"] = acc / max(1e-9, 1.0 - alpha)
             resource["runtime_probs"] = [float(x) for x in probs[i, t]]
             resource["bin_schema_id"] = bins["bin_schema_id"] if "bin_schema_id" in bins else "%s_%d" % (bins["mode"], bins["n_bins"])
             resource["resource_head_id"] = "%s_seed%d_f16" % (args.arm, args.seed)

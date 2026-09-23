@@ -84,6 +84,7 @@ POLICIES = (
     "sameshape_h5_truth",
     "sameshape_h5_condmean",
     "sameshape_h5_stepcvar95",
+    "srtf_h5_p95_aging",
     "predopt_h10_lam0",
     "predopt_h10_lam25",
     "predopt_h10_lam50",
@@ -2728,6 +2729,32 @@ def _pred_mpc_choose(
     return chosen[0], chosen[4].index, chosen[5], len(pool), sum(bool(candidate[6]) for candidate in pool)
 
 
+def srtf_aging_key(
+    hard_priority: float,
+    remaining_ms: float,
+    wait_age_ms: float,
+) -> tuple[float, float, float, float]:
+    """SRTF + aging, as an exact and independently checkable ordering key.
+
+    ``S_j = R_j - wait_age_j`` where ``R_j`` is the predicted remaining work of the
+    emitted chain and one millisecond of waiting buys one millisecond of credit, so
+    the two terms share a unit and a long enough wait always promotes a job.  The
+    hard service priority is the first element of the tuple, and Python compares
+    tuples lexicographically, so no amount of aging can ever cross it.
+
+    Negative waits are clamped to zero: a candidate cannot earn credit for a clock
+    that has not advanced.
+    """
+
+    wait = max(0.0, float(wait_age_ms))
+    return (
+        float(hard_priority),
+        float(remaining_ms) - wait,
+        float(remaining_ms),
+        -wait,
+    )
+
+
 def choose_action(
     policy: str,
     ready_items: Sequence[tuple[float, int, int, str]],
@@ -3111,6 +3138,40 @@ def choose_action(
             )
 
         chosen = min(pool, key=sameshape_score)
+
+    elif policy == "srtf_h5_p95_aging":
+        if future_artifacts is None:
+            raise ValueError(f"{policy} requires finite-horizon artifacts")
+        horizon = 5
+
+        def srtf_aging_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            """SRTF over the H=5 chain with a parameter-free aging credit.
+
+            R_j = current + future is the predicted remaining work of the emitted chain,
+            and one millisecond of waiting buys one millisecond of credit, so the units
+            match and a sufficiently long wait always promotes a job.  The hard service
+            priority remains the first key, so aging can never cross it.  This is a
+            project baseline: there is no single source paper for an "SJF + aging"
+            formula, and the simulator has no node-level preemption, so this is a
+            non-preemptive SRTF / SRPT-inspired ranking rather than true SRPT.
+            """
+
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            future = sameshape_future_cost(node_id, future_artifacts, train_stats, horizon, "p95")
+            remaining = current + future
+            wait_age = float(decision_time_ms) - float(item[1])
+            return srtf_aging_key(item[0], remaining, wait_age) + (
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=srtf_aging_score)
 
         if _DECISION_TRACE["writer"] is not None:
             from tracing.analysis import decision_trace as _dt

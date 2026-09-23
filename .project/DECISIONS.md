@@ -379,3 +379,17 @@ ole = diagnostic_only；即使 scheduler 偶然最好也不得成为最终 winne
 - **方法论教训（已记录）**：把"与现任冠军 A0 的排序一致性"当作质量指标是**错的** ——
   它只衡量**扰动幅度**，不衡量**质量**。R1b 与 A0 一致性 0.754 却在真值上更差（0.554 < 0.592），
   即"变了很多而且变差了"。**质量必须对真值，不对 A0。**
+
+## 2026-09-21 · 主 baseline 改为 F0（用户确认）
+
+- **决定**：新调度方法的**主对比基准改为 `F0 sameshape_h5_p95`**（F0 是已选定的部署预测器）。
+  旧 `A0`（J3）**保留为历史基线**，但新方法不再主要跟旧预测器比。
+- **理由**：F0 是当前部署预测器，且是第一个在真值参照排序上超过 J3 的预测器
+  （Spearman 0.6517 / 首选一致 0.916 vs J3 的 0.5917 / 0.895）。
+- **`δ_NI = 485 ms` 继续使用，不重算** —— 同 workload、同 primary metric 下已冻结的绝对 practical margin。
+- **判据**：`Δ = new − F0Baseline`；
+  非劣 `CI_upper(Δ) < +485 ms`；统计改善 `CI_upper(Δ) < 0`；
+  实质改善 `point(Δ) ≤ −485 ms` **且** `CI_upper(Δ) < 0`。
+- **两层门禁**（来自复现审查）：第一层 **implementation fidelity**（即使性能差也算成功复现），
+  第二层 **performance**。若 fidelity PASS 但性能 FAIL，写法是
+  "scheduler successfully reproduced/adapted, but did not improve this workload" —— **合法的负结果**。

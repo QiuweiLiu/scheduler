@@ -2133,6 +2133,80 @@
         "selection_reason": "seed 11 is the canonical predictor seed in this project (J3, R1b); picking seed 33 on its better number would be best-of-3 optimism",
         "telemetry": "disabled by design (F1 showed no gain)"
       }
+    },
+    "EXP-20260921_scheduler_replication_v1": {
+      "active": true,
+      "smoke_passed": false,
+      "ledger_registered": true,
+      "commit": "b6d5077",
+      "question": "in what form should an agent workflow's future information enter GPU scheduling: runtime, risk, topology, or information value?",
+      "baseline": {
+        "primary": "F0 sameshape_h5_p95",
+        "historical": "A0 (J3 sameshape_h5_p95)",
+        "non_inferiority_margin_ms": 485.0,
+        "margin_reused_unchanged": true
+      },
+      "routes": {
+        "SRTF-Aging": {
+          "fidelity": "PASS 2026-09-21 (10/10 tests)",
+          "performance": "pending",
+          "naming": "SRTF-Aging (project baseline; no single source paper for the aging rule)",
+          "fidelity_evidence": {
+            "tests": "tests/test_srtf_aging_fidelity.py",
+            "key": "srtf_aging_key(hard_priority, remaining_ms, wait_age_ms) -> (prio, R-wait, R, -wait)",
+            "checked": [
+              "exact hand-computed key: (0,1000,300) -> (0,700,1000,-300)",
+              "1 ms waiting == 1 ms credit (dimensional consistency)",
+              "monotone: more waiting -> strictly better (smaller) key",
+              "hard priority is element 0, so no aging amount crosses it (up to 1e12 ms)",
+              "negative wait clamped to zero",
+              "future term is the H=5 chain cost (5 x p95)"
+            ],
+            "regressions": {
+              "sameshape": "19/19",
+              "j_series_resource_dist": "23/23",
+              "phase_r_reproduction": "4/4",
+              "histres_causal_guard": "7/7"
+            }
+          },
+          "naming_limitation": "non-preemptive SRTF / SRPT-inspired ranking: the simulator has no node-level preemption, so true SRPT is not implementable",
+          "f0_pack_rebuilt": {
+            "reason": "pack was missing cvar95_ms and derived views in float32",
+            "fix": "emit cvar95_ms per step; derive views in float64",
+            "artifact_sha256": "57f9627a3f5f7b61f50416f01955cf2c944511260e7425e378d02b5bbca95d9b",
+            "loader_check": "ACCEPTED nodes=9575 steps=35362 view_err=3.64e-12 nonresource_mismatch=0"
+          },
+          "next": "shadow scoring, then 30-episode smoke, then the 300 paired run"
+        },
+        "TIE-inspired": {
+          "fidelity": "pending",
+          "performance": "pending",
+          "source": "Zheng et al., Scheduling LLM Inference with Uncertainty-Aware Output Length Predictions, ICML 2026",
+          "naming_note": "sum of marginal TIE-style step costs, never total-runtime TIE"
+        },
+        "Pythia-Graph-inspired": {
+          "fidelity": "pending",
+          "performance": "pending",
+          "source": "Yu et al., Pythia: Exploiting Workflow Predictability for Efficient Agent-Native LLM Serving, arXiv:2604.25899 (2026); no confirmed venue as of 2026-09-23",
+          "naming_note": "graph-driven priority only; adapted to node-level GPU scheduling"
+        },
+        "LLMSched-inspired": {
+          "fidelity": "pending",
+          "performance": "pending",
+          "source": "Zhu et al., LLMSched: Uncertainty-Aware Workload Scheduling for Compound LLM Applications, IEEE ICDCS 2025, pp. 527-537",
+          "naming_note": "without intra-stage partial execution; epsilon and r must be fixed from the paper or frozen on train-only data"
+        }
+      },
+      "not_new": {
+        "pure SJF": "sjf_pred already exists",
+        "pure bounded SRTF": "sameshape_h5_* is already close"
+      },
+      "two_layer_gate": "implementation fidelity first (hand-computed score/rank, monotone aging, hard priority never crossed), performance second",
+      "guards": {
+        "frozen_checkpoint": "J3 sha256 unchanged",
+        "j_test": "sealed",
+        "no_post_hoc_tuning": "epsilon, r, beta, omega and gamma must be frozen before results"
+      }
     }
   },
   "notes": [
