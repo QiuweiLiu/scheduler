@@ -932,3 +932,40 @@ EXACT SET EQUALITY: True
 - **Latency-Aware**：key 不是 Eq.12 + **真值泄漏**（用 `compute_ms`）
   - GPT 给了边界：**Latency-Aware 必须有自己独立的 train-only predictor**，
     **绝对不共享 F0 的输出**；可共享的只有 train split / 当前可观察 raw request fields / simulator
+
+## 2026-09-23 · composite 预约语义修复（真正的 nested_ready 事件）
+
+GPT 的反例：`parent_start=0, pre=1000, inner=100, post=100` 时设备在 0~1000 本应自由，
+但旧代码 t=0 就设 `composite_until=1100`，把整段准备期都挡住。
+且两个 composite 会重叠（第二个只看 busy_until），先完成的还会把别人的预约一起清掉。
+GPT 原话：**"你成功建模了 future reservation，但把 future reservation 错当成了 current occupancy。"**
+
+### 修复：把"占用"推迟到真正需要的时刻
+```
+parent_start      -> 只 push 一个 nested_ready 事件(now+pre)，【完全不碰设备】
+nested_ready      -> start  = max(now, busy_until)
+                     finish = start + inner
+                     【此时才】收取驻留、延长 busy_until、记 composite_tail
+                     设备空闲才设 active_node
+                     push nested_gpu_finish(finish)
+nested_gpu_finish -> 释放占用；【绝不缩小 composite_tail】
+                     push parent_finish(finish + post)
+正常 GPU 完成     -> busy_until = max(finish, composite_tail)
+```
+- 删掉 `composite_until` 与 `active_composite`（后者**从不设为 True**，抢占里那个保护**永远不生效**）
+- 驻留从 `parent_start` **推迟到 `nested_ready`**（原来模型显存在真正调用前就被占）
+- `busy_time_ms += inner`（原来 gpu_utilization 会漏掉这段 GPU 工作）
+
+### 6 条 sentinel 全过（按 GPT 的确定性构造，无 skip）
+1. 无争用 → `parent_finish` 精确 = `t + R_total`
+2. **强制争用**（长 GPU job arrival=0/3000ms，composite arrival=10）→ `nested_start == 3000`
+3. 后继必须等父节点
+4. 不扰动别的 job 的窗口
+5. **两个 composite 串行、不重叠**
+6. **准备阶段 GPU 仍可用**（短 GPU job 在 `nested_ready` 前完成）← 抓旧 bug 的那条
+
+### 仍待做（GPT 冻结前清单的剩余两项）
+- **从 raw trace 重建 `nested_pre/post/inner` 的 producer**（loader 支持但 repo 无生成路径）
+- **TIE 的独立 `Lq` + load estimator 归属**
+
+**287 个测试，5 个失败套件全部预先存在。**

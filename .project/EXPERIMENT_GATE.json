@@ -2496,7 +2496,7 @@
             "finding": "all 169 merged nested generalist.generate nodes are GPU (104 Qwen3-VL-8B, 65 Qwen2.5-VL-3B) while all 169 parents are CPU (cpu-metadata-adapter-v1)",
             "consequence": "deleting the nested node and keeping the CPU parent makes real GPU work disappear from GPU contention",
             "fix": "v3.1 composite signature: the parent must carry nested_model_class and the simulator must charge the inner GPU model's load and residency",
-            "status": "FIXED as an explicit state machine with a queueing reservation",
+            "status": "FIXED: the device claim now happens at nested_ready, not at parent_start",
             "implementation": {
               "data_side": "the 169 parents carry nested_model_class / nested_model_mb / nested_reserved_mb / nested_load_ms / nested_runtime_ms; Node gained the fields and load_templates reads them",
               "execution_side": "admit_nested_gpu_work() charges the inner model's load and residency and occupies the device for the inner interval, with a separate finish entry releasing it; fail-closed when the inner allocation is unmeasured",
@@ -2507,15 +2507,15 @@
             "state_machine": "parent_start -> nested_ready -> nested_gpu_start -> nested_gpu_finish -> parent_finish",
             "data_side": "nested_pre_ms / nested_post_ms / nested_inner_ms; 169/169 satisfy pre + inner + post == R_total",
             "device_handling": "GPU.composite_until reserves the device; active_node is never touched by a composite, so a queued segment cannot appear to own a device another job is using",
-            "sentinels": [
-              "no contention -> parent_finish exactly t + R_total",
-              "GPU occupied -> parent delayed by exactly the inner delay",
-              "nested finish -> never releases the parent successor",
-              "nested finish -> never releases another job's device"
-            ],
+            "sentinels": 6,
             "bugs_my_own_tests_caught": [
               "the gpu_nested event was pushed at nested_start instead of nested_finish",
               "a busy device made nested_finish > busy_until always true, so the composite stole active_node"
+            ],
+            "invariant": "the preparation phase leaves the device untouched; busy_until never falls below composite_tail",
+            "pending": [
+              "producer that rebuilds nested_pre/post/inner from raw traces",
+              "TIE unique Lq and load-estimator ownership"
             ]
           }
         },
@@ -2573,6 +2573,29 @@
           "nested containment started from the projection so it proved precision not recall",
           "the TIE sentinel assumed B=1 forces beta=0.5, which does not hold"
         ]
+      },
+      "gpt_round4_verdicts": {
+        "freezable": [
+          "v04.1 topology and ontology",
+          "scheduler projection gate",
+          "640+8 provenance",
+          "raw-discover 169 == projected 169",
+          "TIE mean/CVaR front end"
+        ],
+        "not_freezable_at_94aaa65": [
+          "composite lifecycle and resource mutex",
+          "TIE Lq / B*",
+          "TIE decoupling from generic estimate()"
+        ],
+        "composite_counterexample": "preparation phase blocked the device from t=0 because a future reservation was treated as current occupancy",
+        "most_likely_error": "conflating a point-in-time state with a future interval reservation in one scalar",
+        "freeze_checklist": [
+          "nested_ready event plus GPU queue tail",
+          "six sentinels",
+          "TIE unique Lq and load ownership",
+          "a producer that rebuilds nested_pre/post/inner from raw traces"
+        ],
+        "latency_aware_vs_tie": "they will not collapse into one baseline as long as the Latency-Aware predictor keeps request-conditioned features; add a non-degeneracy gate where changing a legal request feature changes run, memory or load, while TIE's distribution over the same (model, lane) is unchanged"
       }
     }
   },
