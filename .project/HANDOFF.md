@@ -86,20 +86,26 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
-### LLMSched v2 已完成（df56a47）
-- **性能**：只对 query/evidence 的**祖先**建因子并消元（其余变量的子树恒等于 1，丢弃是**精确**的），
-  加上按 (query, evidence) 的记忆化。**实测 1.4–1.7 ms/次不同查询，缓存 0.005 ms**，
-  相对最初 2 s 约 **1200×**。L1 手工 posterior 仍精确一致。
-- **消费端已切到 v2**：证据取**已完成节点的 intrinsic 时长**经冻结分箱 → 40 ms 与 40 s 是**不同证据**。
-  Y = 本工作流未完成的后续 stage；同一决策内所有候选共享该集合，故 ∏ Range(Y) 是**正常数**
-  → **EXPLORE 完全由互信息排序**。6 job 端到端：EXPLOIT/EXPLORE makespan 198499 / 180838（**确实不同**），
-  两者都完成全部 6 个 job。
-- **L1–L7 gate**：	ests/test_llmsched_bn_v2.py，**23 项 / 6.3 s**，含
-  L2 同 entropy 不同 MI、L3 边符号翻转 winner、L4 future-truth invariance、
-  L5 同 marginal 不同联合相关性、L6 ABSENT 真状态 + bsorb()、L7 E2E；
-  外加「退役实现没有联合后验」这一项，使迁移**被检查而非被声称**。
-- **legacy gate** 不再驱动 live policy（live 已是 v2、带 discretizer），改为直接测退役模块本身，
-  并使用**故意不等长**的工作流（退役后验是关于总长度的，等长语料会退化成不动点）。
+### LLMSched v2（df56a47）＋ GPT 复核后的五项窄修（874abd3）
+- **① 拓扑泄漏（P0，已修）**：Y 曾取自 realized template 的未执行后缀 —— 而那正是 LLMSched
+  要建模的**结构不确定性**（论文前提：精确 stages 与依赖**运行前未知**）。数值「看起来很合理」却在泄漏答案。
+  现在 Y 来自**学习到的网络 − 已观测**；泄漏用的 helper **已删除**（不是留着不用），
+  并加**源码级断言**防回归。新增 **L4b**：固定 prefix/ready set/evidence，
+  重写**每个未执行节点**（换 role、换 family、换时长）→ evidence / posterior / R(X) **必须不变**。
+- **② Range 求和不是连乘（已修）**：论文是聚合未来 stage 的时长跨度；连乘不是论文公式，
+  也是 1e72 的来源。同时去掉 max(1.0, range) 地板——真 range=0 就该贡献 0。
+- **③ 用真 joint 而非 pairwise sum（已修）**：scope 修正后实测 **|Y| max 35 / 均值 16.8**，
+  全集 joint 是 7^17 不可行。论文的 Y 是**与候选相关**的未来，故按**最短有向路径最近**取
+  MAX_JOINT_FUTURE=4，信息项用**精确 joint**。测试钉住二者差异（真实网络 0.483754 vs 0.487258）。
+- **④ L2 重写（已修）**：旧 mi() 算的是**一致率不是互信息**，独立 Bernoulli(0.5) 一致率 0.5 而真实 I=0，
+  所以**熵型打分器仍能通过**。新 L2 用两个手工网络（同边际熵、同 Range；一个 Y=X、一个独立），
+  **直接断言 production uncertainty_reduction**：1.0 / 0.0 / R(informative)>R(independent)。确定性、无采样、无阈值。
+- **⑤ 三个静默错值（已修）**：stage_range_ms 未知 stage 由返回 0.0 改为 **raise**（真 0 仍为 0）；
+  profiler_sha256 原本**没含 CPDs**（结构同、表不同 → 同 hash），现覆盖 CPDs / stage_range /
+  lag / gain / 完整 discretizer；证据改为 
+ode_finish 时从 truth provider 落成
+  job.observed_intrinsic_ms 并**要求观测存在**（去掉回退），使「完成后才可知」成为结构性事实。
+- 端到端：EXPLOIT/EXPLORE 仍产生不同调度，均完成 6 个 job。全量 **320 测试 / 5 个预存失败**。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
