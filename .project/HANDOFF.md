@@ -86,30 +86,21 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
-### LLMSched v2 —— 全部窄项已关闭，等 GPT 签 freeze（HEAD 3a349b）
+### LLMSched Baseline Freeze v1 —— **已冻结**（HEAD 618b26b）
+GPT 复核**批准**。声明与 manifest 已入库：
+- .project/DECISIONS.md（冻结范围 / 不得改动项 / freeze 前关闭的 12 个缺陷 / 替代方案与拒绝原因）
+- experiments/EXP-20260921_scheduler_replication_v1/artifacts/llmsched_baseline_freeze_v1.json
+  （paper 身份 / freeze 引用 / **faithful 11 条 / adapted 7 条 / deviation 3 条** / 已关闭项 / 冻结接口）
+
 提交链：df56a47（v2 消费端 + L1–L7）→ 874abd3（五项窄修）→ 87e2619（同截断 Y + present 条件化）
-→ 3a349b（Algorithm 1 non-overlapping duration-set）。
+→ 3a349b（Algorithm 1）→ 618b26b（interval 支撑 + 缓存绑定网络）→ cef9a30（freeze 记录）
 
-GPT 两轮 review 的**全部**窄项均已关闭：
-- **① 拓扑泄漏（P0）**：Y 取自 realized template 的未执行后缀 = 泄漏结构真相。
-  改为来自**学习到的网络 − 已观测**；泄漏 helper **已删除** + 源码级断言；新增 **L4b** 未来结构不变性。
-- **② Range 求和不是连乘**；去掉 max(1.0, range) 地板。
-- **③ 真 joint**：|Y| 实测 max 35 / 均值 16.8 → 按最短路径取 MAX_JOINT_FUTURE=4，
-  信息项用精确 joint（docstring 已改为**固定计算性 adaptation**，非论文值）。
-- **④ L2 重写**：旧 mi() 是**一致率不是互信息**（熵型打分器仍能通过）。
-  新 L2 用两个手工网络直接断言 production uncertainty_reduction：1.0 / 0.0 / R(informative)>R(independent)。
-- **⑤ 三个静默错值**：stage_range_ms 缺字段 raise；profiler_sha256 覆盖 CPDs 等；
-  证据改为 
-ode_finish 落成 job.observed_intrinsic_ms 且**要求观测存在**。
-- **⑥ 两个项用同一个截断 Y**（Eq 6 两边同集合），测试手算 R 比对且断言与「全后代」版本不等。
-- **⑦ ready candidate 条件化 X != ABSENT**（实测 0.119221 → 0.000000）。
-- **⑧ Algorithm 1 non-overlapping duration-set**：EXPLORE key = (priority, group_index, -R(X), ...)。
-  实测 EXPLORE 178312.8 → **178539.8**（确实改变），EXPLOIT 不变。
+**Freeze 后唯一允许的改动**：可复现的 correctness bug，须单独记为 **freeze-breaking fix**，
+**不得为改善结果调参**。特别地：不得原地修改 cpds / stage_order ——
+posterior memoization 只在该假设下安全。
 
-验证：v2 gate **33/33**；全量 **328 测试 / 5 个预存失败**。
-
-**阻塞**：GPT 复核通道故障 —— 连续 3 次回复被截断（58 / 2 字符）。已重发两次无效。
-需用户决定替代路线（新开 chat / 换会话 / 先推进 Pythia）。
+验证：v2 gate **34 项**；全量 **329 测试 / 5 个预存失败**；
+端到端 EXPLOIT 190479.7 / EXPLORE 178539.8，均完成 6 个 validation job。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
