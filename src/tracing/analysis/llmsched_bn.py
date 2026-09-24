@@ -95,6 +95,12 @@ MAX_INDUCED_WIDTH = 6
 # descendants, and multiplying that many ranges together overflows the score.
 MAX_FUTURE_STAGES = 8
 
+# The size of the future set over which the information term is computed as an exact
+# JOINT.  The cost is one table of 7^(M+1) entries, so this is an adaptation
+# hyperparameter chosen for tractability, not a value from the paper.  The remaining
+# descendants still contribute their duration ranges to the spread term.
+MAX_JOINT_FUTURE = 4
+
 
 # --------------------------------------------------------------------------- #
 # structure
@@ -562,44 +568,49 @@ def absorb(profiler: Mapping[str, Any], query_stage: str,
 # --------------------------------------------------------------------------- #
 # uncertainty reduction and expected remaining work
 # --------------------------------------------------------------------------- #
-def workflow_future_stages(profiler: Mapping[str, Any], template: Any,
-                           completed: Sequence[str], stage: str) -> List[str]:
-    """The not-yet-finished canonical stages of THIS workflow that follow ``stage``.
+def _rank_future_by_proximity(profiler: Mapping[str, Any], stage: str,
+                              future: Sequence[str]) -> List[str]:
+    """Order future stages by how close they sit to the candidate in the network.
 
-    This is the set the paper's ``Y`` is drawn from.  The Bayesian network is defined
-    over a 55-stage vocabulary, but any single workflow only visits a dozen of them,
-    so taking Y to be every reachable descendant of a stage let ``prod Range`` multiply
-    up to thirty ranges and reach 1e72.  That was a scope error in the port, not a
-    property of the paper: Y is the remaining work of the workflow being scheduled.
-
-    The workflow's STRUCTURE is legitimately visible -- predicting an agent's future
-    action chain is the entire premise of this baseline -- while its future DURATIONS
-    are not.  Nothing here reads an unexecuted node's duration.
+    Distance is the length of the shortest directed path in the learned graph, with the
+    canonical order as a deterministic tie-break.  A stage the candidate is adjacent to
+    is the one whose duration it most plausibly informs, which is the relevance the
+    paper's Y is drawn from.  Nothing here reads the workload's template.
     """
 
-    from tracing.analysis.llmsched_stage import canonical_order, canonical_stage_map
+    children: Dict[str, List[str]] = {s: [] for s in profiler["stage_order"]}
+    for child, pa_list in profiler["parents"].items():
+        for parent in pa_list:
+            children[parent].append(child)
+    rank = {s: i for i, s in enumerate(profiler["stage_order"])}
 
-    known = set(profiler["stage_order"])
-    stage_of = canonical_stage_map(template)
-    completed = set(completed)
-    out: List[str] = []
-    seen_target = False
-    for node in canonical_order(template):
-        name = stage_of[str(node.node_id)]
-        if name == stage:
-            seen_target = True
-            continue
-        if not seen_target:
-            continue
-        if node.node_id in completed:
-            continue
-        if name not in known:
-            raise KeyError(
-                "workflow stage %r is not in the frozen vocabulary; the ontology and "
-                "the model disagree" % name
-            )
-        out.append(name)
-    return out
+    distance: Dict[str, int] = {stage: 0}
+    frontier = [stage]
+    while frontier:
+        nxt: List[str] = []
+        for node in frontier:
+            for child in children.get(node, []):
+                if child not in distance:
+                    distance[child] = distance[node] + 1
+                    nxt.append(child)
+        frontier = nxt
+    return sorted(future, key=lambda s: (distance.get(s, 10 ** 6), rank.get(s, 10 ** 6)))
+
+
+def _future_from_network(profiler: Mapping[str, Any], stage: str,
+                         evidence: Mapping[str, str]) -> List[str]:
+    """The stages a candidate can tell you about, from the NETWORK only.
+
+    Reachability in the learned Bayesian network, minus the stages already observed
+    (their durations are settled, so executing anything else cannot reveal them).
+    Nothing here reads the workload's realized template, so an unexecuted node's
+    identity, action, duration or existence cannot enter the score.  The leaking
+    helper that did read it has been deleted rather than left unused, so a future
+    call site cannot reach it by accident.
+    """
+
+    observed = set(evidence or {})
+    return [s for s in descendants(profiler, stage) if s not in observed]
 
 
 def descendants(profiler: Mapping[str, Any], stage: str) -> List[str]:
@@ -632,51 +643,99 @@ def stage_range_ms(profiler: Mapping[str, Any], stage: str) -> float:
     cannot be tuned after the fact.
     """
 
-    lo_hi = (profiler.get("stage_range") or {}).get(stage)
-    if lo_hi is None:
-        return 0.0
-    return float(lo_hi)
+    ranges = profiler.get("stage_range") or {}
+    if stage not in ranges:
+        raise KeyError(
+            "stage %r has no entry in stage_range; an artifact that lost the field "
+            "must fail closed rather than return a plausible zero" % (stage,)
+        )
+    # a genuine range of zero is legitimate and stays zero
+    return float(ranges[stage])
 
 
 def uncertainty_reduction(profiler: Mapping[str, Any], stage: str,
                           evidence: Mapping[str, str],
                           future_stages: Sequence[str] | None = None) -> float:
-    """``R_E(X) = I(X; Y | E) x prod_i Range(Y_i)`` over the stage's descendants.
+    """``R_E(X) = I(X; Y_1..Y_M | E) x SUM_m Range(Y_m)``.
 
     This is the paper's exploration score.  It is NOT an entropy: gate L2 constructs
     two candidates with identical marginal entropy and identical ranges where one is
     perfectly informative about the future and the other is independent of it, and
     only a mutual-information score can order them correctly.
 
-    ``I(X; Y_1..Y_k | E)`` is computed as the sum of the pairwise terms rather than
-    from the full joint.  Materialising the joint over a stage and all of its
-    descendants is exponential in the descendant count and did not terminate; the
-    pairwise sum is exactly equal when the descendants are conditionally independent
-    given X and is an upper bound otherwise, which is the conservative direction for
-    an exploration bonus.  The substitution is recorded as an adaptation.
+    Two corrections over the first version of this function:
 
-    ``future_stages`` is the workflow's own remaining stages, and callers that know the
-    workflow MUST pass it: defaulting to every reachable descendant of the stage
-    multiplies up to thirty ranges together.  The default is kept only so that a
-    call-site cannot silently lose the scope, and it is capped for safety.
+    * Range is SUMMED, not multiplied.  The paper aggregates the duration ranges of
+      the correlated future stages; multiplying is not the published formula and it is
+      what drove the score to 1e72 once Y covered every reachable descendant.
+    * Y comes from the LEARNED NETWORK plus what has already been observed, never from
+      the workload's realized template.  An earlier version read the true unexecuted
+      suffix of the job's template, which is exactly the structure uncertainty this
+      baseline is supposed to be resolving: LLMSched's premise is that a job's exact
+      stages and dependencies are not known before execution.  Reading the template
+      produced entirely reasonable numbers while leaking the answer.
+
+    ``I(X; Y_1..Y_M | E)`` is still computed as the sum of the pairwise terms rather
+    than from the full joint: materialising a joint over a stage and every one of its
+    network descendants is exponential in the descendant count.  The two are equal
+    when the descendants are conditionally independent given X and the pairwise sum is
+    the larger otherwise.  This remains a recorded adaptation, not the paper's
+    expression, and the size of Y after the scope correction is measured separately.
     """
 
-    if future_stages is None:
-        future = descendants(profiler, stage)[:MAX_FUTURE_STAGES]
-    else:
-        future = [str(s) for s in future_stages if s != stage]
+    future = _future_from_network(profiler, stage, evidence)
+    if future_stages is not None:
+        allowed = {str(s) for s in future_stages}
+        future = [s for s in future if s in allowed]
     if not future:
         return 0.0
-    total_mi = 0.0
-    spread = 1.0
+
+    # The paper's Y is the future stages CORRELATED WITH the candidate, so it is
+    # bounded by relevance.  Reachability in the network is not that bound: measured on
+    # this vocabulary it reaches 35, and the exact joint over seventeen 7-state
+    # variables is 7^17.  Y is therefore the NEAREST MAX_JOINT_FUTURE descendants in
+    # canonical order, and the information term is computed as an exact joint over
+    # that set rather than as a sum of pairwise terms, which are not equal.
+    ranked = _rank_future_by_proximity(profiler, stage, future)
+    joint_future = ranked[:MAX_JOINT_FUTURE]
+    info = joint_mutual_information(profiler, stage, joint_future, evidence)
+
+    spread = 0.0
     for target in future:
-        if target in (evidence or {}):
-            continue
-        total_mi += pair_mutual_information(profiler, stage, target, evidence)
-        spread *= max(1.0, stage_range_ms(profiler, target))
-    if total_mi <= 0.0:
+        # deliberately no max(1.0, ...) floor: a genuine range of zero must contribute
+        # zero rather than being promoted into a normal-looking positive score
+        spread += stage_range_ms(profiler, target)
+    if info <= 0.0 or spread <= 0.0:
         return 0.0
-    return float(total_mi) * spread
+    return float(info) * spread
+
+
+def joint_mutual_information(profiler: Mapping[str, Any], stage: str,
+                             futures: Sequence[str],
+                             evidence: Mapping[str, str]) -> float:
+    """Exact ``I(X; Y_1..Y_M | E)`` from the joint over ``[X] + futures``.
+
+    This is the paper's information term.  It is NOT the sum of the pairwise terms:
+    with Y_1 = Y_2 = X the joint mutual information is H(X) while the pairwise sum is
+    2 H(X), so substituting one for the other changes the ranking and not merely the
+    scale.  The joint is materialised directly, which is why the caller must keep
+    ``futures`` small.
+    """
+
+    futures = [str(s) for s in futures if str(s) != str(stage) and str(s) not in (evidence or {})]
+    if not futures:
+        return 0.0
+    variables, joint = posterior_joint(profiler, [stage] + futures, evidence)
+    if variables[0] != stage:
+        joint = joint.transpose()
+    # I(X; Y) = sum p(x,y) log2 [ p(x,y) / (p(x) p(y)) ]
+    px = joint.sum(axis=0, keepdims=True)
+    rest = tuple(range(1, joint.ndim))
+    py = joint.sum(axis=rest, keepdims=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = np.where(joint > 0.0, joint / (px * py), 1.0)
+        terms = np.where(joint > 0.0, joint * np.log2(ratio), 0.0)
+    return max(0.0, float(terms.sum()))
 
 
 def pair_mutual_information(profiler: Mapping[str, Any], stage_a: str, stage_b: str,
@@ -708,20 +767,18 @@ def expected_remaining_ms(profiler: Mapping[str, Any], stage: str,
     which is what lets structural uncertainty feed the JCT objective rather than being
     silently averaged away.
 
-    ``future_stages`` is the workflow's own remaining stages; see
-    ``uncertainty_reduction`` for why the caller must supply it.
+    Y comes from the LEARNED NETWORK plus what has already been observed; see
+    ``uncertainty_reduction`` for why the realized template must not be read.
     """
 
-    if future_stages is None:
-        future = descendants(profiler, stage)[:MAX_FUTURE_STAGES]
-    else:
-        future = [str(s) for s in future_stages if s != stage]
+    future = _future_from_network(profiler, stage, evidence)
+    if future_stages is not None:
+        allowed = {str(s) for s in future_stages}
+        future = [s for s in future if s in allowed]
     if not future:
         return 0.0
     total = 0.0
     for name in future:
-        if name in (evidence or {}):
-            continue
         probs = posterior_state_probs(profiler, name, evidence)
         present = 1.0 - float(probs.get(ABSENT, 0.0))
         if present <= 0.0:
@@ -949,9 +1006,19 @@ def evidence_from_completed(job: Any, profiler: Mapping[str, Any],
                 "frozen vocabulary; the ontology and the model disagree"
                 % (node.node_id, stage)
             )
+        # The duration must be an OBSERVATION, not the template's frozen value.  The
+        # two are numerically equal here because the simulator's truth provider is
+        # seeded from the template, so the point is not the number: it is that the
+        # evidence chain proves a duration is only known once the node has finished,
+        # instead of relying on a convention about when the template happens to be read.
         value = None if observed_ms is None else observed_ms.get(node.node_id)
-        duration = intrinsic_duration_ms(node) if value is None else float(value)
-        evidence[stage] = disc.state_of(duration)
+        if value is None:
+            raise KeyError(
+                "node %r is marked completed but carries no observed intrinsic "
+                "duration; LLMSched evidence must come from an observation"
+                % node.node_id
+            )
+        evidence[stage] = disc.state_of(float(value))
     return evidence
 
 
@@ -962,10 +1029,25 @@ def profiler_sha256(profiler: Mapping[str, Any]) -> str:
         "schema": profiler["schema"],
         "stage_order": list(profiler["stage_order"]),
         "parents": {k: list(v) for k, v in profiler["parents"].items()},
+        # The docstring already claimed the hash covered the structure and the CPDs,
+        # but the payload omitted the CPDs entirely: two networks with identical
+        # structure and completely different conditional tables hashed the same.
+        "cpds": {
+            child: {key: {state: round(float(prob), 12) for state, prob in row.items()}
+                    for key, row in rows.items()}
+            for child, rows in profiler["cpds"].items()
+        },
+        "state_vocabulary": list(profiler["state_vocabulary"]),
+        "stage_range": {k: float(v) for k, v in profiler["stage_range"].items()},
         "n_bins": profiler["discretizer"].n_bins,
         "bin_edges_log1p": list(profiler["discretizer"].edges),
+        "stage_support": dict(profiler["discretizer"].stage_support),
         "train_sample_count": profiler["train_sample_count"],
+        "skipped_non_train": profiler["skipped_non_train"],
+        "n_train": profiler["n_train"],
         "max_parents": profiler["max_parents"],
+        "max_lag": profiler["max_lag"],
+        "min_gain_bits": profiler["min_gain_bits"],
         "smoothing": profiler["smoothing"],
     }
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))

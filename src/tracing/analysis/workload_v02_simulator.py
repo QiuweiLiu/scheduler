@@ -602,6 +602,11 @@ class Job:
     assigned_gpus: list[int] = field(default_factory=list)
     preemptions: int = 0
     preempt_recompute_ms: float = 0.0
+    # Intrinsic service durations actually OBSERVED, written at node_finish from the
+    # truth provider.  LLMSched evidence reads this and nothing else, so a duration is
+    # structurally unavailable before the node finishes rather than merely by
+    # convention about when the template is consulted.
+    observed_intrinsic_ms: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -3550,7 +3555,6 @@ def choose_action(
             evidence_from_completed,
             expected_remaining_ms as _bn_remaining,
             uncertainty_reduction as _bn_info,
-            workflow_future_stages as _bn_future,
         )
         from tracing.analysis.llmsched_stage import canonical_stage_map
 
@@ -3586,7 +3590,8 @@ def choose_action(
             entry = evidence_cache.get(key)
             if entry is not None and entry[0] == done:
                 return entry[1]
-            value = evidence_from_completed(job, profiler)
+            value = evidence_from_completed(
+                job, profiler, observed_ms=job.observed_intrinsic_ms)
             evidence_cache[key] = (done, value)
             return value
 
@@ -3597,19 +3602,18 @@ def choose_action(
             job = jobs[job_index]
             stage = stage_map_for(job)[node_id]
             evidence = evidence_for(job)
-            # Y is THIS workflow's not-yet-finished successors of the candidate.  All
-            # candidates in one decision share that remaining set, so the paper's
-            # prod Range(Y) factor is a positive CONSTANT across them and cannot affect
-            # the ordering: EXPLORE is ranked by mutual information alone, which is
-            # exactly what gate L2 exercises.
-            future = _bn_future(profiler, job.template, job.completed, stage)
+            # Y comes from the learned network plus what has actually been observed.
+            # It is NOT the template's unexecuted suffix: the exact stages and
+            # dependencies of a job are the structure uncertainty this baseline exists
+            # to resolve, so reading them would leak the answer while still producing
+            # perfectly reasonable numbers.
             if mode == "EXPLORE":
                 # larger uncertainty reduction is better -> negate
-                primary = -_bn_info(profiler, stage, evidence, future)
+                primary = -_bn_info(profiler, stage, evidence)
             else:
                 load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
                 current = _bn_current(profiler, stage, evidence)
-                primary = current + _bn_remaining(profiler, stage, evidence, future)
+                primary = current + _bn_remaining(profiler, stage, evidence)
             return (
                 float(item[0]),
                 primary,
@@ -4685,6 +4689,12 @@ def simulate_episode(
                 job.node_state[member_id] = "complete"
                 job.completed.add(member_id)
                 truth = truth_provider.get(job.job_instance_id, node.node_id)
+                # The intrinsic duration becomes an OBSERVATION exactly here, at the
+                # finish event, and is stored on the job.  LLMSched evidence reads this
+                # store and nothing else, so a duration is structurally unavailable
+                # before the node finishes rather than merely by convention about when
+                # the template happens to be consulted.
+                job.observed_intrinsic_ms[member_id] = float(truth.runtime_ms)
                 log("node_finish", job, node, finish_ms=round(finish, 3), gpu_index=gpu_index, observed_status=truth.status)
             release_ready(job_index)
             complete_job_if_done(job)

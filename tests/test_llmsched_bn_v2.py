@@ -28,12 +28,12 @@ from tracing.analysis.llmsched_bn import (
     build_bn_profiler,
     current_service_ms,
     evidence_from_completed,
+    joint_mutual_information,
     pair_mutual_information,
     posterior_joint,
     posterior_state_probs,
     profiler_sha256,
     uncertainty_reduction,
-    workflow_future_stages,
 )
 from tracing.analysis.llmsched_stage import (
     ABSENT,
@@ -113,57 +113,66 @@ class L1HandComputablePosterior(unittest.TestCase):
 
 # --------------------------------------------------------------------------- #
 class L2SameEntropyDifferentMI(unittest.TestCase):
-    """Kills any entropy-based exploration score.
+    """Kills any entropy-based exploration score, through the PRODUCTION scorer.
 
-    Two candidates, identical marginal entropy and identical ranges; one is perfectly
-    informative about its future and the other is independent of it.  An entropy-based
-    score cannot order them; a mutual-information score must.
+    Two candidates with identical marginal entropy and identical duration ranges; one
+    is perfectly informative about its future and the other is independent of it.  An
+    entropy-based score cannot order them; a mutual-information score must.  The
+    assertion is deterministic and numeric: no sampling, no thresholds.
     """
 
-    def test_mutual_information_separates_them(self):
-        rng = random.Random(20260924)
-        n = 4000
-        xa = [rng.random() < 0.5 for _ in range(n)]
-        ya = list(xa)                                     # Y = X  -> I = 1 bit
-        xb = [rng.random() < 0.5 for _ in range(n)]
-        yb = [rng.random() < 0.5 for _ in range(n)]       # independent -> I = 0
+    @staticmethod
+    def profiler_with_replacement(conditional):
+        """X ~ Bernoulli(0.5); Y follows `conditional` (a dict over X's states)."""
 
-        def entropy(bits):
-            p = sum(bits) / float(len(bits))
-            return -sum(q * math.log2(q) for q in (p, 1.0 - p) if q > 0.0)
+        return two_state_profiler(
+            {"X": {SEP.join([]): {"t": 0.5, "f": 0.5}},
+             "Y": {SEP.join(["t"]): dict(conditional["t"]),
+                   SEP.join(["f"]): dict(conditional["f"])}},
+            ["X", "Y"], {"X": [], "Y": ["X"]})
 
-        self.assertAlmostEqual(entropy(xa), entropy(xb), places=2)
-        self.assertAlmostEqual(entropy(ya), entropy(yb), places=2)
+    def test_identical_entropy_different_mutual_information(self):
+        informative = self.profiler_with_replacement(
+            {"t": {"t": 1.0, "f": 0.0}, "f": {"t": 0.0, "f": 1.0}})     # Y = X
+        independent = self.profiler_with_replacement(
+            {"t": {"t": 0.5, "f": 0.5}, "f": {"t": 0.5, "f": 0.5}})     # Y || X
 
-        def mi(xs, ys):
-            return sum(1.0 for a, b in zip(xs, ys) if a == b) / float(n)
+        # identical marginals for X, and identical Range(Y) in both networks
+        for prof in (informative, independent):
+            self.assertAlmostEqual(posterior_state_probs(prof, "X", {})["t"], 0.5)
+            self.assertAlmostEqual(prof["stage_range"]["Y"], 1.0)
 
-        # perfect agreement vs near-independence, with the same marginals
-        self.assertGreater(mi(xa, ya), 0.99)
-        self.assertLess(abs(mi(xb, yb) - 0.5), 0.03)
+        mi_informative = joint_mutual_information(informative, "X", ["Y"], {})
+        mi_independent = joint_mutual_information(independent, "X", ["Y"], {})
+        self.assertAlmostEqual(mi_informative, 1.0, places=10)
+        self.assertAlmostEqual(mi_independent, 0.0, places=10)
 
-    def test_real_network_separates_a_parent_from_an_independent_stage(self):
-        """On the learned network, a stage's parent must score above an unrelated one."""
+        # and the SCORER the policy actually calls must order them the same way
+        r_informative = uncertainty_reduction(informative, "X", {})
+        r_independent = uncertainty_reduction(independent, "X", {})
+        self.assertGreater(r_informative, r_independent,
+                           "an entropy-based score would tie these two")
+        self.assertGreater(r_informative, 0.0)
+        self.assertAlmostEqual(r_independent, 0.0, places=10)
 
-        if not V041.exists():
-            self.skipTest("v04.1 projection not present")
-        from tracing.analysis.workload_v02_simulator import load_templates
-        prof = build_bn_profiler(load_templates(V041, topology_view="causal_v3"))
-        paired = [(child, parents[0]) for child, parents in prof["parents"].items() if parents]
-        if not paired:
-            self.skipTest("no edges learned")
-        child, parent = paired[0]
-        related = pair_mutual_information(prof, child, parent, {})
-        # an alphabetic neighbour that is not a parent in the learned structure
-        others = [s for s in prof["stage_order"]
-                  if s not in (child, parent) and s not in prof["parents"][child]]
-        if not others:
-            self.skipTest("no unrelated stage available")
-        unrelated = pair_mutual_information(prof, child, others[0], {})
-        self.assertGreater(related, unrelated)
+    def test_the_joint_is_not_the_pairwise_sum(self):
+        """I(X;Y1..YM | E) != sum_i I(X;Y_i | E); the two coincide only at M = 1."""
+
+        prof = two_state_profiler(
+            {"X": {SEP.join([]): {"t": 0.5, "f": 0.5}},
+             "Y": {SEP.join(["t"]): {"t": 1.0, "f": 0.0},
+                   SEP.join(["f"]): {"t": 0.0, "f": 1.0}},
+             "Z": {SEP.join(["t"]): {"t": 1.0, "f": 0.0},
+                   SEP.join(["f"]): {"t": 0.0, "f": 1.0}}},
+            ["X", "Y", "Z"], {"X": [], "Y": ["X"], "Z": ["Y"]})
+        joint = joint_mutual_information(prof, "X", ["Y", "Z"], {})
+        pairwise = (pair_mutual_information(prof, "X", "Y", {})
+                    + pair_mutual_information(prof, "X", "Z", {}))
+        self.assertAlmostEqual(joint, 1.0, places=6)
+        self.assertGreater(pairwise, joint + 1e-6,
+                           "summing pairwise terms must not silently replace the joint")
 
 
-# --------------------------------------------------------------------------- #
 class L3CompletedDurationEvidence(unittest.TestCase):
     """Evidence must be the OBSERVED duration, not a count of completed nodes."""
 
@@ -230,7 +239,8 @@ class L4FutureTruthInvariance(unittest.TestCase):
         # only the FIRST node is complete in both cases; nothing about later nodes can
         # enter, because evidence_from_completed reads job.completed alone
         done = {tpl.nodes[0].node_id}
-        base = evidence_from_completed(FakeJob(tpl, done), prof)
+        observed = {tpl.nodes[0].node_id: float(tpl.nodes[0].runtime_ms)}
+        base = evidence_from_completed(FakeJob(tpl, done), prof, observed_ms=observed)
 
         mutated_nodes = tuple(
             node_ if node_.node_id in done else
@@ -238,7 +248,7 @@ class L4FutureTruthInvariance(unittest.TestCase):
             for node_ in tpl.nodes)
         mutated = Template(tpl.template_id, tpl.video_id, tpl.split, tpl.baseline,
                            mutated_nodes, {n.node_id: n for n in mutated_nodes})
-        after = evidence_from_completed(FakeJob(mutated, done), prof)
+        after = evidence_from_completed(FakeJob(mutated, done), prof, observed_ms=observed)
 
         self.assertEqual(base, after,
                          "changing an UNEXECUTED node's duration changed the evidence")
@@ -248,6 +258,84 @@ class L4FutureTruthInvariance(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------- #
+class L4bFutureStructureInvariance(unittest.TestCase):
+    """The leak the review found: the realized template's future must be invisible.
+
+    Hold the prefix, the ready set and the completed evidence fixed, and change only
+    the UNEXECUTED remainder of the workload.  Y, the posterior, R(X), the expected
+    remaining work and the chosen action must all be identical.  An implementation
+    that reads the template's future suffix produces perfectly reasonable numbers and
+    fails this.
+    """
+
+    def test_future_structure_cannot_enter_the_score(self):
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.workload_v02_simulator import load_templates
+        tpls = load_templates(V041, topology_view="causal_v3")
+        prof = build_bn_profiler(tpls)
+        tpl = max((x for x in tpls.values() if x.split == "train"),
+                  key=lambda x: len(x.nodes))
+
+        done = {tpl.nodes[0].node_id}
+        stages = stage_sequence(tpl)
+        candidate = stages[1]
+
+        class FakeJob:
+            def __init__(self, template, completed):
+                self.template = template
+                self.completed = completed
+                self.job_instance_id = "j"
+                self.observed_intrinsic_ms = {
+                    tpl.nodes[0].node_id: float(tpl.nodes[0].runtime_ms)}
+
+        base_evidence = evidence_from_completed(
+            FakeJob(tpl, done), prof,
+            observed_ms={tpl.nodes[0].node_id: float(tpl.nodes[0].runtime_ms)})
+
+        # Rewrite EVERY unexecuted node: different action, different family, different
+        # duration, and a different node count.  Nothing about it may be visible.
+        future_nodes = []
+        for node_ in tpl.nodes:
+            if node_.node_id in done:
+                future_nodes.append(node_)
+                continue
+            future_nodes.append(Node(
+                node_id=node_.node_id, sequence_index=node_.sequence_index,
+                predecessors=node_.predecessors, successors=node_.successors,
+                lane=node_.lane, model_id=node_.model_id,
+                runtime_ms=node_.runtime_ms * 7.0 + 1.0, load_ms=node_.load_ms,
+                workspace_peak_mb=node_.workspace_peak_mb,
+                resident_model_mb=node_.resident_model_mb, status=node_.status,
+                role="a_completely_different_role", action_family="different_family",
+                raw_action="totally-different-tool"))
+        mutated = Template(tpl.template_id, tpl.video_id, tpl.split, tpl.baseline,
+                           tuple(future_nodes), {n.node_id: n for n in future_nodes})
+
+        mutated_evidence = evidence_from_completed(
+            FakeJob(mutated, done), prof,
+            observed_ms={tpl.nodes[0].node_id: float(tpl.nodes[0].runtime_ms)})
+
+        self.assertEqual(base_evidence, mutated_evidence,
+                         "the evidence must not depend on unexecuted nodes")
+        self.assertEqual(
+            posterior_state_probs(prof, candidate, base_evidence),
+            posterior_state_probs(prof, candidate, mutated_evidence),
+            "the posterior must not depend on unexecuted nodes")
+        self.assertAlmostEqual(
+            uncertainty_reduction(prof, candidate, base_evidence),
+            uncertainty_reduction(prof, candidate, mutated_evidence),
+            places=12, msg="R(X) must not depend on unexecuted nodes")
+
+    def test_the_template_is_not_read_anywhere_in_the_score_path(self):
+        """A source-level guard: the loader for the realized future must be gone."""
+
+        from tracing.analysis import llmsched_bn as module
+        self.assertFalse(
+            hasattr(module, "workflow_future_stages"),
+            "the helper that read the realized template's future still exists")
+
+
 class L5SameMarginalsDifferentJoint(unittest.TestCase):
     """The consumer must read joint CPDs, not marginal tables."""
 
@@ -363,7 +451,8 @@ class L7EndToEndConsumer(unittest.TestCase):
                 self.completed = completed
 
         keep = {tpl.nodes[0].node_id, tpl.nodes[1].node_id}
-        ev = evidence_from_completed(FakeJob(tpl, keep), prof)
+        observed = {n.node_id: float(n.runtime_ms) for n in tpl.nodes if n.node_id in keep}
+        ev = evidence_from_completed(FakeJob(tpl, keep), prof, observed_ms=observed)
         # one entry per completed node, each a duration state, never a bare count
         self.assertEqual(len(ev), 2)
         for state in ev.values():
