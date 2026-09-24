@@ -1,0 +1,75 @@
+{
+  "paper": {
+    "title": "LLMSched: Uncertainty-Aware Workload Scheduling for Compound LLM Applications",
+    "authors": [
+      "Botao Zhu",
+      "Chen Chen",
+      "Xiaoyi Fan",
+      "Yifei Zhu"
+    ],
+    "venue": "IEEE ICDCS 2025",
+    "pages": "527-537"
+  },
+  "arm": "llmsched",
+  "freeze": {
+    "name": "LLMSched Baseline Freeze v1",
+    "head": "618b26bcf717c2bfb00b3545d58dccfb027f494e",
+    "status": "APPROVED",
+    "gates": "tests/test_llmsched_bn_v2.py",
+    "gate_count": 34
+  },
+  "faithful": [
+    "Bayesian-network joint dependency model",
+    "structure and duration uncertainty",
+    "completed-stage duration evidence updates the posterior",
+    "directed-path correlated future stages",
+    "ready candidate conditioned present",
+    "exact joint conditional mutual information",
+    "Eq.6 I(X;Y|E) x sum Range(Y)",
+    "posterior remaining-duration exploitation",
+    "job-duration non-overlapping sets",
+    "duration ordering across sets, uncertainty ordering within a set",
+    "one epsilon coin per decision selecting EXPLORE or EXPLOIT"
+  ],
+  "adapted": [
+    "VideoSeek canonical-stage ontology",
+    "ABSENT + duration-bin joint state",
+    "single-application Bayesian network",
+    "train-only causal-order and lag-constrained structure learning",
+    "VideoSeek GPU/node execution space",
+    "model-side whole-job unresolved-work estimator with a conservative support interval",
+    "the frozen simulator's priority, lifecycle and admission semantics throughout"
+  ],
+  "deviation": [
+    "MAX_JOINT_FUTURE=4 plus shortest-directed-path truncation, for exact joint inference within a fixed compute budget",
+    "sample_tasks(r) omitted because a node is an indivisible execution unit",
+    "the original LLM/regular executor and batching runtime environment are not reproduced; the port targets the unified VideoSeek GPU simulator"
+  ],
+  "narrow_items_closed_before_freeze": [
+    "topology leakage via the realized template's unexecuted suffix",
+    "Range multiplied instead of summed, with a max(1.0, range) floor",
+    "pairwise mutual-information sum standing in for the joint",
+    "L2 measuring an agreement rate instead of mutual information",
+    "stage_range_ms returning 0.0 for an unknown stage",
+    "profiler_sha256 omitting the CPDs",
+    "evidence falling back to the template duration instead of an observation",
+    "mutual information and Range using different future sets",
+    "a ready candidate not conditioned on X != ABSENT",
+    "the remaining-duration interval being an expectation rather than a support",
+    "the interval covering only a candidate's descendants rather than the whole job",
+    "the posterior memo not bound to the network identity"
+  ],
+  "prohibited_after_freeze": [
+    "stage ontology",
+    "BN structure-learning and CPD semantics",
+    "evidence definition",
+    "posterior semantics",
+    "Eq.6",
+    "MAX_JOINT_FUTURE=4 or its selection rule",
+    "remaining-work and interval semantics",
+    "non-overlapping-set construction and order",
+    "epsilon policy",
+    "LLMSched-specific simulator interface"
+  ],
+  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results. By construction the posterior memoization on the profiler is safe only while cpds and stage_order are not mutated in place."
+}

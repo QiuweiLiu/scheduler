@@ -1044,3 +1044,48 @@ TIE fidelity 15/15、composite 6/6、全量 287 个测试（5 个失败套件全
 真实 `build_tie_bank()` 始终写该字段，正式路径不受影响。
 
 **验证**：真实 bank 检查 0 缺失；手工 fixture 已补齐字段；TIE 21/21。
+
+## 2026-09-25 — LLMSched Baseline Freeze v1 获批
+
+**决定**：LLMSched-adapted 正式冻结。
+
+- **HEAD**：`618b26bcf717c2bfb00b3545d58dccfb027f494e`
+- **状态**：APPROVED / FROZEN（GPT 于第 11 轮复核后签字）
+
+**冻结范围**
+canonical-stage ontology；train-only BN structure/CPDs/discretizer；ABSENT + duration bins 状态语义；
+completed intrinsic-duration evidence；exact posterior inference；Eq.6 uncertainty score；
+`MAX_JOINT_FUTURE=4` 与其 shortest-path selection；whole-job remaining-duration estimator / support interval；
+Algorithm 1 non-overlapping duration sets；epsilon-greedy EXPLORE/EXPLOIT consumer；以及 L1–L7 / L4b 与相关 sentinel gates。
+
+**后续不得改动**
+stage ontology；BN structure-learning / CPD semantics；evidence definition；posterior semantics；Eq.6；
+`MAX_JOINT_FUTURE=4` 或其 selection rule；remaining-work / interval semantics；
+non-overlapping-set construction / order；epsilon policy；LLMSched-specific simulator interface。
+
+**唯一例外**：出现**可复现 correctness bug**。若发生，必须单独记录为 **freeze-breaking fix**，
+**不得为改善结果而调参**。特别是 freeze 后不得原地修改 `cpds` / `stage_order` ——
+当且仅当该假设成立，profiler 上的 posterior memoization 才是安全的（缓存键含 CPD 表与
+`stage_order` 的 identity，替换即失效）。
+
+**Freeze 前关闭的全部缺陷（供论文 limitation 引用）**
+1. **拓扑泄漏（P0）**：`Y` 曾取自 realized template 的未执行后缀，即泄漏结构真相。改为自学习到的网络 − 已观测。
+2. **`Range` 连乘**：应为 `Σ Range`；`max(1.0, range)` 地板移除。
+3. **pairwise sum ≠ joint MI**：改为截断集合上的精确 joint。
+4. **L2 用一致率冒充互信息**：熵型打分器仍能通过。改为对手工网络直接断言 production scorer。
+5. **三个静默错值**：`stage_range_ms` 缺字段返回 0.0；`profiler_sha256` 未覆盖 CPDs；
+   证据回退到 template 时长。
+6. **MI 与 Range 用了不同集合**：Eq.6 两边必须同一组 `Y₁..Y_M`。
+7. **ready candidate 未条件化 `X != ABSENT`**：全部变量带 ABSENT 态会给出虚高探索分。
+8. **interval 是期望不是支撑**：`P(ABSENT)=P(D=100)=0.5` 报 `[50,50]`，真实支撑 `[0,100]`。
+9. **interval 只覆盖候选的相关后代**：应为整个 job 的模型侧未解工作。
+10. **后验缓存未绑定网络身份**：浅拷贝共享缓存 → 改动 CPD 后返回旧后验。
+
+**替代方案与拒绝原因**
+- 保留 `∑_i I(X;Y_i|E)`：与论文的 `I(X;Y₁..Y_M|E)` 不等（`Y₁=Y₂=X` 时差一倍），拒绝。
+- 不截断 `Y` 做精确 joint：`|Y|` 实测 max 35 / 均值 16.8，joint 为 7^17，不可行，拒绝。
+- 用 `P(present) × min/max` 作为区间：把支撑塌成期望，会让两个都真正不确定的 job 被当成时长已知来排序，拒绝。
+
+**验证**
+v2 gate `tests/test_llmsched_bn_v2.py` **34 项**；全量 **329 测试**（5 个失败套件全部预先存在）；
+端到端 EXPLOIT 190479.7 / EXPLORE 178539.8，两模式确实不同，均完成 6 个 validation job。
