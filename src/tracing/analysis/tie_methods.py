@@ -65,14 +65,18 @@ def build_tie_bank(templates: Mapping[str, Any]) -> Dict[str, Any]:
     """Build the TIE bank from TRAIN-ONLY templates, keyed by (model_id, lane)."""
 
     groups: Dict[Tuple[str, str], list] = defaultdict(list)
+    loads_by_key: Dict[Tuple[str, str], list] = defaultdict(list)
     for tpl in templates.values():
         if getattr(tpl, "split", None) != "train":
             continue
         for n in tpl.nodes:
             groups[tie_key(n)].append(float(n.runtime_ms))
+            if getattr(n, "load_ms", None):
+                loads_by_key[tie_key(n)].append(float(n.load_ms))
 
     bank: Dict[str, Any] = {"schema": TIE_SCHEMA, "deviation": TIE_DEVIATION, "groups": {}}
     for key, samples in groups.items():
+        loads = loads_by_key.get(key, [])
         bank["groups"]["%s|%s" % key] = {
             "model_id": key[0],
             "lane": key[1],
@@ -81,6 +85,9 @@ def build_tie_bank(templates: Mapping[str, Any]) -> Dict[str, Any]:
             "runtime_cvar90_ms": upper_cvar(samples, 0.90),
             "runtime_min_ms": min(samples),
             "runtime_max_ms": max(samples),
+            # TIE owns its load estimate, so the score never reaches into estimate()
+            "load_mean_ms": (sum(loads) / len(loads)) if loads else 0.0,
+            "load_sample_count": len(loads),
         }
     return bank
 
@@ -142,3 +149,48 @@ def bank_sample_report(bank: Mapping[str, Any]) -> Dict[str, Any]:
         "fraction_lt_10": (sum(1 for c in counts if c < 10) / len(counts)) if counts else None,
         "total_samples": sum(counts),
     }
+
+
+def tie_queue_length(pool: Sequence[Any], competitive_priority: float) -> float:
+    """L_q: how many ready units are waiting for service at the top priority tier.
+
+    The paper's L_q is the waiting queue length in front of the model.  Our simulator has
+    no vLLM queue, so the analogue is the number of ready units competing for a device at
+    the highest service class.  It is defined here, once, so the policy cannot invent a
+    different meaning for it.
+
+    `pool` entries are scheduler candidates whose first element is the ready item
+    `(priority, ready_time, job_index, node_id)`.
+    """
+
+    def priority_of(entry: Any) -> float:
+        first = entry[0]
+        return float(first[0] if isinstance(first, tuple) else first)
+
+    return float(sum(1 for entry in pool if priority_of(entry) == float(competitive_priority)))
+
+
+def tie_load_estimate(bank: Mapping[str, Any], node: Any) -> float:
+    """The model-load surcharge, read from TIE's own bank.
+
+    Returning it from here keeps the whole TIE score traceable to TIE's front end; the
+    score never consults the shared estimate() row for a runtime or a load quantity.
+    A missing load is treated as zero only when the group explicitly records no load.
+    """
+
+    model_id, lane = tie_key(node)
+    group = (bank.get("groups") or {}).get("%s|%s" % (model_id, lane))
+    if group is None:
+        raise KeyError("TIE bank has no group for (%r, %r)" % (model_id, lane))
+    value = group.get("load_mean_ms", 0.0)
+    if not isinstance(value, (int, float)):
+        raise ValueError("TIE group (%r, %r) has a non-numeric load" % (model_id, lane))
+    return float(value)
+
+
+def tie_score_for(bank: Mapping[str, Any], node: Any, beta: float, *, resident: bool) -> float:
+    """The complete TIE score for one candidate, from TIE's own front end only."""
+
+    group = tie_current_distribution(bank, node)
+    load = 0.0 if resident else tie_load_estimate(bank, node)
+    return tie_current_score(group["runtime_mean_ms"], group["runtime_cvar90_ms"], beta, load)

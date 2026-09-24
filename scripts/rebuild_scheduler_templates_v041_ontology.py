@@ -27,6 +27,10 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 CONTRACT = "scheduler_projection_of_verified_serial_control_flow_v3_1"
 NESTED_ACTION = "generalist.generate"
+# the raw traces are the source of the nested resource fields, so the producer can
+# rebuild them without depending on any hand-run scratch script
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+RAW_TRACE_ROOT = PROJECT_ROOT / "results/raw/r7_trace_full_20260817"
 SUMMARIZER_ACTION = "summarization-tool"
 NESTED_NODE_TYPE = "answer_generation"
 
@@ -95,9 +99,66 @@ def merge_nested(nodes: Sequence[Mapping[str, Any]]) -> Tuple[List[Dict[str, Any
     return kept, dict(merged_into)
 
 
+def _ms(value: Any) -> float | None:
+    from datetime import datetime
+    if value is None:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp() * 1000.0
+    except ValueError:
+        return None
+
+
+def load_raw_trace(run_id: str) -> Dict[str, Mapping[str, Any]]:
+    path = RAW_TRACE_ROOT / str(run_id) / "trace.jsonl"
+    if not path.is_file():
+        return {}
+    out: Dict[str, Mapping[str, Any]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            event = json.loads(line)
+            out[str(event.get("event_id"))] = event
+    return out
+
+
+def attach_nested_resources(node: Dict[str, Any], trace: Mapping[str, Mapping[str, Any]]) -> int:
+    """Copy the inner call's resource and its offsets onto the merged parent.
+
+    R_total = R_pre + R_nested + R_post, so the offsets are what place the inner
+    interval inside the parent window.  Returns the number of nested calls attached.
+    """
+
+    attached = 0
+    parent_event = trace.get(str(node.get("node_id"))) or {}
+    ps, pe = _ms(parent_event.get("timestamp_start")), _ms(parent_event.get("timestamp_end"))
+    for nested_id in node.get("nested_calls") or []:
+        event = trace.get(str(nested_id))
+        if event is None:
+            continue
+        res = event.get("resource") or {}
+        node["nested_model_class"] = str(event.get("model_id") or "")
+        node["nested_model_mb"] = res.get("peak_allocated_mb")
+        node["nested_reserved_mb"] = res.get("peak_reserved_mb")
+        node["nested_load_ms"] = res.get("load_ms")
+        node["nested_runtime_ms"] = res.get("runtime_ms")
+        ns, ne = _ms(event.get("timestamp_start")), _ms(event.get("timestamp_end"))
+        if None not in (ps, pe, ns, ne):
+            node["nested_pre_ms"] = ns - ps
+            node["nested_inner_ms"] = ne - ns
+            node["nested_post_ms"] = pe - ne
+        attached += 1
+    return attached
+
+
 def rebuild(template: Mapping[str, Any]) -> Dict[str, Any]:
     nodes = list(template.get("nodes") or [])
     kept, merged_into = merge_nested(nodes)
+    # the nested resource fields are part of the frozen contract, so they are produced
+    # here rather than by a separate hand-run step
+    trace = load_raw_trace(str(template.get("run_id") or ""))
+    for entry in kept:
+        if entry.get("nested_calls"):
+            attach_nested_resources(entry, trace)
 
     # causal chain over the SURVIVING nodes, in source order (v3.1 section 2: file
     # order is the serialisation of the verified sequence; it is not re-sorted here)
@@ -155,11 +216,20 @@ def main() -> int:
             # summarizer follower is a legitimate post-loop answer computation
             assert str(n["node_id"]) not in merged_ids, "a merged nested call survived"
             assert not is_run_control(n), "a run_control survived in %s" % r["template_id"]
+            if n.get("nested_calls"):
+                parts = (n.get("nested_pre_ms"), n.get("nested_inner_ms"), n.get("nested_post_ms"))
+                assert all(isinstance(p, (int, float)) for p in parts), (
+                    "composite %s lacks pre/inner/post" % n["node_id"])
+                total = float(n.get("runtime_ms") or 0.0)
+                assert abs(sum(parts) - total) <= 1.0, (
+                    "composite %s: pre+inner+post=%.3f but R_total=%.3f"
+                    % (n["node_id"], sum(parts), total))
 
     print("templates            : %d" % len(rebuilt))
     print("nodes before         : %d" % before)
     print("nodes after          : %d" % after)
     print("nested merged        : %d   (the review counted 169)" % nested)
+    with_parts = sum(1 for r in rebuilt for n in r["nodes"] if n.get("nested_calls"))
     print("resource_applicable=false : %d" % ra_false)
     print("contract             : %s" % CONTRACT)
 
@@ -178,6 +248,9 @@ def main() -> int:
         "nodes_before": before,
         "nodes_after": after,
         "nested_merged": nested,
+        "composites_with_pre_inner_post": with_parts,
+        "reconstruction_rule": "nested_pre_ms + nested_inner_ms + nested_post_ms == runtime_ms, "
+                               "asserted within 1 ms for every composite",
         "resource_applicable_false": ra_false,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0

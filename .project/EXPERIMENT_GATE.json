@@ -2164,7 +2164,13 @@
             "changing only the CVaR flips the winner"
           ],
           "deviation_recorded": "Empirical-TIE-adapted: the paper's request-specific max-token censoring has no runtime analogue here; a train-only empirical current-node distribution is used with no post-hoc truncation",
-          "b_is_an_adaptation": "in the paper B is the configured maximum batch size; our simulator has no vLLM batch queue so B* is the episode's GPU service concurrency, recorded in TIE_DEVIATION and never to be described as the paper's B"
+          "b_is_an_adaptation": "in the paper B is the configured maximum batch size; our simulator has no vLLM batch queue so B* is the episode's GPU service concurrency, recorded in TIE_DEVIATION and never to be described as the paper's B",
+          "ownership_complete": {
+            "queue_length": "tie_queue_length(pool, competitive_priority) in tie_methods.py",
+            "load_estimate": "bank carries load_mean_ms; the score never reads estimate()",
+            "score": "tie_score_for(bank, node, beta, resident) is the single source",
+            "evidence": "tie_current moved from 91354 to 97414, so the new ownership is consumed"
+          }
         },
         "Pythia-adapted": {
           "source": "arXiv:2604.25899",
@@ -2513,10 +2519,7 @@
               "a busy device made nested_finish > busy_until always true, so the composite stole active_node"
             ],
             "invariant": "the preparation phase leaves the device untouched; busy_until never falls below composite_tail",
-            "pending": [
-              "producer that rebuilds nested_pre/post/inner from raw traces",
-              "TIE unique Lq and load-estimator ownership"
-            ]
+            "pending": []
           }
         },
         "gate_hardening": {
@@ -2531,6 +2534,21 @@
           "false_positive": 0,
           "false_negative": 0,
           "exact_set_equality": true
+        },
+        "reproducibility_closed": {
+          "producer": "scripts/rebuild_scheduler_templates_v041_ontology.py",
+          "emits": [
+            "nested_model_class",
+            "nested_model_mb",
+            "nested_reserved_mb",
+            "nested_load_ms",
+            "nested_runtime_ms",
+            "nested_pre_ms",
+            "nested_inner_ms",
+            "nested_post_ms"
+          ],
+          "post_condition": "nested_pre_ms + nested_inner_ms + nested_post_ms == runtime_ms within 1 ms",
+          "clean_rebuild": "640 templates, 8295 -> 8126 nodes, 169 merged, all reconstruction assertions pass"
         }
       },
       "gpt_review_round2_verdicts": {
@@ -2596,6 +2614,13 @@
           "a producer that rebuilds nested_pre/post/inner from raw traces"
         ],
         "latency_aware_vs_tie": "they will not collapse into one baseline as long as the Latency-Aware predictor keeps request-conditioned features; add a non-degeneracy gate where changing a legal request feature changes run, memory or load, while TIE's distribution over the same (model, lane) is unchanged"
+      },
+      "gpt_freeze_checklist_status": {
+        "1_nested_ready_state_machine": "DONE",
+        "2_six_sentinels": "DONE",
+        "3_tie_unique_lq_and_load": "DONE",
+        "4_raw_trace_producer": "DONE",
+        "verdict": "all four closed; ready to request the substrate freeze sign-off"
       }
     }
   },

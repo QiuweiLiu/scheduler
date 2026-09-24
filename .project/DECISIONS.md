@@ -969,3 +969,39 @@ nested_gpu_finish -> 释放占用；【绝不缩小 composite_tail】
 - **TIE 的独立 `Lq` + load estimator 归属**
 
 **287 个测试，5 个失败套件全部预先存在。**
+
+## 2026-09-23 · GPT 冻结前清单的最后两项
+
+### 4. 从 raw trace 重建 nested_pre/post/inner 的 producer（reproducibility 收尾）
+GPT 指出：loader 支持 `nested_pre_ms`/`nested_post_ms`/`nested_inner_ms`，
+**但 repo 里没有生成并持久化它们的 producer** —— 测试 fixture 能造，
+但"从 raw trace 干净重建 v04.1"的路径不闭合。
+
+**修复**：把提取折进真正的生成器 `scripts/rebuild_scheduler_templates_v041_ontology.py`：
+- 新增 `RAW_TRACE_ROOT`、`load_raw_trace()`、`attach_nested_resources()`
+- 在 `rebuild()` 里对每个带 `nested_calls` 的父节点调用
+- **硬后置条件**：`nested_pre_ms + nested_inner_ms + nested_post_ms == runtime_ms`（1ms 容差），
+  不满足直接抛错 —— **干净重建 169/169 通过**
+- manifest 新增 `composites_with_pre_inner_post` 与 `reconstruction_rule`
+
+**验证**：从 v04 干净重建 v04.1 成功（8,295 → 8,126 节点，169 合并）。
+
+### 3. TIE 的独立 `Lq` + load 归属
+GPT 指出：`Lq` 必须是 TIE 独有、定义唯一的量；load 项必须来自 **TIE 自己的前端**，
+而不是共享的 `estimate()` 路径。
+
+**修复**（全部进 `tie_methods.py`）：
+- `tie_queue_length(pool, competitive_priority)` —— 定义唯一，
+  兼容候选池的 7 元组结构（`entry[0][0]` 才是内层 priority）
+- `tie_load_estimate(bank, node)` —— 从 TIE 自己的 bank 读
+- `tie_score_for(bank, node, beta, resident=...)` —— **完整分数只来自 TIE 自己的前端**
+- bank 新增 `load_mean_ms` / `load_sample_count`（train-only 的 load 均值）
+
+**验证**：`tie_current` 从 **91,354 变为 97,414** → **新归属确实被消费**；
+TIE fidelity 15/15、composite 6/6、全量 287 个测试（5 个失败套件全部预先存在）。
+
+### 至此 GPT 第 4 轮冻结前清单的 4 项全部完成
+1. ✅ composite 升级为 nested_ready 事件 + queue tail
+2. ✅ 6 条 sentinel
+3. ✅ TIE 的 unique `Lq` + load ownership
+4. ✅ raw-trace producer

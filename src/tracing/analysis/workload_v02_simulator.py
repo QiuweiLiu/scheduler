@@ -3437,8 +3437,8 @@ def choose_action(
 
         from tracing.analysis.tie_methods import (
             tie_beta,
-            tie_current_distribution,
-            tie_current_score,
+            tie_queue_length,
+            tie_score_for,
             tie_wait_adjust,
         )
 
@@ -3451,7 +3451,7 @@ def choose_action(
         tau_ms = float(ctx.get("tie_tau_ms", 30000.0))
 
         competitive_priority = min(item[0] for item, *_rest in pool)
-        L_q = float(sum(1 for item, *_rest in pool if float(item[0]) == float(competitive_priority)))
+        L_q = tie_queue_length(pool, competitive_priority)
         beta = tie_beta(L_q, B)
 
         def tie_score(
@@ -3459,11 +3459,9 @@ def choose_action(
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
             node = jobs[job_index].template.by_id[node_id]
-            group = tie_current_distribution(bank, node)
-            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
-            score = tie_current_score(
-                group["runtime_mean_ms"], group["runtime_cvar90_ms"], beta, load
-            )
+            # the whole score comes from TIE's own bank: no runtime and no load is read
+            # from the shared estimate() row
+            score = tie_score_for(bank, node, beta, resident=(model_id in gpu.resident))
             wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
             score = tie_wait_adjust(score, wait_ms, gamma, tau_ms)
             return (
