@@ -428,15 +428,63 @@ class L2cNonOverlappingDurationSets(unittest.TestCase):
         self.assertEqual(sets[2], 1)
         self.assertEqual(sets[0], 2)
 
-    def test_the_interval_comes_from_the_network(self):
+    @staticmethod
+    def one_stage_profiler(state_probs):
+        return {
+            "schema": BN_SCHEMA, "stage_order": ["Y"], "parents": {"Y": []},
+            "cpds": {"Y": {SEP.join([]): dict(state_probs)}},
+            "state_vocabulary": ["D0", ABSENT],
+            "state_ms": {"D0": 100.0, ABSENT: 0.0},
+            "stage_range": {"Y": 100.0}, "discretizer": None}
+
+    def test_the_interval_is_the_support_not_the_expectation(self):
+        """P(ABSENT) = P(D = 100) = 0.5 has support [0, 100], not the point [50, 50].
+
+        Weighting a single min/max by P(present) collapses the support of the
+        remaining-duration random variable onto an expectation, which reports total
+        certainty for a distribution that is anything but certain.  Two jobs that are
+        both genuinely ambiguous would then be ordered as if their durations were known.
+        """
+
+        uncertain = self.one_stage_profiler({"D0": 0.5, ABSENT: 0.5})
+        lower, upper = job_duration_interval_ms(uncertain, {})
+        self.assertAlmostEqual(lower, 0.0, places=9)
+        self.assertAlmostEqual(upper, 100.0, places=9)
+
+        certain = self.one_stage_profiler({"D0": 1.0, ABSENT: 0.0})
+        lower, upper = job_duration_interval_ms(certain, {})
+        self.assertAlmostEqual(lower, 100.0, places=9)
+        self.assertAlmostEqual(upper, 100.0, places=9)
+
+        absent = self.one_stage_profiler({"D0": 0.0, ABSENT: 1.0})
+        lower, upper = job_duration_interval_ms(absent, {})
+        self.assertAlmostEqual(lower, 0.0, places=9)
+        self.assertAlmostEqual(upper, 0.0, places=9)
+
+    def test_the_interval_covers_every_unresolved_stage(self):
+        """It describes the JOB, not one candidate's correlated descendants."""
+
         if not V041.exists():
             self.skipTest("v04.1 projection not present")
+        from tracing.analysis.llmsched_bn import _future_from_network
         from tracing.analysis.workload_v02_simulator import load_templates
         prof = build_bn_profiler(load_templates(V041, topology_view="causal_v3"))
-        stage = prof["stage_order"][0]
-        lower, upper = job_duration_interval_ms(prof, [stage], {})
+        narrow = [s for s in prof["stage_order"]
+                  if len(_future_from_network(prof, s, {})) and
+                  len(_future_from_network(prof, s, {})) < len(prof["stage_order"]) - 1]
+        if not narrow:
+            self.skipTest("no stage has a strict subset of descendants")
+        stage = narrow[0]
+        # the job interval must not be the candidate's descendant set
+        lower, upper = job_duration_interval_ms(prof, {})
+        self.assertGreater(upper, 0.0)
         self.assertGreaterEqual(lower, 0.0)
-        self.assertGreaterEqual(upper, lower)
+        # every stage with any presence probability contributes something
+        present_any = any(
+            1.0 - posterior_state_probs(prof, s, {}).get(ABSENT, 0.0) > 0.0
+            for s in prof["stage_order"])
+        self.assertTrue(present_any)
+        _ = stage
 
     def test_the_scorer_uses_the_group_before_the_information(self):
         """A provably shorter job must win even if a longer one is more informative."""

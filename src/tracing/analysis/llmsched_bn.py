@@ -455,8 +455,20 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
     # evidence-keyed memo makes repeated queries within one scheduling decision free.
     # The cache lives beside the profiler rather than in a global keyed by id(), which
     # would be unsound once a profiler is collected and another reuses its address.
+    # The cache is keyed by the identity of the network it was built against, not only by
+    # the query: a shallow copy of a profiler SHARES this cache object, so keying on the
+    # query alone let a copied-and-then-mutated profiler return the original's posteriors.
+    # id() of the CPD table changes whenever the table is replaced, and the two lengths
+    # make an accidental address reuse implausible.
     cache = profiler.setdefault("_posterior_cache", {})
-    cache_key = (tuple(query), tuple(sorted((evidence or {}).items())))
+    cache_key = (
+        id(profiler["cpds"]),
+        id(profiler["stage_order"]),
+        len(profiler["cpds"]),
+        len(profiler["stage_order"]),
+        tuple(query),
+        tuple(sorted((evidence or {}).items())),
+    )
     if cache_key in cache:
         return cache[cache_key]
     for q in query:
@@ -839,31 +851,44 @@ def current_service_ms(profiler: Mapping[str, Any], stage: str,
     return float(total)
 
 
-def job_duration_interval_ms(profiler: Mapping[str, Any], stages: Sequence[str],
+def job_duration_interval_ms(profiler: Mapping[str, Any],
                              evidence: Mapping[str, str]) -> Tuple[float, float]:
-    """A lower and an upper bound on a job's remaining intrinsic work, from the network.
+    """The SUPPORT of a job's remaining intrinsic work, from the network.
 
-    For each still-possible stage the contribution is ``P(present | E)`` weighted by the
-    cheapest and the dearest duration state it could take, so the interval reflects both
-    the structural and the duration uncertainty the network models.  Nothing here reads
-    the workload's realized template.
+    This is a support interval of the remaining-duration random variable, not an
+    expectation: each unresolved stage can contribute either nothing at all (it is
+    absent) or one of its duration states, so the per-stage contribution spans
+    ``{0} union {durations}``.  Weighting a single min/max by ``P(present)`` collapses
+    that support and is simply wrong -- with P(ABSENT) = P(D = 100) = 0.5 the true
+    support is [0, 100] while the weighted form reports [50, 50], a point interval for a
+    distribution that is anything but certain.
+
+    The interval covers EVERY model-side unresolved stage, not just the correlated
+    descendants of one candidate: it describes the JOB's remaining work, which is what
+    Algorithm 1 compares between jobs.  Nothing here reads the workload's realized
+    template.
     """
 
     lower = 0.0
     upper = 0.0
-    for name in stages:
+    for name in profiler["stage_order"]:
         if name in (evidence or {}):
             continue
         probs = posterior_state_probs(profiler, name, evidence)
         present = 1.0 - float(probs.get(ABSENT, 0.0))
         if present <= 0.0:
+            # the stage is settled absent: it contributes exactly nothing
             continue
-        durations = [_state_ms(profiler, state)
-                     for state in probs if state != ABSENT]
+        durations = [_state_ms(profiler, state) for state in probs if state != ABSENT]
         if not durations:
             continue
-        lower += present * min(durations)
-        upper += present * max(durations)
+        # a stage that may still be absent contributes a possible zero to the support;
+        # one that is certainly present cannot
+        if present < 1.0 - 1e-12:
+            lower += 0.0
+        else:
+            lower += min(durations)
+        upper += max(durations)
     return float(lower), float(upper)
 
 

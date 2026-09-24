@@ -3558,7 +3558,6 @@ def choose_action(
             non_overlapping_sets as _bn_sets,
             uncertainty_reduction as _bn_info,
         )
-        from tracing.analysis.llmsched_bn import _future_from_network as _network_future
         from tracing.analysis.llmsched_stage import canonical_stage_map
 
         # ONE coin per decision, not per candidate
@@ -3601,16 +3600,16 @@ def choose_action(
         # The non-overlapping duration sets are a property of the whole candidate pool at
         # this decision, so they are computed once and shared by every candidate.  They
         # are built AFTER the per-job helpers above, which they depend on.
+        # The interval describes the JOB's remaining work, so it is computed once per job
+        # and does not depend on which candidate is being scored.  It covers every
+        # model-side unresolved stage rather than one candidate's correlated descendants,
+        # because Algorithm 1 is comparing jobs against each other.
         duration_intervals: dict[Any, Any] = {}
         for candidate in pool:
-            _item, _ji, _nid, _mid, _gpu, _row, _fit = candidate
+            _ji = candidate[1]
             if _ji in duration_intervals:
                 continue
-            _job = jobs[_ji]
-            _stg = stage_map_for(_job)[_nid]
-            _ev = evidence_for(_job)
-            duration_intervals[_ji] = _bn_interval(
-                profiler, [_stg] + _network_future(profiler, _stg, _ev), _ev)
+            duration_intervals[_ji] = _bn_interval(profiler, evidence_for(jobs[_ji]))
         group_index = _bn_sets(duration_intervals)
 
         def _group_of(job_index: int) -> int:
