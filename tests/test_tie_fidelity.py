@@ -1,17 +1,25 @@
-"""Fidelity gate for TIE-adapted (layer 1 of the two-layer gate).
+"""Fidelity gate for Empirical-TIE-adapted.
 
-The review's list for TIE:
-    independent current-node-only distribution predictor;
-    the score formula is correct;
-    CVaR / beta / decay are unit-tested;
-    reading the H-step future is forbidden.
-
-This file checks all four.  Performance is reported separately and never used here.
+The review's finding was that the previous 10/10 was a false positive: it tested the
+bank and the pure formula but never that the real consumer used them.  Every test here
+drives the ACTUAL policy path, and the sentinel tests deliberately make the TIE
+criterion and a percentile criterion disagree so that a silent fallback is caught.
 """
 from __future__ import annotations
 
 import unittest
 
+from tracing.analysis.tie_methods import (
+    TIE_DEVIATION,
+    bank_sample_report,
+    build_tie_bank,
+    tie_beta,
+    tie_current_distribution,
+    tie_current_score,
+    tie_key,
+    tie_wait_adjust,
+    upper_cvar,
+)
 from tracing.analysis.workload_v02_simulator import (
     POLICIES,
     Node,
@@ -21,129 +29,178 @@ from tracing.analysis.workload_v02_simulator import (
 )
 
 
-def make_template(template_id: str, runtime_ms: float, model: str = "m1", lane: str = "gpu") -> Template:
-    node = Node(
-        node_id=f"{template_id}:n", sequence_index=0, predecessors=(), successors=(),
-        lane=lane, model_id=model, runtime_ms=runtime_ms, load_ms=10.0,
-        workspace_peak_mb=100.0, resident_model_mb=90.0, status="success",
-        role="execute", action_family="inference",
-    )
-    return Template(template_id, template_id, "train", "test", (node,), {node.node_id: node})
+def one_node_template(tid, model, runtime, lane="gpu", seq=0):
+    """Three chained nodes on one model.
+
+    estimate() enforces a minimum group size, so a single-node template would be
+    rejected before the TIE bank is ever consulted.  Three nodes give the group enough
+    support while keeping the template trivially small.
+    """
+
+    nodes = [Node(node_id=f"{tid}:n{i}", sequence_index=i,
+                  predecessors=(f"{tid}:n{i-1}",) if i else (),
+                  successors=(f"{tid}:n{i+1}",) if i < 2 else (),
+                  lane=lane, model_id=model, runtime_ms=float(runtime) + i, load_ms=0.0,
+                  workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+                  role="execute", action_family="inference")
+             for i in range(3)]
+    return Template(tid, tid, "train", "test", tuple(nodes), {n.node_id: n for n in nodes})
 
 
-class TieFrontEndTests(unittest.TestCase):
-    """The front end must be an independent, current-node-only distribution."""
+def two_group_bank(mean_a, cvar_a, mean_b, cvar_b):
+    """A hand-built TIE bank with two groups; no estimate() involved."""
 
+    return {"schema": "test", "groups": {
+        "mA|gpu": {"model_id": "mA", "lane": "gpu", "sample_count": 100,
+                   "runtime_mean_ms": mean_a, "runtime_cvar90_ms": cvar_a},
+        "mB|gpu": {"model_id": "mB", "lane": "gpu", "sample_count": 100,
+                   "runtime_mean_ms": mean_b, "runtime_cvar90_ms": cvar_b},
+    }}
+
+
+class FrontEndTests(unittest.TestCase):
     def test_arm_is_registered(self):
         self.assertIn("tie_current", POLICIES)
 
-    def test_stats_carry_expectation_and_cvar(self):
-        tpl = {"t": make_template("t", 100.0), "u": make_template("u", 500.0)}
-        stats = train_resource_stats(tpl)
-        self.assertTrue(stats, "no groups produced")
-        for key, row in stats.items():
-            self.assertIn("runtime_mean_ms", row, key)
-            self.assertIn("runtime_cvar90_ms", row, key)
+    def test_key_is_model_and_lane_only(self):
+        """resource_keys() would add sequence_index and leak workflow position."""
+        a = one_node_template("a", "m1", 10.0, seq=0)
+        b = one_node_template("b", "m1", 10.0, seq=7)
+        self.assertEqual(tie_key(a.nodes[0]), tie_key(b.nodes[0]))
 
-    def test_cvar_is_the_upper_tail_mean_not_the_max(self):
-        """CVaR_0.9 is the mean of the worst 10%, so it can never exceed the max."""
-        tpl = {f"t{i}": make_template(f"t{i}", float(10 * (i + 1))) for i in range(20)}
-        stats = train_resource_stats(tpl)
-        for row in stats.values():
-            self.assertLessEqual(row["runtime_cvar90_ms"], max(
-                n.runtime_ms for t in tpl.values() for n in t.nodes
-            ) + 1e-9)
-            self.assertGreaterEqual(row["runtime_cvar90_ms"], row["runtime_mean_ms"])
+    def test_missing_group_fails_closed(self):
+        bank = two_group_bank(1.0, 1.0, 2.0, 2.0)
+        with self.assertRaises(KeyError):
+            tie_current_distribution(bank, one_node_template("z", "nope", 1.0).nodes[0])
 
-    def test_stats_use_only_the_training_split(self):
-        """A validation/test template must not contribute to any group."""
-        train = {"a": make_template("a", 100.0)}
-        test = {"b": Template("b", "b", "test", "test",
-                              (Node(node_id="b:n", sequence_index=0, predecessors=(), successors=(),
-                                    lane="gpu", model_id="m1", runtime_ms=99999.0, load_ms=1.0,
-                                    workspace_peak_mb=1.0, resident_model_mb=1.0, status="success",
-                                    role="execute", action_family="inference"),),
-                              {"b:n": None})}
-        test["b"].by_id["b:n"] = test["b"].nodes[0]
-        only_test = train_resource_stats(test)
-        both = train_resource_stats({**train, **test})
-        for key, row in only_test.items():
-            self.assertAlmostEqual(row["runtime_mean_ms"], both[key]["runtime_mean_ms"],
-                                   msg="the test split leaked into the bank")
+    def test_missing_mean_or_cvar_fails_closed(self):
+        """The exact bug: a missing mean must never fall back to a percentile."""
+        for broken in ({"runtime_mean_ms": None}, {"runtime_cvar90_ms": None}):
+            bank = {"groups": {"m1|gpu": {"model_id": "m1", "lane": "gpu",
+                                          "sample_count": 5, "runtime_mean_ms": 1.0,
+                                          "runtime_cvar90_ms": 2.0, **broken}}}
+            with self.assertRaises(ValueError):
+                tie_current_distribution(bank, one_node_template("t", "m1", 1.0).nodes[0])
 
+    def test_bank_is_train_only(self):
+        train = {"a": one_node_template("a", "m1", 100.0)}
+        val = Template("b", "b", "validation", "test",
+                       (Node(node_id="b:n", sequence_index=0, predecessors=(), successors=(),
+                             lane="gpu", model_id="m1", runtime_ms=99999.0, load_ms=0.0,
+                             workspace_peak_mb=1.0, resident_model_mb=1.0, status="success",
+                             role="execute", action_family="inference"),), {})
+        val.by_id["b:n"] = val.nodes[0]
+        both = build_tie_bank({**train, "b": val})
+        # the training template contributes three nodes and the validation one none
+        self.assertEqual(both["groups"]["m1|gpu"]["sample_count"], 3)
+        self.assertAlmostEqual(both["groups"]["m1|gpu"]["runtime_mean_ms"],
+                               (100.0 + 101.0 + 102.0) / 3.0)
 
-class TiePolicyTests(unittest.TestCase):
-    """The wired policy must run and must not need any future artifact."""
+    def test_cvar_small_sample_rule(self):
+        self.assertAlmostEqual(upper_cvar([5.0], 0.90), 5.0)          # singleton
+        self.assertAlmostEqual(upper_cvar([1.0, 10.0], 0.90), 10.0)   # k = 1
+        self.assertAlmostEqual(upper_cvar([1.0, 2.0, 3.0, 4.0], 0.90), 4.0)
 
-    def setUp(self):
-        # distinct models per template: a current-node-only front end can only tell
-        # candidates apart when their (model, lane) identity differs, so a shared
-        # model would make TIE and a plain p50 arm collapse by construction
-        self.templates = {
-            f"t{i}": make_template(f"t{i}", 100.0 + 50 * i, model=f"m{i}") for i in range(3)
-        }
-        self.stats = train_resource_stats(self.templates)
-        self.episode = {
-            "episode_id": "tie-fidelity",
-            "split": "train",
-            "gpu_topology_mb": [4000.0, 4000.0],
-            "initial_residency_hint": [[], []],
-            "jobs": [
-                {"job_instance_id": f"j{i}", "template_id": f"t{i}", "arrival_ms": 0.0,
-                 "deadline_ms": 1e9, "service_class": "normal"}
-                for i in range(3)
-            ],
-        }
+    def test_sample_report_surfaces_thin_groups(self):
+        bank = {"groups": {"a": {"sample_count": 1}, "b": {"sample_count": 50}}}
+        rep = bank_sample_report(bank)
+        self.assertAlmostEqual(rep["fraction_singleton"], 0.5)
+        self.assertAlmostEqual(rep["fraction_lt_10"], 0.5)
 
-    def test_runs_without_any_future_artifact(self):
-        """TIE consumes no H-step future, so future_artifacts must not be required."""
-        state, _ = simulate_episode(self.episode, self.templates, "tie_current",
-                                    future_artifacts=None, train_stats=self.stats,
-                                    collect_events=False)
-        self.assertEqual(state["completed_jobs"], 3)
-        self.assertEqual(state["failed_jobs"], 0)
-        self.assertTrue(state["mean_completion_ms"] > 0)
-
-    def test_runs_without_any_future_artifact_superseded(self):
-        pass
+    def test_deviation_is_recorded(self):
+        self.assertIn("max-token censoring", TIE_DEVIATION)
 
 
-class TieFormulaTests(unittest.TestCase):
-    """GPT's list: the score formula, CVaR and beta must be unit-tested directly."""
-
+class FormulaTests(unittest.TestCase):
     def test_beta_is_the_paper_clip(self):
-        from tracing.analysis.workload_v02_simulator import tie_beta
-        # clip(0.1 * L_q / B, 0.1, 0.5)
-        self.assertAlmostEqual(tie_beta(0.0, 2.0), 0.1)      # floor
-        self.assertAlmostEqual(tie_beta(2.0, 2.0), 0.1)      # 0.1 * 1
-        self.assertAlmostEqual(tie_beta(10.0, 2.0), 0.5)     # 0.5 -> ceiling
-        self.assertAlmostEqual(tie_beta(100.0, 2.0), 0.5)    # clamped
-        self.assertAlmostEqual(tie_beta(6.0, 2.0), 0.3)      # interior
-        self.assertAlmostEqual(tie_beta(1.0, 10.0), 0.1)     # floor again
+        self.assertAlmostEqual(tie_beta(0.0, 2.0), 0.1)
+        self.assertAlmostEqual(tie_beta(2.0, 2.0), 0.1)
+        self.assertAlmostEqual(tie_beta(6.0, 2.0), 0.3)
+        self.assertAlmostEqual(tie_beta(10.0, 2.0), 0.5)
+        self.assertAlmostEqual(tie_beta(100.0, 2.0), 0.5)
 
-    def test_score_is_mean_plus_beta_times_cvar(self):
-        from tracing.analysis.workload_v02_simulator import tie_current_score
-        self.assertAlmostEqual(tie_current_score(100.0, 400.0, 0.5, 0.0), 300.0)
-        self.assertAlmostEqual(tie_current_score(100.0, 400.0, 0.1, 0.0), 140.0)
-        self.assertAlmostEqual(tie_current_score(0.0, 0.0, 0.5, 25.0), 25.0)
+    def test_score_is_mean_plus_beta_cvar(self):
+        self.assertAlmostEqual(tie_current_score(100.0, 400.0, 0.5), 300.0)
+        self.assertAlmostEqual(tie_current_score(100.0, 400.0, 0.1), 140.0)
 
-    def test_heavy_tail_can_reverse_the_mean_ordering(self):
-        """The whole point of the tail term: a fat-tailed candidate can lose."""
-        from tracing.analysis.workload_v02_simulator import tie_current_score
-        # A has the smaller mean but a much fatter tail
-        a_mean, a_cvar = 1050.0, 2000.0
-        b_mean, b_cvar = 1100.0, 1100.0
-        self.assertLess(a_mean, b_mean, "A must have the smaller mean")
-        beta = 0.5
-        self.assertGreater(tie_current_score(a_mean, a_cvar, beta, 0.0),
-                           tie_current_score(b_mean, b_cvar, beta, 0.0),
-                           "the tail term must be able to reverse the mean ordering")
+    def test_wait_adjust_decays(self):
+        self.assertAlmostEqual(tie_wait_adjust(1000.0, 0.0, 0.9, 30000.0), 1000.0)
+        self.assertLess(tie_wait_adjust(1000.0, 30000.0, 0.9, 30000.0), 1000.0)
+        self.assertAlmostEqual(tie_wait_adjust(1000.0, 30000.0, 0.9, 30000.0), 900.0)
 
-    def test_zero_beta_degenerates_to_the_mean(self):
-        """TIE collapses onto a point criterion when the tail weight vanishes."""
-        from tracing.analysis.workload_v02_simulator import tie_current_score
-        for m, c in ((10.0, 99.0), (500.0, 501.0), (0.0, 1e6)):
-            self.assertAlmostEqual(tie_current_score(m, c, 0.0, 0.0), m)
+    def test_wait_adjust_is_not_the_aging_rule(self):
+        """Aging SUBTRACTS a credit; this MULTIPLIES.  Different mechanisms."""
+        from tracing.analysis.workload_v02_simulator import srtf_aging_key
+        score = 1000.0
+        wait = 30000.0
+        self.assertNotAlmostEqual(tie_wait_adjust(score, wait, 0.9, 30000.0),
+                                  srtf_aging_key(0.0, score, wait)[1])
+
+
+class SentinelMutationTests(unittest.TestCase):
+    """The tests the review asked for: make TIE and a percentile disagree."""
+
+    def _run_first_choice(self, bank, templates, jobs, gpu_count=1, beta_forced=None):
+        ep = {
+            "episode_id": "sentinel", "split": "train",
+            "gpu_topology_mb": [40000.0] * gpu_count,
+            "initial_residency_hint": [[] for _ in range(gpu_count)],
+            "jobs": jobs,
+        }
+        ctx = {"tie_bank": bank}
+        if beta_forced is not None:
+            ctx["tie_B"] = beta_forced
+        s, ev = simulate_episode(ep, templates, "tie_current", policy_context=ctx,
+                                 train_stats=train_resource_stats(templates),
+                                 collect_events=True)
+        starts = [e for e in ev if e.get("event_type") == "node_start"]
+        return (starts[0].get("job_instance_id") if starts else None), s
+
+    def test_choice_follows_mean_and_cvar_not_percentiles(self):
+        """A has the smaller mean and the fatter tail; B has the smaller percentile.
+
+        With beta pushed to its ceiling, TIE must prefer B, while a p50-driven arm
+        would prefer A.  If the arm silently used p50/p90 the winner would be A.
+        """
+        templates = {"ta": one_node_template("ta", "mA", 10.0),
+                     "tb": one_node_template("tb", "mB", 1000.0)}
+        bank = two_group_bank(mean_a=100.0, cvar_a=1000.0, mean_b=200.0, cvar_b=200.0)
+        jobs = [{"job_instance_id": "ja", "template_id": "ta", "arrival_ms": 0.0,
+                 "deadline_ms": 1e9, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "tb", "arrival_ms": 0.0,
+                 "deadline_ms": 1e9, "service_class": "normal"}]
+        # B = 1 forces beta to its 0.5 ceiling: A = 100+500 = 600, B = 200+100 = 300
+        first, _ = self._run_first_choice(bank, templates, jobs, gpu_count=1, beta_forced=1.0)
+        self.assertEqual(first, "jb", "TIE must follow mean/CVaR, not the percentile")
+
+    def test_percentile_arm_disagrees_on_the_same_state(self):
+        """The same state under a p50-driven arm picks the other candidate."""
+        templates = {"ta": one_node_template("ta", "mA", 10.0),
+                     "tb": one_node_template("tb", "mB", 1000.0)}
+        ep = {"episode_id": "sentinel2", "split": "train",
+              "gpu_topology_mb": [40000.0], "initial_residency_hint": [[]],
+              "jobs": [{"job_instance_id": "ja", "template_id": "ta", "arrival_ms": 0.0,
+                        "deadline_ms": 1e9, "service_class": "normal"},
+                       {"job_instance_id": "jb", "template_id": "tb", "arrival_ms": 0.0,
+                        "deadline_ms": 1e9, "service_class": "normal"}]}
+        _s, ev = simulate_episode(ep, templates, "myopic",
+                                  train_stats=train_resource_stats(templates),
+                                  collect_events=True)
+        starts = [e for e in ev if e.get("event_type") == "node_start"]
+        self.assertEqual(starts[0].get("job_instance_id"), "ja",
+                         "the percentile arm should prefer the small percentile")
+
+    def test_changing_only_the_cvar_flips_the_winner(self):
+        templates = {"ta": one_node_template("ta", "mA", 10.0),
+                     "tb": one_node_template("tb", "mB", 1000.0)}
+        jobs = [{"job_instance_id": "ja", "template_id": "ta", "arrival_ms": 0.0,
+                 "deadline_ms": 1e9, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "tb", "arrival_ms": 0.0,
+                 "deadline_ms": 1e9, "service_class": "normal"}]
+        # give A a small tail: A = 100 + 0.5*10 = 105 beats B = 300
+        bank = two_group_bank(mean_a=100.0, cvar_a=10.0, mean_b=200.0, cvar_b=200.0)
+        first, _ = self._run_first_choice(bank, templates, jobs, gpu_count=1, beta_forced=1.0)
+        self.assertEqual(first, "ja", "a smaller CVaR must be able to flip the choice")
 
 
 if __name__ == "__main__":

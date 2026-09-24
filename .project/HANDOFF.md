@@ -24,7 +24,7 @@
   删 nested 保 CPU 父 → **真实 GPU 工作从 GPU 竞争消失**。
   需 v3.1 的 composite signature（父节点携带 `nested_model_class` + simulator 收内层 GPU 成本）。
   **第 1 步之后的第一优先项。**
-- **TIE P0**：`estimate()` 丢 mean/CVaR → 实际跑 `p50 + β·p90`；10/10 是假阳性。**7 条修复清单见 gate**
+- ~~**TIE P0**~~ **已修（8/8，fidelity 15/15）**：独立 TIE bank（键 = `(model_id, lane)`）、缺 mean/CVaR 直接 `raise`、改名 `Empirical-TIE-adapted` 并记录 deviation、CVaR 小样本规则 + 样本数直方图、waiting decay 独立纯函数、`B` 取 episode 拓扑长度、**加了 E2E sentinel mutation tests**
 - **LLMSched**：`H(X) ≠ I(X;Y)`；真实 duration 未进 posterior。fidelity FAIL
 - **Pythia**：`baseline` 不是 role alphabet。应改名 `workflow-family progress prior` 或重构为 role-PFA
 - **Latency-Aware**：key 不是 Eq.12（`-boundaries_removed` 是发明的 tie-break）；**用了真值 `compute_ms` = 真值泄漏**

@@ -3408,16 +3408,34 @@ def choose_action(
         chosen = min(pool, key=sameshape_aging_score)
 
     elif policy == "tie_current":
-        """TIE-adapted: E[X] + beta * CVaR_0.9[X] over a current-node-only distribution.
+        """Empirical-TIE-adapted: E[X] + beta * CVaR_0.9[X] over a current-node-only
+        empirical distribution.
 
-        The distribution is the train-only (model, lane) histogram; nothing about the
-        future is consulted.  beta is the paper's adaptive coefficient with the queue
-        length mapped to the number of feasible candidates in the competitive tier and
-        B mapped to the simulator's GPU concurrency (2 in the v03/v04 topology).
+        The distribution comes from the dedicated TIE bank keyed by (model_id, lane)
+        only, never from the shared estimate() path and never from resource_keys()
+        (which carries sequence_index and would leak workflow position).  A missing
+        mean or CVaR raises instead of falling back to a percentile.
+
+        B is a frozen system constant taken from the episode's GPU topology, not the
+        number of currently free devices.  The waiting-time decay is applied as the
+        paper's multiplicative factor.
         """
 
-        B = max(1.0, float(len(free_gpus)) + 1.0)  # GPU service concurrency
-        # queue pressure: how many candidates compete at the top priority tier
+        from tracing.analysis.tie_methods import (
+            tie_beta,
+            tie_current_distribution,
+            tie_current_score,
+            tie_wait_adjust,
+        )
+
+        ctx = policy_context if policy_context is not None else {}
+        bank = ctx.get("tie_bank")
+        if bank is None:
+            raise ValueError("tie_current requires policy_context['tie_bank']")
+        B = float(ctx.get("tie_B") or 1.0)
+        gamma = float(ctx.get("tie_gamma", 0.9))
+        tau_ms = float(ctx.get("tie_tau_ms", 30000.0))
+
         competitive_priority = min(item[0] for item, *_rest in pool)
         L_q = float(sum(1 for item, *_rest in pool if float(item[0]) == float(competitive_priority)))
         beta = tie_beta(L_q, B)
@@ -3426,10 +3444,14 @@ def choose_action(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
-            mean = float(estimate_row.get("runtime_mean_ms") or estimate_row["runtime_p50_ms"])
-            cvar = float(estimate_row.get("runtime_cvar90_ms") or estimate_row["runtime_p90_ms"])
+            node = jobs[job_index].template.by_id[node_id]
+            group = tie_current_distribution(bank, node)
             load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
-            score = tie_current_score(mean, cvar, beta, load)
+            score = tie_current_score(
+                group["runtime_mean_ms"], group["runtime_cvar90_ms"], beta, load
+            )
+            wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
+            score = tie_wait_adjust(score, wait_ms, gamma, tau_ms)
             return (
                 float(item[0]),
                 score,
@@ -4217,6 +4239,10 @@ def simulate_episode(
     # resolved fused unit), so it must always be a real dict the commit path can read
     if policy_context is None:
         policy_context = {}
+    # TIE's B is a frozen system constant: the episode's GPU service concurrency,
+    # not the number of currently free devices
+    if policy == "tie_current" and "tie_B" not in policy_context:
+        policy_context["tie_B"] = float(len(episode.get("gpu_topology_mb") or []))
 
     """Simulate one episode, with opt-in batch/prefetch/preemption features.
 

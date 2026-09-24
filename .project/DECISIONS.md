@@ -828,3 +828,40 @@ CPU 半不变：仍立即运行、在 `now + R_total` 完成（v3.1 的 `R_node 
 我在这个 P0 上**差点重犯同一个错误**：先把字段写进 JSON 就以为修好了
 （"JSON 里有字段但程序不读"正是 F0 打包器和 `resource_applicable` 的同一个坑）。
 **必须有"改动该字段 → 结果必须改变"的测试才算修完。**
+
+## 2026-09-23 · 第 2 步之 TIE 修复（GPT 8 条清单全部完成）
+
+### GPT 复核发现的 P0
+> `train_resource_stats()` 里有 `mean`/`CVaR`，但**真实 scheduler 经过 `estimate()` 时它们被丢掉了**，
+> 只返回 `p50`/`p90`。**所以 TIE 实际跑的是 `p50 + β·p90`，不是 TIE。**
+> **你那个 10/10 是假阳性**：测试了 bank 和纯函数，却没测真实 policy 路径最终消费了它们。
+
+### 修复（8 条）
+| # | 要求 | 实现 |
+|---|---|---|
+| 1 | 独立 TIE bank，不走通用 `estimate()` | `src/tracing/analysis/tie_methods.py` |
+| 2 | 缺 mean/CVaR 必须 `raise`，绝不 `or p50` | `tie_current_distribution` 直接抛错 |
+| 3 | lookup 只用 `(model_id, lane)` | `tie_key()`，**刻意不用 `resource_keys()`**（含 `sequence_index`，会泄漏 workflow 位置）|
+| 4 | support 提前写死否则改名 | 改名 **`Empirical-TIE-adapted`**，deviation 写进 `TIE_DEVIATION` |
+| 5 | CVaR 小样本严格定义 + 样本数直方图 | `upper_cvar` 用 `k=ceil((1-α)n)`；`bank_sample_report` |
+| 6 | waiting decay，不复用 aging | `tie_wait_adjust`（**乘法**），测试断言它 ≠ `srtf_aging_key`（**减法**）|
+| 7 | `B` 不能用 `len(free_gpus)+1` | 从 episode 的 `gpu_topology_mb` 长度取（系统常量）|
+| 8 | **E2E sentinel mutation test** | 三条：跟 mean/CVaR 走、percentile 臂必须选另一个、只改 CVaR 必须翻转 |
+
+### 实测（v04.1）
+```
+TIE bank: 5 组 / 6128 样本 / singleton 0% / <10 0%
+样本直方图: {36: 1, 249: 1, 1552: 1, 2035: 1, 2256: 1}
+tie_current 91,354（旧版 90,869，变了 => 新前端被消费）
+myopic 88,456 / fcfs 101,757
+```
+**TIE fidelity 15/15；全量 281 个测试，5 个失败套件全部预先存在。**
+
+### 测试又抓出我两个错误
+1. `estimate()` **有最小样本数要求** —— 我最初的测试模板每模型只有 1 个样本，`estimate()` 在 TIE 之前就拒绝了
+2. 样本数期望写错（模板改成 3 节点后应是 3 不是 1）
+
+### 剩余（未做）
+- **LLMSched**：`H(X) ≠ I(X;Y)`；真实 duration 未进 posterior。**fidelity FAIL**
+- **Pythia**：`baseline` 不是 role alphabet。应改名 `workflow-family progress prior` 或重构为 role-PFA
+- **Latency-Aware**：key 不是 Eq.12（`-boundaries_removed` 是发明的 tie-break）；**用了真值 `compute_ms` = 真值泄漏**

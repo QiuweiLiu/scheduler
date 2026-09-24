@@ -2150,10 +2150,20 @@
         "TIE-adapted": {
           "source": "ICML 2026, arXiv:2604.00499",
           "venue": "CONFIRMED",
-          "fidelity": "pending",
+          "fidelity": "15/15 PASS after the P0 fix",
           "performance": "pending",
           "cost": "lowest",
-          "note": "needs its OWN current-node-only distribution predictor; must NOT reuse F0"
+          "note": "needs its OWN current-node-only distribution predictor; must NOT reuse F0",
+          "arm": "tie_current",
+          "canonical_name": "Empirical-TIE-adapted",
+          "front_end": "src/tracing/analysis/tie_methods.py, bank keyed by (model_id, lane) only",
+          "p0_fixed": "estimate() dropped runtime_mean_ms/runtime_cvar90_ms so the arm ran p50 + beta*p90; the earlier 10/10 was a false positive",
+          "sentinel_tests": [
+            "choice follows mean/CVaR where a percentile criterion would pick the other candidate",
+            "the percentile arm provably disagrees on the same state",
+            "changing only the CVaR flips the winner"
+          ],
+          "deviation_recorded": "Empirical-TIE-adapted: the paper's request-specific max-token censoring has no runtime analogue here; a train-only empirical current-node distribution is used with no post-hoc truncation"
         },
         "Pythia-adapted": {
           "source": "arXiv:2604.25899",
@@ -2517,7 +2527,8 @@
         "add the waiting-time decay as a pure function; do not reuse the aging arm",
         "B must be a frozen system constant (len(gpu_topology)), never len(free_gpus)+1",
         "add an E2E sentinel mutation test where mean/CVaR and p50/p90 order the candidates oppositely"
-      ]
+      ],
+      "tie_fix_status": "COMPLETE (8/8 items)"
     }
   },
   "notes": [
