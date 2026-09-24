@@ -2163,7 +2163,8 @@
             "the percentile arm provably disagrees on the same state",
             "changing only the CVaR flips the winner"
           ],
-          "deviation_recorded": "Empirical-TIE-adapted: the paper's request-specific max-token censoring has no runtime analogue here; a train-only empirical current-node distribution is used with no post-hoc truncation"
+          "deviation_recorded": "Empirical-TIE-adapted: the paper's request-specific max-token censoring has no runtime analogue here; a train-only empirical current-node distribution is used with no post-hoc truncation",
+          "b_is_an_adaptation": "in the paper B is the configured maximum batch size; our simulator has no vLLM batch queue so B* is the episode's GPU service concurrency, recorded in TIE_DEVIATION and never to be described as the paper's B"
         },
         "Pythia-adapted": {
           "source": "arXiv:2604.25899",
@@ -2495,15 +2496,41 @@
             "finding": "all 169 merged nested generalist.generate nodes are GPU (104 Qwen3-VL-8B, 65 Qwen2.5-VL-3B) while all 169 parents are CPU (cpu-metadata-adapter-v1)",
             "consequence": "deleting the nested node and keeping the CPU parent makes real GPU work disappear from GPU contention",
             "fix": "v3.1 composite signature: the parent must carry nested_model_class and the simulator must charge the inner GPU model's load and residency",
-            "status": "FIXED via option (b): the composite node occupies both lanes",
+            "status": "FIXED as an explicit state machine with a queueing reservation",
             "implementation": {
               "data_side": "the 169 parents carry nested_model_class / nested_model_mb / nested_reserved_mb / nested_load_ms / nested_runtime_ms; Node gained the fields and load_templates reads them",
               "execution_side": "admit_nested_gpu_work() charges the inner model's load and residency and occupies the device for the inner interval, with a separate finish entry releasing it; fail-closed when the inner allocation is unmeasured",
               "conservation_audit_mb_delta_pct": -0.3534,
               "evidence": "nested_gpu_admit=9 on a 3-episode probe and the policy numbers changed (fcfs 105708->101757, myopic 89749->88456, tie_current 89688->88464)",
               "lesson": "writing a field into JSON is not a fix; the consumer must demonstrably change behaviour"
-            }
+            },
+            "state_machine": "parent_start -> nested_ready -> nested_gpu_start -> nested_gpu_finish -> parent_finish",
+            "data_side": "nested_pre_ms / nested_post_ms / nested_inner_ms; 169/169 satisfy pre + inner + post == R_total",
+            "device_handling": "GPU.composite_until reserves the device; active_node is never touched by a composite, so a queued segment cannot appear to own a device another job is using",
+            "sentinels": [
+              "no contention -> parent_finish exactly t + R_total",
+              "GPU occupied -> parent delayed by exactly the inner delay",
+              "nested finish -> never releases the parent successor",
+              "nested finish -> never releases another job's device"
+            ],
+            "bugs_my_own_tests_caught": [
+              "the gpu_nested event was pushed at nested_start instead of nested_finish",
+              "a busy device made nested_finish > busy_until always true, so the composite stole active_node"
+            ]
           }
+        },
+        "gate_hardening": {
+          "fail_closed_counts": "template and nested count mismatches now enter the aggregate and fail the exit code",
+          "cycle_detection": "replaced the incorrect colour DFS with Kahn's indegree sweep",
+          "provenance_assertions": "run_control and terminal markers are asserted directly, not only via resource_applicable",
+          "recheck": "640/640 PASS, exit 0"
+        },
+        "nested_merge_set_equality": {
+          "projected": 169,
+          "rediscovered_from_raw": 169,
+          "false_positive": 0,
+          "false_negative": 0,
+          "exact_set_equality": true
         }
       },
       "gpt_review_round2_verdicts": {
@@ -2528,7 +2555,25 @@
         "B must be a frozen system constant (len(gpu_topology)), never len(free_gpus)+1",
         "add an E2E sentinel mutation test where mean/CVaR and p50/p90 order the candidates oppositely"
       ],
-      "tie_fix_status": "COMPLETE (8/8 items)"
+      "tie_fix_status": "COMPLETE (8/8 items)",
+      "gpt_round3_verdicts": {
+        "v041_topology_semantics": "PASS",
+        "v041_gate": "2 holes -> now closed",
+        "640_plus_8": "PASS",
+        "option_b_concept": "PASS",
+        "option_b_implementation": "P0 FAIL -> fixed as a state machine",
+        "TIE_front_end": "PASS",
+        "TIE_overall": "close to frozen; B must be recorded as an adaptation",
+        "LLMSched": "FAIL, next main baseline per the review",
+        "Pythia": "FAIL",
+        "latency_aware": "FAIL: key is not Eq.12 and it uses truth compute_ms",
+        "self_certifying_loops_found": [
+          "nested_gpu_admit > 0 plus a changed makespan proves a side effect, not its correctness",
+          "the conservation audit wrote the fields then audited them, with mismatched definitions",
+          "nested containment started from the projection so it proved precision not recall",
+          "the TIE sentinel assumed B=1 forces beta=0.5, which does not hold"
+        ]
+      }
     }
   },
   "notes": [

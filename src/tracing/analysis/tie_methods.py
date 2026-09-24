@@ -27,9 +27,12 @@ from typing import Any, Dict, Mapping, Sequence, Tuple
 
 TIE_SCHEMA = "empirical-tie-current-node-bank-v1"
 TIE_DEVIATION = (
-    "the original request-specific max-token censoring has no direct runtime analogue "
-    "in this workload; we use a train-only empirical current-node runtime distribution "
-    "without post-hoc truncation"
+    "two adaptations are recorded. (1) Support: the original request-specific max-token "
+    "censoring has no direct runtime analogue in this workload, so we use a train-only "
+    "empirical current-node runtime distribution without post-hoc truncation. "
+    "(2) B: in the paper B is the configured maximum batch size; our simulator has no "
+    "vLLM batch queue, so B* is defined as the episode's GPU service concurrency. This "
+    "is a stated adaptation and must not be described as the paper's B."
 )
 
 

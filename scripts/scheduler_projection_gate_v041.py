@@ -148,25 +148,21 @@ def check_template(template: Mapping[str, Any]) -> GateResult:
         if len(tails) != 1:
             flag("not_exactly_one_tail", {"tails": len(tails), "sample": tails[:3]})
 
-    # cycle detection over the causal edges
-    color: Dict[str, int] = {i: 0 for i in ids}
-    def _has_cycle() -> bool:
-        stack = list(roots) or list(ids)
-        while stack:
-            node = stack.pop()
-            if color[node] == 1:
-                return True
-            if color[node] == 2:
-                continue
-            color[node] = 1
-            for nxt in edges.get(node, []):
-                if color[nxt] == 1:
-                    return True
-                stack.append(nxt)
-            color[node] = 2
-        return False
-    if _has_cycle():
-        flag("causal_cycle")
+    # cycle detection by Kahn's algorithm over the causal edges.  A colour DFS is easy
+    # to get wrong (the previous version cleared the node before its children finished),
+    # whereas an indegree sweep is exact and independent of the other checks.
+    indeg_work = dict(indeg)
+    queue = [i for i in ids if indeg_work[i] == 0]
+    visited = 0
+    while queue:
+        node = queue.pop()
+        visited += 1
+        for nxt in edges.get(node, []):
+            indeg_work[nxt] -= 1
+            if indeg_work[nxt] == 0:
+                queue.append(nxt)
+    if visited != len(ids):
+        flag("causal_cycle", {"visited": visited, "nodes": len(ids)})
 
     # chain covers every node exactly once
     if len(roots) == 1:
@@ -185,6 +181,12 @@ def check_template(template: Mapping[str, Any]) -> GateResult:
     for n in nodes:
         if not n.get("resource_applicable", False):
             flag("resource_inapplicable_node_in_projection", {"node": n.get("node_id")})
+        # provenance assertions, so a transform that mistakes a non-schedulable node for
+        # a schedulable one cannot pass on the strength of the flag alone
+        if str(n.get("node_type")) == "run_control":
+            flag("run_control_in_projection", {"node": n.get("node_id")})
+        if str(n.get("event_type")) == "run" and str(n.get("raw_action")) == "answer":
+            flag("terminal_marker_in_projection", {"node": n.get("node_id")})
         if n.get("nested_calls"):
             pass  # a parent carrying a merge record is expected
     merged_ids = {m for n in nodes for m in (n.get("nested_calls") or [])}
@@ -214,6 +216,12 @@ def main() -> int:
             agg[k] += v
 
     nested_merged = sum(len(n.get("nested_calls") or []) for r in rows for n in r["nodes"])
+    # these are gate failures, not informational: a short file whose templates all happen
+    # to be internally legal must not pass
+    if len(results) != EXPECTED_TEMPLATES:
+        agg["template_count_mismatch"] = abs(len(results) - EXPECTED_TEMPLATES)
+    if nested_merged != EXPECTED_NESTED_MERGED:
+        agg["nested_merged_count_mismatch"] = abs(nested_merged - EXPECTED_NESTED_MERGED)
 
     print("=" * 92)
     print("Scheduler projection gate (provenance fields only)")

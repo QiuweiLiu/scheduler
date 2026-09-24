@@ -865,3 +865,70 @@ myopic 88,456 / fcfs 101,757
 - **LLMSched**：`H(X) ≠ I(X;Y)`；真实 duration 未进 posterior。**fidelity FAIL**
 - **Pythia**：`baseline` 不是 role alphabet。应改名 `workflow-family progress prior` 或重构为 role-PFA
 - **Latency-Aware**：key 不是 Eq.12（`-boundaries_removed` 是发明的 tie-break）；**用了真值 `compute_ms` = 真值泄漏**
+
+## 2026-09-23 · composite CPU+GPU 段做成独立状态机 + gate/TIE 收尾
+
+### GPT 对 option (b) 首版的判定：概念 PASS，实现 P0 FAIL
+它给了正确的模型：
+```
+R_total = R_pre + R_nested + R_post
+nested_ready  = t + R_pre
+nested_start  = max(nested_ready, device availability)
+parent_finish = nested_finish + R_post
+```
+并指出首版的两个时间错误（**丢了 start offset**、**GPU 被争用后 parent 不随之延迟**）
+以及 6 个具体 bug。
+
+### 修复：独立状态机
+```
+parent_start -> nested_ready -> nested_gpu_start -> nested_gpu_finish -> parent_finish
+```
+- **数据侧**：169 个父节点新增 `nested_pre_ms` / `nested_post_ms` / `nested_inner_ms`
+  （从 raw trace 的父子时间戳算）。**验证：169/169 满足 `pre + inner + post == R_total`（1ms 内）。**
+- `GPU` 新增 `composite_until`（**替代 `active_node`**）：
+  段**排队**而非抢占；`active_node` **完全不被 composite 触碰**
+- `free_gpu` 判定加入 `composite_until`
+- `process_finish` **特判 `gpu_nested` lane**：只释放**预留**，**绝不 complete parent、绝不 release 后继、
+  绝不碰别的 job 的 `active_node`**
+- 抢占路径跳过 composite 段
+- **不再加 load**（`runtime_ms` 已含内层区间 → 原来会重复计算）
+- `sequence` 改为**返回值传递**（原来传新 list，外层计数不更新 → tie-break 可能重复）
+
+### 测试抓出的两个真 bug（都是我自己的断言/测试抓的）
+1. **`gpu_nested` 事件时间写成了 `nested_start`**（应为 `nested_finish`）→ `parent_finish = 300` 而非 1000
+2. **设备忙时 `nested_finish > busy_until` 恒真 → composite 覆盖了别的 job 的 `active_node`**
+   （断言 `nested segment for A released a device holding B` 直接命中）→ 改为 `composite_until` 排队
+
+### 4 条 event-level sentinel（GPT 指定，全过）
+1. **无争用** → `parent_finish` **精确等于** `t + R_total`
+2. **GPU 被占用** → parent 延迟 **=** nested 延迟
+3. **nested finish** → **不 release parent 后继**
+4. **nested finish** → **不释放不属于自己的 GPU job**
+
+### gate 的两个洞（GPT 指出）
+1. `templates != 640` / `nested_merged != 169` 原来只打印 MISMATCH **不影响退出码** →
+   现在**进入聚合，fail-closed**
+2. **`_has_cycle()` 原来是错的**（colour DFS 未保持递归栈）→ 换成 **Kahn 入度扫描**（精确、独立）
+3. 新增 **provenance 断言**：`node_type != run_control` 且 `NOT(event_type=="run" AND raw_action=="answer")`
+   —— 不只靠 `resource_applicable == true`
+- **gate 仍 640/640 PASS，exit 0**
+
+### 169 合并的集合等价（GPT 指出我只验证了 precision）
+从 **raw trace 独立重新发现**，再与 projection 做 **exact set compare**：
+```
+projected 169 / discovered 169 / false positive 0 / false negative 0
+EXACT SET EQUALITY: True
+```
+
+### TIE 的 B（GPT 纠正了自己上一轮的建议）
+> 论文里的 `B` **不是 GPU 数量，而是 configured maximum batch size**。
+所以 `tie_B = len(gpu_topology_mb)` **是 adaptation，不是论文原义** ——
+已写进 `TIE_DEVIATION`，并要求**不得描述成 "paper's B"**。
+（`γ=0.9, τ=30s` GPT 确认**是论文原值**。）
+
+### 仍然未做
+- **LLMSched**：`H(X) ≠ I(X;Y)`。GPT 说"先不要碰 LLMSched"，等 substrate 冻结
+- **Pythia**：不是 role-PFA
+- **Latency-Aware**：key 不是 Eq.12 + **真值泄漏**（用 `compute_ms`）
+  - GPT 给了边界：**Latency-Aware 必须有自己独立的 train-only predictor**，
+    **绝对不共享 F0 的输出**；可共享的只有 train split / 当前可观察 raw request fields / simulator
