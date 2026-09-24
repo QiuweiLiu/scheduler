@@ -150,6 +150,30 @@ class CompositeSentinels(unittest.TestCase):
         self.assertGreaterEqual(segs[1][0], segs[0][1] - 1e-9,
                                 "the two composite segments overlap")
 
+    def test_7_preemption_cannot_victimise_a_composite_segment(self):
+        """A running inner segment must never be torn down by the preemption path.
+
+        The composite deliberately does not use active_node, so maybe_preempt has no way
+        to see it.  With preemption enabled and a higher-priority job arriving, the
+        segment must still finish exactly once and the parent must complete exactly once.
+        """
+        pre, inner, post = 100.0, 700.0, 200.0
+        tpls = {"a": template("a", [composite_node("c:n", 0, pre, inner, post)]),
+                "b": template("b", [gpu_node("b:n", 0, 4000.0)])}
+        ep = episode([job("jb", "b", 0.0), job("ja", "a", 10.0)])
+        ep["jobs"].append({"job_instance_id": "jp", "template_id": "b",
+                           "arrival_ms": 100.0, "deadline_ms": 1e9,
+                           "service_class": "priority"})
+        _s, ev = simulate_episode(ep, tpls, "myopic_preempt", train_stats=hand_stats(),
+                                  extension_config={"preemption_enabled": True},
+                                  collect_events=True)
+        starts = by_type(ev, "nested_gpu_start", "c:n")
+        fins = by_type(ev, "nested_gpu_finish", "c:n")
+        parents = by_type(ev, "node_finish", "c:n")
+        self.assertEqual(len(starts), 1, "the inner segment must start exactly once")
+        self.assertEqual(len(fins), 1, "the inner segment must finish exactly once")
+        self.assertEqual(len(parents), 1, "the parent must complete exactly once")
+
     def test_6_gpu_stays_usable_during_the_preparation_phase(self):
         """A short normal GPU job must fit entirely inside the composite's R_pre."""
         pre, inner, post = 5000.0, 700.0, 200.0

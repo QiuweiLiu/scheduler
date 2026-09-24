@@ -163,11 +163,18 @@ def tie_queue_length(pool: Sequence[Any], competitive_priority: float) -> float:
     `(priority, ready_time, job_index, node_id)`.
     """
 
-    def priority_of(entry: Any) -> float:
-        first = entry[0]
-        return float(first[0] if isinstance(first, tuple) else first)
+    def ready_unit(entry: Any) -> Tuple[Any, Any] | None:
+        item = entry[0] if isinstance(entry[0], tuple) else entry
+        if float(item[0]) != float(competitive_priority):
+            return None
+        # item is (priority, ready_time, job_index, node_id)
+        return (item[2], item[3])
 
-    return float(sum(1 for entry in pool if priority_of(entry) == float(competitive_priority)))
+    # the pool is ready_node x free_gpu, so counting entries would multiply the queue by
+    # the number of free devices.  L_q counts WAITING UNITS, so deduplicate.
+    units = {ready_unit(entry) for entry in pool}
+    units.discard(None)
+    return float(len(units))
 
 
 def tie_load_estimate(bank: Mapping[str, Any], node: Any) -> float:

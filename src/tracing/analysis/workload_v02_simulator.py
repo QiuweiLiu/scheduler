@@ -622,6 +622,9 @@ class GPU:
     # below it, so a normal completion cannot erase another segment's reservation.  It
     # is deliberately not "occupied from now": the preparation phase touches nothing.
     composite_tail: float = 0.0
+    # telemetry only: which composite segment holds the device.  It is deliberately not
+    # active_node, so the preemption path cannot mistake a CPU parent for a GPU victim.
+    composite_owner: str = ""
     prefetch_count: int = 0
     prefetch_load_ms: float = 0.0
     wasted_prefetches: int = 0
@@ -4424,35 +4427,19 @@ def simulate_episode(
         if not all(isinstance(v, (int, float)) for v in (inner, pre, post)):
             raise ValueError("composite node %s lacks pre/inner/post" % node.node_id)
 
-        # capacity, not availability: a busy device queues the segment
-        target = None
-        for gpu in gpus:
-            if model in gpu.resident:
-                target = gpu
-                break
-        if target is None:
-            for gpu in gpus:
-                if sum(gpu.resident.values()) + float(need_mb) <= gpu.capacity_mb + 1e-9:
-                    target = gpu
-                    break
-        if target is None:
-            job.node_state[node.node_id] = "failed"
-            job.failed.add(node.node_id)
-            log("node_fail", job, node, reason="nested_gpu_no_capacity", model_id=model)
-            complete_job_if_done(job)
-            return sequence
-
         nested_ready = float(now) + float(pre)
 
-        # do NOT touch the device here.  The preparation phase must leave it usable, so
-        # only the ready event is scheduled; the claim happens when the device is needed.
+        # Device choice and admission are deliberately deferred to nested_ready.  Between
+        # parent_start and nested_ready normal GPU work may run and change residency and
+        # free capacity, so deciding here would be a check-then-use hazard.  No gpu_index
+        # is carried either; the ready event resolves the device from live state.
         sequence += 1
         heapq.heappush(
             finish_heap,
-            (nested_ready, int(sequence), int(job_index), "gpu_nested_ready", target.index,
+            (nested_ready, int(sequence), int(job_index), "gpu_nested_ready", None,
              node.node_id),
         )
-        log("nested_gpu_admit", job, node, gpu_index=target.index, nested_model_id=model,
+        log("nested_gpu_admit", job, node, nested_model_id=model,
             nested_ready_ms=round(nested_ready, 3), nested_memory_mb=round(float(need_mb), 3))
         return sequence
 
@@ -4570,46 +4557,64 @@ def simulate_episode(
             job = jobs[job_index]
 
             if lane == "gpu_nested_ready":
-                # the device is actually needed now, so this is where it is claimed
-                gpu = gpus[gpu_index]
+                # the device is actually needed now, so residency, capacity and placement
+                # are all resolved against LIVE state at this instant
                 parent = job.template.by_id[node_id]
                 need_mb = float(getattr(parent, "nested_model_mb", 0.0) or 0.0)
                 model = str(getattr(parent, "nested_model_class", "") or "")
                 inner = float(getattr(parent, "nested_inner_ms", 0.0) or 0.0)
-                start = max(float(now), float(gpu.busy_until))
+
+                target = None
+                for candidate_gpu in gpus:
+                    if model in candidate_gpu.resident:
+                        target = candidate_gpu
+                        break
+                if target is None:
+                    for candidate_gpu in gpus:
+                        if sum(candidate_gpu.resident.values()) + need_mb <= candidate_gpu.capacity_mb + 1e-9:
+                            target = candidate_gpu
+                            break
+                if target is None:
+                    job.node_state[node_id] = "failed"
+                    job.failed.add(node_id)
+                    log("node_fail", job, parent, reason="nested_gpu_no_capacity", model_id=model)
+                    complete_job_if_done(job)
+                    continue
+
+                start = max(float(now), float(target.busy_until), float(target.composite_tail))
                 inner_finish = start + inner
-                if model and model not in gpu.resident:
-                    gpu.resident[model] = need_mb
-                    log("model_load_start", job, parent, gpu_index=gpu.index, load_ms=0.0,
+                if model and model not in target.resident:
+                    target.resident[model] = need_mb
+                    log("model_load_start", job, parent, gpu_index=target.index, load_ms=0.0,
                         load_source="nested_composite")
-                gpu.peak_memory_mb = max(gpu.peak_memory_mb, sum(gpu.resident.values()))
-                was_free = gpu.active_node is None and float(gpu.busy_until) <= start + 1e-9
-                gpu.busy_until = max(float(gpu.busy_until), inner_finish)
-                gpu.composite_tail = max(float(gpu.composite_tail), inner_finish)
-                if was_free:
-                    gpu.active_node = (int(job_index), node_id)
-                    gpu.active_start_ms = start
-                gpu.busy_time_ms += inner
+                target.peak_memory_mb = max(target.peak_memory_mb, sum(target.resident.values()))
+                target.busy_until = max(float(target.busy_until), inner_finish)
+                target.composite_tail = max(float(target.composite_tail), inner_finish)
+                # deliberately NOT target.active_node: the preemption path would treat the
+                # CPU parent as an ordinary GPU victim and tear down this segment
+                target.composite_owner = "%d:%s" % (int(job_index), node_id)
+                target.busy_time_ms += inner
                 sequence += 1
                 heapq.heappush(
                     finish_heap,
-                    (inner_finish, int(sequence), job_index, "gpu_nested", gpu_index, node_id),
+                    (inner_finish, int(sequence), job_index, "gpu_nested", target.index, node_id),
                 )
-                log("nested_gpu_start", job, parent, gpu_index=gpu.index,
+                log("nested_gpu_start", job, parent, gpu_index=target.index,
                     nested_start_ms=round(start, 3), nested_finish_ms=round(inner_finish, 3))
                 continue
 
             if lane == "gpu_nested":
-                # the inner segment ended.  Release ONLY the claim: the parent is still
-                # running and must not be completed here, no successor may be released,
-                # and composite_tail must never be shrunk.
+                # the inner segment ended.  Release ONLY the composite ownership: the
+                # parent is still running and must not be completed here, no successor may
+                # be released, and composite_tail must never be shrunk.
                 if gpu_index is not None:
                     gpu = gpus[gpu_index]
-                    if gpu.active_node is not None and gpu.active_node[1] == node_id:
-                        gpu.active_node = None
-                        gpu.active_start_ms = None
+                    if getattr(gpu, "composite_owner", "") == "%d:%s" % (int(job_index), node_id):
+                        gpu.composite_owner = ""
                 parent = job.template.by_id[node_id]
                 post = float(getattr(parent, "nested_post_ms", 0.0) or 0.0)
+                log("nested_gpu_finish", job, parent, finish_ms=round(float(finish), 3),
+                    gpu_index=gpu_index)
                 sequence += 1
                 heapq.heappush(
                     finish_heap,

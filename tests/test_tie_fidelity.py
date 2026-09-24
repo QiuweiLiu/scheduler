@@ -11,6 +11,9 @@ import unittest
 
 from tracing.analysis.tie_methods import (
     TIE_DEVIATION,
+    tie_load_estimate,
+    tie_queue_length,
+    tie_score_for,
     bank_sample_report,
     build_tie_bank,
     tie_beta,
@@ -109,6 +112,61 @@ class FrontEndTests(unittest.TestCase):
 
     def test_deviation_is_recorded(self):
         self.assertIn("max-token censoring", TIE_DEVIATION)
+
+
+class QueueLengthTests(unittest.TestCase):
+    """L_q must count WAITING UNITS, not candidate tuples.
+
+    The pool is ready_node x free_gpu, so counting entries would multiply the waiting
+    queue by the number of free devices.  These two cases differ only in the number of
+    free GPUs and must report the same L_q.
+    """
+
+    @staticmethod
+    def _candidate(priority, job_index, node_id, gpu_index):
+        return ((priority, 0.0, job_index, node_id), job_index, node_id, "mX", gpu_index,
+                {"runtime_p50_ms": 1.0, "load_p50_ms": 0.0}, True)
+
+    def test_two_ready_units_on_one_free_gpu(self):
+        pool = [self._candidate(0.0, 0, "a:n", 0), self._candidate(0.0, 1, "b:n", 0)]
+        self.assertEqual(tie_queue_length(pool, 0.0), 2.0)
+
+    def test_two_ready_units_on_two_free_gpus_is_still_two(self):
+        pool = []
+        for gpu_index in (0, 1):
+            pool.append(self._candidate(0.0, 0, "a:n", gpu_index))
+            pool.append(self._candidate(0.0, 1, "b:n", gpu_index))
+        self.assertEqual(len(pool), 4, "the pool really does replicate per free device")
+        self.assertEqual(tie_queue_length(pool, 0.0), 2.0,
+                         "L_q must not scale with the number of free GPUs")
+
+    def test_only_the_competitive_priority_tier_counts(self):
+        pool = [self._candidate(0.0, 0, "a:n", 0), self._candidate(1.0, 1, "b:n", 0)]
+        self.assertEqual(tie_queue_length(pool, 0.0), 1.0)
+        self.assertEqual(tie_queue_length(pool, 1.0), 1.0)
+
+
+class LoadOwnershipTests(unittest.TestCase):
+    def test_load_comes_from_the_tie_bank(self):
+        bank = two_group_bank(1.0, 1.0, 2.0, 2.0)
+        bank["groups"]["mA|gpu"]["load_mean_ms"] = 42.0
+        node = one_node_template("t", "mA", 1.0).nodes[0]
+        self.assertAlmostEqual(tie_load_estimate(bank, node), 42.0)
+
+    def test_score_is_built_only_from_the_bank(self):
+        bank = two_group_bank(100.0, 400.0, 2.0, 2.0)
+        bank["groups"]["mA|gpu"]["load_mean_ms"] = 1.0
+        node = one_node_template("t", "mA", 1.0).nodes[0]
+        # E + beta*CVaR + load = 100 + 0.5*400 + 1
+        self.assertAlmostEqual(tie_score_for(bank, node, 0.5, resident=False), 301.0)
+        # a resident model pays no load
+        self.assertAlmostEqual(tie_score_for(bank, node, 0.5, resident=True), 300.0)
+
+    def test_missing_group_fails_closed(self):
+        bank = two_group_bank(1.0, 1.0, 2.0, 2.0)
+        with self.assertRaises(KeyError):
+            tie_score_for(bank, one_node_template("t", "nope", 1.0).nodes[0], 0.5,
+                          resident=True)
 
 
 class FormulaTests(unittest.TestCase):

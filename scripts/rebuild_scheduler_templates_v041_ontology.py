@@ -146,6 +146,7 @@ def attach_nested_resources(node: Dict[str, Any], trace: Mapping[str, Mapping[st
             node["nested_pre_ms"] = ns - ps
             node["nested_inner_ms"] = ne - ns
             node["nested_post_ms"] = pe - ne
+            node["nested_contained"] = bool(ps - 1.0 <= ns and ns <= ne and ne <= pe + 1.0)
         attached += 1
     return attached
 
@@ -191,7 +192,7 @@ def rebuild(template: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def main() -> int:
-    root = Path(r"F:\scheduler")
+    root = PROJECT_ROOT
     src = root / "results/processed/r7_workload_v04_causal_v31_no_run_container/job_templates_r7_v04.jsonl"
     out_dir = root / "results/processed/r7_workload_v041_ontology_no_run_container"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -217,10 +218,22 @@ def main() -> int:
             assert str(n["node_id"]) not in merged_ids, "a merged nested call survived"
             assert not is_run_control(n), "a run_control survived in %s" % r["template_id"]
             if n.get("nested_calls"):
+                assert len(n["nested_calls"]) == 1, (
+                    "the frozen ontology is one parent : one nested child, but %s has %d"
+                    % (n["node_id"], len(n["nested_calls"])))
                 parts = (n.get("nested_pre_ms"), n.get("nested_inner_ms"), n.get("nested_post_ms"))
                 assert all(isinstance(p, (int, float)) for p in parts), (
                     "composite %s lacks pre/inner/post" % n["node_id"])
+                pre, inner, post = (float(x) for x in parts)
                 total = float(n.get("runtime_ms") or 0.0)
+                # the sum is an identity: (ns-ps)+(ne-ns)+(pe-ne) == pe-ps telescopes, so it
+                # holds even when the inner interval sits outside the parent.  Assert the
+                # containment itself instead.
+                assert pre >= -1.0, "composite %s: nested starts before its parent" % n["node_id"]
+                assert inner >= 0.0, "composite %s: negative inner interval" % n["node_id"]
+                assert post >= -1.0, "composite %s: nested ends after its parent" % n["node_id"]
+                assert n.get("nested_contained") is True, (
+                    "composite %s: inner interval is not inside the parent" % n["node_id"])
                 assert abs(sum(parts) - total) <= 1.0, (
                     "composite %s: pre+inner+post=%.3f but R_total=%.3f"
                     % (n["node_id"], sum(parts), total))
@@ -228,6 +241,8 @@ def main() -> int:
     print("templates            : %d" % len(rebuilt))
     print("nodes before         : %d" % before)
     print("nodes after          : %d" % after)
+    assert len(rebuilt) == 640, "expected 640 templates, got %d" % len(rebuilt)
+    assert nested == 169, "expected 169 nested merges, got %d" % nested
     print("nested merged        : %d   (the review counted 169)" % nested)
     with_parts = sum(1 for r in rebuilt for n in r["nodes"] if n.get("nested_calls"))
     print("resource_applicable=false : %d" % ra_false)
