@@ -46,12 +46,44 @@
 - 三条共享模块建议（`verify_raw_run` → `canonicalize_v31` → `project_scheduler_chain`）未做
 
 ## Active
-无长时任务在跑。
+LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**——这是刻意的中间状态，不是遗漏。
+两个已实测的阻塞点见下。
+
+`llmsched_bn_legacy.py` 保存退役实现（逐字节），其测试套件已改为显式指向它，使「退役」可重放。
+`src/tracing/analysis/workload_v02_simulator.py` 中 `policy == "llmsched"` 分支暂时 import
+`llmsched_bn_legacy`，并标注 **NOT YET MIGRATED**。
+
+### 已完成（`111b3e4`）
+- **LLM-2** `src/tracing/analysis/llmsched_stage.py`：canonical stage ontology
+  = `(lane, role, action_family, raw_action)` + **prefix-only** occurrence；
+  `sequence_index` 只作**顺序**、绝不作 identity。v04.1 上得 **55 个 stage / 480 train 模板**，
+  6 个 duration bin（log 空间分位、完全均衡），**76.8 % vocabulary 条目为 ABSENT**。
+  不用 `template.baseline` 作 application family；非 train 模板跳过并计数。
+- **LLM-3** `llmsched_bn.py` v2：每 stage 一个离散变量 `{ABSENT, D0..D5}`，
+  按条件互信息贪心选父，CPD **对所有父组合补全** + 平滑。净得 **68 边 / max indegree 2 /
+  induced width 4**（guard 6 内）。两项额外约束记录为 adaptation 并附原因：**lag window**
+  （纯因果序贪心在 480 样本上过拟合到 induced width 53）与 **min gain**。
+- **LLM-4** 精确变量消元（证据折入因子）。**L1 全过**：`P(A)` / `P(B|A)` / `P(C|A)` /
+  `P(B,C|A)` / `P(B|A,C)` / `P(C|A,B)` 与手工值**精确一致**。
+- **LLM-5** `uncertainty_reduction = 互信息 × Range`；`draw_mode` 保持**每次决策一枚硬币**。
+
+### L1 抓出的三个真 bug（都是「静默返回貌似合理的错值」）
+1. 观测到的**后代**被「只走祖先」的剪枝丢掉 → `P(B=t|A=t,C=f)` 返回 0.9 而非 0.75
+2. 因子相乘时用**错误的操作数**去翻译 key 索引
+3. 观测到的**子节点**保留了自身坐标轴 → 被当作隐变量求和掉而非钉住
+
+### 两个阻塞点（均已实测，未修）
+1. **精确推断 ~2 s / 次查询**：消元循环每步都对每个剩余变量重扫全部因子。调度内循环付不起。
+2. **`∏ Range` 在 30 个后代上爆到 1e+72**：一个 stage 在 55-stage vocabulary 上有多达 30 个
+   可达后代，`∏ Range` 被用在了远大于「单个 workflow 剩余 stage」的集合上。
 
 ## Next
-1. **LLMSched 修复**：LLM-1 替换假 BN frontend（删 `P(length|baseline)` / position histogram / `entropy(position)`），
-   旧实现保留为 legacy test oracle；按 L1–L7 建 sentinel（含 same-H-different-MI 与 E2E mutation）
-2. Pythia role-PFA 重构；Latency-Aware 换成自训练 request-conditioned predictor
-3. 冻结 `SchedulerTopologyContractGate` + `BaselineFidelityManifest`
-4. 重跑 30 集 smoke（只看机制）
-5. 在 v04.1 上重算 fusion 素材与调度机会
+1. **修 LLM-4 性能**：按 canonical order 做消元 + 预计算 pairwise 边际（或按 evidence 签名缓存），
+   目标 µs 级；然后把消费端从 legacy 切到 v2（去掉 NOT YET MIGRATED 标记）
+2. **定 `Range` 的 scope**：把 Y 限制为「当前 workflow 剩余 canonical stage」或最近 k 个后代，
+   使 `∏ Range` 与原论文语义一致
+3. 补 **L2–L7** gate（`tests/test_llmsched_bn_v2.py`），尤其 **L2 同 entropy 不同 MI**
+4. Pythia role-PFA 重构；Latency-Aware 换成自训练 request-conditioned predictor
+5. 冻结 `SchedulerTopologyContractGate` + `BaselineFidelityManifest`
+6. 重跑 30 集 smoke（只看机制）；在 v04.1 上重算 fusion 素材与调度机会
+
