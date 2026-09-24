@@ -2,7 +2,13 @@
 
 ## Goal
 四条**联合基线**（faithful adaptation）+ 完全体证据链。
-**substrate Freeze v1 已获批**；下一步进 LLMSched 修复。
+**substrate Freeze v1 已正式签字**（HEAD `9aedf2b`，implementation closure `af78ec8`）；
+下一步按 LLM-1…LLM-6 修 LLMSched。
+
+> **Freeze 声明**：除非 baseline 实现暴露出**可复现的 substrate correctness bug**，
+> 否则不再改动 topology / composite / admission / TIE / raw rebuild / preemption 语义。
+> LLMSched 实施方案全文见 `docs/research/2026-09-24_llmsched_adapted_implementation_plan.md`
+> （LLM-1…6 + L1–L7 gate + artifact manifest 的 faithful/adapted 清单）。
 
 ## Done
 - **拓扑 edge 回归**已修复（v04）；**节点本体**已对齐 v3.1（**v04.1**）
