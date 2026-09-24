@@ -86,26 +86,30 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
-### LLMSched v2（df56a47）＋ GPT 复核后的五项窄修（874abd3）
-- **① 拓扑泄漏（P0，已修）**：Y 曾取自 realized template 的未执行后缀 —— 而那正是 LLMSched
-  要建模的**结构不确定性**（论文前提：精确 stages 与依赖**运行前未知**）。数值「看起来很合理」却在泄漏答案。
-  现在 Y 来自**学习到的网络 − 已观测**；泄漏用的 helper **已删除**（不是留着不用），
-  并加**源码级断言**防回归。新增 **L4b**：固定 prefix/ready set/evidence，
-  重写**每个未执行节点**（换 role、换 family、换时长）→ evidence / posterior / R(X) **必须不变**。
-- **② Range 求和不是连乘（已修）**：论文是聚合未来 stage 的时长跨度；连乘不是论文公式，
-  也是 1e72 的来源。同时去掉 max(1.0, range) 地板——真 range=0 就该贡献 0。
-- **③ 用真 joint 而非 pairwise sum（已修）**：scope 修正后实测 **|Y| max 35 / 均值 16.8**，
-  全集 joint 是 7^17 不可行。论文的 Y 是**与候选相关**的未来，故按**最短有向路径最近**取
-  MAX_JOINT_FUTURE=4，信息项用**精确 joint**。测试钉住二者差异（真实网络 0.483754 vs 0.487258）。
-- **④ L2 重写（已修）**：旧 mi() 算的是**一致率不是互信息**，独立 Bernoulli(0.5) 一致率 0.5 而真实 I=0，
-  所以**熵型打分器仍能通过**。新 L2 用两个手工网络（同边际熵、同 Range；一个 Y=X、一个独立），
-  **直接断言 production uncertainty_reduction**：1.0 / 0.0 / R(informative)>R(independent)。确定性、无采样、无阈值。
-- **⑤ 三个静默错值（已修）**：stage_range_ms 未知 stage 由返回 0.0 改为 **raise**（真 0 仍为 0）；
-  profiler_sha256 原本**没含 CPDs**（结构同、表不同 → 同 hash），现覆盖 CPDs / stage_range /
-  lag / gain / 完整 discretizer；证据改为 
-ode_finish 时从 truth provider 落成
-  job.observed_intrinsic_ms 并**要求观测存在**（去掉回退），使「完成后才可知」成为结构性事实。
-- 端到端：EXPLOIT/EXPLORE 仍产生不同调度，均完成 6 个 job。全量 **320 测试 / 5 个预存失败**。
+### LLMSched v2 —— 全部窄项已关闭，等 GPT 签 freeze（HEAD 3a349b）
+提交链：df56a47（v2 消费端 + L1–L7）→ 874abd3（五项窄修）→ 87e2619（同截断 Y + present 条件化）
+→ 3a349b（Algorithm 1 non-overlapping duration-set）。
+
+GPT 两轮 review 的**全部**窄项均已关闭：
+- **① 拓扑泄漏（P0）**：Y 取自 realized template 的未执行后缀 = 泄漏结构真相。
+  改为来自**学习到的网络 − 已观测**；泄漏 helper **已删除** + 源码级断言；新增 **L4b** 未来结构不变性。
+- **② Range 求和不是连乘**；去掉 max(1.0, range) 地板。
+- **③ 真 joint**：|Y| 实测 max 35 / 均值 16.8 → 按最短路径取 MAX_JOINT_FUTURE=4，
+  信息项用精确 joint（docstring 已改为**固定计算性 adaptation**，非论文值）。
+- **④ L2 重写**：旧 mi() 是**一致率不是互信息**（熵型打分器仍能通过）。
+  新 L2 用两个手工网络直接断言 production uncertainty_reduction：1.0 / 0.0 / R(informative)>R(independent)。
+- **⑤ 三个静默错值**：stage_range_ms 缺字段 raise；profiler_sha256 覆盖 CPDs 等；
+  证据改为 
+ode_finish 落成 job.observed_intrinsic_ms 且**要求观测存在**。
+- **⑥ 两个项用同一个截断 Y**（Eq 6 两边同集合），测试手算 R 比对且断言与「全后代」版本不等。
+- **⑦ ready candidate 条件化 X != ABSENT**（实测 0.119221 → 0.000000）。
+- **⑧ Algorithm 1 non-overlapping duration-set**：EXPLORE key = (priority, group_index, -R(X), ...)。
+  实测 EXPLORE 178312.8 → **178539.8**（确实改变），EXPLOIT 不变。
+
+验证：v2 gate **33/33**；全量 **328 测试 / 5 个预存失败**。
+
+**阻塞**：GPT 复核通道故障 —— 连续 3 次回复被截断（58 / 2 字符）。已重发两次无效。
+需用户决定替代路线（新开 chat / 换会话 / 先推进 Pythia）。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
