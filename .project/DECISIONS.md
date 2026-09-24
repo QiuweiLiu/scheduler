@@ -1005,3 +1005,42 @@ TIE fidelity 15/15、composite 6/6、全量 287 个测试（5 个失败套件全
 2. ✅ 6 条 sentinel
 3. ✅ TIE 的 unique `Lq` + load ownership
 4. ✅ raw-trace producer
+
+## 2026-09-24 — substrate Freeze v1 获批；queued-composite 保留量必须挡住抢占
+
+**决定**
+1. GPT 复核（HEAD `2052a8f`）判定 substrate **Freeze v1 批准**。范围：v04.1 ontology/topology、
+   composite 非抢占执行语义、GPU placement/admission、TIE、gate 与 raw rebuild。
+   `myopic_preempt` / `batch_myopic_preempt` 列为**非正式 extension**，不再阻塞全局 freeze。
+2. **queued composite 的保留量优先于抢占**：设备上有 composite 段持有或排队时，
+   该设备的 active node **不允许被抢占**。
+
+**原因**
+- 抢占路径只从 `active_node` / `busy_until` 判断空闲。sentinel 7 覆盖的顺序里保留量尚不存在；
+  GPT 给出未被覆盖的顺序：N 占 0..4000 → composite 在 nested_ready 入队 [4000,4700] 并把
+  `busy_until`/`composite_tail` 置 4700 → 抢占在 t=200 到达，把 `busy_until` 回绕到 200，
+  而 `composite_tail` 仍是 4700。此时设备看起来空闲，普通 dispatch 会穿过已保留窗口。
+- 备选方案 `busy_until = max(now, composite_tail)` 被否：composite 起点仍按旧的前驱 finish 计算，
+  会留下一段保守空闲，语义更差且更难解释。
+- 选中的方案代价最多是一次前驱重算，且只发生在本来就属于 extension 的路径上；
+  语义简单、确定、可解释。
+
+**替代方案与拒绝原因**
+- `busy_until = max(now, composite_tail)`：留下保守空闲窗口，拒绝。
+
+**验证**
+- sentinel 8：保留窗口仍 start 一次 / finish 一次 / 父完成一次；优先级作业既不在
+  [4000,4700] 内 start 也不在其中 finish。
+- composite sentinel 8/8；TIE 21/21；全量 295 测试（5 个失败套件全部预先存在）。
+- 真实 v04.1 bank：5 组、0 缺 `load_mean_ms`、`fraction_lt_10=0`、`fraction_singleton=0`。
+
+## 2026-09-24 — 缺失的 load 字段不是零
+
+**决定**：`tie_load_estimate` 在 `load_mean_ms` **字段缺失**时 `raise KeyError`；
+只有**显式 null** 才合法地表示 0（记录该组没有 load 样本）。
+
+**原因**：原实现 `group.get("load_mean_ms", 0.0)` 把字段缺失静默读成零负载，
+会让一个 bank 构造 bug 表现为「这个模型加载免费」，从而污染 TIE 分数。
+真实 `build_tie_bank()` 始终写该字段，正式路径不受影响。
+
+**验证**：真实 bank 检查 0 缺失；手工 fixture 已补齐字段；TIE 21/21。
