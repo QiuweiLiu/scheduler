@@ -55,9 +55,11 @@ def two_group_bank(mean_a, cvar_a, mean_b, cvar_b):
 
     return {"schema": "test", "groups": {
         "mA|gpu": {"model_id": "mA", "lane": "gpu", "sample_count": 100,
-                   "runtime_mean_ms": mean_a, "runtime_cvar90_ms": cvar_a},
+                   "runtime_mean_ms": mean_a, "runtime_cvar90_ms": cvar_a,
+                   "load_mean_ms": 0.0},
         "mB|gpu": {"model_id": "mB", "lane": "gpu", "sample_count": 100,
-                   "runtime_mean_ms": mean_b, "runtime_cvar90_ms": cvar_b},
+                   "runtime_mean_ms": mean_b, "runtime_cvar90_ms": cvar_b,
+                   "load_mean_ms": 0.0},
     }}
 
 
@@ -81,7 +83,8 @@ class FrontEndTests(unittest.TestCase):
         for broken in ({"runtime_mean_ms": None}, {"runtime_cvar90_ms": None}):
             bank = {"groups": {"m1|gpu": {"model_id": "m1", "lane": "gpu",
                                           "sample_count": 5, "runtime_mean_ms": 1.0,
-                                          "runtime_cvar90_ms": 2.0, **broken}}}
+                                          "runtime_cvar90_ms": 2.0, "load_mean_ms": 0.0,
+                                          **broken}}}
             with self.assertRaises(ValueError):
                 tie_current_distribution(bank, one_node_template("t", "m1", 1.0).nodes[0])
 

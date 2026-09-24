@@ -177,6 +177,24 @@ def tie_queue_length(pool: Sequence[Any], competitive_priority: float) -> float:
     return float(len(units))
 
 
+def _tie_required_load(group):
+    """A missing load field is a bank-construction bug, not a zero.
+
+    A zero is only legitimate when the bank records that it saw no load samples.  The
+    real build_tie_bank() always writes load_mean_ms, so the formal path is unaffected.
+    """
+    if "load_mean_ms" not in group:
+        raise KeyError(
+            "TIE bank group %r has no load_mean_ms; a missing load field must not be "
+            "silently read as zero load" % (group.get("model_id"), group.get("lane"))
+        )
+    value = group["load_mean_ms"]
+    if value is None:
+        # an explicit null is the only legal zero: it records a group that saw no load
+        return 0.0
+    return float(value)
+
+
 def tie_load_estimate(bank: Mapping[str, Any], node: Any) -> float:
     """The model-load surcharge, read from TIE's own bank.
 
@@ -189,7 +207,7 @@ def tie_load_estimate(bank: Mapping[str, Any], node: Any) -> float:
     group = (bank.get("groups") or {}).get("%s|%s" % (model_id, lane))
     if group is None:
         raise KeyError("TIE bank has no group for (%r, %r)" % (model_id, lane))
-    value = group.get("load_mean_ms", 0.0)
+    value = _tie_required_load(group)
     if not isinstance(value, (int, float)):
         raise ValueError("TIE group (%r, %r) has a non-numeric load" % (model_id, lane))
     return float(value)

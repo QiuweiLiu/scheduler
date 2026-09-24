@@ -625,6 +625,10 @@ class GPU:
     # telemetry only: which composite segment holds the device.  It is deliberately not
     # active_node, so the preemption path cannot mistake a CPU parent for a GPU victim.
     composite_owner: str = ""
+    # number of composite segments that hold or are queued for this device.  While this
+    # is positive the device's active node must not be preempted, otherwise busy_until
+    # can be rewound past the reservation and an unrelated job can be dispatched into it.
+    composite_queued: int = 0
     prefetch_count: int = 0
     prefetch_load_ms: float = 0.0
     wasted_prefetches: int = 0
@@ -4593,6 +4597,7 @@ def simulate_episode(
                 # deliberately NOT target.active_node: the preemption path would treat the
                 # CPU parent as an ordinary GPU victim and tear down this segment
                 target.composite_owner = "%d:%s" % (int(job_index), node_id)
+                target.composite_queued += 1
                 target.busy_time_ms += inner
                 sequence += 1
                 heapq.heappush(
@@ -4611,6 +4616,7 @@ def simulate_episode(
                     gpu = gpus[gpu_index]
                     if getattr(gpu, "composite_owner", "") == "%d:%s" % (int(job_index), node_id):
                         gpu.composite_owner = ""
+                    gpu.composite_queued = max(0, int(getattr(gpu, "composite_queued", 0)) - 1)
                 parent = job.template.by_id[node_id]
                 post = float(getattr(parent, "nested_post_ms", 0.0) or 0.0)
                 log("nested_gpu_finish", job, parent, finish_ms=round(float(finish), 3),
@@ -4674,6 +4680,11 @@ def simulate_episode(
             victim_job = jobs[victim_job_index]
             victim_node = victim_job.template.by_id[victim_node_id]
             if victim_job.service_class == "priority":
+                continue
+            if int(getattr(gpu, "composite_queued", 0)) > 0:
+                # a composite segment holds or is queued for this device.  Preempting the
+                # active node would rewind busy_until past the reservation, so the device
+                # would look free while a queued segment still owns [now, composite_tail].
                 continue
             should_preempt = (
                 target_priority < (0 if victim_job.service_class == "priority" else 1)

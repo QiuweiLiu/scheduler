@@ -150,6 +150,43 @@ class CompositeSentinels(unittest.TestCase):
         self.assertGreaterEqual(segs[1][0], segs[0][1] - 1e-9,
                                 "the two composite segments overlap")
 
+    def test_8_preemption_cannot_break_a_queued_reservation(self):
+        """A queued composite reservation must survive a later preemption.
+
+        N holds the device 0..4000.  The composite queues at nested_ready=110 for
+        [4000, 4700].  The priority job arrives at 200, i.e. AFTER the reservation
+        exists.  Preempting N would rewind busy_until to 200 and let P run straight
+        through the reserved window.
+        """
+        pre, inner, post = 100.0, 700.0, 200.0
+        tpls = {"n": template("n", [gpu_node("n:n", 0, 4000.0)]),
+                "c": template("c", [composite_node("c:n", 0, pre, inner, post)]),
+                "p": template("p", [gpu_node("p:n", 0, 500.0)])}
+        ep = episode([job("jn", "n", 0.0), job("jc", "c", 10.0), job("jp", "p", 200.0)])
+        ep["jobs"][2]["service_class"] = "priority"
+        _s, ev = simulate_episode(ep, tpls, "myopic_preempt", train_stats=hand_stats(),
+                                  extension_config={"preemption_enabled": True},
+                                  collect_events=True)
+
+        starts = by_type(ev, "nested_gpu_start", "c:n")
+        fins = by_type(ev, "nested_gpu_finish", "c:n")
+        parents = by_type(ev, "node_finish", "c:n")
+        self.assertEqual(len(starts), 1, "the reservation must still start exactly once")
+        self.assertEqual(len(fins), 1, "the inner segment must finish exactly once")
+        self.assertEqual(len(parents), 1, "the parent must complete exactly once")
+        self.assertAlmostEqual(starts[0]["nested_start_ms"], 4000.0, places=6)
+        self.assertAlmostEqual(fins[0]["finish_ms"], 4700.0, places=6)
+
+        # nothing may execute inside the reserved window
+        for entry in ev:
+            if entry.get("event_type") == "node_start" and entry.get("node_id") == "p:n":
+                self.assertGreaterEqual(entry.get("start_ms", 0.0), 4700.0 - 1e-6,
+                                        "the priority job must not be dispatched into the reservation")
+        p_fin = by_type(ev, "node_finish", "p:n")
+        self.assertEqual(len(p_fin), 1, "the priority job must still complete")
+        self.assertGreaterEqual(p_fin[0]["finish_ms"], 4700.0 - 1e-6,
+                                "the priority job may only run after the reservation clears")
+
     def test_7_preemption_cannot_victimise_a_composite_segment(self):
         """A running inner segment must never be torn down by the preemption path.
 
