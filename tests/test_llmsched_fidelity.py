@@ -109,51 +109,53 @@ class EpsilonGreedyTests(unittest.TestCase):
         self.assertTrue(all(draw_mode(rng, 1.0) == "EXPLORE" for _ in range(500)))
 
 
-class LlmschedPolicyTests(unittest.TestCase):
+class LegacyFrontEndTests(unittest.TestCase):
+    """The retired front end's own behaviour, driven directly.
+
+    These used to run the LIVE ``llmsched`` policy.  That policy is now the v2 front
+    end, whose profiler carries a discretizer this one does not have, so driving the
+    policy from here would test a mixture of the two.  The policy integration is
+    covered by L7 in test_llmsched_bn_v2.py; what is kept here is the retired
+    implementation's own behaviour, so the retirement stays replayable.
+    """
+
     def setUp(self):
-        self.templates = {f"t{i}": chain(f"t{i}", [100.0 + 20 * i, 200.0, 150.0], "fam", model=f"m{i}")
-                          for i in range(3)}
-        self.bn = build_bn_profiler(self.templates)
-        self.stats = train_resource_stats(self.templates)
-        self.episode = {
-            "episode_id": "llmsched-fidelity", "split": "train",
-            "gpu_topology_mb": [4000.0, 4000.0], "initial_residency_hint": [[], []],
-            "jobs": [{"job_instance_id": f"j{i}", "template_id": f"t{i}", "arrival_ms": 0.0,
-                      "deadline_ms": 1e9, "service_class": "normal"} for i in range(3)],
+        # deliberately DIFFERENT lengths: the retired posterior is over total length,
+        # so a corpus of equal-length workflows would make it a point mass that never
+        # moves as stages complete
+        self.templates = {
+            "t2": chain("t2", [100.0, 200.0], "fam", model="m0"),
+            "t3": chain("t3", [100.0, 200.0, 150.0], "fam", model="m1"),
+            "t4": chain("t4", [100.0, 200.0, 150.0, 120.0], "fam", model="m2"),
         }
+        self.bn = build_bn_profiler(self.templates)
 
-    def test_runs_and_completes(self):
-        s, _ = simulate_episode(self.episode, self.templates, "llmsched",
-                                train_stats=self.stats,
-                                policy_context={"llmsched_bn": self.bn,
-                                                "llmsched_rng": random.Random(1),
-                                                "llmsched_epsilon": 0.1},
-                                collect_events=False)
-        self.assertEqual(s["completed_jobs"], 3)
-        self.assertEqual(s["failed_jobs"], 0)
+    def test_posterior_advances_with_the_consumed_count(self):
+        """The retired criterion: the posterior moves on how MANY stages finished.
 
-    def test_fails_closed_without_the_bn_or_the_rng(self):
-        with self.assertRaises(ValueError):
-            simulate_episode(self.episode, self.templates, "llmsched",
-                             train_stats=self.stats, collect_events=False)
-        with self.assertRaises(ValueError):
-            simulate_episode(self.episode, self.templates, "llmsched",
-                             train_stats=self.stats,
-                             policy_context={"llmsched_bn": self.bn}, collect_events=False)
+        Note what that means: a stage that took 40 ms and one that took 40 s produce
+        the same posterior, so the retired front end cannot see a duration at all.
+        That is why v2 replaces it.
+        """
 
-    def test_explore_and_exploit_can_differ(self):
-        """EXPLORE and EXPLOIT must be able to pick different candidates."""
-        runtimes = []
-        for eps in (0.0, 1.0):
-            s, _ = simulate_episode(self.episode, self.templates, "llmsched",
-                                    train_stats=self.stats,
-                                    policy_context={"llmsched_bn": self.bn,
-                                                    "llmsched_rng": random.Random(1),
-                                                    "llmsched_epsilon": eps},
-                                    collect_events=True)
-            runtimes.append([e.get("node_id") for e in (s.get("events") or [])
-                             if e.get("event_type") == "node_start"])
-        self.assertEqual(len(runtimes[0]), len(runtimes[1]), "both modes must complete the same work")
+        before = posterior_length_probs(self.bn, "fam", 0)
+        after = posterior_length_probs(self.bn, "fam", 3)
+        self.assertNotEqual(before, after)
+        self.assertNotEqual(before, after)
+        self.assertAlmostEqual(sum(after.values()), 1.0)
+        self.assertTrue(all(length >= 3 for length in after))
+
+    def test_duration_entropy_reads_position_not_duration_state(self):
+        """The retired exploration term is H over a POSITION's runtime histogram."""
+
+        value = duration_entropy(self.bn, "fam", 1)
+        self.assertGreaterEqual(value, 0.0)
+        # a position with no samples has no entropy
+        self.assertEqual(duration_entropy(self.bn, "fam", 99), 0.0)
+
+    def test_uncertainty_reduction_is_entropy_times_spread(self):
+        r = uncertainty_reduction(self.bn, "fam", 0)
+        self.assertGreaterEqual(r, 0.0)
 
     def test_arm_is_registered(self):
         self.assertIn("llmsched", POLICIES)

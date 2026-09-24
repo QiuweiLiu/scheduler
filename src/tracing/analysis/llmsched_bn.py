@@ -401,6 +401,29 @@ def _normalise(table: "np.ndarray") -> "np.ndarray":
     return table / total
 
 
+def _relevant_variables(parents: Mapping[str, Sequence[str]], query: Sequence[str],
+                        evidence: Mapping[str, str]) -> set:
+    """The query, the evidence, and every ancestor of either.
+
+    Everything else is conditionally irrelevant and sums to one, so omitting it is
+    exact.  An observed variable that is a DESCENDANT of the query is reached through
+    its own ancestors, which is why evidence is folded into the same closure: that is
+    what lets evidence on a later stage travel back to an earlier query.
+    """
+
+    relevant: set = set()
+    stack = [str(name) for name in query] + [str(name) for name in evidence]
+    while stack:
+        node = stack.pop()
+        if node in relevant:
+            continue
+        if node not in parents:
+            raise KeyError("variable %r is not in the frozen vocabulary" % node)
+        relevant.add(node)
+        stack.extend(parents[node])
+    return relevant
+
+
 def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
                     evidence: Mapping[str, str]) -> Tuple[List[str], "np.ndarray"]:
     """Exact ``P(query | evidence)`` by variable elimination.
@@ -421,6 +444,15 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
     states = list(profiler["state_vocabulary"])
 
     query = [str(q) for q in query_stages]
+
+    # A posterior depends only on the frozen network and on the evidence, so an
+    # evidence-keyed memo makes repeated queries within one scheduling decision free.
+    # The cache lives beside the profiler rather than in a global keyed by id(), which
+    # would be unsound once a profiler is collected and another reuses its address.
+    cache = profiler.setdefault("_posterior_cache", {})
+    cache_key = (tuple(query), tuple(sorted((evidence or {}).items())))
+    if cache_key in cache:
+        return cache[cache_key]
     for q in query:
         if q not in parents:
             raise KeyError("query stage %r is not in the frozen vocabulary" % q)
@@ -442,8 +474,18 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
     # ancestor-only answer 0.9 instead of the correct 0.75, because the evidence on C
     # never travelled back up to B.  The induced-width guard already bounds what
     # eliminating the full graph costs, so there is no reason to prune here.
+    # Only the ancestors of the query and of the evidence can affect the answer.
+    # A variable that is neither is the root of a sub-tree that sums to one for every
+    # configuration of its parents, so dropping it is exact rather than an
+    # approximation: by induction its whole sub-tree marginalises away.  On this
+    # network that cuts the 55 variables down to a small window, which is what makes a
+    # query cheap enough for a scheduler inner loop.
+    relevant = _relevant_variables(parents, query, evidence or {})
+
     tables: List[Tuple[List[str], "np.ndarray"]] = []
     for node in stages:
+        if node not in relevant:
+            continue
         table_vars, table = _factor_over(node, parents[node], cpds, states, evidence or {})
         tables.append((table_vars, table))
 
@@ -452,7 +494,8 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
     # be cheap; the previous cheapest-first scan ranked variables by ``len(table)``,
     # which on a numpy array is only the first axis and not the table size, and its
     # O(variables^2) rescan per step was itself most of the 2 s a query used to cost.
-    eliminate = [v for v in stages if v not in query and v not in (evidence or {})]
+    eliminate = [v for v in stages
+                 if v in relevant and v not in query and v not in (evidence or {})]
     for target in eliminate:
         grouped: List[Tuple[List[str], "np.ndarray"]] = []
         product_vars: List[str] = []
@@ -478,7 +521,10 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
     table = table.transpose(order)
     variables = [variables[axis] for axis in order]
     table = _normalise(table)
-    return variables, table
+    result = (variables, table)
+    if len(cache) < 200000:
+        cache[cache_key] = result
+    return result
 
 
 def posterior_state_probs(profiler: Mapping[str, Any], query_stage: str,
@@ -531,16 +577,15 @@ def workflow_future_stages(profiler: Mapping[str, Any], template: Any,
     are not.  Nothing here reads an unexecuted node's duration.
     """
 
-    from tracing.analysis.llmsched_stage import advance_prefix, canonical_order
+    from tracing.analysis.llmsched_stage import canonical_order, canonical_stage_map
 
     known = set(profiler["stage_order"])
-    prefix: Dict[str, int] = {}
-    seen_target = False
-    out: List[str] = []
+    stage_of = canonical_stage_map(template)
     completed = set(completed)
+    out: List[str] = []
+    seen_target = False
     for node in canonical_order(template):
-        name = canonical_stage_key(node, prefix)
-        prefix = advance_prefix(prefix, node)
+        name = stage_of[str(node.node_id)]
         if name == stage:
             seen_target = True
             continue

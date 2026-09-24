@@ -3542,36 +3542,74 @@ def choose_action(
             raise ValueError("llmsched requires policy_context['llmsched_rng']")
         epsilon = float(ctx.get("llmsched_epsilon", 0.1))
 
-        # NOT YET MIGRATED to llmsched_bn v2.  The v2 module (canonical stage
-        # ontology + joint BN + exact posterior) is written and its hand-computed
-        # posterior gate passes, but its exact-inference engine is ~2 s per query and
-        # its `prod Range` factor over ~30 descendants overflows the score, so wiring
-        # it into this inner loop would be both wrong-scaled and far too slow.  Until
-        # that is fixed the CONSUMER stays on the retired front end, which is why the
-        # legacy module still exists.  `llmsched_bn_legacy` is otherwise unused.
-        from tracing.analysis.llmsched_bn_legacy import (
+        # v2 front end: a joint Bayesian network over canonical stages, with exact
+        # inference and evidence taken from completed stages' OBSERVED durations.
+        from tracing.analysis.llmsched_bn import (
             draw_mode,
+            current_service_ms as _bn_current,
+            evidence_from_completed,
             expected_remaining_ms as _bn_remaining,
             uncertainty_reduction as _bn_info,
+            workflow_future_stages as _bn_future,
         )
+        from tracing.analysis.llmsched_stage import canonical_stage_map
 
         # ONE coin per decision, not per candidate
         mode = draw_mode(rng, epsilon)
+
+        # Evidence and the node -> stage map are per job and only change when a node
+        # completes, so they are cached on the policy context instead of being rebuilt
+        # for every candidate.
+        stage_maps: dict[Any, Any] = ctx.setdefault("llmsched_stage_maps", {})
+        evidence_cache: dict[Any, Any] = ctx.setdefault("llmsched_evidence", {})
+
+        def stage_map_for(job: Any) -> dict[str, str]:
+            key = id(job.template)
+            cached = stage_maps.get(key)
+            if cached is None:
+                cached = canonical_stage_map(job.template)
+                stage_maps[key] = cached
+            return cached
+
+        def evidence_for(job: Any) -> dict[str, str]:
+            """Evidence from COMPLETED nodes only, each at its intrinsic duration.
+
+            The simulator is the truth provider for its own workload definition, so a
+            finished node's intrinsic runtime is a historical observation.  Using
+            ``finish_ms - node_start_ms`` instead would fold in the GPU queue delay
+            that this schedule itself produced, which is not what the network was
+            trained on.
+            """
+
+            key = job.job_instance_id
+            done = frozenset(job.completed)
+            entry = evidence_cache.get(key)
+            if entry is not None and entry[0] == done:
+                return entry[1]
+            value = evidence_from_completed(job, profiler)
+            evidence_cache[key] = (done, value)
+            return value
 
         def llmsched_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
             job = jobs[job_index]
-            family = str(getattr(job.template, "baseline", "") or "unknown")
-            consumed = len(job.completed)
-            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
-            current = float(estimate_row["runtime_p50_ms"]) + load
+            stage = stage_map_for(job)[node_id]
+            evidence = evidence_for(job)
+            # Y is THIS workflow's not-yet-finished successors of the candidate.  All
+            # candidates in one decision share that remaining set, so the paper's
+            # prod Range(Y) factor is a positive CONSTANT across them and cannot affect
+            # the ordering: EXPLORE is ranked by mutual information alone, which is
+            # exactly what gate L2 exercises.
+            future = _bn_future(profiler, job.template, job.completed, stage)
             if mode == "EXPLORE":
-                # larger information gain is better -> negate
-                primary = -_bn_info(profiler, family, consumed)
+                # larger uncertainty reduction is better -> negate
+                primary = -_bn_info(profiler, stage, evidence, future)
             else:
-                primary = current + _bn_remaining(profiler, family, consumed)
+                load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+                current = _bn_current(profiler, stage, evidence)
+                primary = current + _bn_remaining(profiler, stage, evidence, future)
             return (
                 float(item[0]),
                 primary,

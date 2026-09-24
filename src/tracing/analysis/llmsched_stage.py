@@ -90,6 +90,22 @@ def advance_prefix(prefix_state: Mapping[str, int], node: Any) -> Dict[str, int]
     return out
 
 
+def canonical_stage_map(template: Any) -> Dict[str, str]:
+    """Map every node id in a template to its canonical stage key.
+
+    Uses only the template's STRUCTURE and the ontology fields on each node.  Reading
+    an unexecuted node's duration is not involved, so this is the same visibility the
+    baseline is entitled to when it predicts a future action chain.
+    """
+
+    prefix: Dict[str, int] = {}
+    out: Dict[str, str] = {}
+    for node in canonical_order(template):
+        out[str(node.node_id)] = canonical_stage_key(node, prefix)
+        prefix = advance_prefix(prefix, node)
+    return out
+
+
 def canonical_order(template: Any) -> List[Any]:
     """The template's nodes in causal order.
 
