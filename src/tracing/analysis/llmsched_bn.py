@@ -93,12 +93,12 @@ MAX_INDUCED_WIDTH = 6
 # Hard cap on the future set when a caller does not supply the workflow's own
 # remaining stages.  A stage on the 55-stage vocabulary can reach about thirty
 # descendants, and multiplying that many ranges together overflows the score.
-MAX_FUTURE_STAGES = 8
-
-# The size of the future set over which the information term is computed as an exact
-# JOINT.  The cost is one table of 7^(M+1) entries, so this is an adaptation
-# hyperparameter chosen for tractability, not a value from the paper.  The remaining
-# descendants still contribute their duration ranges to the spread term.
+# The size of the truncated correlated future set.  Equation (6) uses this ONE set in
+# both the information term and the range factor, and the cost of the exact joint is
+# one table of 7^(M+1) entries: M = 4 gives 16807, M = 5 gives 117649.  M is a fixed
+# computational adaptation chosen from the discrete state-space budget and the
+# profiling latency, NOT from scheduling performance, and it is not a value taken from
+# the paper.
 MAX_JOINT_FUTURE = 4
 
 
@@ -675,12 +675,11 @@ def uncertainty_reduction(profiler: Mapping[str, Any], stage: str,
       stages and dependencies are not known before execution.  Reading the template
       produced entirely reasonable numbers while leaking the answer.
 
-    ``I(X; Y_1..Y_M | E)`` is still computed as the sum of the pairwise terms rather
-    than from the full joint: materialising a joint over a stage and every one of its
-    network descendants is exponential in the descendant count.  The two are equal
-    when the descendants are conditionally independent given X and the pairwise sum is
-    the larger otherwise.  This remains a recorded adaptation, not the paper's
-    expression, and the size of Y after the scope correction is measured separately.
+    The information term is an exact JOINT over the truncated set, not a sum of
+    pairwise terms: with Y_1 = Y_2 = X the joint is H(X) while the pairwise sum is
+    2 H(X), so the two are not interchangeable.  ``MAX_JOINT_FUTURE`` is a fixed
+    computational adaptation chosen from the discrete state-space budget and the
+    profiling latency, not from scheduling performance.
     """
 
     future = _future_from_network(profiler, stage, evidence)
@@ -690,18 +689,25 @@ def uncertainty_reduction(profiler: Mapping[str, Any], stage: str,
     if not future:
         return 0.0
 
-    # The paper's Y is the future stages CORRELATED WITH the candidate, so it is
-    # bounded by relevance.  Reachability in the network is not that bound: measured on
-    # this vocabulary it reaches 35, and the exact joint over seventeen 7-state
-    # variables is 7^17.  Y is therefore the NEAREST MAX_JOINT_FUTURE descendants in
-    # canonical order, and the information term is computed as an exact joint over
-    # that set rather than as a sum of pairwise terms, which are not equal.
+    # Equation (6) uses ONE set Y_1..Y_M in both the information term and the range
+    # factor.  An earlier version truncated only the information term and summed the
+    # ranges of every network descendant, so a candidate with four strongly informative
+    # near stages still collected the ranges of the two dozen distant ones it had said
+    # nothing about.  Both terms now use the same truncated set.
+    #
+    # Why a cap at all: measured on this vocabulary the reachable set reaches 35 with a
+    # mean of 16.8, and an exact joint over 7-state variables is 7^(1+M).  M = 4 gives
+    # 16807 entries, which keeps exact inference usable inside a scheduler inner loop.
+    # M is a FIXED COMPUTATIONAL ADAPTATION chosen from the state-space budget and the
+    # profiling latency, NOT from scheduling performance and not a value from the paper.
+    # The paper's correlation notion is simply "a directed path exists"; ranking by
+    # shortest path is ours, and is deterministic and train-learned only.
     ranked = _rank_future_by_proximity(profiler, stage, future)
-    joint_future = ranked[:MAX_JOINT_FUTURE]
-    info = joint_mutual_information(profiler, stage, joint_future, evidence)
+    selected = ranked[:MAX_JOINT_FUTURE]
+    info = joint_mutual_information(profiler, stage, selected, evidence)
 
     spread = 0.0
-    for target in future:
+    for target in selected:
         # deliberately no max(1.0, ...) floor: a genuine range of zero must contribute
         # zero rather than being promoted into a normal-looking positive score
         spread += stage_range_ms(profiler, target)
@@ -712,7 +718,8 @@ def uncertainty_reduction(profiler: Mapping[str, Any], stage: str,
 
 def joint_mutual_information(profiler: Mapping[str, Any], stage: str,
                              futures: Sequence[str],
-                             evidence: Mapping[str, str]) -> float:
+                             evidence: Mapping[str, str],
+                             *, condition_present: bool = True) -> float:
     """Exact ``I(X; Y_1..Y_M | E)`` from the joint over ``[X] + futures``.
 
     This is the paper's information term.  It is NOT the sum of the pairwise terms:
@@ -728,6 +735,24 @@ def joint_mutual_information(profiler: Mapping[str, Any], stage: str,
     variables, joint = posterior_joint(profiler, [stage] + futures, evidence)
     if variables[0] != stage:
         joint = joint.transpose()
+
+    states = list(profiler["state_vocabulary"])
+    if condition_present and ABSENT in states:
+        # A ready candidate has already been reached, so X != ABSENT is settled.  The
+        # unconditional I(X;Y|E) keeps mass on X = ABSENT, and because every stage
+        # variable carries an ABSENT state, a stage that usually does not occur could
+        # earn a large exploration bonus through correlation with the future structure
+        # even while the scheduler is looking at it.  Drop the absent slice and
+        # renormalise, which is exactly I(X;Y | E, X != ABSENT).
+        #
+        # A fixture whose vocabulary has no ABSENT state (the two-state test networks)
+        # has nothing to condition on, so this is a no-op there rather than an error.
+        absent = states.index(ABSENT)
+        present = np.delete(joint, absent, axis=0)
+        total = float(present.sum())
+        if total <= 0.0:
+            return 0.0
+        joint = present / total
     # I(X; Y) = sum p(x,y) log2 [ p(x,y) / (p(x) p(y)) ]
     px = joint.sum(axis=0, keepdims=True)
     rest = tuple(range(1, joint.ndim))

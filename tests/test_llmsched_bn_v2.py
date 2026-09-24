@@ -22,6 +22,7 @@ import unittest
 from pathlib import Path
 
 from tracing.analysis.llmsched_bn import (
+    ABSENT,
     BN_SCHEMA,
     SEP,
     absorb,
@@ -334,6 +335,65 @@ class L4bFutureStructureInvariance(unittest.TestCase):
         self.assertFalse(
             hasattr(module, "workflow_future_stages"),
             "the helper that read the realized template's future still exists")
+
+
+class L2bOneCappedYAndPresentConditioning(unittest.TestCase):
+    """The two narrow follow-ups on the information term."""
+
+    def test_the_two_terms_use_the_same_truncated_set(self):
+        """Eq. (6) uses ONE Y_1..Y_M in both the information term and the range sum."""
+
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.llmsched_bn import MAX_JOINT_FUTURE, _future_from_network
+        from tracing.analysis.workload_v02_simulator import load_templates
+        prof = build_bn_profiler(load_templates(V041, topology_view="causal_v3"))
+        wide = [s for s in prof["stage_order"]
+                if len(_future_from_network(prof, s, {})) > MAX_JOINT_FUTURE]
+        if not wide:
+            self.skipTest("no stage has more future stages than the cap")
+        stage = wide[0]
+        from tracing.analysis.llmsched_bn import _rank_future_by_proximity
+        future = _future_from_network(prof, stage, {})
+        # the scorer ranks by proximity first; the hand recomputation must use the same
+        selected = _rank_future_by_proximity(prof, stage, future)[:MAX_JOINT_FUTURE]
+        # Recomputing R by hand from the SELECTED set must reproduce the scorer exactly.
+        # If the range factor summed every descendant instead, the two would differ.
+        info = joint_mutual_information(prof, stage, selected, {})
+        hand = info * sum(prof["stage_range"][y] for y in selected)
+        self.assertAlmostEqual(uncertainty_reduction(prof, stage, {}), hand, places=9)
+        all_ranges = info * sum(prof["stage_range"][y] for y in future)
+        self.assertNotAlmostEqual(uncertainty_reduction(prof, stage, {}), all_ranges,
+                                  places=6)
+
+    def test_a_ready_candidate_is_conditioned_on_being_present(self):
+        """X != ABSENT is settled once the scheduler can see X ready."""
+
+        states = ["t", "f", ABSENT]
+        prof = {
+            "schema": BN_SCHEMA, "stage_order": ["X", "Y"],
+            "parents": {"X": [], "Y": ["X"]},
+            "cpds": {
+                "X": {SEP.join([]): {"t": 0.4, "f": 0.0, ABSENT: 0.6}},
+                # present-and-quick, present-and-slow and absent are three genuinely
+                # different regimes, so the unconditional MI is large purely because X
+                # is often absent
+                "Y": {SEP.join(["t"]): {"t": 0.50, "f": 0.50, ABSENT: 0.0},
+                      SEP.join(["f"]): {"t": 0.00, "f": 1.00, ABSENT: 0.0},
+                      SEP.join([ABSENT]): {"t": 0.95, "f": 0.05, ABSENT: 0.0}},
+            },
+            "state_vocabulary": states,
+            "state_ms": {"t": 1.0, "f": 2.0, ABSENT: 0.0},
+            "stage_range": {"Y": 1.0}, "discretizer": None}
+        self.assertGreater(posterior_state_probs(prof, "X", {})[ABSENT], 0.0)
+
+        unconditioned = joint_mutual_information(prof, "X", ["Y"], {},
+                                                condition_present=False)
+        conditioned = joint_mutual_information(prof, "X", ["Y"], {}, condition_present=True)
+        self.assertGreater(unconditioned, conditioned,
+                           "conditioning on presence must not be a no-op here")
+        self.assertAlmostEqual(uncertainty_reduction(prof, "X", {}),
+                               conditioned * 1.0, places=9)
 
 
 class L5SameMarginalsDifferentJoint(unittest.TestCase):
