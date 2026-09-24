@@ -839,6 +839,59 @@ def current_service_ms(profiler: Mapping[str, Any], stage: str,
     return float(total)
 
 
+def job_duration_interval_ms(profiler: Mapping[str, Any], stages: Sequence[str],
+                             evidence: Mapping[str, str]) -> Tuple[float, float]:
+    """A lower and an upper bound on a job's remaining intrinsic work, from the network.
+
+    For each still-possible stage the contribution is ``P(present | E)`` weighted by the
+    cheapest and the dearest duration state it could take, so the interval reflects both
+    the structural and the duration uncertainty the network models.  Nothing here reads
+    the workload's realized template.
+    """
+
+    lower = 0.0
+    upper = 0.0
+    for name in stages:
+        if name in (evidence or {}):
+            continue
+        probs = posterior_state_probs(profiler, name, evidence)
+        present = 1.0 - float(probs.get(ABSENT, 0.0))
+        if present <= 0.0:
+            continue
+        durations = [_state_ms(profiler, state)
+                     for state in probs if state != ABSENT]
+        if not durations:
+            continue
+        lower += present * min(durations)
+        upper += present * max(durations)
+    return float(lower), float(upper)
+
+
+def non_overlapping_sets(intervals: Mapping[Any, Tuple[float, float]]) -> Dict[Any, int]:
+    """Group jobs into duration intervals that do not overlap, ordered by lower bound.
+
+    Returns ``{job_key: set_index}``.  Jobs are visited by ascending lower bound; a job
+    joins the running set while its interval still overlaps that set's span, and starts
+    a new set once it lies strictly after.  Within a set the durations are genuinely
+    ambiguous, which is where uncertainty reduction is the deciding information; across
+    sets the ordering is already determined by the bounds, so R(X) must not override it.
+    """
+
+    keys = sorted(intervals, key=lambda k: (float(intervals[k][0]), float(intervals[k][1]), str(k)))
+    out: Dict[Any, int] = {}
+    index = -1
+    span_hi = None
+    for key in keys:
+        lo, hi = (float(intervals[key][0]), float(intervals[key][1]))
+        if span_hi is None or lo > span_hi + 1e-9:
+            index += 1
+            span_hi = hi
+        else:
+            span_hi = max(span_hi, hi)
+        out[key] = index
+    return out
+
+
 def draw_mode(rng: Any, epsilon: float) -> str:
     """ONE coin per decision: returns 'EXPLORE' with probability epsilon.
 

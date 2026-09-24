@@ -3554,8 +3554,11 @@ def choose_action(
             current_service_ms as _bn_current,
             evidence_from_completed,
             expected_remaining_ms as _bn_remaining,
+            job_duration_interval_ms as _bn_interval,
+            non_overlapping_sets as _bn_sets,
             uncertainty_reduction as _bn_info,
         )
+        from tracing.analysis.llmsched_bn import _future_from_network as _network_future
         from tracing.analysis.llmsched_stage import canonical_stage_map
 
         # ONE coin per decision, not per candidate
@@ -3595,6 +3598,24 @@ def choose_action(
             evidence_cache[key] = (done, value)
             return value
 
+        # The non-overlapping duration sets are a property of the whole candidate pool at
+        # this decision, so they are computed once and shared by every candidate.  They
+        # are built AFTER the per-job helpers above, which they depend on.
+        duration_intervals: dict[Any, Any] = {}
+        for candidate in pool:
+            _item, _ji, _nid, _mid, _gpu, _row, _fit = candidate
+            if _ji in duration_intervals:
+                continue
+            _job = jobs[_ji]
+            _stg = stage_map_for(_job)[_nid]
+            _ev = evidence_for(_job)
+            duration_intervals[_ji] = _bn_interval(
+                profiler, [_stg] + _network_future(profiler, _stg, _ev), _ev)
+        group_index = _bn_sets(duration_intervals)
+
+        def _group_of(job_index: int) -> int:
+            return int(group_index.get(job_index, 0))
+
         def llmsched_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
@@ -3608,12 +3629,24 @@ def choose_action(
             # to resolve, so reading them would leak the answer while still producing
             # perfectly reasonable numbers.
             if mode == "EXPLORE":
-                # larger uncertainty reduction is better -> negate
-                primary = -_bn_info(profiler, stage, evidence)
-            else:
-                load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
-                current = _bn_current(profiler, stage, evidence)
-                primary = current + _bn_remaining(profiler, stage, evidence)
+                # Algorithm 1 orders candidates by uncertainty reduction only WITHIN a
+                # set of jobs whose duration intervals overlap.  Across non-overlapping
+                # sets the ordering is already determined by the bounds, so a
+                # high-variance job must not jump ahead of a provably shorter one.  The
+                # group index is therefore the primary term and R(X) only breaks ties
+                # inside a group.
+                return (
+                    float(item[0]),
+                    float(_group_of(job_index)),
+                    -_bn_info(profiler, stage, evidence),
+                    float(item[1]),
+                    item[2],
+                    item[3],
+                    gpu.index,
+                )
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = _bn_current(profiler, stage, evidence)
+            primary = current + _bn_remaining(profiler, stage, evidence)
             return (
                 float(item[0]),
                 primary,

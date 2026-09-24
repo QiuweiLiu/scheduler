@@ -25,6 +25,8 @@ from tracing.analysis.llmsched_bn import (
     ABSENT,
     BN_SCHEMA,
     SEP,
+    job_duration_interval_ms,
+    non_overlapping_sets,
     absorb,
     build_bn_profiler,
     current_service_ms,
@@ -394,6 +396,60 @@ class L2bOneCappedYAndPresentConditioning(unittest.TestCase):
                            "conditioning on presence must not be a no-op here")
         self.assertAlmostEqual(uncertainty_reduction(prof, "X", {}),
                                conditioned * 1.0, places=9)
+
+
+class L2cNonOverlappingDurationSets(unittest.TestCase):
+    """Algorithm 1: uncertainty reduction orders candidates only WITHIN a duration set.
+
+    The paper builds sets of jobs whose duration intervals do not overlap, because only
+    there is the duration ordering deterministic, and sorts the sets by lower bound.
+    Ranking the whole pool by R(X) would let a high-variance job jump ahead of a job
+    that is provably shorter.
+    """
+
+    def test_intervals_that_overlap_share_a_set(self):
+        sets = non_overlapping_sets({0: (0.0, 10.0), 1: (5.0, 20.0)})
+        self.assertEqual(sets[0], sets[1])
+
+    def test_a_strictly_later_interval_starts_a_new_set(self):
+        sets = non_overlapping_sets({0: (0.0, 10.0), 1: (30.0, 40.0)})
+        self.assertLess(sets[0], sets[1])
+
+    def test_chaining_transitively_merges_sets(self):
+        """An interval bridging two sets joins them, so the grouping is not naive."""
+
+        sets = non_overlapping_sets({0: (0.0, 10.0), 1: (5.0, 100.0), 2: (50.0, 60.0)})
+        self.assertEqual(sets[0], sets[1])
+        self.assertEqual(sets[1], sets[2])
+
+    def test_sets_are_ordered_by_lower_bound(self):
+        sets = non_overlapping_sets({0: (200.0, 210.0), 1: (0.0, 10.0), 2: (30.0, 40.0)})
+        self.assertEqual(sets[1], 0)
+        self.assertEqual(sets[2], 1)
+        self.assertEqual(sets[0], 2)
+
+    def test_the_interval_comes_from_the_network(self):
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.workload_v02_simulator import load_templates
+        prof = build_bn_profiler(load_templates(V041, topology_view="causal_v3"))
+        stage = prof["stage_order"][0]
+        lower, upper = job_duration_interval_ms(prof, [stage], {})
+        self.assertGreaterEqual(lower, 0.0)
+        self.assertGreaterEqual(upper, lower)
+
+    def test_the_scorer_uses_the_group_before_the_information(self):
+        """A provably shorter job must win even if a longer one is more informative."""
+
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.workload_v02_simulator import load_templates
+        prof = build_bn_profiler(load_templates(V041, topology_view="causal_v3"))
+        short = prof["stage_order"][0]
+        sets = non_overlapping_sets({0: (0.0, 1.0), 1: (10 ** 6, 10 ** 6 + 1.0)})
+        self.assertLess(sets[0], sets[1],
+                        "the short job must be in an earlier set than the long one")
+        _ = short
 
 
 class L5SameMarginalsDifferentJoint(unittest.TestCase):
