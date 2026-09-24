@@ -86,12 +86,23 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
-### 仍未做
-1. **消费端仍挂在 legacy**（`NOT YET MIGRATED`）。按当前 12.6 ms/查询估算：一次决策约
-   **35 次查询 ≈ 0.42 s**，30 集 smoke 约数小时 —— 需先做**相关窗口剪枝**
-   （只对 query 的祖先 + 在路径上的观测后代消元）或**按 evidence 签名缓存**，预计再 5–10×，
-   然后才切消费端
-2. **L2–L7 gate 未写**（`tests/test_llmsched_bn_v2.py`）
+### LLMSched v2 已完成（df56a47）
+- **性能**：只对 query/evidence 的**祖先**建因子并消元（其余变量的子树恒等于 1，丢弃是**精确**的），
+  加上按 (query, evidence) 的记忆化。**实测 1.4–1.7 ms/次不同查询，缓存 0.005 ms**，
+  相对最初 2 s 约 **1200×**。L1 手工 posterior 仍精确一致。
+- **消费端已切到 v2**：证据取**已完成节点的 intrinsic 时长**经冻结分箱 → 40 ms 与 40 s 是**不同证据**。
+  Y = 本工作流未完成的后续 stage；同一决策内所有候选共享该集合，故 ∏ Range(Y) 是**正常数**
+  → **EXPLORE 完全由互信息排序**。6 job 端到端：EXPLOIT/EXPLORE makespan 198499 / 180838（**确实不同**），
+  两者都完成全部 6 个 job。
+- **L1–L7 gate**：	ests/test_llmsched_bn_v2.py，**23 项 / 6.3 s**，含
+  L2 同 entropy 不同 MI、L3 边符号翻转 winner、L4 future-truth invariance、
+  L5 同 marginal 不同联合相关性、L6 ABSENT 真状态 + bsorb()、L7 E2E；
+  外加「退役实现没有联合后验」这一项，使迁移**被检查而非被声称**。
+- **legacy gate** 不再驱动 live policy（live 已是 v2、带 discretizer），改为直接测退役模块本身，
+  并使用**故意不等长**的工作流（退役后验是关于总长度的，等长语料会退化成不动点）。
+
+### 仍未做（LLMSched 之外）
+- 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
 
 ## Next
 1. **LLM-4 再优化**：`posterior_joint` 限制到相关祖先窗口 + evidence 签名缓存；目标 <1 ms/查询
