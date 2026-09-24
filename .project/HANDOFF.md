@@ -67,22 +67,36 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
   `P(B,C|A)` / `P(B|A,C)` / `P(C|A,B)` 与手工值**精确一致**。
 - **LLM-5** `uncertainty_reduction = 互信息 × Range`；`draw_mode` 保持**每次决策一枚硬币**。
 
-### L1 抓出的三个真 bug（都是「静默返回貌似合理的错值」）
+### 三个真 bug（L1 抓出，都是「静默返回貌似合理的错值」）
 1. 观测到的**后代**被「只走祖先」的剪枝丢掉 → `P(B=t|A=t,C=f)` 返回 0.9 而非 0.75
 2. 因子相乘时用**错误的操作数**去翻译 key 索引
 3. 观测到的**子节点**保留了自身坐标轴 → 被当作隐变量求和掉而非钉住
 
-### 两个阻塞点（均已实测，未修）
-1. **精确推断 ~2 s / 次查询**：消元循环每步都对每个剩余变量重扫全部因子。调度内循环付不起。
-2. **`∏ Range` 在 30 个后代上爆到 1e+72**：一个 stage 在 55-stage vocabulary 上有多达 30 个
-   可达后代，`∏ Range` 被用在了远大于「单个 workflow 剩余 stage」的集合上。
+### 两个阻塞点已修复（`105ba07`）
+1. **速度**：宽因子是 6 变量 = 7^6 = 117649 项，纯 Python dict 乘不开。
+   改为 **numpy 密集数组**（各因子 reshape 到 union 轴序后一次广播相乘）。
+   另一独立开销：cheapest-first 用 `len(array)`（只是第一轴）当成本，且每步重扫全部因子。
+   改为**按 canonical order 消元**——builder 已用 induced-width guard 认证该顺序。
+   **实测 12.6 ms/次，159× 加速**；L1 五项手工 posterior 仍精确一致。
+2. **Range scope**：`Y` 曾取「stage 的所有可达后代」，在 55-stage 词表上达 30 个、乘积 1e72。
+   **这是我的误读，不是论文问题**：`Y` 是**该工作流剩余的工作**，词表比任一工作流大得多。
+   新增 `workflow_future_stages()` 返回本工作流**未完成的后续 stage**。
+   结构可见是合法的（预测动作链正是本 baseline 的前提）；**绝不读取未执行节点的时长**。
+   **顺带定下排序**：同一决策内所有候选共享同一剩余集合 → `∏ Range(Y)` 是**正常数**，
+   不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
+   省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
+
+### 仍未做
+1. **消费端仍挂在 legacy**（`NOT YET MIGRATED`）。按当前 12.6 ms/查询估算：一次决策约
+   **35 次查询 ≈ 0.42 s**，30 集 smoke 约数小时 —— 需先做**相关窗口剪枝**
+   （只对 query 的祖先 + 在路径上的观测后代消元）或**按 evidence 签名缓存**，预计再 5–10×，
+   然后才切消费端
+2. **L2–L7 gate 未写**（`tests/test_llmsched_bn_v2.py`）
 
 ## Next
-1. **修 LLM-4 性能**：按 canonical order 做消元 + 预计算 pairwise 边际（或按 evidence 签名缓存），
-   目标 µs 级；然后把消费端从 legacy 切到 v2（去掉 NOT YET MIGRATED 标记）
-2. **定 `Range` 的 scope**：把 Y 限制为「当前 workflow 剩余 canonical stage」或最近 k 个后代，
-   使 `∏ Range` 与原论文语义一致
-3. 补 **L2–L7** gate（`tests/test_llmsched_bn_v2.py`），尤其 **L2 同 entropy 不同 MI**
+1. **LLM-4 再优化**：`posterior_joint` 限制到相关祖先窗口 + evidence 签名缓存；目标 <1 ms/查询
+2. **切消费端**到 v2，去掉 `NOT YET MIGRATED` 标记；E2E 走通
+3. **补 L2–L7** gate，尤其 **L2 同 entropy 不同 MI** 与 **L7 E2E mutation**
 4. Pythia role-PFA 重构；Latency-Aware 换成自训练 request-conditioned predictor
 5. 冻结 `SchedulerTopologyContractGate` + `BaselineFidelityManifest`
 6. 重跑 30 集 smoke（只看机制）；在 v04.1 上重算 fusion 素材与调度机会
