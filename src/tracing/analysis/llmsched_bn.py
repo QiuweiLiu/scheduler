@@ -49,6 +49,8 @@ import hashlib
 import itertools
 import json
 import math
+
+import numpy as np
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from tracing.analysis.llmsched_stage import (
@@ -87,6 +89,11 @@ DEFAULT_SMOOTHING = 1.0
 
 # Fail-closed guard on the variable-elimination induced width.
 MAX_INDUCED_WIDTH = 6
+
+# Hard cap on the future set when a caller does not supply the workflow's own
+# remaining stages.  A stage on the 55-stage vocabulary can reach about thirty
+# descendants, and multiplying that many ranges together overflows the score.
+MAX_FUTURE_STAGES = 8
 
 
 # --------------------------------------------------------------------------- #
@@ -289,7 +296,7 @@ def fit_cpds(columns: Mapping[str, Sequence[str]], parents: Mapping[str, Sequenc
 def _factor_over(child: str, parent_names: Sequence[str],
                  cpds: Mapping[str, Mapping[str, Mapping[str, float]]],
                  states: Sequence[str], evidence: Mapping[str, str]
-                 ) -> Tuple[List[str], Dict[Tuple[str, ...], float]]:
+                 ) -> Tuple[List[str], "np.ndarray"]:
     """One CPD as a factor table, with evidence folded in.
 
     Both an observed PARENT and an observed CHILD collapse their axis.  Folding only
@@ -302,9 +309,11 @@ def _factor_over(child: str, parent_names: Sequence[str],
     free_parents = [p for p in parent_names if p not in evidence]
     child_observed = child in evidence
     out_vars = list(free_parents) + ([] if child_observed else [child])
-    table: Dict[Tuple[str, ...], float] = {}
-    for combo in itertools.product(states, repeat=len(free_parents)):
-        assignment = dict(zip(free_parents, combo))
+    shape = [len(states)] * len(out_vars)
+    table = np.zeros(shape, dtype=np.float64) if shape else np.zeros((), dtype=np.float64)
+    # indices, not state strings: the table axes are positional
+    for combo in itertools.product(range(len(states)), repeat=len(free_parents)):
+        assignment = {name: states[index] for name, index in zip(free_parents, combo)}
         assignment.update({p: evidence[p] for p in parent_names if p in evidence})
         key = SEP.join(assignment[p] for p in parent_names)
         row = cpds[child].get(key)
@@ -314,90 +323,91 @@ def _factor_over(child: str, parent_names: Sequence[str],
                 "or every query on this network is undefined" % (child, key)
             )
         if child_observed:
-            table[tuple(combo)] = float(row[evidence[child]])
+            table[combo] = float(row[evidence[child]])
         else:
-            for value in states:
-                table[tuple(combo) + (value,)] = float(row[value])
+            for value_index, value in enumerate(states):
+                table[combo + (value_index,)] = float(row[value])
     return out_vars, table
 
 
-def _eliminate(variables: List[str], table: Dict[Tuple[str, ...], float], name: str,
-               states: Sequence[str]) -> Tuple[List[str], Dict[Tuple[str, ...], float]]:
+def _eliminate(variables: List[str], table: "np.ndarray", name: str,
+               states: Sequence[str]) -> Tuple[List[str], "np.ndarray"]:
     """Sum ``name`` out of a factor."""
 
     index = variables.index(name)
     remaining = [v for v in variables if v != name]
-    out: Dict[Tuple[str, ...], float] = {}
-    for key, value in table.items():
-        reduced = key[:index] + key[index + 1:]
-        out[reduced] = out.get(reduced, 0.0) + value
-    _ = states
-    return remaining, out
+    return remaining, table.sum(axis=index)
 
 
-def _multiply(v1: List[str], t1: Dict[Tuple[str, ...], float],
-              v2: List[str], t2: Dict[Tuple[str, ...], float]
-              ) -> Tuple[List[str], Dict[Tuple[str, ...], float]]:
+def _multiply(v1: List[str], t1: "np.ndarray",
+              v2: List[str], t2: "np.ndarray"
+              ) -> Tuple[List[str], "np.ndarray"]:
     """Pointwise product of two factors over their union of variables.
 
-    Implemented as a hash join on the SHARED variables rather than a nested loop over
-    both tables.  The nested-loop version paired every entry of one factor with every
-    entry of the other, which is quadratic in the table size and did not terminate on
-    the real network once factors grew past a few hundred entries.
+    Factors are dense arrays whose axis i is ``v[i]`` over the frozen state
+    vocabulary.  Arguments are aligned by transposing the second factor's shared axes
+    to the front of the first factor's, then broadcasting and taking the outer product
+    on the axes each factor alone owns.
 
-    A key in ``t1`` is ordered by ``v1`` and a key in ``t2`` by ``v2``, so the two
-    position lists are translated into slots of the union separately.
+    The dict version of this function multiplied 7^6 = 117649-entry tables in pure
+    Python and was the whole cost of a query.  The algebra here is the same.
     """
 
     union = list(v1) + [v for v in v2 if v not in v1]
-    slot_of_v1 = [union.index(v) for v in v1]
-    slot_of_v2 = [union.index(v) for v in v2]
-    shared_slots = sorted(set(slot_of_v1) & set(slot_of_v2))
+    index_of = {name: i for i, name in enumerate(union)}
 
-    # bucket t2 by its values on the shared variables
-    buckets: Dict[Tuple[str, ...], List[Tuple[Tuple[str, ...], float]]] = {}
-    for key2, val2 in t2.items():
-        signature = tuple(key2[position] for position, slot in enumerate(slot_of_v2)
-                          if slot in shared_slots)
-        buckets.setdefault(signature, []).append((key2, val2))
+    # align t1 into the union axis order
+    a_axes = list(range(len(v1)))
+    a_perm = sorted(a_axes, key=lambda ax: index_of[v1[ax]])
+    a = t1.transpose(a_perm)
+    a_order = [v1[ax] for ax in a_perm]
 
-    out: Dict[Tuple[str, ...], float] = {}
-    for key1, val1 in t1.items():
-        signature = tuple(key1[position] for position, slot in enumerate(slot_of_v1)
-                          if slot in shared_slots)
-        partners = buckets.get(signature)
-        if not partners:
-            continue
-        for key2, val2 in partners:
-            merged: List[Any] = [None] * len(union)
-            for position, slot in enumerate(slot_of_v1):
-                merged[slot] = key1[position]
-            agree = True
-            for position, slot in enumerate(slot_of_v2):
-                if merged[slot] is None:
-                    merged[slot] = key2[position]
-                elif merged[slot] != key2[position]:
-                    agree = False
-                    break
-            if agree:
-                key = tuple(merged)
-                out[key] = out.get(key, 0.0) + val1 * val2
-    return union, out
+    # align t2 into the union axis order: shared axes first, then its own
+    shared = [name for name in v2 if name in v1]
+    own = [name for name in v2 if name not in v1]
+    # after transposing to (shared + own), the shared axes must line up with t1's
+    target_shared = [name for name in a_order if name in set(shared)]
+    b_axes = [v2.index(name) for name in target_shared + own]
+    b = t2.transpose(b_axes)
+
+    n_shared = len(target_shared)
+    # put b's shared axes in the same slots as they occupy in a
+    slot_of_shared = {name: a_order.index(name) for name in target_shared}
+    full_rank = len(union)
+    b_shape = [1] * full_rank
+    b_perm_back = sorted(range(n_shared), key=lambda k: slot_of_shared[target_shared[k]])
+    b = b.transpose(b_perm_back + list(range(n_shared, len(target_shared + own))))
+    for axis, name in enumerate(target_shared):
+        b_shape[slot_of_shared[name]] = b.shape[axis]
+    for offset, name in enumerate(own):
+        b_shape[index_of[name]] = b.shape[n_shared + offset]
+    b = b.reshape([dim if dim != 1 else 1 for dim in b_shape])
+
+    a_shape = [1] * full_rank
+    for axis, name in enumerate(a_order):
+        a_shape[index_of[name]] = a.shape[axis]
+    a = a.reshape(a_shape)
+
+    return union, (a * b)
 
 
-def _normalise(table: Dict[Tuple[str, ...], float]) -> Dict[Tuple[str, ...], float]:
-    total = sum(table.values())
+def _normalise(table: "np.ndarray") -> "np.ndarray":
+    total = float(table.sum())
     if total <= 0.0:
         raise ValueError(
             "posterior has zero total mass; the evidence is inconsistent with the "
             "frozen network rather than merely unlikely"
         )
-    return {k: v / total for k, v in table.items()}
+    return table / total
 
 
 def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
-                    evidence: Mapping[str, str]) -> Dict[Tuple[str, ...], float]:
+                    evidence: Mapping[str, str]) -> Tuple[List[str], "np.ndarray"]:
     """Exact ``P(query | evidence)`` by variable elimination.
+
+    Returns ``(variables, array)`` where ``variables`` is the query order and axis i of
+    the array is ``variables[i]``; entry ``[k, l]`` is P(query[0] = states[k],
+    query[1] = states[l] | evidence).
 
     Enumerates nothing beyond the query set and its ancestors: every other variable is
     summed out one at a time.  With a max indegree of two and a causal-order edge
@@ -432,33 +442,21 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
     # ancestor-only answer 0.9 instead of the correct 0.75, because the evidence on C
     # never travelled back up to B.  The induced-width guard already bounds what
     # eliminating the full graph costs, so there is no reason to prune here.
-    tables: List[Tuple[List[str], Dict[Tuple[str, ...], float]]] = []
+    tables: List[Tuple[List[str], "np.ndarray"]] = []
     for node in stages:
         table_vars, table = _factor_over(node, parents[node], cpds, states, evidence or {})
         tables.append((table_vars, table))
 
-    # eliminate every variable that is not in the query
+    # Eliminate in CANONICAL ORDER.  The builder already refuses any network whose
+    # induced width for this order exceeds MAX_INDUCED_WIDTH, so the order is known to
+    # be cheap; the previous cheapest-first scan ranked variables by ``len(table)``,
+    # which on a numpy array is only the first axis and not the table size, and its
+    # O(variables^2) rescan per step was itself most of the 2 s a query used to cost.
     eliminate = [v for v in stages if v not in query and v not in (evidence or {})]
-    while eliminate:
-        # cheapest-first by the SIZE OF THE PRODUCT, not by the first factor found:
-        # ranking on one factor can pick a variable that merges many large tables and
-        # blows the intermediate up.
-        target = None
-        best_cost = None
-        for name in eliminate:
-            size = 1
-            found = False
-            for variables, table in tables:
-                if name in variables:
-                    size *= max(1, len(table))
-                    found = True
-            if found and (best_cost is None or size < best_cost):
-                best_cost, target = size, name
-        if target is None:
-            raise ValueError("variable elimination stalled on %r" % eliminate[0])
-        grouped: List[Tuple[List[str], Dict[Tuple[str, ...], float]]] = []
+    for target in eliminate:
+        grouped: List[Tuple[List[str], "np.ndarray"]] = []
         product_vars: List[str] = []
-        product: Dict[Tuple[str, ...], float] = {(): 1.0}
+        product = np.ones((), dtype=np.float64)
         for variables, table in tables:
             if target in variables:
                 product_vars, product = _multiply(product_vars, product, variables, table)
@@ -467,29 +465,29 @@ def posterior_joint(profiler: Mapping[str, Any], query_stages: Sequence[str],
         reduced_vars, reduced = _eliminate(product_vars, product, target, states)
         grouped.append((reduced_vars, reduced))
         tables = grouped
-        eliminate.remove(target)
 
     acc_variables: List[str] = []
-    acc_table: Dict[Tuple[str, ...], float] = {(): 1.0}
+    acc_table = np.ones((), dtype=np.float64)
     for variables, table in tables:
         acc_variables, acc_table = _multiply(acc_variables, acc_table, variables, table)
     variables, table = acc_variables, acc_table
-    order_positions = [variables.index(q) for q in query]
-    out: Dict[Tuple[str, ...], float] = {}
-    for key, value in table.items():
-        out[tuple(key[i] for i in order_positions)] = value
-    return _normalise(out)
+
+    # reorder to the caller's query order, then renormalise
+    order = sorted(range(len(variables)), key=lambda axis: query.index(variables[axis])
+                   if variables[axis] in query else len(query) + axis)
+    table = table.transpose(order)
+    variables = [variables[axis] for axis in order]
+    table = _normalise(table)
+    return variables, table
 
 
 def posterior_state_probs(profiler: Mapping[str, Any], query_stage: str,
                           evidence: Mapping[str, str]) -> Dict[str, float]:
     """``P(X = x | evidence)`` for a single stage, as a dict over the frozen states."""
 
-    joint = posterior_joint(profiler, [query_stage], evidence)
-    out = {state: 0.0 for state in profiler["state_vocabulary"]}
-    for key, value in joint.items():
-        out[key[0]] = out.get(key[0], 0.0) + value
-    return out
+    _variables, table = posterior_joint(profiler, [query_stage], evidence)
+    states = list(profiler["state_vocabulary"])
+    return {state: float(table[index]) for index, state in enumerate(states)}
 
 
 def absorb(profiler: Mapping[str, Any], query_stage: str,
@@ -518,6 +516,47 @@ def absorb(profiler: Mapping[str, Any], query_stage: str,
 # --------------------------------------------------------------------------- #
 # uncertainty reduction and expected remaining work
 # --------------------------------------------------------------------------- #
+def workflow_future_stages(profiler: Mapping[str, Any], template: Any,
+                           completed: Sequence[str], stage: str) -> List[str]:
+    """The not-yet-finished canonical stages of THIS workflow that follow ``stage``.
+
+    This is the set the paper's ``Y`` is drawn from.  The Bayesian network is defined
+    over a 55-stage vocabulary, but any single workflow only visits a dozen of them,
+    so taking Y to be every reachable descendant of a stage let ``prod Range`` multiply
+    up to thirty ranges and reach 1e72.  That was a scope error in the port, not a
+    property of the paper: Y is the remaining work of the workflow being scheduled.
+
+    The workflow's STRUCTURE is legitimately visible -- predicting an agent's future
+    action chain is the entire premise of this baseline -- while its future DURATIONS
+    are not.  Nothing here reads an unexecuted node's duration.
+    """
+
+    from tracing.analysis.llmsched_stage import advance_prefix, canonical_order
+
+    known = set(profiler["stage_order"])
+    prefix: Dict[str, int] = {}
+    seen_target = False
+    out: List[str] = []
+    completed = set(completed)
+    for node in canonical_order(template):
+        name = canonical_stage_key(node, prefix)
+        prefix = advance_prefix(prefix, node)
+        if name == stage:
+            seen_target = True
+            continue
+        if not seen_target:
+            continue
+        if node.node_id in completed:
+            continue
+        if name not in known:
+            raise KeyError(
+                "workflow stage %r is not in the frozen vocabulary; the ontology and "
+                "the model disagree" % name
+            )
+        out.append(name)
+    return out
+
+
 def descendants(profiler: Mapping[str, Any], stage: str) -> List[str]:
     """Stages reachable from ``stage`` along the learned edges.
 
@@ -555,7 +594,8 @@ def stage_range_ms(profiler: Mapping[str, Any], stage: str) -> float:
 
 
 def uncertainty_reduction(profiler: Mapping[str, Any], stage: str,
-                          evidence: Mapping[str, str]) -> float:
+                          evidence: Mapping[str, str],
+                          future_stages: Sequence[str] | None = None) -> float:
     """``R_E(X) = I(X; Y | E) x prod_i Range(Y_i)`` over the stage's descendants.
 
     This is the paper's exploration score.  It is NOT an entropy: gate L2 constructs
@@ -569,9 +609,17 @@ def uncertainty_reduction(profiler: Mapping[str, Any], stage: str,
     pairwise sum is exactly equal when the descendants are conditionally independent
     given X and is an upper bound otherwise, which is the conservative direction for
     an exploration bonus.  The substitution is recorded as an adaptation.
+
+    ``future_stages`` is the workflow's own remaining stages, and callers that know the
+    workflow MUST pass it: defaulting to every reachable descendant of the stage
+    multiplies up to thirty ranges together.  The default is kept only so that a
+    call-site cannot silently lose the scope, and it is capped for safety.
     """
 
-    future = descendants(profiler, stage)
+    if future_stages is None:
+        future = descendants(profiler, stage)[:MAX_FUTURE_STAGES]
+    else:
+        future = [str(s) for s in future_stages if s != stage]
     if not future:
         return 0.0
     total_mi = 0.0
@@ -594,33 +642,35 @@ def pair_mutual_information(profiler: Mapping[str, Any], stage_a: str, stage_b: 
     many descendants the network has.
     """
 
-    joint = posterior_joint(profiler, [stage_a, stage_b], evidence)
-    pa: Dict[str, float] = {}
-    pb: Dict[str, float] = {}
-    for (a, b), prob in joint.items():
-        pa[a] = pa.get(a, 0.0) + prob
-        pb[b] = pb.get(b, 0.0) + prob
-    total = 0.0
-    for (a, b), prob in joint.items():
-        if prob <= 0.0:
-            continue
-        denom = pa[a] * pb[b]
-        if denom > 0.0:
-            total += prob * math.log2(prob / denom)
-    return max(0.0, total)
+    variables, joint = posterior_joint(profiler, [stage_a, stage_b], evidence)
+    if variables[0] != stage_a:
+        joint = joint.transpose()
+    pa = joint.sum(axis=1, keepdims=True)
+    pb = joint.sum(axis=0, keepdims=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = np.where(joint > 0.0, joint / (pa * pb), 1.0)
+        terms = np.where(joint > 0.0, joint * np.log2(ratio), 0.0)
+    return max(0.0, float(terms.sum()))
 
 
 def expected_remaining_ms(profiler: Mapping[str, Any], stage: str,
-                          evidence: Mapping[str, str]) -> float:
+                          evidence: Mapping[str, str],
+                          future_stages: Sequence[str] | None = None) -> float:
     """``E[remaining service after the current stage | E]`` over the descendants.
 
     ``E[D_i | E] = P(X_i != ABSENT | E) x E[D_i | X_i != ABSENT, E]``, summed over the
     still-possible future stages.  An ABSENT stage contributes exactly zero duration,
     which is what lets structural uncertainty feed the JCT objective rather than being
     silently averaged away.
+
+    ``future_stages`` is the workflow's own remaining stages; see
+    ``uncertainty_reduction`` for why the caller must supply it.
     """
 
-    future = descendants(profiler, stage)
+    if future_stages is None:
+        future = descendants(profiler, stage)[:MAX_FUTURE_STAGES]
+    else:
+        future = [str(s) for s in future_stages if s != stage]
     if not future:
         return 0.0
     total = 0.0
