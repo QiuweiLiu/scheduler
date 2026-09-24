@@ -3542,7 +3542,14 @@ def choose_action(
             raise ValueError("llmsched requires policy_context['llmsched_rng']")
         epsilon = float(ctx.get("llmsched_epsilon", 0.1))
 
-        from tracing.analysis.llmsched_bn import (
+        # NOT YET MIGRATED to llmsched_bn v2.  The v2 module (canonical stage
+        # ontology + joint BN + exact posterior) is written and its hand-computed
+        # posterior gate passes, but its exact-inference engine is ~2 s per query and
+        # its `prod Range` factor over ~30 descendants overflows the score, so wiring
+        # it into this inner loop would be both wrong-scaled and far too slow.  Until
+        # that is fixed the CONSUMER stays on the retired front end, which is why the
+        # legacy module still exists.  `llmsched_bn_legacy` is otherwise unused.
+        from tracing.analysis.llmsched_bn_legacy import (
             draw_mode,
             expected_remaining_ms as _bn_remaining,
             uncertainty_reduction as _bn_info,

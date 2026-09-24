@@ -1,6 +1,11 @@
-"""Fidelity gate for LLMSched-adapted (layer 1 of the two-layer gate).
+"""Oracle gate for the RETIRED LLMSched front end (llmsched_bn_legacy).
 
-The review's list for LLMSched:
+LLM-1 of the migration retires this implementation from the formal path.  These
+tests are kept, and now target the legacy module explicitly, so that the behaviour
+being replaced stays reproducible: a retirement that cannot be replayed is just an
+assertion.  The v2 gate is L1-L7 in test_llmsched_bn_v2.py.
+
+The review's list for the retired front end:
     the BN posterior changes with completed-stage evidence;
     the uncertainty-reduction ranking matches a hand-built small graph;
     the epsilon-greedy activation ratio is correct.
@@ -10,7 +15,7 @@ from __future__ import annotations
 import random
 import unittest
 
-from tracing.analysis.llmsched_bn import (
+from tracing.analysis.llmsched_bn_legacy import (
     build_bn_profiler,
     draw_mode,
     duration_entropy,
