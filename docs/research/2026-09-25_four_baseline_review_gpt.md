@@ -66,7 +66,72 @@ S_completion = 1 / (1 + V(current_role))
 
 ---
 
+---
+
+## 跨基线的公平性（重要，必须改进论文）
+
+每条基线使用**自己的** paper-derived / adapted predictor–scheduler interface，
+因此主表评估的是**完整系统**，而**不是**「同等信息前提下孤立的调度器」。论文必须写明：
+
+> Each baseline uses its own paper-derived/adapted predictor–scheduler interface; therefore the
+> comparison evaluates complete systems, not an isolated scheduler under an equal-information oracle.
+
+→ 主表能回答**「完整方案谁更好」**，但**不能单独证明「你的 scheduler 比别人强的 scheduler 好」**。
+后一个结论必须依赖已规划的 **same-interface 2×2 / ablation**。
+
+另：ledger 自己记录着 **F0 deployed future-chain identity 仍来源于 J3，而不是 F0 自己的 structure head**。
+这个 caveat **正式论文不能藏**，否则「F0 完整 joint predictor」的说法过强。
+
+## Bootstrap：结论正确，但文案要改
+
+每个 episode 最终只产生一个 `mean_completion_ms`，再 bootstrap episode delta，
+因此 **episode 内多 job 的相关性已经被保留，不应该按 job 重采样** —— 这里**没问题**。
+
+但代码/文档写的是 **"video-cluster bootstrap"**，而 `paired_bootstrap_ci()` 实际是
+**普通 paired episode bootstrap**。若 300 episodes 之间会复用同一 video/template 并希望推断到新视频，
+则要按 video/template cluster 重采样；否则**把文案改成 episode-cluster bootstrap**。
+
+## 正式 runner 还有两个必须 fail-closed 的点
+
+`four_joint_baselines.py:107` 的 `run_arm()` 至少应：
+
+```python
+assert failed_jobs == 0
+assert completed_jobs == jobs
+assert metric is finite
+```
+
+否则「部分 job 失败但幸存者很快」会得到一个**漂亮且错误的**平均完成时间。
+
+另外 runner 目前只是**记录** projection SHA，没有 **assert 它等于冻结 SHA**；episodes file 甚至没有 hash。
+正式版应在启动时硬断言：
+
+```python
+projection_sha == 15c62d...
+BaselineFidelityManifest.pass is True
+TopologyGate.pass is True
+episode_file_sha == frozen_episode_sha
+F0 overlay/base hashes == frozen hashes
+git HEAD / experiment implementation hash 被记录
+```
+
+**smoke artifact 里的 `git_head` 目前还是空字符串**，formal 前必须修。
+
+## Smoke 数字与运行时间
+
+3 集 smoke 的五个数字**没有哪一个「数学上不可能」**。Pythia ≈ F0、TIE +4.6 s、LLMSched +9.2 s、
+Latency +9.8 s 都可能出现；三集样本也不足以从性能倒推 implementation。
+
+值得注意的是：**Latency 即使在当前拥有 future-template leak 的情况下仍明显更慢**，
+这反而与「prefetch 可能占用 ready GPU / single-commit approximation」相容，**不是反证**。
+
+**61.6 分钟是合理的一阶估算**，但不应当作可靠上限；**没看到随 episode 数必然爆成 O(n²) 的路径**，
+TIE / Pythia / Latency 都比较轻。
+
+**LLMSched 有一个更现实的风险**：`posterior_joint()` 的 `_posterior_cache` 上限是 200,000 entries，
+而 top-4 joint 单个最坏数组有 7^5 = 16807 项（原文在此处截断，需重新取全）。
+
 ## 待补
-GPT 的回复我读到了 P0 表与前三条的展开（约在字符 27500 处截断），
-**TIE 的窄项、P1 清单、limitation 清单、以及第 11/12 问（smoke 异常与 O(n²) 风险）尚未读到。**
-需要重新取到回复的后半段。
+
+回复在 LLMSched cache 风险处截断。**TIE 的窄项、P1 清单、以及 limitation 清单尚未读到**，
+需要重新取到回复末尾。
