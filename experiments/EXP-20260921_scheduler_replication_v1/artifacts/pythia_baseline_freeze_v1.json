@@ -1,0 +1,50 @@
+{
+  "paper": {
+    "title": "Pythia: Exploiting Workflow Predictability for Efficient Agent-Native LLM Serving",
+    "arxiv": "2604.25899",
+    "venue": "UNVERIFIED"
+  },
+  "arm": "pythia_completion",
+  "freeze": {
+    "name": "Pythia Baseline Freeze v1",
+    "head": "26484a2",
+    "head_full_sha": "PENDING (the review's declaration reply was truncated twice)",
+    "status": "APPROVED",
+    "approval_quote": "可以正式 freeze",
+    "gates": "tests/test_pythia_fidelity.py",
+    "gate_count": 12
+  },
+  "faithful": [
+    "workflow profiler / probabilistic finite automaton over a ROLE alphabet",
+    "a loop is expressed as a REPEATED role, so the occurrence suffix is dropped",
+    "low-probability transition pruning as the bounded probable future",
+    "expected remaining distance from the automaton",
+    "completion-aware priority S_completion = 1 / E[D_remaining] with omega1 = 1"
+  ],
+  "adapted": [
+    "role key composed from role:action_family:raw_action, because the paper's alphabet entry is the current agent_id and a bare VideoSeek role is too coarse",
+    "the finite horizon is OUR fixed, train-independent step limit and is NOT the paper's bound, which prunes transitions and applies repetition bounds to looping roles",
+    "indexing by the candidate's own role (the agent_id Pythia exposes on a request)"
+  ],
+  "deviation": [
+    "finite-horizon recursion replaces the stationary solve, because the automaton is cyclic and the undiscounted expectation does not converge"
+  ],
+  "omissions": [
+    "cache routing, prefix caching, model-replica idleness, autoscaling: outside this GPU abstraction",
+    "S_unblock omitted, because the simulator has no model-server queue to attach it to; omega2 = 0"
+  ],
+  "defects_closed_before_freeze": [
+    "template.baseline used as the alphabet, which is not a role alphabet at all",
+    "the consumer indexed by the last COMPLETED role while V excludes the role it is indexed by, double-counting the current candidate (80 instead of 60 on A->B->C with 10/20/40)",
+    "the finite horizon was described as the paper's bound, which it is not"
+  ],
+  "prohibited_after_freeze": [
+    "the role alphabet definition, including the dropped occurrence suffix",
+    "PFA structure, transition semantics, pruning threshold and renormalisation",
+    "DEFAULT_HORIZON and the expected-remaining recursion",
+    "the current_role indexing semantics",
+    "S_completion and the completion-aware priority",
+    "the Pythia-specific simulator interface"
+  ],
+  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results."
+}

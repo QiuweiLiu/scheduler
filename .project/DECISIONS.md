@@ -1089,3 +1089,44 @@ non-overlapping-set construction / order；epsilon policy；LLMSched-specific si
 **验证**
 v2 gate `tests/test_llmsched_bn_v2.py` **34 项**；全量 **329 测试**（5 个失败套件全部预先存在）；
 端到端 EXPLOIT 190479.7 / EXPLORE 178539.8，两模式确实不同，均完成 6 个 validation job。
+
+## 2026-09-25 — Pythia Baseline Freeze v1 获批
+
+**决定**：Pythia-adapted 正式冻结。
+
+- **HEAD**：`26484a2`（完整 SHA 待 GPT 补发的声明核对；本地 HEAD 为该提交）
+- **状态**：APPROVED（GPT 明确回复「可以正式 freeze」；详细声明的补发回复连续被截断）
+
+**冻结范围**
+role-level PFA（状态 = role、转移 = train-only 经验分布、低于 `min_prob` 的转移剪枝并归一化）、
+有限 horizon 期望剩余距离、`current_role` 索引、`S_completion = 1/E[D_remaining]` 与
+`omega1=1, omega2=0` 的 completion-aware priority、以及 `tests/test_pythia_fidelity.py` 的 12 项 gate。
+
+**后续不得改动**
+role alphabet 的定义（`role:action_family:raw_action`，**不含** occurrence 后缀）；PFA 结构与转移语义；
+剪枝阈值与归一化；`DEFAULT_HORIZON`；期望剩余距离的递归；`current_role` 索引语义；
+`S_completion`；epsilon 无关的 completion priority；Pythia-specific simulator 接口。
+
+**唯一例外**：可复现 correctness bug，须单独记为 **freeze-breaking fix**，不得为改善结果调参。
+
+**Freeze 前关闭的缺陷**
+1. **alphabet 用错（P0）**：旧 frontend 以 `template.baseline` 为 alphabet —— 那是收集时记录的
+   workflow family 标签，不是 role alphabet，且**根本没有建模 role**。改为真正的 role-level PFA。
+2. **状态用错 + 当前节点双算（P0）**：consumer 以 `last_observed_role` 索引，而 `V(role)` 是
+   **该 role 之后**的剩余工作。链条 A→B→C（10/20/40）在 B ready 时得 `d(B)+V(A)=80`，
+   真实应为 `d(B)+V(B)=60`。改为从**候选自己的 role**（= Pythia 的 `agent_id`）索引。
+   实测端到端 makespan 182738.8 → **182025.1**，证明双算在生效路径上。
+3. **措辞不实**：曾把有限 horizon 写成「论文的 bounded probable future」。论文实际是
+   **低概率转移剪枝 + 对循环 role 的 repetition bounds**（`engineer^{3,6}`）；`H=6` 是我们的
+   **固定、train-independent 计算近似**，不是论文公式。已改。
+
+**替代方案与拒绝原因**
+- 保留 `baseline` 作为 alphabet：不是 role alphabet，拒绝。
+- 保留 occurrence 后缀（`#0/#1/#2`）：论文用**重复 role** 表达循环，加后缀会把一个循环 role
+  拆成多个位置状态，恰好破坏 automaton 的用途，拒绝。
+- 用平稳解代替有限 horizon：环状 automaton 上无折扣期望不收敛，拒绝。
+
+**验证**
+Pythia gate `tests/test_pythia_fidelity.py` **12 项**；全量 **333 测试**（5 个失败套件全部预先存在）；
+v04.1 上 11 roles / 26 retained edges / 4 pruned / 480 train runs，`E[rem]` 跨 0–20627 ms；
+6 个 validation job 全部完成。

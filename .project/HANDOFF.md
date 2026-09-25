@@ -87,20 +87,27 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
 ### LLMSched Baseline Freeze v1 —— **已冻结**（HEAD 618b26b）
-GPT 复核**批准**。声明与 manifest 已入库：
-- .project/DECISIONS.md（冻结范围 / 不得改动项 / freeze 前关闭的 12 个缺陷 / 替代方案与拒绝原因）
-- experiments/EXP-20260921_scheduler_replication_v1/artifacts/llmsched_baseline_freeze_v1.json
-  （paper 身份 / freeze 引用 / **faithful 11 条 / adapted 7 条 / deviation 3 条** / 已关闭项 / 冻结接口）
 
-提交链：df56a47（v2 消费端 + L1–L7）→ 874abd3（五项窄修）→ 87e2619（同截断 Y + present 条件化）
-→ 3a349b（Algorithm 1）→ 618b26b（interval 支撑 + 缓存绑定网络）→ cef9a30（freeze 记录）
+### Pythia Baseline Freeze v1 —— **已获批**（HEAD 26484a2）
+GPT 明确回复「可以正式 freeze」；详细声明的**补发回复连续两次被截断**（62 / 2 字符），
+故按它逐项确认过的口径记录，**完整 SHA 与最终声明文本待补**。
 
-**Freeze 后唯一允许的改动**：可复现的 correctness bug，须单独记为 **freeze-breaking fix**，
-**不得为改善结果调参**。特别地：不得原地修改 cpds / stage_order ——
-posterior memoization 只在该假设下安全。
+- 声明与 manifest 已入库：.project/DECISIONS.md +
+  experiments/EXP-20260921_scheduler_replication_v1/artifacts/pythia_baseline_freeze_v1.json
+- 提交链：8a88c2b（role-PFA 重构）→ 26484a2（候选自有 role 索引 + horizon 措辞修正）
 
-验证：v2 gate **34 项**；全量 **329 测试 / 5 个预存失败**；
-端到端 EXPLOIT 190479.7 / EXPLORE 178539.8，均完成 6 个 validation job。
+**Freeze 前关闭的两个 P0**
+1. **alphabet 用错**：旧 frontend 以 	emplate.baseline 为 alphabet —— 那是收集时记录的
+   workflow family 标签，不是 role alphabet，且**根本没建模 role**。
+2. **状态用错 + 当前节点双算**：consumer 以 last_observed_role 索引，而 V(role) 是**该 role 之后**
+   的剩余工作。A→B→C（10/20/40）在 B ready 时得 d(B)+V(A)=80，真实应为 d(B)+V(B)=60。
+   改为从**候选自己的 role**（= Pythia 的 gent_id）索引。端到端 makespan 182738.8 → **182025.1**。
+
+另修正措辞不实：有限 horizon 曾被写成「论文的 bounded probable future」；
+论文实际是低概率转移剪枝 + 对循环 role 的 repetition bounds（engineer^{3,6}）。
+
+验证：Pythia gate **12/12**；全量 **333 测试 / 5 个预存失败**；
+v04.1 上 11 roles / 26 retained edges / 4 pruned / 480 runs，E[rem] 跨 0–20627 ms。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
