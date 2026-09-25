@@ -3501,18 +3501,34 @@ def choose_action(
         if profiler is None:
             raise ValueError("pythia_completion requires policy_context['pythia_profiler']")
 
-        from tracing.analysis.pythia_profiler import expected_remaining_ms, s_completion
+        from tracing.analysis.pythia_profiler import (
+            expected_remaining_ms,
+            last_observed_role,
+            s_completion,
+        )
+
+        role_cache = (policy_context or {}).setdefault("pythia_last_role", {})
 
         def pythia_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
             job = jobs[job_index]
-            family = str(getattr(job.template, "baseline", "") or "unknown")
-            consumed = len(job.completed)
+            # The profile is indexed by the last role the job actually OBSERVED, not by
+            # a workflow-family label and not by a completed count: `baseline` is the
+            # grouping the collection recorded rather than a role alphabet, and a count
+            # carries no role information at all.
+            key = job.job_instance_id
+            reached = frozenset(job.completed)
+            cached = role_cache.get(key)
+            if cached is not None and cached[0] == reached:
+                role = cached[1]
+            else:
+                role = last_observed_role(job)
+                role_cache[key] = (reached, role)
             load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
             current = float(estimate_row["runtime_p50_ms"]) + load
-            d_remaining = current + expected_remaining_ms(profiler, family, consumed)
+            d_remaining = current + expected_remaining_ms(profiler, role)
             return (
                 float(item[0]),          # the hard service priority stays first
                 -s_completion(d_remaining),   # smaller key wins, so negate S

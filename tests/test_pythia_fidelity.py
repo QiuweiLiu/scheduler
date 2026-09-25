@@ -1,17 +1,28 @@
-"""Fidelity gate for Pythia-adapted (layer 1 of the two-layer gate).
+"""Fidelity gate for the Pythia-adapted ROLE-PFA profiler.
 
-The review's list for Pythia:
+The review's finding on the first version was that it used ``template.baseline`` as the
+alphabet.  ``baseline`` is the workflow-family label the collection recorded, not a role
+alphabet, so the profiler was conditioning on a grouping the scheduler is not entitled to
+at admission time and was not modelling roles at all.  The gate below therefore checks
+the things that matter for a role-level PFA, and one of them is written so that the OLD
+implementation cannot pass it.
+
+The review's list, restated for this front end:
     the PFA is built from train-only traces only;
-    the expected remaining distance is analytically checkable on a toy trace;
-    the runtime state advances correctly as the current agent progresses.
+    the expected remaining distance is analytically checkable on a toy automaton;
+    the runtime state advances correctly as the agent progresses.
 """
 from __future__ import annotations
 
 import unittest
 
 from tracing.analysis.pythia_profiler import (
+    END,
+    PROFILER_SCHEMA,
     build_pythia_profiler,
     expected_remaining_ms,
+    last_observed_role,
+    role_alphabet,
     s_completion,
 )
 from tracing.analysis.workload_v02_simulator import (
@@ -23,113 +34,210 @@ from tracing.analysis.workload_v02_simulator import (
 )
 
 
-def chain_template(tid: str, runtimes, family: str, split: str = "train", model="m1") -> Template:
+def role_node(tid, index, role, family, runtime, split="train"):
+    return Node(
+        node_id=f"{tid}:n{index}", sequence_index=index,
+        predecessors=(f"{tid}:n{index-1}",) if index else (),
+        successors=(f"{tid}:n{index+1}",),
+        lane="gpu", model_id="m1", runtime_ms=float(runtime), load_ms=0.0,
+        workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+        role=role, action_family=family, raw_action=family,
+    )
+
+
+def role_template(tid, roles, runtime, split="train", baseline="fam"):
+    """``roles`` is a list of (role, action_family) pairs.
+
+    ``runtime`` is either one duration for every node or a per-node sequence, since
+    Node is a frozen dataclass and cannot be patched after construction.
+    """
+
+    if isinstance(runtime, (list, tuple)):
+        runtimes = list(runtime)
+    else:
+        runtimes = [float(runtime)] * len(roles)
+    if len(runtimes) != len(roles):
+        raise ValueError("runtime sequence must match the role sequence")
     nodes = []
-    for i, rt in enumerate(runtimes):
+    for i, (r, f) in enumerate(roles):
+        last = i + 1 == len(roles)
         nodes.append(Node(
             node_id=f"{tid}:n{i}", sequence_index=i,
             predecessors=(f"{tid}:n{i-1}",) if i else (),
-            successors=(f"{tid}:n{i+1}",) if i + 1 < len(runtimes) else (),
-            lane="gpu", model_id=model, runtime_ms=float(rt), load_ms=5.0,
-            workspace_peak_mb=100.0, resident_model_mb=90.0, status="success",
-            role="execute", action_family="inference",
+            successors=() if last else (f"{tid}:n{i+1}",),
+            lane="gpu", model_id="m1", runtime_ms=float(runtimes[i]), load_ms=0.0,
+            workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+            role=r, action_family=f, raw_action=f,
         ))
-    return Template(tid, tid, split, family, tuple(nodes), {n.node_id: n for n in nodes})
+    return Template(tid, tid, split, baseline, tuple(nodes), {n.node_id: n for n in nodes})
 
 
-class PythiaProfilerTests(unittest.TestCase):
+class AlphabetTests(unittest.TestCase):
+    def test_the_alphabet_is_roles_not_the_workflow_family(self):
+        """The OLD implementation cannot pass this: it keyed everything on ``baseline``."""
+
+        a = role_template("a", [("planner", "planner.generate")], 10.0, baseline="fam_a")
+        b = role_template("b", [("planner", "planner.generate")], 10.0, baseline="fam_b")
+        prof = build_pythia_profiler({"a": a, "b": b})
+        self.assertIn("planner:planner.generate:planner.generate", prof["alphabet"])
+        # two different families over the same role must not produce two profiles
+        self.assertNotIn("families", prof,
+                         "the profiler must not be partitioned by the workflow family")
+        self.assertEqual(prof["n_runs"], 2)
+
     def test_arm_is_registered(self):
         self.assertIn("pythia_completion", POLICIES)
 
-    def test_expected_remaining_is_analytically_exact(self):
-        """Two toy runs make the expectation hand-computable.
 
-        run A = [10, 20, 30]: remaining after k consumed = [60, 50, 30, 0]
-        run B = [100, 100]:   remaining after k consumed = [200, 100, 0, 0]
-        mean(remaining after k=0) = (60 + 200) / 2 = 130
-        mean(remaining after k=1) = (50 + 100) / 2 =  75
-        mean(remaining after k=2) = (30 + 0)   / 2 =  15
-        mean(remaining after k=3) = (0  + 0)   / 2 =   0
+class AnalyticalTests(unittest.TestCase):
+    """The expected remaining distance is hand-computable on toy automata."""
+
+    def test_deterministic_two_step_chain(self):
+        """A -> B -> C -> end, durations A=10 B=20 C=40.
+
+        V1(A) = d(B) = 20
+        V2(A) = d(B) + V1(B), and V1(B) = d(C) = 40, so V2(A) = 60
+        V3(A) = d(B) + V2(B), and V2(B) = d(C) + V1(C) = 40, so V3(A) = 60
         """
-        tpls = {"a": chain_template("a", [10, 20, 30], "fam"),
-                "b": chain_template("b", [100, 100], "fam")}
-        prof = build_pythia_profiler(tpls)
-        fam = prof["families"]["fam"]
-        self.assertEqual(fam["n_runs"], 2)
-        self.assertEqual(fam["remaining_mean_by_consumed"], [130.0, 75.0, 15.0, 0.0])
-        self.assertAlmostEqual(expected_remaining_ms(prof, "fam", 0), 75.0)
-        self.assertAlmostEqual(expected_remaining_ms(prof, "fam", 1), 15.0)
-        self.assertAlmostEqual(expected_remaining_ms(prof, "fam", 2), 0.0)
 
-    def test_profiler_uses_only_the_training_split(self):
-        train = {"a": chain_template("a", [10, 20], "fam", split="train")}
-        val = {"b": chain_template("b", [9999, 9999], "fam", split="validation")}
-        only_val = build_pythia_profiler(val)
-        both = build_pythia_profiler({**train, **val})
-        # the validation run must not move the estimate
+        tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")],
+                            [10.0, 20.0, 40.0])
+        prof = build_pythia_profiler({"t": tpl})
         self.assertAlmostEqual(
-            expected_remaining_ms(only_val, "fam", 0) if "fam" in only_val["families"] else
-            expected_remaining_ms(both, "fam", 0),
-            expected_remaining_ms(both, "fam", 0),
-        )
-        self.assertEqual(both["families"]["fam"]["n_runs"], 1, "validation leaked into the profiler")
+            expected_remaining_ms(prof, "planner:p:p"), 60.0, places=6)
+        self.assertAlmostEqual(
+            expected_remaining_ms(prof, "tool:t:t"), 40.0, places=6)
+        # the terminal role has nothing after it
+        self.assertAlmostEqual(
+            expected_remaining_ms(prof, "answer:a:a"), 0.0, places=6)
 
-    def test_completion_score_is_monotone_in_distance(self):
-        self.assertGreater(s_completion(100.0), s_completion(1000.0))
-        self.assertAlmostEqual(s_completion(100.0), 0.01)
+    def test_fan_out_is_a_probability_weighted_sum(self):
+        """A -> {B (0.5), C (0.5)}; B and C end.  Durations B=10, C=30.
 
-    def test_unknown_family_fails_closed(self):
-        prof = build_pythia_profiler({"a": chain_template("a", [1, 2], "fam")})
-        with self.assertRaises(KeyError):
-            expected_remaining_ms(prof, "not-a-family", 0)
+        V1(A) = 0.5 * 10 + 0.5 * 30 = 20
+        """
+
+        runs = []
+        for index in range(4):
+            if index % 2 == 0:
+                runs.append(role_template(f"b{index}",
+                                          [("planner", "p"), ("tool", "t")], [0.0, 10.0]))
+            else:
+                runs.append(role_template(f"c{index}",
+                                          [("planner", "p"), ("answer", "a")], [0.0, 30.0]))
+        prof = build_pythia_profiler({t.template_id: t for t in runs})
+        self.assertAlmostEqual(expected_remaining_ms(prof, "planner:p:p"), 20.0, places=6)
+
+    def test_probabilities_are_normalised_after_pruning(self):
+        prof = build_pythia_profiler(
+            {"t": role_template("t", [("planner", "p"), ("tool", "t")], 0.0)})
+        for role, edges in prof["edge_prob"].items():
+            self.assertAlmostEqual(sum(edges.values()), 1.0, places=9,
+                                   msg="row for %r does not sum to 1" % role)
 
 
-class PythiaPolicyTests(unittest.TestCase):
-    def setUp(self):
-        self.templates = {
-            "a": chain_template("a", [100.0, 200.0], "fam", model="m0"),
-            "b": chain_template("b", [150.0, 160.0], "fam", model="m1"),
-        }
-        self.prof = build_pythia_profiler(self.templates)
-        self.stats = train_resource_stats(self.templates)
-        self.episode = {
-            "episode_id": "pythia-fidelity", "split": "train",
-            "gpu_topology_mb": [4000.0, 4000.0], "initial_residency_hint": [[], []],
-            "jobs": [
-                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0,
-                 "deadline_ms": 1e9, "service_class": "normal"},
-                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0,
-                 "deadline_ms": 1e9, "service_class": "normal"},
-            ],
-        }
+class TrainOnlyTests(unittest.TestCase):
+    def test_validation_does_not_move_the_estimate(self):
+        train = {"a": role_template("a", [("planner", "p"), ("tool", "t")], 10.0,
+                                    split="train")}
+        val = {"b": role_template("b", [("planner", "p"), ("tool", "t")], 9999.0,
+                                  split="validation")}
+        only_train = build_pythia_profiler(train)
+        both = build_pythia_profiler({**train, **val})
+        self.assertEqual(only_train["n_runs"], both["n_runs"])
+        self.assertAlmostEqual(
+            expected_remaining_ms(only_train, "planner:p:p"),
+            expected_remaining_ms(both, "planner:p:p"), places=9)
 
-    def test_runs_and_completes(self):
-        s, _ = simulate_episode(self.episode, self.templates, "pythia_completion",
-                                train_stats=self.stats,
-                                policy_context={"pythia_profiler": self.prof},
-                                collect_events=True)
-        self.assertEqual(s["completed_jobs"], 2)
-        self.assertEqual(s["failed_jobs"], 0)
-
-    def test_requires_the_profiler_fail_closed(self):
+    def test_no_train_templates_fails_closed(self):
+        val = {"b": role_template("b", [("planner", "p")], 10.0, split="validation")}
         with self.assertRaises(ValueError):
-            simulate_episode(self.episode, self.templates, "pythia_completion",
-                             train_stats=self.stats, collect_events=False)
+            build_pythia_profiler(val)
 
-    def test_runtime_state_advances_as_the_agent_progresses(self):
-        """After the first node the job must be scored with consumed=1."""
-        _s, events = simulate_episode(self.episode, self.templates, "pythia_completion",
-                                      train_stats=self.stats,
-                                      policy_context={"pythia_profiler": self.prof},
-                                      collect_events=True)
-        starts = [e for e in events if e.get("event_type") == "node_start"]
-        self.assertEqual(len(starts), 4, "two 2-node chains should start four nodes")
-        # each job's second node must exist, which can only happen once consumed=1
-        per_job = {}
-        for e in starts:
-            per_job.setdefault(e.get("job_instance_id"), []).append(e.get("node_id"))
-        for jid, nodes in per_job.items():
-            self.assertEqual(len(nodes), 2, "%s did not advance to its second node" % jid)
+    def test_unknown_role_fails_closed(self):
+        prof = build_pythia_profiler(
+            {"t": role_template("t", [("planner", "p")], 10.0)})
+        with self.assertRaises(KeyError):
+            expected_remaining_ms(prof, "not:a:role")
+
+    def test_schema_is_pinned(self):
+        prof = build_pythia_profiler(
+            {"t": role_template("t", [("planner", "p")], 10.0)})
+        self.assertEqual(prof["schema"], PROFILER_SCHEMA)
+        with self.assertRaises(ValueError):
+            expected_remaining_ms({"schema": "something-else"}, "x")
+
+
+class RuntimeStateTests(unittest.TestCase):
+    def test_the_state_advances_with_completed_nodes(self):
+        tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")], 7.0)
+
+        class FakeJob:
+            def __init__(self, completed):
+                self.template = tpl
+                self.completed = completed
+
+        self.assertEqual(last_observed_role(FakeJob(set())), role_alphabet(tpl.nodes[0]))
+        self.assertEqual(last_observed_role(FakeJob({"t:n0"})), role_alphabet(tpl.nodes[0]))
+        self.assertEqual(last_observed_role(FakeJob({"t:n0", "t:n1"})),
+                         role_alphabet(tpl.nodes[1]))
+
+    def test_the_state_ignores_unexecuted_nodes(self):
+        """Only completed nodes may move the state."""
+
+        tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")], 7.0)
+
+        class FakeJob:
+            def __init__(self, completed):
+                self.template = tpl
+                self.completed = completed
+
+        before = last_observed_role(FakeJob(set()))
+        # rewrite every unexecuted node; the state must not move
+        mutated_nodes = list(tpl.nodes)
+        for index in (1, 2):
+            mutated_nodes[index] = Node(
+                **{**tpl.nodes[index].__dict__, "role": "something_else",
+                   "action_family": "different", "raw_action": "different"})
+        mutated = Template(tpl.template_id, tpl.video_id, tpl.split, tpl.baseline,
+                           tuple(mutated_nodes),
+                           {n.node_id: n for n in mutated_nodes})
+
+        class FakeMutatedJob(FakeJob):
+            def __init__(self, completed):
+                super().__init__(completed)
+                self.template = mutated
+
+        self.assertEqual(last_observed_role(FakeMutatedJob(set())), before)
+
+    def test_completion_statistic(self):
+        self.assertAlmostEqual(s_completion(100.0), 0.01, places=9)
+        self.assertGreater(s_completion(10.0), s_completion(1000.0))
+
+
+class EndToEndTests(unittest.TestCase):
+    def test_runs_and_completes_and_reads_only_the_role_alphabet(self):
+        tpls = {f"t{i}": role_template(f"t{i}",
+                                       [("planner", "p"), ("tool", "t"), ("answer", "a")],
+                                       100.0 + 10 * i)
+                for i in range(3)}
+        prof = build_pythia_profiler(tpls)
+        stats = train_resource_stats(tpls)
+        episode = {
+            "episode_id": "pythia-fidelity", "split": "train",
+            "gpu_topology_mb": [4000.0, 4000.0],
+            "initial_residency_hint": [[], []],
+            "jobs": [{"job_instance_id": f"j{i}", "template_id": f"t{i}",
+                      "arrival_ms": 0.0, "deadline_ms": 1e9,
+                      "service_class": "normal"} for i in range(3)],
+        }
+        summary, _ = simulate_episode(episode, tpls, "pythia_completion",
+                                      train_stats=stats,
+                                      policy_context={"pythia_profiler": prof})
+        self.assertEqual(summary["completed_jobs"], 3)
+        self.assertEqual(summary["failed_jobs"], 0)
+        # a profiler partitioned by the workflow family cannot serve this call
+        self.assertNotIn("families", prof)
 
 
 if __name__ == "__main__":
