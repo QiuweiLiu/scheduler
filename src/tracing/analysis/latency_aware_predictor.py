@@ -65,6 +65,34 @@ def _key(tier: int, f: Mapping[str, Any]) -> Tuple[Any, ...]:
 
 TIERS = (1, 2, 3, 4)
 
+# The model-loading cost is a property of the DEPLOYMENT and the DEVICE, not of the
+# request: the paper carries T_load(d, g).  Load therefore has its own single key, so no
+# request feature can move it.
+LOAD_TIER = "deployment_only"
+
+
+def _load_key(f: Mapping[str, Any]) -> Tuple[Any, ...]:
+    """Deployment + device only, as the paper has it."""
+
+    return (f["model_id"], f["lane"])
+
+
+def _load_key(f: Mapping[str, Any]) -> Tuple[Any, ...]:
+    """Deployment + device only, as the paper has it."""
+
+    return (f["model_id"], f["lane"])
+
+# The model-loading cost is a property of the DEPLOYMENT and the DEVICE, not of the
+# request: the paper carries T_load(d, g).  Load therefore has its own single key, so no
+# request feature can move it.
+LOAD_TIER = "deployment_only"
+
+
+def _load_key(f: Mapping[str, Any]) -> Tuple[Any, ...]:
+    """Deployment + device only, as the paper has it."""
+
+    return (f["model_id"], f["lane"])
+
 
 def build_latency_predictor(templates: Mapping[str, Any], *,
                             min_support: int = DEFAULT_MIN_SUPPORT) -> Dict[str, Any]:
@@ -77,6 +105,8 @@ def build_latency_predictor(templates: Mapping[str, Any], *,
 
     sums: Dict[int, Dict[Tuple[Any, ...], Dict[str, float]]] = {t: {} for t in TIERS}
     counts: Dict[int, Dict[Tuple[Any, ...], int]] = {t: {} for t in TIERS}
+    load_sums: Dict[Tuple[Any, ...], Dict[str, float]] = {}
+    load_counts: Dict[Tuple[Any, ...], int] = {}
     skipped = 0
     n_nodes = 0
 
@@ -96,11 +126,14 @@ def build_latency_predictor(templates: Mapping[str, Any], *,
             mem = float(getattr(node, "workspace_peak_mb", 0.0) or 0.0)
             for tier in TIERS:
                 key = _key(tier, f)
-                slot = sums[tier].setdefault(key, {"run": 0.0, "mem": 0.0, "load": 0.0})
+                slot = sums[tier].setdefault(key, {"run": 0.0, "mem": 0.0})
                 slot["run"] += run
                 slot["mem"] += mem
-                slot["load"] += load
                 counts[tier][key] = counts[tier].get(key, 0) + 1
+            load_key = _load_key(f)
+            load_slot = load_sums.setdefault(load_key, {"load": 0.0})
+            load_slot["load"] += load
+            load_counts[load_key] = load_counts.get(load_key, 0) + 1
 
     if n_nodes == 0:
         raise ValueError("no train nodes among the %d templates supplied; refusing to "
@@ -115,16 +148,27 @@ def build_latency_predictor(templates: Mapping[str, Any], *,
                 "n": n,
                 "run_ms": slot["run"] / n,
                 "peak_mem_mb": slot["mem"] / n,
-                "load_ms": slot["load"] / n,
             }
         tables[tier] = table
+
+    load_table: Dict[Tuple[Any, ...], Dict[str, float]] = {}
+    for key, slot in load_sums.items():
+        load_table[key] = {"n": load_counts[key], "load_ms": slot["load"] / load_counts[key]}
+
+    all_loads = [row["load_ms"] for row in load_table.values()] or [0.0]
+    load_default = sum(all_loads) / len(all_loads)
 
     return {
         "schema": PREDICTOR_SCHEMA,
         "tables": tables,
+        "load_default_ms": float(load_default),
         "min_support": int(min_support),
         "n_train_nodes": n_nodes,
         "skipped_non_train": skipped,
+        "load_table": load_table,
+        "load_key": ["model_id", "lane"],
+        "load_note": "T_load(d, g): the model-loading cost depends on the deployment and "
+                     "the device, not on the request, so no request feature can move it",
         "tier_keys": {
             1: ["model_id", "lane", "action_family", "raw_action", "batch_size"],
             2: ["model_id", "lane", "action_family", "batch_size"],
@@ -149,12 +193,16 @@ def predict(predictor: Mapping[str, Any], node: Any) -> Dict[str, Any]:
     for tier in TIERS:
         row = predictor["tables"][tier].get(_key(tier, f))
         if row is not None and int(row["n"]) >= min_support:
+            load_row = predictor["load_table"].get(_load_key(f))
+            load_ms = (float(load_row["load_ms"]) if load_row is not None
+                       else float(predictor["load_default_ms"]))
             return {
                 "run_ms": float(row["run_ms"]),
                 "peak_mem_mb": float(row["peak_mem_mb"]),
-                "load_ms": float(row["load_ms"]),
+                "load_ms": load_ms,
                 "tier": tier,
                 "n": int(row["n"]),
+                "load_key": list(_load_key(f)),
             }
     # nothing at any tier: (model, lane) itself is unknown.  Fail closed rather than
     # invent a number.
@@ -208,7 +256,10 @@ def non_degeneracy_report(predictor: Mapping[str, Any], *,
         considered += 1
         runs = [r["run_ms"] for _, r in rows]
         mems = [r["peak_mem_mb"] for _, r in rows]
-        loads = [r["load_ms"] for _, r in rows]
+        # load is NOT part of the request-conditioned spread any more: it belongs to the
+        # deployment, so including it here would let a request look non-degenerate purely
+        # because the deployment it sits on has a different load.
+        loads = [0.0 for _, r in rows]
         spread = {
             "run_ms": max(runs) - min(runs),
             "peak_mem_mb": max(mems) - min(mems),
