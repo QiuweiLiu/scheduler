@@ -114,10 +114,14 @@ class Eq4FusedDurationTests(unittest.TestCase):
         predictor = _tiny_predictor(tpl)
         dur, load = predicted_duration_ms(_J(), "t:n0", ("t:n0", "t:n1", "t:n2"), row,
                                           resident=False, predictor=predictor)
-        self.assertAlmostEqual(load, 7.0, msg="a fused unit pays the load once")
+        # The load now comes from the SAME predictor that supplies the compute.  Mixing
+        # the predictor's compute with the shared estimate_row load would decompose the
+        # unit inconsistently, which is exactly what the review flagged.
+        pred_load = predict(predictor, tpl.by_id["t:n0"])["load_ms"]
+        self.assertAlmostEqual(load, pred_load, msg="the load comes from the predictor")
         predicted_sum = sum(
             predict(predictor, tpl.by_id[m])["run_ms"] for m in ("t:n0", "t:n1", "t:n2"))
-        self.assertAlmostEqual(dur, 7.0 + predicted_sum)
+        self.assertAlmostEqual(dur, pred_load + predicted_sum)
         # and it is NOT the truth sum: the predictor returns the train mean, which for a
         # single train node equals runtime_ms, so the distinguishing check is that the
         # truth-only path is never consulted
@@ -134,7 +138,8 @@ class Eq4FusedDurationTests(unittest.TestCase):
                                                             "load_p50_ms": 7.0},
                                           resident=True, predictor=_P())
         self.assertAlmostEqual(load, 0.0)
-        self.assertAlmostEqual(dur, 100.0)
+        # run_ms is COMPUTE: the fixture node has runtime 100 and load 5, so 95.
+        self.assertAlmostEqual(dur, 95.0)
 
 
 class Eq7StartTimeTests(unittest.TestCase):

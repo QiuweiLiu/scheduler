@@ -360,5 +360,60 @@ class TruthFallbackClosedTests(unittest.TestCase):
             "effective information even if their raw table looks non-degenerate")
 
 
+class DecompositionTests(unittest.TestCase):
+    """compute / load / total-peak must decompose consistently.
+
+    runtime_ms INCLUDES load_ms in this substrate, and workspace_peak_mb is the TOTAL peak
+    including the resident model.  A baseline that adds a load term on top of a runtime
+    mean, or adds resident_model_mb to a total peak, is wrong in a way nothing raises on.
+    """
+
+    @staticmethod
+    def _template(runtime, load, peak, resident_mb, action="a"):
+        from tracing.analysis.workload_v02_simulator import Node, Template
+
+        n = Node(node_id="d:n0", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="mD", runtime_ms=float(runtime), load_ms=float(load),
+                 workspace_peak_mb=float(peak), resident_model_mb=float(resident_mb),
+                 status="success", role="execute", action_family=action, raw_action=action)
+        return Template("d", "d", "train", "fam", (n,), {"d:n0": n})
+
+    def test_the_predictor_trains_on_compute_not_runtime(self):
+        from tracing.analysis.latency_aware_predictor import (
+            build_latency_predictor, predict)
+
+        tpl = self._template(runtime=110.0, load=10.0, peak=500.0, resident_mb=200.0)
+        prof = build_latency_predictor({"d": tpl}, min_support=1)
+        pred = predict(prof, tpl.nodes[0])
+        self.assertAlmostEqual(pred["run_ms"], 100.0,
+                               msg="runtime 110 with load 10 must train as compute 100")
+
+    def test_nonresident_pays_the_load_once_and_resident_pays_none(self):
+        from tracing.analysis.latency_aware_predictor import (
+            build_latency_predictor, predict)
+
+        tpl = self._template(runtime=110.0, load=10.0, peak=500.0, resident_mb=200.0)
+        prof = build_latency_predictor({"d": tpl}, min_support=1)
+        pred = predict(prof, tpl.nodes[0])
+        nonresident_total = pred["run_ms"] + pred["load_ms"]
+        resident_total = pred["run_ms"] + 0.0
+        self.assertAlmostEqual(nonresident_total, 110.0)
+        self.assertAlmostEqual(resident_total, 100.0)
+        self.assertNotAlmostEqual(nonresident_total, 120.0, places=6,
+                                  msg="the load must not be counted twice")
+
+    def test_the_admission_peak_is_not_inflated_by_the_resident_model(self):
+        from tracing.analysis.latency_aware_predictor import (
+            build_latency_predictor, predict)
+
+        tpl = self._template(runtime=110.0, load=10.0, peak=500.0, resident_mb=200.0)
+        prof = build_latency_predictor({"d": tpl}, min_support=1)
+        pred = predict(prof, tpl.nodes[0])
+        self.assertAlmostEqual(pred["peak_mem_mb"], 500.0,
+                               msg="workspace_peak_mb is the TOTAL peak, already "
+                                   "including the resident model")
+        self.assertNotAlmostEqual(pred["peak_mem_mb"], 700.0, places=6)
+
+
 if __name__ == "__main__":
     unittest.main()

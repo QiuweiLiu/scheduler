@@ -87,9 +87,13 @@ def build_latency_predictor(templates: Mapping[str, Any], *,
         for node in tpl.nodes:
             n_nodes += 1
             f = _features(node)
-            run = float(getattr(node, "runtime_ms", 0.0) or 0.0)
-            mem = float(getattr(node, "workspace_peak_mb", 0.0) or 0.0)
+            # run_ms is COMPUTE, not runtime: runtime_ms already contains load_ms,
+            # and the scheduler adds the predicted load back for a cold model.
+            # peak_mem_mb is the TOTAL peak, because the substrate defines
+            # workspace_incremental_mb = workspace_peak_mb - resident_model_mb.
             load = float(getattr(node, "load_ms", 0.0) or 0.0)
+            run = max(0.1, float(getattr(node, "runtime_ms", 0.0) or 0.0) - load)
+            mem = float(getattr(node, "workspace_peak_mb", 0.0) or 0.0)
             for tier in TIERS:
                 key = _key(tier, f)
                 slot = sums[tier].setdefault(key, {"run": 0.0, "mem": 0.0, "load": 0.0})

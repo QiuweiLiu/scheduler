@@ -295,5 +295,22 @@ class ZeroLoadSentinel(unittest.TestCase):
                                msg="[0, 10] must average 5; a truthiness guard drops the 0")
 
 
+class ComputeBankSentinel(unittest.TestCase):
+    """The bank must hold COMPUTE, not runtime, because runtime already contains the load."""
+
+    def test_bank_samples_are_compute(self):
+        from tracing.analysis.tie_methods import build_tie_bank
+
+        n = Node(node_id="c:n", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="mC", runtime_ms=110.0, load_ms=10.0,
+                 workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+                 role="execute", action_family="inference")
+        tpl = Template("c", "c", "train", "fam", (n,), {"c:n": n})
+        bank = build_tie_bank({"c": tpl})
+        group = bank["groups"]["mC|gpu"]
+        self.assertAlmostEqual(group["runtime_mean_ms"], 100.0,
+                               msg="runtime 110 with load 10 must bank as compute 100")
+
+
 if __name__ == "__main__":
     unittest.main()

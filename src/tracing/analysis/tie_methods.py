@@ -70,7 +70,13 @@ def build_tie_bank(templates: Mapping[str, Any]) -> Dict[str, Any]:
         if getattr(tpl, "split", None) != "train":
             continue
         for n in tpl.nodes:
-            groups[tie_key(n)].append(float(n.runtime_ms))
+            # runtime_ms INCLUDES load_ms, and the consumer adds a load term on top
+            # for a cold model.  Banking runtime therefore counted the load twice for
+            # non-resident models and left it inside the mean for resident ones.  The
+            # bank is a COMPUTE distribution; the load stays separate as the
+            # residency-aware surcharge.
+            groups[tie_key(n)].append(
+                max(0.1, float(n.runtime_ms) - float(n.load_ms or 0.0)))
             # A legitimate load of 0 -- an already-resident model -- is a SAMPLE, not a
             # missing one.  Testing the value for truthiness dropped it, so a training
             # set of [0, 10] produced a mean of 10 instead of 5: a silent, plausible,

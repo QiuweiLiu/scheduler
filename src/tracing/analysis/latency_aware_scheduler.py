@@ -99,13 +99,21 @@ def predicted_duration_ms(
     truth, so it is legitimate when the predictor is not supplied.
     """
 
-    load = 0.0 if resident else float(estimate_row["load_p50_ms"])
+    # The load must come from the SAME predictor that supplies the compute: the shared
+    # estimate_row is a different model's number, and mixing the two would decompose the
+    # unit inconsistently.
     if not members:
         pred = predict(predictor, job.template.by_id[node_id])
+        load = 0.0 if resident else float(pred["load_ms"])
         return float(pred["run_ms"]) + load, load
     total = 0.0
+    load = 0.0
     for member in members:
-        total += float(predict(predictor, job.template.by_id[member])["run_ms"])
+        pred = predict(predictor, job.template.by_id[member])
+        total += float(pred["run_ms"])
+        load = max(load, float(pred["load_ms"]))
+    if resident:
+        load = 0.0
     return load + total, load
 
 
@@ -135,9 +143,10 @@ def build_plan(
     # because workspace_peak_mb on the node is a truth field.  There is deliberately no
     # fallback: blocking the truth at the simulator wrapper was not enough, because this
     # module's own entry points stayed reachable with no predictor and read it anyway.
+    # workspace_peak_mb is already the TOTAL peak including the resident model, so
+    # adding resident_model_mb again inflated the admission check.
     memory = max(
-        (float(predict(predictor, job.template.by_id[m])["peak_mem_mb"]
-               + float(job.template.by_id[m].resident_model_mb or 0.0))
+        (float(predict(predictor, job.template.by_id[m])["peak_mem_mb"])
          for m in members),
         default=0.0,
     )
