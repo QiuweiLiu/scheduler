@@ -33,7 +33,7 @@ BASELINES = [
         "venue": "IEEE ICDCS 2025, pp. 527-537",
         "manifest": "llmsched_baseline_freeze_v1.json",
         "gate_file": "tests/test_llmsched_bn_v2.py",
-        "freeze_head": "618b26bcf717c2bfb00b3545d58dccfb027f494e",
+        "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
     },
     {
         "arm": "pythia_completion",
@@ -41,7 +41,7 @@ BASELINES = [
         "venue": "arXiv:2604.25899 (venue UNVERIFIED)",
         "manifest": "pythia_baseline_freeze_v1.json",
         "gate_file": "tests/test_pythia_fidelity.py",
-        "freeze_head": "26484a4e545e88a55556e70c91e2b1cb62272ac",
+        "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
     },
     {
         "arm": "tie_current",
@@ -61,7 +61,7 @@ BASELINES = [
         # scheduler gate, not the fidelity gate.  Both must run green, or the manifest
         # would certify a baseline whose prefetch had gone back to pre-empting ready work.
         "extra_gate_files": ["scripts/../tests/test_latency_aware_scheduler.py"],
-        "freeze_head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
+        "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
     },
 ]
 

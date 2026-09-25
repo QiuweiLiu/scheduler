@@ -18,12 +18,12 @@
 - 环境性测试：8 个 error（缺 torch / py3.9 `write_text(newline=)`）、1 个 failure（预存 `round_robin` myopic）。
 
 ### Active
-等待用户批准 **commit** 这批 freeze-breaking 修复；提交后把四份冻结清单 `head` 与 fidelity manifest 重新 pin 到该 commit。
+已提交并推送 **`54a2d25`**（`2fbb44a..54a2d25 main`）；冻结清单 `head` 与 fidelity manifest 已重新 pin 到该 commit。
 
 ### Next
-1. （用户）批准 commit → 重新 pin freeze heads
-2. 取得 TIE 审计原文后处理 TIE
-3. 在 v04.1 重跑 30 集 smoke，再进 300×5 正式测量
+1. 取得被截断的 TIE 审计原文后处理 TIE 的「窄条件统计」项
+2. 在 v04.1 重跑 30 集 smoke，再进 300×5 正式测量
+3. 如需，按新 head 重新走一次 GPT freeze 声明
 
 ---
 

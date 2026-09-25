@@ -19,8 +19,9 @@
   "arm": "latency_aware",
   "freeze": {
     "name": "Latency-Aware-Orchestration-adapted Baseline Freeze v1",
-    "head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
-    "status": "APPROVED"
+    "head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+    "status": "APPROVED",
+    "freeze_breaking_fix_commit": "54a2d25088832049afb0cf860cdabfe5152c8c3d"
   },
   "faithful": [
     "the Predictor / Constructor / Scheduler three-part structure",
@@ -102,6 +103,5 @@
     "graph_visibility": "logical_graph_assumed_known",
     "constant": "latency_aware_predictor.GRAPH_VISIBILITY_CONTRACT",
     "note": "The paper's Eq (3) and Eq (5) are defined on a KNOWN logical graph, so the Constructor and the near-ready window read the realized template's successors. This is that paper's own premise, not the LLMSched structure leak; the comparison therefore evaluates complete systems."
-  },
-  "pending_freeze_breaking_commit": true
+  }
 }

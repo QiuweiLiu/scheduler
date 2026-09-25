@@ -7,13 +7,14 @@
   "arm": "pythia_completion",
   "freeze": {
     "name": "Pythia Baseline Freeze v1",
-    "head": "26484a2",
-    "head_full_sha": "26484a4e545e88a55556e70c91e2b1cb62272ac",
+    "head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+    "head_full_sha": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
     "status": "APPROVED",
     "approval_quote": "可以正式 freeze",
     "gates": "tests/test_pythia_fidelity.py",
     "gate_count": 12,
-    "declaration_received": true
+    "declaration_received": true,
+    "freeze_breaking_fix_commit": "54a2d25088832049afb0cf860cdabfe5152c8c3d"
   },
   "faithful": [
     "workflow profiler / probabilistic finite automaton over a ROLE alphabet",
@@ -66,6 +67,5 @@
       "verification": "tests/test_pythia_fidelity.py adds test_the_distance_does_not_depend_on_durations and re-derives the chain/fan-out values in steps; 13/13 gate.",
       "not_a_retune": true
     }
-  ],
-  "pending_freeze_breaking_commit": true
+  ]
 }

@@ -1272,3 +1272,12 @@ memory admission；Eq.12 ordering；near-ready prefetch mapping；正式 consume
   已给 latency 臂加 `extra_gate_files = [test_latency_aware_scheduler.py]`，两门都绿才 PASS；
   并在 fidelity gate 增加 `InformationContractTests` 机器校验 `GRAPH_VISIBILITY_CONTRACT`。
 - **P1（已知）**：冻结清单 `head` 仍指向旧 commit；提交后重新 pin。
+
+### 6. 提交与重新 pin（收尾）
+- 已提交并以 token 推送：**`54a2d25088832049afb0cf860cdabfe5152c8c3d`**（`2fbb44a..54a2d25 main`）。
+  提交只含本轮 17 个文件，未带入工作树其余 CRLF 行尾噪声（提交前把这些文件转回 LF，匹配仓库约定）。
+- 四份冻结清单已去 `pending_freeze_breaking_commit`；LLMSched / Pythia / Latency 的 `freeze.head` 与
+  `BaselineFidelityManifest` 的 `freeze_head` 重新 pin 到 `54a2d25`（TIE 未改，保留 `bc6cbec9`）。
+- 重新生成的 `baseline_fidelity_manifest_v1.json` **PASS**。
+- 说明：本轮修复属 freeze 例外（可复现 correctness bug），**未**重开 GPT 的 freeze 签字流程；
+  若需按新 head 重新走一次 freeze 声明，另行安排。
