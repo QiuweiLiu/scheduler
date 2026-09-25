@@ -1,0 +1,85 @@
+{
+  "paper": {
+    "title": "Latency-Aware-Orchestration",
+    "arxiv": "2609.03335",
+    "venue": "UNVERIFIED",
+    "authors": [
+      "Jinghao Wang",
+      "Yifeng Zhang",
+      "Xiao Zhou",
+      "Yao Lu",
+      "Yihui Zhang",
+      "Xiaoyang Sun",
+      "Tianyu Wo",
+      "Xu Wang",
+      "Chunming Hu",
+      "Renyu Yang"
+    ]
+  },
+  "arm": "latency_aware",
+  "freeze": {
+    "name": "Latency-Aware-Orchestration-adapted Baseline Freeze v1",
+    "head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
+    "status": "APPROVED"
+  },
+  "faithful": [
+    "the Predictor / Constructor / Scheduler three-part structure",
+    "the predictor separates run latency, peak memory and model-loading cost",
+    "prediction-conditioned scheduling rather than reading execution truth",
+    "same-deployment linear-chain fusion, one grant and one load serving a fused chain",
+    "predicted release and completion drive scheduling",
+    "cumulative and admission memory feasibility",
+    "ready work first, with fusion competing through completion improvement",
+    "Eq.12 carries no invented -boundaries_removed bonus",
+    "near-ready model prefetch / lifecycle awareness"
+  ],
+  "adapted": [
+    "a train-only tabular request-conditioned predictor replaces the graph-encoder predictor",
+    "four-tier backoff: (model,lane,action_family,raw_action,batch_size) -> (model,lane,action_family,batch_size) -> (model,lane,action_family) -> (model,lane)",
+    "min_support=3 as a frozen adaptation hyperparameter",
+    "lane as the device-context proxy in this simulator",
+    "predictor targets map to compute / load / total peak",
+    "Eq.12 maps to a single-commit scheduler",
+    "replica and deployment lifecycle map to the unified GPU residency/prefetch abstraction"
+  ],
+  "deviation": [
+    "the paper's operator data-flow graph encoder, full device feature vector and sequence-length/output-bucket predictor are not reproduced",
+    "there is no full model-replica / serving-queue / batch-server abstraction",
+    "scale-out and the full reclaim-victim / distant-next-use lifecycle policy are not reproduced; reclaim still follows the substrate admission mechanism",
+    "KV and prefix-cache serving mechanisms are not reproduced",
+    "no full multi-step physical-plan optimisation; a rolling single-commit adaptation in the current simulator instead"
+  ],
+  "non_degeneracy_evidence": {
+    "measured_on": "production predict()",
+    "tier_usage": {
+      "T1": 6128
+    },
+    "tier_usage_fraction": {
+      "T1": 1.0
+    },
+    "interpretation": "every request uses the finest tier, so min_support=3 has not degenerated the predictions to (model, lane)"
+  },
+  "defects_closed_before_freeze": [
+    "predicted_duration_ms read node.compute_ms, the node's actual intrinsic compute time",
+    "the Eq.12 key carried an invented -boundaries_removed tie-break",
+    "the truth fallback was blocked only at the simulator wrapper, so the scheduler's own entry points still read node.workspace_peak_mb",
+    "the non-degeneracy gate compared tables[1] directly, bypassing min_support and the production backoff",
+    "runtime and total-peak were decomposed inconsistently with the substrate, double-counting the load and inflating the admission peak"
+  ],
+  "prohibited_after_freeze": [
+    "the four feature tiers",
+    "min_support=3",
+    "finest-supported-tier backoff",
+    "compute = runtime - load target",
+    "load from the same predictor",
+    "total-peak memory semantics",
+    "predictor mandatory contract",
+    "fusion eligibility",
+    "fusion duration/load semantics",
+    "memory admission",
+    "Eq.12 ordering",
+    "near-ready prefetch mapping",
+    "the formal consumer interface"
+  ],
+  "freeze_breaking_exception": "A reproducible correctness bug with freeze-breaking provenance; the tiers, support threshold and key must never be retuned for final performance."
+}

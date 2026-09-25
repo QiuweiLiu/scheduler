@@ -1159,3 +1159,56 @@ Pythia 原文**并不是**用 stationary solve 求这个量。正确说法是：
   model-replica idleness、autoscaling 及原 Pythia 的 serving/batching infrastructure
   （不在统一 GPU abstraction 内）。论文 Algorithm 3 原版 priority 同时含
   `S_completion` 与 `S_unblock`。
+
+## 2026-09-25 — TIE 与 Latency-Aware Baseline Freeze v1 获批；四条基线实现层全部冻结
+
+**HEAD**：`bc6cbec97dc35d407f8ec250fa729fdfc08ca357`　**状态**：APPROVED / FROZEN
+
+### Empirical-TIE-adapted Baseline Freeze v1
+**冻结范围**：train-only `(model_id, lane)` empirical **compute** bank；CVaR(α=0.9)；
+`TIE = E[X] + β·CVaR`；`β = clip(0.1·L_q/B, 0.1, 0.5)`；unique-ready-unit `L_q`；
+episode GPU service concurrency 映射为 `B`；residency-aware load surcharge；
+multiplicative waiting decay；hard-priority-preserving consumer；全部 TIE gates。
+
+**不得改动**：bank key；**compute/load decomposition**；empirical distribution semantics；
+CVaR α=0.9；small-sample rule；`L_q` 定义；`B` 映射；β 公式；waiting decay γ/τ；
+load residency semantics；fail-closed 行为；consumer ordering。
+
+### Latency-Aware-Orchestration-adapted Baseline Freeze v1
+**冻结范围**：train-only request-conditioned predictor；四级 tier backoff；`min_support=3`；
+**compute/load/total-peak 三头语义**；predictor mandatory / fail-closed contract；
+fusion constructor；predicted completion planning；memory feasibility；near-ready prefetch；
+Eq.12 单次 commit 字典序映射；独立 `latency_aware` scheduler；全部 truth-leak /
+non-degeneracy / fusion / scheduler gates。
+
+**不得改动**：四级 feature tier；`min_support=3`；finest-supported-tier backoff；
+`compute = runtime − load` target；load 使用**同一** predictor；total-peak memory semantics；
+predictor mandatory contract；fusion eligibility；fusion duration/load semantics；
+memory admission；Eq.12 ordering；near-ready prefetch mapping；正式 consumer 接口。
+
+### 两条的共同例外
+可复现 correctness bug；必须留下 **freeze-breaking provenance**，
+**不允许根据最终性能调 tier、support threshold 或 key**。
+
+### Freeze 前关闭的关键缺陷（供论文 limitation 引用）
+- **TIE zero-load builder bug**：`if getattr(n, "load_ms", None):` 把合法的 `load_ms == 0.0`
+  （模型已驻留）当成**没有样本**。训练 load `[0, 10]` 时 bank 得 mean **10** 而非 **5**。
+- **TIE Lq 重复计数**：`tie_queue_length` 数的是 candidate tuple 而非 waiting unit
+  （2 节点 × 2 空闲 GPU 报 4）。
+- **统一 decomposition 错误（两条都中）**：substrate 的 `compute_ms = runtime_ms − load_ms`，
+  即 `runtime_ms` **已含 load**。两条都在其上再加一个 load 项 → non-resident **双算**、
+  resident 则把历史 load 留在均值里。另有准入显存重复加 `resident_model_mb`
+  （`workspace_peak_mb` 本已是含 resident model 的**总 peak**）。
+- **Latency-Aware 真值泄漏**：`predicted_duration_ms` 读 `node.compute_ms`（真实内在计算时间）。
+- **Latency-Aware 发明的 tie-break**：Eq.12 key 里的 `-boundaries_removed` 论文没有。
+- **truth fallback 未结构性闭合**：simulator wrapper 挡住了，但 scheduler 自己的入口仍接受
+  `predictor=None` 并读 `node.workspace_peak_mb`。
+- **non-degeneracy gate 假阳性**：直接比较 `tables[1]`，绕过 `min_support` 与 production backoff。
+
+### 下一步顺序（GPT 锁定，严格执行）
+1. `SchedulerTopologyContractGate` freeze
+2. `BaselineFidelityManifest` freeze
+3. **四条联合基线正式实验**
+
+正式实验前**不再改** LLMSched / Pythia / TIE / Latency-Aware 的任何 baseline semantics。
+之后再发现问题，只按「可复现 correctness bug → freeze-breaking commit → 重做受影响结果」处理。

@@ -1,0 +1,57 @@
+{
+  "paper": {
+    "title": "TIE: Tail-Inflated Expectation scheduling",
+    "arxiv": "2604.00499",
+    "venue": "ICML 2026",
+    "authors": [
+      "Haoyu Zheng",
+      "Yongqiang Zhang"
+    ]
+  },
+  "arm": "tie_current",
+  "freeze": {
+    "name": "Empirical-TIE-adapted Baseline Freeze v1",
+    "head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
+    "status": "APPROVED"
+  },
+  "faithful": [
+    "Tail Inflated Expectation core: E[X] + beta * CVaR",
+    "adaptive beta against queue pressure via a clip",
+    "tail-risk-aware shortest-first scheduling",
+    "waiting-time decay / starvation prevention"
+  ],
+  "adapted": [
+    "X, the LLM output length, maps to the current GPU node's compute time",
+    "(model_id, lane) as the condition visible at the current node",
+    "cold-load carried separately as a residency-aware surcharge",
+    "L_q maps to unique ready units in the highest service class",
+    "B maps to the episode's GPU service concurrency",
+    "the unified simulator keeps hard service priority ahead of the TIE score"
+  ],
+  "deviation": [
+    "a train-only empirical distribution replaces the paper's request-specific log-t output-length model",
+    "the paper's max-token censoring / support handling is not adopted",
+    "the original LLM decoding/batching serving environment is not reproduced",
+    "B is no longer the original system's batch capacity"
+  ],
+  "defects_closed_before_freeze": [
+    "a legitimate load_ms of 0 was treated as no sample, so [0, 10] averaged 10 not 5",
+    "tie_queue_length counted candidate tuples instead of waiting units",
+    "the bank held runtime, which already contains the load, so the consumer's load term double-counted it for non-resident models"
+  ],
+  "prohibited_after_freeze": [
+    "bank key",
+    "compute/load decomposition",
+    "empirical distribution semantics",
+    "CVaR alpha=0.9",
+    "small-sample rule",
+    "L_q definition",
+    "B mapping",
+    "the beta formula",
+    "waiting decay gamma/tau",
+    "load residency semantics",
+    "fail-closed behaviour",
+    "consumer ordering"
+  ],
+  "freeze_breaking_exception": "A reproducible correctness bug, recorded as a freeze-breaking commit; tuning for performance is not allowed."
+}
