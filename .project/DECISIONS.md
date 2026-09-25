@@ -1212,3 +1212,63 @@ memory admission；Eq.12 ordering；near-ready prefetch mapping；正式 consume
 
 正式实验前**不再改** LLMSched / Pythia / TIE / Latency-Aware 的任何 baseline semantics。
 之后再发现问题，只按「可复现 correctness bug → freeze-breaking commit → 重做受影响结果」处理。
+
+## 2026-09-25 — 四基线的 freeze-breaking 修复（LLMSched / Pythia / Latency-Aware）
+
+**背景**：全链路审计（`docs/research/2026-09-25_four_baseline_review_gpt.md`）判定「先不要启动 300×5 正式测量」，
+列出若干 freeze-breaking correctness 项。本轮按「只修可复现 correctness bug、不为改善结果调参」的例外条款处理，
+逐项修复并在 gate 上钉死。冻结清单新增 `freeze_breaking_fixes` 字段记录同一内容，并置
+`pending_freeze_breaking_commit = true`（尚未提交）。
+
+### 1. LLMSched — EXPLOIT 的信息状态与覆盖范围
+- **缺陷**：`expected_remaining_ms()` 只走 `_future_from_network`（候选的网络后代），且 future posterior 只用
+  completed evidence；而 EXPLORE 与 current service 都条件在 `X != ABSENT`。后果：与候选无路径关系、但仍属
+  job remaining 的 stage 被静默丢掉；同一决策内三个消费者处在不同信息状态。
+- **修复**：新增 `expected_job_remaining_ms(profiler, evidence, current_stage)`，遍历**全部**未完成 stage，
+  每个 posterior 用新增的 `conditional_state_probs()` 条件在 `current_stage != ABSENT`；
+  `job_duration_interval_ms(..., known_present=...)` 让 ready stage 不再贡献虚假的 0；删除死代码 load 项
+  （intrinsic duration 已含冷加载）。simulator EXPLOIT 改用它，grouping 的 interval 传入 ready stage 集合。
+  **Eq.6（correlated descendants + top-4）不动。**
+- **验证**：新增 `L8WholeJobRemainingAndKnownPresent`（4 项），LLMSched gate **38/38**。
+
+### 2. Pythia — 期望剩余「距离」应为步数而非毫秒
+- **缺陷**：有限 horizon DP 累加的是 role 的**毫秒**均值，consumer 又加 `runtime_p50 + load`，使该臂变成
+  duration-weighted / SRTF 风格，偏离 Algorithm 3 的 expected remaining **distance**。
+- **修复**：`V(role)` 改为**未来 role 转移数的期望**（到 `<end>` 的转移不算一个 role、不计数）；
+  `S_completion = 1 / (1 + V(role))`；consumer 不再加任何毫秒项。schema 升为 `pythia-role-pfa-v2`，旧 ms 产物 fail-closed。
+- **验证**：新增 `test_the_distance_does_not_depend_on_durations`，并把手算值与角色索引测试改成步数；Pythia gate **13/13**。
+
+### 3. Latency-Aware — load head 与 prefetch 时序
+- **load head（`2fbb44a`）**：run/peak/load 曾共用四级 request tier，而论文是 `T_load(d,g)`。改为 load 单独
+  `(model_id, lane)` key + train-wide 默认；非退化 gate 不再把 load 计入。
+- **prefetch 时序（本轮）**：Eq (5) prefetch 原在**主循环顶部、ready dispatch 之前**运行，eligibility 只看
+  `active_node`/`prefetch_pending`，可能抢占用作 ready work 的设备并把 `busy_until` 推后。改为
+  **dispatch 之后**、且只在「所有 runnable 单元都安置完后仍空闲」的设备上执行。
+- **信息契约**：新增模块常量 `latency_aware_predictor.GRAPH_VISIBILITY_CONTRACT = "logical_graph_assumed_known"`，
+  冻结清单写入 `information_contract`：论文 Eq (3)/(5) 以**已知逻辑图**为前提，Constructor / near-ready 读
+  realized template 是其自身前提，**不是** LLMSched 式的结构泄漏；因此主表比较的是完整系统。
+- **验证**：新增 `test_prefetch_does_not_delay_ready_work`（旧时序 250 ms / 新时序 150 ms 可区分）；LA gate 45 全绿。
+
+### 4. 尾巴清理
+- `latency_aware_predictor.py` 的 `_load_key` ×3 / `LOAD_TIER` ×2 重复定义去重。
+- `four_joint_baselines.py` bootstrap 文案由 "video-cluster" 改为 **episode-cluster**（实现本就按 episode 重采样；
+  不再暗示可泛化到新视频）。
+
+### 未修 / 待定
+- **TIE load adaptation 的「窄条件统计」问题**：原始审计回复在 LLMSched cache 处被截断，细节**没有保存在仓库**，
+  无法从本地证据确定具体缺陷。**本轮不臆测、不改 TIE**，待补齐原文后再处理。
+- 上述均为 freeze-breaking 修复，**尚未 commit**；`baseline_fidelity_manifest_v1.json` 已按新 gate 重新生成，
+  但冻结清单 `head` 仍指向旧 commit，需在提交后重新 pin。
+
+### 全量验证
+- `python3 -m unittest discover -s tests`：356 测试，8 error 全为环境（缺 torch / py3.9 `write_text(newline=)`），
+  1 failure 是**预存的** `round_robin` myopic（已用 HEAD 原文件复现确认与本次无关）。
+- `baseline_fidelity_manifest.py` PASS（四臂 freeze=APPROVED + gate=green）。
+
+### 5. 独立 review 追加发现并修复
+- **P0（预存）**：`scripts/four_joint_baselines.py` 使用了 `args.smoke`（209/234/280）但 `--smoke` 从未注册，
+  任何 CLI 调用都会 `AttributeError`。已补 `--smoke N`（文档早已声明）。1 集 smoke 在真实 v04.1 上端到端跑通（18 s，四臂全跑，`git_head` 已非空）。
+- **P1**：`BaselineFidelityManifest` 原先只跑 `test_latency_aware_fidelity.py`，不含新的 prefetch 回归。
+  已给 latency 臂加 `extra_gate_files = [test_latency_aware_scheduler.py]`，两门都绿才 PASS；
+  并在 fidelity gate 增加 `InformationContractTests` 机器校验 `GRAPH_VISIBILITY_CONTRACT`。
+- **P1（已知）**：冻结清单 `head` 仍指向旧 commit；提交后重新 pin。

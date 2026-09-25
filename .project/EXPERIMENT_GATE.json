@@ -2175,7 +2175,7 @@
         "Pythia-adapted": {
           "source": "arXiv:2604.25899",
           "venue": "UNVERIFIED",
-          "fidelity": "pending",
+          "fidelity": "PASS after the 2026-09-25 freeze-breaking fix (expected remaining DISTANCE in steps, S_completion=1/(1+V)); gate 13/13",
           "performance": "pending",
           "cost": "low-medium",
           "note": "train-only traces -> PFA -> E[remaining distance]; downstream-idle only if a real model-queue abstraction exists"
@@ -2183,7 +2183,7 @@
         "LLMSched-adapted": {
           "source": "IEEE ICDCS 2025, Xplore 11183728",
           "venue": "CONFIRMED",
-          "fidelity": "pending",
+          "fidelity": "PASS after the 2026-09-25 freeze-breaking fix (whole-job remaining work, posteriors conditioned on current stage != ABSENT); gate 38/38",
           "performance": "pending",
           "cost": "medium-high",
           "note": "epsilon-greedy EXPLORE/EXPLOIT wrapper, not a static key; BN joint learned from train-only traces is allowed, building a joint from F0 marginals is not"
@@ -2191,7 +2191,7 @@
         "Latency-Aware-Orchestration-adapted": {
           "source": "arXiv:2609.03335, 2026-09-03, cs.DC",
           "venue": "UNVERIFIED",
-          "fidelity": "pending",
+          "fidelity": "PASS after the 2026-09-25 freeze-breaking fixes (deployment-only load head; prefetch after ready dispatch); gate 45/45",
           "performance": "pending",
           "cost": "highest",
           "note": "cannot be expressed as min(pool,key); Constructor is a reported source of its gains"
@@ -2355,7 +2355,7 @@
         "workflow-state canonicalization for LLMSched/Pythia must use runtime-observable identity only, never future node ids",
         "all adaptation knobs (TIE beta, LLMSched epsilon, Pythia omega) fixed from the papers or tuned on train/dev only"
       ],
-      "next": "Gate-0 on Latency-Aware feasibility, then TIE-adapted",
+      "next": "Re-pin the four freeze heads at the freeze-breaking commit; obtain the truncated TIE review detail; then the 30-episode smoke on v04.1",
       "p0_topology_regression": {
         "status": "located, rebuilt, gate PASS",
         "classification": "P0 scheduler experiment validity issue; NOT a predictor validity issue",
@@ -2683,6 +2683,14 @@
         "3_tie_unique_lq_and_load": "DONE",
         "4_raw_trace_producer": "DONE",
         "verdict": "all four closed; ready to request the substrate freeze sign-off"
+      },
+      "freeze_breaking_fixes_20260925": {
+        "llmsched": "expected_job_remaining_ms + conditional_state_probs; interval known_present; dead load removed",
+        "pythia": "distance in steps; S_completion=1/(1+V); schema pythia-role-pfa-v2",
+        "latency_aware": "load head deployment-only (2fbb44a); prefetch after dispatch on idle devices only",
+        "cleanup": "latency predictor dedupe; four_joint_baselines bootstrap wording = episode-cluster",
+        "tie": "NOT fixed: audit detail was truncated and is not in the repo; not guessed",
+        "status": "working tree, not committed"
       }
     }
   },

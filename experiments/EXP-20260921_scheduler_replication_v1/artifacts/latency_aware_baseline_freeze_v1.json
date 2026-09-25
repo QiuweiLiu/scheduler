@@ -81,5 +81,27 @@
     "near-ready prefetch mapping",
     "the formal consumer interface"
   ],
-  "freeze_breaking_exception": "A reproducible correctness bug with freeze-breaking provenance; the tiers, support threshold and key must never be retuned for final performance."
+  "freeze_breaking_exception": "A reproducible correctness bug with freeze-breaking provenance; the tiers, support threshold and key must never be retuned for final performance.",
+  "freeze_breaking_fixes": [
+    {
+      "date": "2026-09-25",
+      "defect": "The load head shared the four REQUEST tiers with run/peak, but the paper's loading cost is T_load(d, g), a function of the deployment and the device, so a request feature could move the predicted load.",
+      "fix": "the load head has its own key (model_id, lane) with a train-wide default, and is excluded from the request-conditioned spread the non-degeneracy gate measures.",
+      "verification": "latency_aware_fidelity 18, scheduler 13, fusion 14 green; changing only the action moves run while load stays fixed.",
+      "not_a_retune": true
+    },
+    {
+      "date": "2026-09-25",
+      "defect": "Eq (5) prefetch ran at the TOP of the simulator loop, before ready dispatch, and its eligibility filter only checked gpu.active_node / prefetch_pending, so a prefetch could seize a device that ready work needed and push gpu.busy_until past now.",
+      "fix": "prefetch is decided AFTER ready dispatch and only on devices still idle once every runnable unit has been placed, so preparing near-ready work cannot delay ready work.",
+      "verification": "tests/test_latency_aware_scheduler.py test_prefetch_does_not_delay_ready_work fails on the old ordering (job starts at 250 ms) and passes on the fix (150 ms).",
+      "not_a_retune": true
+    }
+  ],
+  "information_contract": {
+    "graph_visibility": "logical_graph_assumed_known",
+    "constant": "latency_aware_predictor.GRAPH_VISIBILITY_CONTRACT",
+    "note": "The paper's Eq (3) and Eq (5) are defined on a KNOWN logical graph, so the Constructor and the near-ready window read the realized template's successors. This is that paper's own premise, not the LLMSched structure leak; the comparison therefore evaluates complete systems."
+  },
+  "pending_freeze_breaking_commit": true
 }

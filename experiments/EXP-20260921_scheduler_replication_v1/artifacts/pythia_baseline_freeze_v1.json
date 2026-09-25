@@ -19,7 +19,7 @@
     "workflow profiler / probabilistic finite automaton over a ROLE alphabet",
     "a loop is expressed as a REPEATED role, so the occurrence suffix is dropped",
     "low-probability transition pruning as the bounded probable future",
-    "expected remaining distance from the automaton",
+    "expected remaining DISTANCE (number of future role transitions) from the automaton",
     "completion-aware priority S_completion = 1 / E[D_remaining] with omega1 = 1"
   ],
   "adapted": [
@@ -57,5 +57,15 @@
     "pruning threshold",
     "priority form"
   ],
-  "variant_rule": "Adjusting any of the above requires a NEW VARIANT; it must not overwrite the frozen baseline."
+  "variant_rule": "Adjusting any of the above requires a NEW VARIANT; it must not overwrite the frozen baseline.",
+  "freeze_breaking_fixes": [
+    {
+      "date": "2026-09-25",
+      "defect": "The priority was ranked by a DURATION: the finite-horizon recursion accumulated per-role millisecond means and the live consumer added the candidate's runtime_p50 + load, making the arm a duration-weighted / SRTF-flavoured priority. Pythia Algorithm 3 uses the expected remaining DISTANCE in steps on the probabilistic regex.",
+      "fix": "V(role) is now the expected NUMBER of future role transitions (a transition to <end> is not a role and is not counted) and S_completion = 1 / (1 + V(role)); the consumer adds no millisecond term. Profiler schema bumped to pythia-role-pfa-v2 so an ms-valued artifact fails closed.",
+      "verification": "tests/test_pythia_fidelity.py adds test_the_distance_does_not_depend_on_durations and re-derives the chain/fan-out values in steps; 13/13 gate.",
+      "not_a_retune": true
+    }
+  ],
+  "pending_freeze_breaking_commit": true
 }

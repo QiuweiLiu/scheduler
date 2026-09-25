@@ -53,7 +53,7 @@ from typing import Any, Dict, List, Mapping, Tuple
 
 from tracing.analysis.llmsched_stage import canonical_stage_base, intrinsic_duration_ms
 
-PROFILER_SCHEMA = "pythia-role-pfa-v1"
+PROFILER_SCHEMA = "pythia-role-pfa-v2"
 
 # Transitions rarer than this are pruned, which is the paper's "bounded probable
 # future": the automaton keeps only the paths that history says actually happen often.
@@ -136,7 +136,14 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
     total_starts = float(sum(starts.values()))
     start_prob = {role: c / total_starts for role, c in starts.items()}
 
-    # finite-horizon expected remaining distance, including the role entered at each step
+    # Finite-horizon expected remaining DISTANCE: the expected NUMBER OF FUTURE ROLE
+    # TRANSITIONS, not a duration.  Pythia Algorithm 3's ``D_remaining`` is the expected
+    # distance to the terminal on the probabilistic regex, and the paper's own
+    # DownstreamIdleRisk is phrased as "one step vs ten steps".  The previous version
+    # accumulated per-role millisecond durations here, which turned ``S_completion`` into
+    # a duration-weighted (SRTF-flavoured) priority rather than Pythia's.  A transition
+    # to END is not a role, so it is not counted: a last role has distance 0 and the
+    # ``+1`` in ``s_completion`` accounts for the current step itself.
     value: Dict[str, float] = {role: 0.0 for role in pruned}
     for _ in range(int(horizon)):
         nxt_value: Dict[str, float] = {}
@@ -145,7 +152,7 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
             for following, prob in edges.items():
                 if following == END:
                     continue
-                acc += prob * (mean_duration.get(following, 0.0) + value.get(following, 0.0))
+                acc += prob * (1.0 + value.get(following, 0.0))
             nxt_value[role] = acc
         value = nxt_value
 
@@ -153,9 +160,11 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         "schema": PROFILER_SCHEMA,
         "alphabet": sorted(pruned),
         "edge_prob": pruned,
+        # Descriptive only: the train intrinsic durations of each role.  The completion
+        # priority must NOT read this field -- it is the distance in STEPS that ranks.
         "mean_duration_ms": {k: float(v) for k, v in mean_duration.items()},
         "start_prob": start_prob,
-        "expected_remaining_ms_by_role": {k: float(v) for k, v in value.items()},
+        "expected_remaining_steps_by_role": {k: float(v) for k, v in value.items()},
         "pruned_edges": [{"from": a, "to": b, "prob": p} for a, b, p in sorted(pruned_away)],
         "n_runs": n_runs,
         "min_prob": float(min_prob),
@@ -179,20 +188,20 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
     }
 
 
-def expected_remaining_ms(profiler: Mapping[str, Any], role: str) -> float:
-    """The work remaining AFTER a role, i.e. V(role) in the automaton.
+def expected_remaining_steps(profiler: Mapping[str, Any], role: str) -> float:
+    """V(role): the expected NUMBER OF FUTURE ROLE TRANSITIONS after a role.
 
-    V(role) already EXCLUDES the role it is indexed by: it is the expected cost of the
-    roles that follow.  A caller that also holds the current node's own duration must add
-    it once, against the CURRENT node's role.  Indexing by the last COMPLETED role instead
-    would both use the wrong state and count the current candidate twice: for A -> B -> C
-    with durations 10/20/40, a ready B would be scored 20 + V(A) = 80 when the true
-    remaining work from B is 20 + V(B) = 60.
+    V(role) already EXCLUDES the role it is indexed by: it counts the roles that follow.
+    Indexing by the last COMPLETED role instead would use the wrong state and count the
+    current candidate twice.  Because this is a DISTANCE IN STEPS, the caller must not
+    add the current node's millisecond duration; ``s_completion`` applies the ``+1`` that
+    accounts for the current step.  This is Pythia Algorithm 3's ``D_remaining``; the
+    previous millisecond-valued version was a duration-weighted priority, not Pythia's.
     """
 
     if profiler.get("schema") != PROFILER_SCHEMA:
         raise ValueError("Pythia profiler schema mismatch: %r" % (profiler.get("schema"),))
-    table = profiler["expected_remaining_ms_by_role"]
+    table = profiler["expected_remaining_steps_by_role"]
     if role not in table:
         raise KeyError(
             "role %r is not in the frozen role alphabet; the ontology and the profiler "
@@ -216,7 +225,13 @@ def current_role(job: Any, node_id: str) -> str:
     return role_alphabet(node)
 
 
-def s_completion(d_remaining_ms: float) -> float:
-    """``S_completion = 1 / E[D_remaining]``; larger is better, so the key uses -S."""
+def s_completion(remaining_steps: float) -> float:
+    """``S_completion = 1 / (1 + E[D_remaining])``; larger is better, so the key uses -S.
 
-    return 1.0 / max(1.0, float(d_remaining_ms))
+    ``D_remaining`` is a DISTANCE IN STEPS (see ``expected_remaining_steps``).  The ``+1``
+    is the current step itself, so a ready final role scores 1/1 = 1 and a role with two
+    further transitions scores 1/3.  A millisecond argument here would be a unit error.
+    """
+
+    steps = max(0.0, float(remaining_steps))
+    return 1.0 / (1.0 + steps)

@@ -20,7 +20,7 @@ from tracing.analysis.pythia_profiler import (
     END,
     PROFILER_SCHEMA,
     build_pythia_profiler,
-    expected_remaining_ms,
+    expected_remaining_steps,
     current_role,
     role_alphabet,
     s_completion,
@@ -90,31 +90,52 @@ class AlphabetTests(unittest.TestCase):
 
 
 class AnalyticalTests(unittest.TestCase):
-    """The expected remaining distance is hand-computable on toy automata."""
+    """The expected remaining DISTANCE (in steps) is hand-computable on toy automata."""
 
     def test_deterministic_two_step_chain(self):
-        """A -> B -> C -> end, durations A=10 B=20 C=40.
+        """A -> B -> C -> end.  Distance is a STEP count, not a duration.
 
-        V1(A) = d(B) = 20
-        V2(A) = d(B) + V1(B), and V1(B) = d(C) = 40, so V2(A) = 60
-        V3(A) = d(B) + V2(B), and V2(B) = d(C) + V1(C) = 40, so V3(A) = 60
+        V(C) = 0   (a last role has no further role transitions)
+        V(B) = 1 + V(C) = 1
+        V(A) = 1 + V(B) = 2
+
+        Durations are given as 10/20/40 purely to prove they do NOT enter the value: the
+        earlier millisecond-valued version returned 60/40/0 here.
         """
 
         tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")],
                             [10.0, 20.0, 40.0])
         prof = build_pythia_profiler({"t": tpl})
         self.assertAlmostEqual(
-            expected_remaining_ms(prof, "planner:p:p"), 60.0, places=6)
+            expected_remaining_steps(prof, "planner:p:p"), 2.0, places=6)
         self.assertAlmostEqual(
-            expected_remaining_ms(prof, "tool:t:t"), 40.0, places=6)
+            expected_remaining_steps(prof, "tool:t:t"), 1.0, places=6)
         # the terminal role has nothing after it
         self.assertAlmostEqual(
-            expected_remaining_ms(prof, "answer:a:a"), 0.0, places=6)
+            expected_remaining_steps(prof, "answer:a:a"), 0.0, places=6)
+
+    def test_the_distance_does_not_depend_on_durations(self):
+        """Two automata with the same roles but 100x different durations share a value.
+
+        This is the gate the millisecond-valued implementation cannot pass: it ranked by
+        accumulated duration, so scaling every duration scaled the score.
+        """
+
+        fast = role_template("fast", [("planner", "p"), ("tool", "t"), ("answer", "a")],
+                             [1.0, 2.0, 4.0])
+        slow = role_template("slow", [("planner", "p"), ("tool", "t"), ("answer", "a")],
+                             [100.0, 200.0, 400.0])
+        p_fast = build_pythia_profiler({"fast": fast})
+        p_slow = build_pythia_profiler({"slow": slow})
+        self.assertAlmostEqual(
+            expected_remaining_steps(p_fast, "planner:p:p"),
+            expected_remaining_steps(p_slow, "planner:p:p"), places=9)
+        self.assertAlmostEqual(expected_remaining_steps(p_slow, "planner:p:p"), 2.0, places=6)
 
     def test_fan_out_is_a_probability_weighted_sum(self):
-        """A -> {B (0.5), C (0.5)}; B and C end.  Durations B=10, C=30.
+        """A -> {B (0.5), C (0.5)}; B and C end.
 
-        V1(A) = 0.5 * 10 + 0.5 * 30 = 20
+        V(A) = 0.5 * (1 + V(B)) + 0.5 * (1 + V(C)) = 0.5 + 0.5 = 1 step.
         """
 
         runs = []
@@ -126,7 +147,7 @@ class AnalyticalTests(unittest.TestCase):
                 runs.append(role_template(f"c{index}",
                                           [("planner", "p"), ("answer", "a")], [0.0, 30.0]))
         prof = build_pythia_profiler({t.template_id: t for t in runs})
-        self.assertAlmostEqual(expected_remaining_ms(prof, "planner:p:p"), 20.0, places=6)
+        self.assertAlmostEqual(expected_remaining_steps(prof, "planner:p:p"), 1.0, places=6)
 
     def test_probabilities_are_normalised_after_pruning(self):
         prof = build_pythia_profiler(
@@ -146,8 +167,8 @@ class TrainOnlyTests(unittest.TestCase):
         both = build_pythia_profiler({**train, **val})
         self.assertEqual(only_train["n_runs"], both["n_runs"])
         self.assertAlmostEqual(
-            expected_remaining_ms(only_train, "planner:p:p"),
-            expected_remaining_ms(both, "planner:p:p"), places=9)
+            expected_remaining_steps(only_train, "planner:p:p"),
+            expected_remaining_steps(both, "planner:p:p"), places=9)
 
     def test_no_train_templates_fails_closed(self):
         val = {"b": role_template("b", [("planner", "p")], 10.0, split="validation")}
@@ -158,14 +179,14 @@ class TrainOnlyTests(unittest.TestCase):
         prof = build_pythia_profiler(
             {"t": role_template("t", [("planner", "p")], 10.0)})
         with self.assertRaises(KeyError):
-            expected_remaining_ms(prof, "not:a:role")
+            expected_remaining_steps(prof, "not:a:role")
 
     def test_schema_is_pinned(self):
         prof = build_pythia_profiler(
             {"t": role_template("t", [("planner", "p")], 10.0)})
         self.assertEqual(prof["schema"], PROFILER_SCHEMA)
         with self.assertRaises(ValueError):
-            expected_remaining_ms({"schema": "something-else"}, "x")
+            expected_remaining_steps({"schema": "something-else"}, "x")
 
 
 class RuntimeStateTests(unittest.TestCase):
@@ -173,17 +194,17 @@ class RuntimeStateTests(unittest.TestCase):
         """V(role) EXCLUDES the role it is indexed by, so pairing it with the last
         completed role counts the current candidate twice.
 
-        Chain A -> B -> C with durations 10/20/40.  With B ready:
-            correct   = d(B) + V(B) = 20 + 40 = 60
-            wrong     = d(B) + V(A) = 20 + 60 = 80
+        Chain A -> B -> C.  V(A)=2, V(B)=1, V(C)=0.  With B ready:
+            correct index (candidate B) = S(V(B)) = 1/2
+            wrong index (completed A)   = S(V(A)) = 1/3
         """
 
         tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")],
                             [10.0, 20.0, 40.0])
         prof = build_pythia_profiler({"t": tpl})
-        self.assertAlmostEqual(expected_remaining_ms(prof, "planner:p:p"), 60.0, places=6)
-        self.assertAlmostEqual(expected_remaining_ms(prof, "tool:t:t"), 40.0, places=6)
-        self.assertAlmostEqual(expected_remaining_ms(prof, "answer:a:a"), 0.0, places=6)
+        self.assertAlmostEqual(expected_remaining_steps(prof, "planner:p:p"), 2.0, places=6)
+        self.assertAlmostEqual(expected_remaining_steps(prof, "tool:t:t"), 1.0, places=6)
+        self.assertAlmostEqual(expected_remaining_steps(prof, "answer:a:a"), 0.0, places=6)
 
         class FakeJob:
             def __init__(self, completed):
@@ -192,12 +213,13 @@ class RuntimeStateTests(unittest.TestCase):
 
         # the candidate's own role is what the scorer must index by
         self.assertEqual(current_role(FakeJob(set()), "t:n1"), role_alphabet(tpl.nodes[1]))
-        current = 20.0
-        correct = current + expected_remaining_ms(prof, current_role(FakeJob({"t:n0"}), "t:n1"))
-        wrong = current + expected_remaining_ms(prof, role_alphabet(tpl.nodes[0]))
-        self.assertAlmostEqual(correct, 60.0, places=6)
-        self.assertAlmostEqual(wrong, 80.0, places=6)
-        self.assertNotAlmostEqual(correct, wrong, places=6)
+        correct = s_completion(
+            expected_remaining_steps(prof, current_role(FakeJob({"t:n0"}), "t:n1")))
+        wrong = s_completion(expected_remaining_steps(prof, role_alphabet(tpl.nodes[0])))
+        self.assertAlmostEqual(correct, 0.5, places=6)
+        self.assertAlmostEqual(wrong, 1.0 / 3.0, places=6)
+        self.assertGreater(correct, wrong,
+                           "indexing by the candidate's own role must not double-count it")
 
     def test_the_current_role_is_not_a_future_leak(self):
         """A ready node's role is the agent_id Pythia exposes, so reading it is allowed;

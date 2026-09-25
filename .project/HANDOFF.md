@@ -1,3 +1,32 @@
+# HANDOFF
+
+## 2026-09-25 (2) 审计 P0 修复后（工作树未 commit；上一提交 `2fbb44a`）
+
+### 本轮已修（全部 freeze-breaking；权威记录见 `DECISIONS.md` 同名小节）
+- **LLMSched EXPLOIT**：新增 `expected_job_remaining_ms` + `conditional_state_probs`，覆盖**全部**未完成 stage 并条件在
+  `current_stage != ABSENT`；`job_duration_interval_ms(..., known_present=)` 去掉 ready stage 的虚假 0；删除死代码 load。
+  Eq.6 不动。**gate 38/38**（含新 `L8WholeJobRemainingAndKnownPresent`）。
+- **Pythia**：`V(role)` 改为**未来 role 转移步数**，`S_completion = 1/(1+V)`，consumer 不再加毫秒；schema → `pythia-role-pfa-v2`。**gate 13/13**。
+- **Latency-Aware**：Eq(5) prefetch 移到 **dispatch 之后、只在空闲设备**执行（旧时序 250 ms → 新 150 ms 可区分）；
+  新增 `GRAPH_VISIBILITY_CONTRACT`。**gate 45/45**（含新 `test_prefetch_does_not_delay_ready_work`）。
+- **清理**：`latency_aware_predictor.py` 重复定义去重；`four_joint_baselines.py` bootstrap 文案改 **episode-cluster**。
+- 四份 freeze 清单新增 `freeze_breaking_fixes`；`baseline_fidelity_manifest_v1.json` 重新生成 **PASS**。
+
+### 仍未修
+- **TIE load adaptation 的「窄条件统计」问题**：审计原文在 LLMSched cache 处被截断、未保存，细节未知 → **未改（不臆测）**，等补齐原文。
+- 跨基线要点仍有效：主表评估**完整系统**，需 same-interface 2×2；**F0 future-chain identity 仍来自 J3**（论文不能藏）。
+- 环境性测试：8 个 error（缺 torch / py3.9 `write_text(newline=)`）、1 个 failure（预存 `round_robin` myopic）。
+
+### Active
+等待用户批准 **commit** 这批 freeze-breaking 修复；提交后把四份冻结清单 `head` 与 fidelity manifest 重新 pin 到该 commit。
+
+### Next
+1. （用户）批准 commit → 重新 pin freeze heads
+2. 取得 TIE 审计原文后处理 TIE
+3. 在 v04.1 重跑 30 集 smoke，再进 300×5 正式测量
+
+---
+
 ## 2026-09-25 全面审查后的状态（HEAD 3342dac）
 
 ### 已修并验证

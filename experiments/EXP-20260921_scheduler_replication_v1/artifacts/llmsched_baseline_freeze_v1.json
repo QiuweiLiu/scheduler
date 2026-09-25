@@ -71,5 +71,15 @@
     "epsilon policy",
     "LLMSched-specific simulator interface"
   ],
-  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results. By construction the posterior memoization on the profiler is safe only while cpds and stage_order are not mutated in place."
+  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results. By construction the posterior memoization on the profiler is safe only while cpds and stage_order are not mutated in place.",
+  "freeze_breaking_fixes": [
+    {
+      "date": "2026-09-25",
+      "defect": "EXPLOIT's remaining-work estimator walked only the candidate's network DESCENDANTS and conditioned every posterior on the completed evidence alone, while EXPLORE and current service condition on X != ABSENT. A stage with no directed path from the candidate was dropped, and the three consumers sat in different information states.",
+      "fix": "new expected_job_remaining_ms(profiler, evidence, current_stage) sums EVERY unresolved model-side stage with each posterior conditioned on current_stage != ABSENT; job_duration_interval_ms accepts known_present so a ready stage cannot contribute a spurious zero; the dead load term is removed because intrinsic durations already contain cold load. Eq.6 (correlated descendants + top-4) is unchanged.",
+      "verification": "tests/test_llmsched_bn_v2.py L8WholeJobRemainingAndKnownPresent (4 gates); 38-test gate green.",
+      "not_a_retune": true
+    }
+  ],
+  "pending_freeze_breaking_commit": true
 }

@@ -415,5 +415,20 @@ class DecompositionTests(unittest.TestCase):
         self.assertNotAlmostEqual(pred["peak_mem_mb"], 700.0, places=6)
 
 
+class InformationContractTests(unittest.TestCase):
+    """The arm's information contract is machine-checked, not just prose.
+
+    Latency-Aware's paper assumes the logical workflow graph is KNOWN (Eq (3) and
+    Eq (5) are defined on it), so the Constructor and the near-ready window read the
+    realized template's successors.  That is the paper's own premise and NOT the
+    LLMSched structure leak, where the structure must be PREDICTED.  Pinning it here
+    stops the declaration from silently drifting away from the code.
+    """
+
+    def test_graph_visibility_contract_is_declared(self):
+        from tracing.analysis.latency_aware_predictor import GRAPH_VISIBILITY_CONTRACT
+        self.assertEqual(GRAPH_VISIBILITY_CONTRACT, "logical_graph_assumed_known")
+
+
 if __name__ == "__main__":
     unittest.main()

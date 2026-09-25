@@ -57,6 +57,10 @@ BASELINES = [
         "venue": "arXiv:2609.03335 (venue UNVERIFIED)",
         "manifest": "latency_aware_baseline_freeze_v1.json",
         "gate_file": "scripts/../tests/test_latency_aware_fidelity.py",
+        # The prefetch-ordering regression (Eq (5) must not delay ready work) lives in the
+        # scheduler gate, not the fidelity gate.  Both must run green, or the manifest
+        # would certify a baseline whose prefetch had gone back to pre-empting ready work.
+        "extra_gate_files": ["scripts/../tests/test_latency_aware_scheduler.py"],
         "freeze_head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
     },
 ]
@@ -128,13 +132,20 @@ def main() -> int:
         entries.append(entry)
 
     # the one expensive step: actually run each gate
-    for entry in entries:
+    for entry, spec in zip(entries, BASELINES):
         result = run_gate(entry["gate_file"])
         entry["gate_run"] = result
         if not result.get("green"):
             violations.append("%s: fidelity gate not green (%s)"
                               % (entry["arm"], result.get("reason") or
                                  result.get("summary")))
+        for extra in spec.get("extra_gate_files", []):
+            extra_result = run_gate(extra)
+            entry.setdefault("extra_gate_runs", []).append(extra_result)
+            if not extra_result.get("green"):
+                violations.append("%s: extra gate %s not green (%s)"
+                                  % (entry["arm"], extra,
+                                     extra_result.get("reason") or extra_result.get("summary")))
 
     topology_path = ART / "scheduler_topology_contract_gate_v1.json"
     topology: Dict[str, Any] = {"present": topology_path.exists()}

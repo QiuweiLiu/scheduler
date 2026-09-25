@@ -25,6 +25,10 @@ from tracing.analysis.llmsched_bn import (
     ABSENT,
     BN_SCHEMA,
     SEP,
+    conditional_state_probs,
+    descendants,
+    expected_job_remaining_ms,
+    expected_remaining_ms,
     job_duration_interval_ms,
     non_overlapping_sets,
     absorb,
@@ -498,6 +502,98 @@ class L2cNonOverlappingDurationSets(unittest.TestCase):
         self.assertLess(sets[0], sets[1],
                         "the short job must be in an earlier set than the long one")
         _ = short
+
+
+class L8WholeJobRemainingAndKnownPresent(unittest.TestCase):
+    """The EXPLOIT remaining-work estimator must describe the JOB and share ONE
+    information state with EXPLORE and current service.
+
+    Two defects this gate pins, both of which returned a plausible-looking number:
+
+      * the v1 estimator walked ``_future_from_network``, so a stage with no directed
+        path from the candidate was dropped even though the job must still run it;
+      * every posterior was taken under the completed evidence only, as if the ready
+        candidate might not exist, while EXPLORE and current service both condition on
+        ``X != ABSENT`` -- three different information states inside one decision.
+    """
+
+    @staticmethod
+    def chain_profiler(cpd_a, cpd_b, order=("A", "B")):
+        return {
+            "schema": BN_SCHEMA,
+            "stage_order": list(order),
+            "parents": {"A": [], "B": ["A"]},
+            "cpds": {"A": {SEP.join([]): dict(cpd_a)}, "B": dict(cpd_b)},
+            "state_vocabulary": ["D0", ABSENT],
+            "state_ms": {"D0": 100.0, ABSENT: 0.0},
+            "stage_range": {"A": 100.0, "B": 100.0},
+            "discretizer": None,
+        }
+
+    def test_conditioning_propagates_through_the_network(self):
+        """E[D_B | A != ABSENT] must be 100, not the unconditional 50.
+
+        A is absent half the time, and B is present exactly when A is.  The
+        unconditional marginal halves B's contribution; a candidate that is ready is
+        known to exist, so the unconditioned number is simply the wrong information
+        state.  This is the difference between the two estimators.
+        """
+
+        prof = self.chain_profiler(
+            {"D0": 0.5, ABSENT: 0.5},
+            {SEP.join(["D0"]): {"D0": 1.0, ABSENT: 0.0},
+             SEP.join([ABSENT]): {"D0": 0.0, ABSENT: 1.0}},
+        )
+        self.assertAlmostEqual(expected_remaining_ms(prof, "A", {}), 50.0, places=9)
+        self.assertAlmostEqual(expected_job_remaining_ms(prof, {}, "A"), 100.0, places=9)
+        # the single-stage conditional helper agrees with the renormalisation
+        probs = conditional_state_probs(prof, "B", "A", {})
+        self.assertAlmostEqual(probs["D0"], 1.0, places=9)
+        self.assertAlmostEqual(probs[ABSENT], 0.0, places=9)
+
+    def test_an_unreachable_stage_is_still_part_of_the_job(self):
+        """A stage the candidate cannot inform is still work the job must do."""
+
+        prof = {
+            "schema": BN_SCHEMA,
+            "stage_order": ["A", "B", "Z"],
+            "parents": {"A": [], "B": ["A"], "Z": []},
+            "cpds": {
+                "A": {SEP.join([]): {"D0": 1.0, ABSENT: 0.0}},
+                "B": {SEP.join(["D0"]): {"D0": 1.0, ABSENT: 0.0},
+                      SEP.join([ABSENT]): {"D0": 1.0, ABSENT: 0.0}},
+                "Z": {SEP.join([]): {"D0": 1.0, ABSENT: 0.0}},
+            },
+            "state_vocabulary": ["D0", ABSENT],
+            "state_ms": {"D0": 100.0, ABSENT: 0.0},
+            "stage_range": {"A": 100.0, "B": 100.0, "Z": 100.0},
+            "discretizer": None,
+        }
+        self.assertEqual(descendants(prof, "A"), ["B"])
+        self.assertNotIn("Z", descendants(prof, "A"))
+        # the candidate's descendants give 100; the whole job adds Z's 100
+        self.assertAlmostEqual(expected_remaining_ms(prof, "A", {}), 100.0, places=9)
+        self.assertAlmostEqual(expected_job_remaining_ms(prof, {}, "A"), 200.0, places=9)
+
+    def test_a_certainly_absent_condition_fails_closed(self):
+        prof = self.chain_profiler(
+            {"D0": 0.0, ABSENT: 1.0},
+            {SEP.join(["D0"]): {"D0": 1.0, ABSENT: 0.0},
+             SEP.join([ABSENT]): {"D0": 0.0, ABSENT: 1.0}},
+        )
+        with self.assertRaises(ValueError):
+            conditional_state_probs(prof, "B", "A", {})
+
+    def test_known_present_removes_the_spurious_zero(self):
+        """A ready stage cannot contribute a possible-zero to the job's support."""
+
+        uncertain = self.chain_profiler(
+            {"D0": 0.5, ABSENT: 0.5},
+            {SEP.join(["D0"]): {"D0": 1.0, ABSENT: 0.0},
+             SEP.join([ABSENT]): {"D0": 0.0, ABSENT: 1.0}},
+        )
+        lower, _ = job_duration_interval_ms(uncertain, {}, known_present=["A"])
+        self.assertAlmostEqual(lower, 100.0, places=9)
 
 
 class L5SameMarginalsDifferentJoint(unittest.TestCase):

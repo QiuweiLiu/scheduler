@@ -3490,11 +3490,16 @@ def choose_action(
     elif policy == "pythia_completion":
         """Pythia-adapted: history-derived profiler + completion-aware priority.
 
-        S_completion = 1 / E[D_remaining] where E[D_remaining] is read from the
-        train-only workflow profiler (see ``tracing.analysis.pythia_profiler``).
-        The review's guidance is followed literally: omega1 = 1 and omega2 = 0,
-        because S_unblock would need a model-server queue abstraction this simulator
-        does not have, and inventing one would be less honest than omitting it.
+        S_completion = 1 / (1 + E[D_remaining]) where D_remaining is the expected
+        remaining DISTANCE IN STEPS over the train-only role-PFA (see
+        ``tracing.analysis.pythia_profiler``).  Per the audit, the earlier version
+        accumulated millisecond durations and then added the current node's
+        ``runtime_p50 + load``, which made this a duration-weighted / SRTF-flavoured
+        priority rather than Pythia Algorithm 3's.  The completion priority is now
+        unit-correct: no millisecond term is added, and the paper's own wait-time aging
+        is left to the scheduler's hard priority.  omega1 = 1 and omega2 = 0, because
+        S_unblock would need a model-server queue abstraction this simulator does not
+        have, and inventing one would be less honest than omitting it.
         """
 
         profiler = (policy_context or {}).get("pythia_profiler")
@@ -3503,7 +3508,7 @@ def choose_action(
 
         from tracing.analysis.pythia_profiler import (
             current_role,
-            expected_remaining_ms,
+            expected_remaining_steps,
             s_completion,
         )
 
@@ -3524,9 +3529,10 @@ def choose_action(
             if role is None:
                 role = current_role(job, node_id)
                 role_cache[node_id] = role
-            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
-            current = float(estimate_row["runtime_p50_ms"]) + load
-            d_remaining = current + expected_remaining_ms(profiler, role)
+            # D_remaining is a distance in STEPS, so no millisecond term is added.  Adding
+            # the candidate's runtime/load here would be a unit error and would turn the
+            # completion priority back into a duration-weighted one.
+            d_remaining = expected_remaining_steps(profiler, role)
             return (
                 float(item[0]),          # the hard service priority stays first
                 -s_completion(d_remaining),   # smaller key wins, so negate S
@@ -3567,7 +3573,7 @@ def choose_action(
             draw_mode,
             current_service_ms as _bn_current,
             evidence_from_completed,
-            expected_remaining_ms as _bn_remaining,
+            expected_job_remaining_ms as _bn_job_remaining,
             job_duration_interval_ms as _bn_interval,
             non_overlapping_sets as _bn_sets,
             uncertainty_reduction as _bn_info,
@@ -3618,12 +3624,18 @@ def choose_action(
         # and does not depend on which candidate is being scored.  It covers every
         # model-side unresolved stage rather than one candidate's correlated descendants,
         # because Algorithm 1 is comparing jobs against each other.
-        duration_intervals: dict[Any, Any] = {}
+        # Ready candidates are KNOWN to exist, and each job's interval must reflect that.
+        # The set is per job (a job can have several ready nodes), collected here because
+        # the interval is a property of the job at this decision, not of one candidate.
+        _ready_stages: dict[Any, set] = {}
         for candidate in pool:
             _ji = candidate[1]
-            if _ji in duration_intervals:
-                continue
-            duration_intervals[_ji] = _bn_interval(profiler, evidence_for(jobs[_ji]))
+            _stage = stage_map_for(jobs[_ji])[candidate[2]]
+            _ready_stages.setdefault(_ji, set()).add(_stage)
+        duration_intervals: dict[Any, Any] = {}
+        for _ji, _known in _ready_stages.items():
+            duration_intervals[_ji] = _bn_interval(
+                profiler, evidence_for(jobs[_ji]), sorted(_known))
         group_index = _bn_sets(duration_intervals)
 
         def _group_of(job_index: int) -> int:
@@ -3657,9 +3669,12 @@ def choose_action(
                     item[3],
                     gpu.index,
                 )
-            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            # No separate load term: the BN's duration states are intrinsic ``runtime_ms``,
+            # which already CONTAINS the cold-load time, so adding the estimate row's
+            # load here would double-count it.  (The previous version computed a load and
+            # then never used it; the remaining-work term is the whole-job estimator.)
             current = _bn_current(profiler, stage, evidence)
-            primary = current + _bn_remaining(profiler, stage, evidence)
+            primary = current + _bn_job_remaining(profiler, evidence, stage)
             return (
                 float(item[0]),
                 primary,
@@ -4855,15 +4870,6 @@ def simulate_episode(
 
     while arrival_heap or finish_heap or ready or any(gpu.prefetch_pending for gpu in gpus):
         process_prefetch_finish()
-        if policy == "latency_aware":
-            # Eq (5) alpha_N: re-derive eligibility as the workflow progresses;
-            # a deployment becomes preparable once a predecessor is running
-            _la_plan = _latency_aware_prefetch_plan()
-            if _la_plan:
-                _la_saved = extension_config.get("prefetch_plan")
-                extension_config = {**(extension_config or {}), "prefetch_plan": _la_plan}
-                initialize_prefetch()
-                extension_config = {**(extension_config or {}), "prefetch_plan": _la_saved}
         if not ready and not finish_heap and arrival_heap:
             next_prefetch = min(
                 (gpu.busy_until for gpu in gpus if gpu.prefetch_pending and gpu.busy_until > now + 1e-9),
@@ -5145,6 +5151,27 @@ def simulate_episode(
                         waited_ms=round(max(0.0, now - ready_time), 3),
                     )
                     wait_logged.add(wait_key)
+
+        if policy == "latency_aware":
+            # Eq (5) alpha_N, run AFTER ready dispatch and only on devices no ready unit
+            # could use.  Running it at the TOP of the loop let a prefetch seize an idle
+            # device and push gpu.busy_until past now, which removed that device from
+            # ``free_gpu`` and delayed work that was already runnable.  Preparing near-ready
+            # work is only faithful if it does NOT disturb ready work, so a device still
+            # idle once every runnable unit has been placed is the only one eligible.
+            _la_idle = [
+                gpu for gpu in gpus
+                if gpu.active_node is None
+                and not gpu.prefetch_pending
+                and gpu.busy_until <= now + 1e-9
+            ]
+            if _la_idle:
+                _la_plan = _latency_aware_prefetch_plan()
+                if _la_plan:
+                    _la_saved = extension_config.get("prefetch_plan")
+                    extension_config = {**(extension_config or {}), "prefetch_plan": _la_plan}
+                    initialize_prefetch()
+                    extension_config = {**(extension_config or {}), "prefetch_plan": _la_saved}
 
         process_finish()
         next_finish = finish_heap[0][0] if finish_heap else math.inf

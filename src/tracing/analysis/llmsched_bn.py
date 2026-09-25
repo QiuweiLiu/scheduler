@@ -577,6 +577,42 @@ def absorb(profiler: Mapping[str, Any], query_stage: str,
     return out
 
 
+def conditional_state_probs(profiler: Mapping[str, Any], query_stage: str,
+                            condition_stage: str,
+                            evidence: Mapping[str, str]) -> Dict[str, float]:
+    """``P(query = x | E, condition_stage != ABSENT)`` for a single stage.
+
+    The v1 EXPLOIT path had two information-state defects, and this is the fix for both:
+
+      * it asked for a target's marginal under the completed evidence ALONE, while the
+        ready candidate it was scoring is KNOWN to exist.  Leaving mass on
+        ``condition = ABSENT`` while the scheduler is looking at that node is incoherent
+        and it biases every target the ready stage correlates with.
+      * the conditioning must PROPAGATE through the network, so this is a joint marginal
+        (``condition`` is dropped from the absent slice, then marginalised out), not a
+        renormalised single-variable posterior.
+    """
+
+    states = list(profiler["state_vocabulary"])
+    if str(query_stage) == str(condition_stage):
+        return absorb(profiler, query_stage, evidence)
+
+    variables, joint = posterior_joint(profiler, [condition_stage, query_stage], evidence)
+    if variables[0] != condition_stage:
+        joint = joint.transpose()
+    absent = states.index(ABSENT)
+    present = np.delete(joint, absent, axis=0)
+    total = float(present.sum())
+    if total <= 0.0:
+        # the condition has zero probability: an incoherent state, not a plausible zero
+        raise ValueError(
+            "conditioning stage %r has zero probability of existing, so a target cannot "
+            "be scored against it" % condition_stage
+        )
+    marginal = present.sum(axis=0) / total
+    return {state: float(marginal[index]) for index, state in enumerate(states)}
+
+
 # --------------------------------------------------------------------------- #
 # uncertainty reduction and expected remaining work
 # --------------------------------------------------------------------------- #
@@ -829,6 +865,42 @@ def expected_remaining_ms(profiler: Mapping[str, Any], stage: str,
     return float(total)
 
 
+def expected_job_remaining_ms(profiler: Mapping[str, Any], evidence: Mapping[str, str],
+                              current_stage: str) -> float:
+    """``E[remaining service AFTER the ready candidate | E, candidate != ABSENT]``.
+
+    The whole JOB's unresolved work, not just the ready candidate's network descendants.
+    ``expected_remaining_ms`` walked ``_future_from_network`` -- the descendants of one
+    candidate -- so a stage with no directed path from the candidate was silently
+    dropped even though the job must still execute it.  That makes EXPLOIT
+    systematically too optimistic about jobs whose remaining stages sit outside one
+    candidate's ancestor/descendant chain, and it disagreed with
+    ``job_duration_interval_ms``, which already covers every unresolved stage.
+
+    Every posterior is conditioned on the ready stage being present -- the information
+    state the scheduler is actually in -- so EXPLORE (which conditions ``X != ABSENT``),
+    current service (``absorb``) and remaining work now consume ONE posterior state.
+    The candidate's own duration is NOT included: the caller adds ``current_service_ms``.
+
+    Equation (6)'s exploration score is deliberately untouched: it stays the correlated
+    descendants plus the top-``MAX_JOINT_FUTURE`` of them.
+    """
+
+    observed = set(evidence or {})
+    total = 0.0
+    for name in profiler["stage_order"]:
+        if name in observed or name == current_stage:
+            continue
+        probs = conditional_state_probs(profiler, name, current_stage, evidence)
+        conditional = 0.0
+        for state, prob in probs.items():
+            if state == ABSENT:
+                continue
+            conditional += prob * _state_ms(profiler, state)
+        total += conditional
+    return float(total)
+
+
 def _state_ms(profiler: Mapping[str, Any], state: str) -> float:
     """A representative duration for a duration state, from the frozen discretizer."""
 
@@ -852,7 +924,8 @@ def current_service_ms(profiler: Mapping[str, Any], stage: str,
 
 
 def job_duration_interval_ms(profiler: Mapping[str, Any],
-                             evidence: Mapping[str, str]) -> Tuple[float, float]:
+                             evidence: Mapping[str, str],
+                             known_present: Sequence[str] | None = None) -> Tuple[float, float]:
     """The SUPPORT of a job's remaining intrinsic work, from the network.
 
     This is a support interval of the remaining-duration random variable, not an
@@ -867,14 +940,26 @@ def job_duration_interval_ms(profiler: Mapping[str, Any],
     descendants of one candidate: it describes the JOB's remaining work, which is what
     Algorithm 1 compares between jobs.  Nothing here reads the workload's realized
     template.
+
+    ``known_present`` names stages the scheduler is currently LOOKING AT (a ready
+    candidate), i.e. stages known to exist.  Their own posterior is renormalised with
+    ``absorb`` so they cannot contribute the spurious possible-zero that a stage with
+    ``P(ABSENT) > 0`` is allowed; this is the same known-present condition
+    ``expected_job_remaining_ms`` applies.  Cross-stage propagation of the presence
+    condition is deliberately NOT applied here: this is a job-level support bound over a
+    ready SET that can contain several stages, and the grouping only needs the bound.
     """
 
+    known = {str(stage) for stage in (known_present or ())}
     lower = 0.0
     upper = 0.0
     for name in profiler["stage_order"]:
         if name in (evidence or {}):
             continue
-        probs = posterior_state_probs(profiler, name, evidence)
+        if name in known:
+            probs = absorb(profiler, name, evidence)
+        else:
+            probs = posterior_state_probs(profiler, name, evidence)
         present = 1.0 - float(probs.get(ABSENT, 0.0))
         if present <= 0.0:
             # the stage is settled absent: it contributes exactly nothing
@@ -883,8 +968,8 @@ def job_duration_interval_ms(profiler: Mapping[str, Any],
         if not durations:
             continue
         # a stage that may still be absent contributes a possible zero to the support;
-        # one that is certainly present cannot
-        if present < 1.0 - 1e-12:
+        # one that is certainly present -- or known present because it is ready -- cannot
+        if present < 1.0 - 1e-12 and name not in known:
             lower += 0.0
         else:
             lower += min(durations)

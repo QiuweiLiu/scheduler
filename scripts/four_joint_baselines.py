@@ -13,7 +13,9 @@ seeing numbers is not a comparison:
                    statistically better CI_upper(Delta) < 0
                    substantively better point(Delta) <= -485 ms AND CI_upper(Delta) < 0
   pairing      the SAME episodes and the SAME seed per arm, so every Delta is within-episode
-  uncertainty  video-cluster bootstrap over paired episode deltas
+  uncertainty  EPISODE-cluster bootstrap over paired episode deltas (see paired_bootstrap_ci:
+               it resamples EPISODES, not videos/templates, so it describes uncertainty over
+               the frozen 300-episode set and does NOT by itself generalise to unseen videos)
 
 Each arm brings its own frozen front end; none of them may read another arm's artifact.
 A baseline does NOT have to be close to F0 to count as a successful reproduction -- the
@@ -185,6 +187,9 @@ def main() -> int:
                         help="confirm is the frozen one-shot evaluation set; development "
                              "is for tuning only")
     parser.add_argument("--episodes", type=int, default=0)
+    parser.add_argument("--smoke", type=int, default=0,
+                        help="small-scale pre-formal check on the first N confirm episodes "
+                             "(0 = off; use 10-20)")
     parser.add_argument("--out", default="four_baseline_formal_v1.json")
     args = parser.parse_args()
 

@@ -271,6 +271,59 @@ class IndependenceTests(unittest.TestCase):
                             predictor=_P_for(tpl))
         self.assertIsNone(act, "an infeasible plan must not be committed")
 
+    def test_prefetch_does_not_delay_ready_work(self):
+        """Eq (5) prefetch must not seize a device that ready work needs.
+
+        Three devices: A runs a long predecessor and B occupies another, so one device is
+        idle and A's near-ready successor is prefetched onto it.  A third job then arrives.
+        Because prefetch is decided AFTER ready dispatch and only on devices no ready unit
+        could use, and because it started early on the genuinely idle device, the arrival
+        is dispatched at its own arrival time instead of behind a prefetch that the old
+        top-of-loop ordering would have started at the arrival decision.
+        """
+
+        def nd(tid, index, runtime, model, load):
+            return Node(
+                node_id=f"{tid}:n{index}", sequence_index=index,
+                predecessors=(f"{tid}:n{index-1}",) if index else (),
+                successors=(f"{tid}:n{index+1}",) if index == 0 else (),
+                lane="gpu", model_id=model, runtime_ms=float(runtime), load_ms=float(load),
+                workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+                role="execute", action_family="inference")
+
+        a_nodes = (nd("A", 0, 500, "m1", 5.0), nd("A", 1, 50, "m3", 100.0))
+        tpls = {
+            "A": Template("A", "A", "train", "fam", a_nodes,
+                          {n.node_id: n for n in a_nodes}),
+            "B": chain("B", [(1000, "m2", "gpu", 10.0)]),
+            "C": chain("C", [(10, "m4", "gpu", 10.0)]),
+        }
+        stats = train_resource_stats(tpls)
+        ep = {
+            "episode_id": "la-prefetch", "split": "train",
+            "gpu_topology_mb": [40000.0, 40000.0, 40000.0],
+            "initial_residency_hint": [[], [], []],
+            "jobs": [
+                {"job_instance_id": "A", "template_id": "A", "arrival_ms": 0.0,
+                 "deadline_ms": 1e9, "service_class": "normal"},
+                {"job_instance_id": "B", "template_id": "B", "arrival_ms": 0.0,
+                 "deadline_ms": 1e9, "service_class": "normal"},
+                {"job_instance_id": "C", "template_id": "C", "arrival_ms": 150.0,
+                 "deadline_ms": 1e9, "service_class": "normal"},
+            ],
+        }
+        summary, events = simulate_episode(
+            ep, tpls, "latency_aware", train_stats=stats,
+            policy_context={"latency_aware_predictor": _predictor_for(ep, tpls)},
+            collect_events=True)
+        self.assertEqual(summary["completed_jobs"], 3)
+        self.assertGreaterEqual(summary["prefetch_count"], 1,
+                                "the near-ready deployment should still be prefetched")
+        c_starts = [e for e in events if e.get("event_type") == "node_start"
+                    and e.get("job_instance_id") == "C"]
+        self.assertTrue(c_starts, "job C must run")
+        self.assertAlmostEqual(min(e["start_ms"] for e in c_starts), 150.0, places=6)
+
     def test_end_to_end_run_still_completes_every_job(self):
         tpls = {"t": chain("t", [(100, "m1", "gpu", 10.0)] * 3)}
         stats = train_resource_stats(tpls)
