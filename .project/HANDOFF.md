@@ -115,9 +115,16 @@ on_degeneracy_report 实测 v04.1 **3 组 / 3 非退化 / fraction 1.0**；
 验证：Latency-Aware gate **12 + 13 + 14**；全量 **337 测试 / 5 个预存失败**；
 端到端 makespan 178515.8，6 job 全完成，缺 predictor 正确 raise。
 
-### 通道异常
-GPT 会话页面进入异常状态：cdp_poll_project.py 挂起、cdp_dump_project.py 存出 **0 字节**，
-但 Chrome（12 进程）与 CDP（/json/version → 200）均正常。Latency-Aware 的复核因此未取到。
+### 通道情况（已部分恢复）
+ChatGPT **改了 DOM 结构**：[data-testid^="conversation-turn-"]、[data-message-author-role]、
+rticle **全部匹配 0**，而 main.innerText 有内容 —— 所以旧的 dump 脚本静静写出 0 字节。
+已改用 main.innerText 抓取（.scratch/cdp_reload_dump3.py、cdp_scroll_dump.py）。
+
+**但页面文本到 Pythia 声明就结束了**（17167 字符，滚动无新增，尾部是「目前为止，这次对话有帮助吗？」）。
+搜索 25efcd / latency_aware_predictor / 178515 / 
+on_degeneracy 均为 **-1** ——
+即 **Latency-Aware 那一轮的提交与回复不在这个页面的渲染范围内**。
+需要：在网页上确认该消息落在哪个会话，或直接粘贴 GPT 的回复。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
