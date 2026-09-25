@@ -78,9 +78,23 @@ class Eq3ContractionTests(unittest.TestCase):
         self.assertEqual(ch.node_ids, ("a", "b", "c"))
         self.assertEqual(ch.length, 3)
         self.assertEqual(ch.boundaries_removed, 2, "h-1 boundaries removed")
-        self.assertAlmostEqual(ch.summed_runtime_ms, 600.0)
-        # Eq (4): the fused duration is the sum of the member runtimes
-        self.assertEqual(ch.summed_runtime_ms, 100.0 + 200.0 + 300.0)
+        # Eq (4)'s fused duration is computed from the PREDICTOR at plan time; the chain
+        # object must NOT carry a realized-runtime truth field (audit P2).
+        self.assertFalse(hasattr(ch, "summed_runtime_ms"),
+                         "the chain must not expose a summed realized runtime")
+
+    def test_visible_ids_restrict_the_chain_to_the_resolved_window(self):
+        """A chain may not cross a successor whose control result has not resolved."""
+
+        a = node("a", 0, [], ["b"])
+        b = node("b", 1, ["a"], ["c"])
+        c = node("c", 2, ["b"], [])
+        tpl = template([a, b, c])
+        self.assertEqual([ch.node_ids for ch in maximal_fusible_chains(tpl)],
+                         [("a", "b", "c")])
+        restricted = maximal_fusible_chains(tpl, visible_ids={"a"})
+        self.assertEqual([ch.node_ids for ch in restricted], [("a",)],
+                         "only the resolved node may be in the window")
 
     def test_branch_splits_into_separate_units(self):
         a = node("a", 0, [], ["b", "c"])

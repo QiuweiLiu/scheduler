@@ -613,6 +613,41 @@ def conditional_state_probs(profiler: Mapping[str, Any], query_stage: str,
     return {state: float(marginal[index]) for index, state in enumerate(states)}
 
 
+def conditional_state_probs_for_set(profiler: Mapping[str, Any], query_stage: str,
+                                    present_stages: Sequence[str],
+                                    evidence: Mapping[str, str]) -> Dict[str, float]:
+    """``P(query | E, every stage in present_stages != ABSENT)``.
+
+    The whole-job interval must use ONE information state: the ready stages are known to
+    exist, and that condition has to PROPAGATE to every other unresolved stage, not just
+    be renormalised locally on the ready stage itself.  The audit's earlier note was that
+    the interval was a wider "conservative envelope" than the scheduler's actual state.
+    """
+
+    present = [str(s) for s in present_stages if str(s) != str(query_stage)]
+    if not present:
+        return posterior_state_probs(profiler, query_stage, evidence)
+
+    states = list(profiler["state_vocabulary"])
+    variables, joint = posterior_joint(profiler, [query_stage] + present, evidence)
+    variables = list(variables)
+    arr = joint
+    absent = states.index(ABSENT)
+    for stage in present:
+        axis = variables.index(stage)
+        arr = np.delete(arr, absent, axis=axis)
+    total = float(arr.sum())
+    if total <= 0.0:
+        raise ValueError(
+            "the known-present condition has zero probability; a ready stage cannot be "
+            "scored against it"
+        )
+    query_axis = variables.index(query_stage)
+    marginal = arr.sum(axis=tuple(i for i in range(arr.ndim) if i != query_axis))
+    marginal = marginal / total
+    return {state: float(marginal[index]) for index, state in enumerate(states)}
+
+
 # --------------------------------------------------------------------------- #
 # uncertainty reduction and expected remaining work
 # --------------------------------------------------------------------------- #
@@ -942,22 +977,22 @@ def job_duration_interval_ms(profiler: Mapping[str, Any],
     template.
 
     ``known_present`` names stages the scheduler is currently LOOKING AT (a ready
-    candidate), i.e. stages known to exist.  Their own posterior is renormalised with
-    ``absorb`` so they cannot contribute the spurious possible-zero that a stage with
-    ``P(ABSENT) > 0`` is allowed; this is the same known-present condition
-    ``expected_job_remaining_ms`` applies.  Cross-stage propagation of the presence
-    condition is deliberately NOT applied here: this is a job-level support bound over a
-    ready SET that can contain several stages, and the grouping only needs the bound.
+    candidate), i.e. stages known to exist.  EVERY unresolved stage is conditioned on that
+    set being present -- the condition propagates through the network, not just a local
+    renormalisation of the ready stage.  This puts the interval, the EXPLOIT expectation
+    and current service in the SAME information state.  ``known_present is None`` keeps the
+    unconditioned support for callers that have no ready stage (offline analysis).
     """
 
-    known = {str(stage) for stage in (known_present or ())}
+    known = [str(stage) for stage in (known_present or ())]
+    known_set = set(known)
     lower = 0.0
     upper = 0.0
     for name in profiler["stage_order"]:
         if name in (evidence or {}):
             continue
-        if name in known:
-            probs = absorb(profiler, name, evidence)
+        if known_set:
+            probs = conditional_state_probs_for_set(profiler, name, known, evidence)
         else:
             probs = posterior_state_probs(profiler, name, evidence)
         present = 1.0 - float(probs.get(ABSENT, 0.0))
@@ -969,7 +1004,7 @@ def job_duration_interval_ms(profiler: Mapping[str, Any],
             continue
         # a stage that may still be absent contributes a possible zero to the support;
         # one that is certainly present -- or known present because it is ready -- cannot
-        if present < 1.0 - 1e-12 and name not in known:
+        if present < 1.0 - 1e-12 and name not in known_set:
             lower += 0.0
         else:
             lower += min(durations)

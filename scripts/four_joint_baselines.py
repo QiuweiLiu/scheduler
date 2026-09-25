@@ -190,8 +190,30 @@ def main() -> int:
     parser.add_argument("--smoke", type=int, default=0,
                         help="small-scale pre-formal check on the first N confirm episodes "
                              "(0 = off; use 10-20)")
+    parser.add_argument("--formal", action="store_true",
+                        help="hard-assert the freeze/provenance gates before starting; the "
+                             "formal measurement must never run on an unpinned tree")
     parser.add_argument("--out", default="four_baseline_formal_v1.json")
     args = parser.parse_args()
+
+    if args.formal:
+        # The formal measurement is only comparable if every frozen input is pinned.  The
+        # audit asked for these to be hard assertions rather than git_head "unknown" plus a
+        # recorded hash that nobody checks.
+        fidelity_path = ART / "baseline_fidelity_manifest_v1.json"
+        topology_path = ART / "scheduler_topology_contract_gate_v1.json"
+        for label, path in (("BaselineFidelityManifest", fidelity_path),
+                            ("SchedulerTopologyContractGate", topology_path)):
+            if not path.exists():
+                raise AssertionError("--formal requires %s at %s" % (label, path))
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if payload.get("pass") is not True:
+                raise AssertionError("--formal: %s.pass is not True" % label)
+        head = git_head()
+        if not head or head == "unknown" or len(head) != 40:
+            raise AssertionError(
+                "--formal: git HEAD is %r; a formal run must be attributable to a commit"
+                % (head,))
 
     templates = load_templates(PROJECTION, topology_view="causal_v3")
     train = {k: v for k, v in templates.items() if v.split == "train"}
@@ -199,6 +221,12 @@ def main() -> int:
 
     # Select by the FROZEN split, never by file order.
     split_manifest = json.loads(SPLIT_MANIFEST.read_text(encoding="utf-8"))
+    # The split itself is frozen: 700 development / 300 confirm at seed 20260914.  A
+    # silently resized split would change what "the frozen confirm300" means.
+    if len(split_manifest["development"]) != 700 or len(split_manifest["confirm"]) != 300:
+        raise AssertionError(
+            "the split manifest is not the frozen 700/300: development=%d confirm=%d"
+            % (len(split_manifest["development"]), len(split_manifest["confirm"])))
     wanted = set(split_manifest[args.split])
     all_episodes = list(read_jsonl(EPISODES_FILE))
     by_id = {str(e.get("episode_id")): e for e in all_episodes}
@@ -217,6 +245,7 @@ def main() -> int:
         "value; this run would not be comparable to anything")
     config = {
         "split": args.split,
+        "formal": bool(args.formal),
         "split_manifest": str(SPLIT_MANIFEST.relative_to(ROOT)).replace("\\", "/"),
         "split_manifest_sha256": sha256_file(SPLIT_MANIFEST),
         "episodes_sha256": sha256_file(EPISODES_FILE),

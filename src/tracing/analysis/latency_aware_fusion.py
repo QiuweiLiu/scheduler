@@ -29,7 +29,13 @@ class FusedChain:
     unit_id: str
     node_ids: Tuple[str, ...]
     deployment: Tuple[str, str]
-    summed_runtime_ms: float
+    # There is deliberately NO summed_runtime_ms here.  It used to carry
+    # ``sum(m.runtime_ms)``, i.e. the SUM OF REALIZED RUN TIMES of the chain members --
+    # a truth field that the scheduler is supposed to PREDICT.  It was unused by the
+    # scoring path, so it was never an active leak, but keeping a truth quantity on the
+    # object that a fused plan is built from invites exactly the substitution this arm
+    # already had to remove elsewhere.  The fused duration is computed from the
+    # request-conditioned predictor in ``latency_aware_scheduler.predicted_duration_ms``.
     max_workspace_peak_mb: float
 
     @property
@@ -83,10 +89,19 @@ def is_fusible_edge(u: Any, v: Any) -> bool:
     return config_compatible(u, v)
 
 
-def maximal_fusible_chains(template: Any) -> List[FusedChain]:
-    """Contract every maximal eligible chain of one workflow (one template)."""
+def maximal_fusible_chains(template: Any, visible_ids: Any = None) -> List[FusedChain]:
+    """Contract every maximal eligible chain of one workflow (one template).
 
-    nodes = list(template.nodes)
+    ``visible_ids`` restricts the contraction to the RESOLVED logical window: when it is
+    given, only nodes whose control result has resolved (and, on an edge, only a successor
+    that is itself resolved) may enter a chain.  The paper's ``L_t`` is the resolved
+    workflow portion, not the complete realized graph, so contracting a chain across a
+    not-yet-resolved successor would read structure the scheduler is not entitled to.
+    ``None`` keeps the full-template behaviour for offline analysis and its own unit tests.
+    """
+
+    allowed = None if visible_ids is None else {str(v) for v in visible_ids}
+    nodes = [n for n in template.nodes if allowed is None or n.node_id in allowed]
     by_id = {n.node_id: n for n in nodes}
 
     # a node may have at most one fusible successor and one fusible predecessor,
@@ -121,7 +136,6 @@ def maximal_fusible_chains(template: Any) -> List[FusedChain]:
                 unit_id="%s::fuse%d" % (template.template_id, len(chains)),
                 node_ids=tuple(ids),
                 deployment=deployment_identity(members[0]),
-                summed_runtime_ms=float(sum(m.runtime_ms for m in members)),
                 max_workspace_peak_mb=max(
                     (float(m.workspace_peak_mb or 0.0) for m in members), default=0.0
                 ),

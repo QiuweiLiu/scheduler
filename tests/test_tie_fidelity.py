@@ -56,10 +56,10 @@ def two_group_bank(mean_a, cvar_a, mean_b, cvar_b):
     return {"schema": "test", "groups": {
         "mA|gpu": {"model_id": "mA", "lane": "gpu", "sample_count": 100,
                    "runtime_mean_ms": mean_a, "runtime_cvar90_ms": cvar_a,
-                   "load_mean_ms": 0.0},
+                   "load_mean_ms": 0.0, "load_conditional_mean_ms": 0.0},
         "mB|gpu": {"model_id": "mB", "lane": "gpu", "sample_count": 100,
                    "runtime_mean_ms": mean_b, "runtime_cvar90_ms": cvar_b,
-                   "load_mean_ms": 0.0},
+                   "load_mean_ms": 0.0, "load_conditional_mean_ms": 0.0},
     }}
 
 
@@ -152,13 +152,13 @@ class QueueLengthTests(unittest.TestCase):
 class LoadOwnershipTests(unittest.TestCase):
     def test_load_comes_from_the_tie_bank(self):
         bank = two_group_bank(1.0, 1.0, 2.0, 2.0)
-        bank["groups"]["mA|gpu"]["load_mean_ms"] = 42.0
+        bank["groups"]["mA|gpu"]["load_conditional_mean_ms"] = 42.0
         node = one_node_template("t", "mA", 1.0).nodes[0]
         self.assertAlmostEqual(tie_load_estimate(bank, node), 42.0)
 
     def test_score_is_built_only_from_the_bank(self):
         bank = two_group_bank(100.0, 400.0, 2.0, 2.0)
-        bank["groups"]["mA|gpu"]["load_mean_ms"] = 1.0
+        bank["groups"]["mA|gpu"]["load_conditional_mean_ms"] = 1.0
         node = one_node_template("t", "mA", 1.0).nodes[0]
         # E + beta*CVaR + load = 100 + 0.5*400 + 1
         self.assertAlmostEqual(tie_score_for(bank, node, 0.5, resident=False), 301.0)
@@ -265,12 +265,14 @@ class SentinelMutationTests(unittest.TestCase):
 
 
 class ZeroLoadSentinel(unittest.TestCase):
-    """A legitimate load of 0 is a SAMPLE, not a missing one.
+    """A load of 0 records "the model was already resident", not a cold load.
 
-    The builder tested ``if getattr(n, "load_ms", None):``, so an already-resident model
-    contributed no load sample at all.  With training loads [0, 10] the bank then reported
-    a mean load of 10 instead of 5: a silent, plausible, wrong value that would have made
-    the model look twice as expensive to load as it is.
+    Two distinct defects live here.  The original builder tested ``if getattr(n,
+    "load_ms", None):``, so a resident 0 contributed no sample at all, and a training set
+    of [0, 10] reported a mean of 10 instead of 5.  Then the consumer used that
+    unconditional mean as the surcharge for a model that is NOT resident, which averages
+    in the resident zeros and makes a cold load look cheaper than it is.  The quantity the
+    consumer needs is E[load | load required].
     """
 
     @staticmethod
@@ -280,8 +282,8 @@ class ZeroLoadSentinel(unittest.TestCase):
                     workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
                     role="execute", action_family="inference")
 
-    def test_zero_load_is_counted(self):
-        from tracing.analysis.tie_methods import build_tie_bank
+    def test_zero_load_is_a_resident_sample_not_a_cold_load(self):
+        from tracing.analysis.tie_methods import build_tie_bank, tie_load_estimate
 
         a_node = self.with_load("a", 0.0)
         b_node = self.with_load("b", 10.0)
@@ -290,9 +292,28 @@ class ZeroLoadSentinel(unittest.TestCase):
         bank = build_tie_bank({"a": a, "b": b})
         group = bank["groups"]["mZ|gpu"]
         self.assertEqual(group["sample_count"], 2)
-        self.assertIn("load_mean_ms", group)
-        self.assertAlmostEqual(group["load_mean_ms"], 5.0,
-                               msg="[0, 10] must average 5; a truthiness guard drops the 0")
+        self.assertEqual(group["load_sample_count"], 2)
+        self.assertEqual(group["load_required_count"], 1)
+        self.assertAlmostEqual(group["load_occurrence_rate"], 0.5)
+        self.assertAlmostEqual(group["load_mean_ms"], 5.0)  # audit only
+        self.assertAlmostEqual(group["load_conditional_mean_ms"], 10.0)
+        # the CONSUMED surcharge for a non-resident candidate is the cold-load mean, not 5
+        self.assertAlmostEqual(tie_load_estimate(bank, a_node), 10.0,
+                               msg="a non-resident candidate must be charged E[load | load required]")
+
+    def test_score_uses_the_conditional_cold_load(self):
+        from tracing.analysis.tie_methods import build_tie_bank, tie_score_for
+
+        a_node = self.with_load("a", 0.0)
+        b_node = self.with_load("b", 10.0)
+        a = Template("a", "a", "train", "fam", (a_node,), {"a:n": a_node})
+        b = Template("b", "b", "train", "fam", (b_node,), {"b:n": b_node})
+        bank = build_tie_bank({"a": a, "b": b})
+        # the two nodes have identical compute (100 - load), so the ONLY difference by
+        # residency is the load term: 0 resident, 10 non-resident
+        nonresident = tie_score_for(bank, a_node, 0.0, resident=False)
+        resident = tie_score_for(bank, a_node, 0.0, resident=True)
+        self.assertAlmostEqual(nonresident - resident, 10.0)
 
 
 class ComputeBankSentinel(unittest.TestCase):

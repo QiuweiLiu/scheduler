@@ -592,8 +592,15 @@ class L8WholeJobRemainingAndKnownPresent(unittest.TestCase):
             {SEP.join(["D0"]): {"D0": 1.0, ABSENT: 0.0},
              SEP.join([ABSENT]): {"D0": 0.0, ABSENT: 1.0}},
         )
-        lower, _ = job_duration_interval_ms(uncertain, {}, known_present=["A"])
-        self.assertAlmostEqual(lower, 100.0, places=9)
+        # A is known present, and B is present exactly when A is, so the conditioned
+        # interval is tight: both stages contribute their minimum.
+        lower, upper = job_duration_interval_ms(uncertain, {}, known_present=["A"])
+        self.assertAlmostEqual(lower, 200.0, places=9)
+        self.assertAlmostEqual(upper, 200.0, places=9)
+        # without the known-present condition the same job is ambiguous (A may be absent)
+        plain_lower, _ = job_duration_interval_ms(uncertain, {})
+        self.assertAlmostEqual(plain_lower, 0.0, places=9)
+        self.assertLess(plain_lower, lower)
 
 
 class L5SameMarginalsDifferentJoint(unittest.TestCase):

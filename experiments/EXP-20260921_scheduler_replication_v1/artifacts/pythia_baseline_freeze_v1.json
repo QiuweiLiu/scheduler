@@ -35,7 +35,8 @@
   ],
   "omissions": [
     "cache routing, prefix caching, model-replica idleness, autoscaling: outside this GPU abstraction",
-    "S_unblock omitted, because the simulator has no model-server queue to attach it to; omega2 = 0"
+    "S_unblock omitted, because the simulator has no model-server queue to attach it to; omega2 = 0",
+    "local worker waiting-time aging is NOT migrated: the arm's hard service priority is a FIXED class (0/1) and ready_time is only a deterministic tie-break, so this reproduces Pythia's S_completion component, not its aging loop"
   ],
   "defects_closed_before_freeze": [
     "template.baseline used as the alphabet, which is not a role alphabet at all",
@@ -67,5 +68,6 @@
       "verification": "tests/test_pythia_fidelity.py adds test_the_distance_does_not_depend_on_durations and re-derives the chain/fan-out values in steps; 13/13 gate.",
       "not_a_retune": true
     }
-  ]
+  ],
+  "V_plus_one_convention": "V counts future non-END roles AFTER the current request; therefore D_remaining = 1 + V(current_role)."
 }

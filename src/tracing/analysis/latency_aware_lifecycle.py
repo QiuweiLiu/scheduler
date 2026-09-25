@@ -28,19 +28,57 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 
+# States in which a node's control result has RESOLVED, i.e. the node is part of the
+# paper's L_t (the resolved logical workflow portion) rather than of the realized future.
+RESOLVED_STATES = ("ready", "running", "completed", "failed")
+
+
+def resolved_graph_view(job: Any) -> set:
+    """The RESOLVED logical window the Constructor may read.
+
+    The paper's ``L_t`` is the workflow portion whose control result has RESOLVED, plus
+    the immediate near-ready successors of RUNNING units.  It is explicitly NOT the
+    complete realized graph: a READY unit has not executed, so its branch outcome (and
+    therefore its successor) is not resolved and must not be read.  Reading the realized
+    template instead is exactly the structure leak the audit found -- two workflows with
+    the same visible prefix but different real futures would look different before the
+    branch resolves.
+
+    A RUNNING unit with a UNIQUE successor has an unambiguous continuation, so that
+    successor is in the near-ready window.  A RUNNING unit with several successors has an
+    unresolved branch, and none of them is exposed.
+    """
+
+    state = job.node_state
+    visible = {str(node_id) for node_id, value in state.items() if value in RESOLVED_STATES}
+    for node_id in list(visible):
+        if state.get(node_id) != "running":
+            continue
+        node = job.template.by_id.get(node_id)
+        if node is None or len(node.successors) != 1:
+            continue
+        visible.add(str(node.successors[0]))
+    return visible
+
+
 def near_ready_deployments(jobs: Sequence[Any]) -> List[Tuple[str, str]]:
     """Deployments of the successors of running nodes: the near-ready window.
 
-    Returns (model_id, lane) pairs in first-seen order, deduplicated.
+    Only successors that are inside the RESOLVED view are eligible, so a running unit with
+    an unresolved branch exposes nothing.  Returns (model_id, lane) pairs in first-seen
+    order, deduplicated.
     """
 
     seen: Dict[Tuple[str, str], None] = {}
     for job in jobs:
-        for node_id, state in job.node_state.items():
-            if state != "running":
+        view = resolved_graph_view(job)
+        for node_id in view:
+            if job.node_state.get(node_id) != "running":
                 continue
             running = job.template.by_id[node_id]
             for succ_id in running.successors:
+                if str(succ_id) not in view:
+                    continue  # the successor is not resolved yet
                 succ = job.template.by_id.get(succ_id)
                 if succ is None:
                     continue

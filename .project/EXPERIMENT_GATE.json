@@ -2191,7 +2191,7 @@
         "Latency-Aware-Orchestration-adapted": {
           "source": "arXiv:2609.03335, 2026-09-03, cs.DC",
           "venue": "UNVERIFIED",
-          "fidelity": "PASS after the 2026-09-25 freeze-breaking fixes (deployment-only load head; prefetch after ready dispatch); gate 45/45",
+          "fidelity": "fixed for the resolved-graph contract (resolved_graph_view; fusion restricted to the resolved window; load head deployment-only; prefetch after dispatch). NOTE: on v04.1 fusion no longer fires, so the arm is weaker than the paper's Constructor -- a deliberate leak-free conservative choice, pending user confirmation.",
           "performance": "pending",
           "cost": "highest",
           "note": "cannot be expressed as min(pool,key); Constructor is a reported source of its gains"
@@ -2355,7 +2355,7 @@
         "workflow-state canonicalization for LLMSched/Pythia must use runtime-observable identity only, never future node ids",
         "all adaptation knobs (TIE beta, LLMSched epsilon, Pythia omega) fixed from the papers or tuned on train/dev only"
       ],
-      "next": "Re-pin the four freeze heads at the freeze-breaking commit; obtain the truncated TIE review detail; then the 30-episode smoke on v04.1",
+      "next": "Latency resolved-graph view (P0); TIE conditional cold-load; Pythia aging; LLMSched interval; runner formal gate; then regenerate manifests, new SHA, re-run the freeze declaration, then the smoke",
       "p0_topology_regression": {
         "status": "located, rebuilt, gate PASS",
         "classification": "P0 scheduler experiment validity issue; NOT a predictor validity issue",
@@ -2691,6 +2691,20 @@
         "cleanup": "latency predictor dedupe; four_joint_baselines bootstrap wording = episode-cluster",
         "tie": "NOT fixed: audit detail was truncated and is not in the repo; not guessed",
         "status": "working tree, not committed"
+      },
+      "review_20260926": {
+        "reviewer": "ChatGPT Web (GPT-5.6 Sol High)",
+        "doc": "docs/research/2026-09-26_freeze_breaking_fixes_review.md",
+        "verdict": "NEEDS CHANGE",
+        "latency_aware": "REJECT (P0 unresolved future graph leak)",
+        "tie": "P1 conditional cold-load (detail supplied)",
+        "pythia": "P1 waiting-time aging not implemented",
+        "llmsched": "P1 interval not fully conditioned (conservative envelope)",
+        "runner": "P1 formal gate not fail-closed",
+        "gate": "30-episode diagnostic smoke OK; freeze-qualified smoke and 300x5 NOT approved",
+        "re_pin_is_not_a_freeze_signoff": true,
+        "followup_fixes_20260926": "Latency resolved-graph view; TIE conditional cold-load; Pythia aging omission; LLMSched interval conditioning; runner --formal gate; FusedChain truth field removed",
+        "fusion_disabled_on_v04_1": true
       }
     }
   },
@@ -2699,5 +2713,5 @@
     "Add new experiments here before formal runs (gate + registration)."
   ],
   "schema": "experiment-gate-v1",
-  "updated_at": "2026-09-25"
+  "updated_at": "2026-09-26"
 }

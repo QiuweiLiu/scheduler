@@ -67,8 +67,15 @@ class LatencyAwareFidelityTests(unittest.TestCase):
         self.assertEqual(chains[0].length, 4)
         self.assertEqual(chains[0].boundaries_removed, 3)
 
-    def test_fusion_reduces_node_starts_and_completes_every_node(self):
-        """Semantics preserved: fewer admits, same nodes finished."""
+    def test_constructor_does_not_contract_across_unresolved_successors(self):
+        """Leak-free contract: the Constructor may only chain RESOLVED successors.
+
+        At the moment the head is ready its successors are still pending, so they are NOT
+        in the resolved window and must not be contracted.  The earlier version fused the
+        whole chain by reading the realized template, which is the structure leak the audit
+        found; on a same-model chain the leak-free arm therefore admits the SAME number of
+        units as a per-node plan.  All nodes are still produced.
+        """
         specs = [("planner", 100, "m1", "gpu", 100.0)] * 4
         tpls = {"t": chain_template("t", specs)}
         stats = train_resource_stats(tpls)
@@ -88,12 +95,9 @@ class LatencyAwareFidelityTests(unittest.TestCase):
         def finishes(ev):
             return [e for e in ev if e.get("event_type") == "node_finish"]
         self.assertEqual(len(finishes(ev_lat)), len(finishes(ev_fcfs)),
-                         "fusion must not lose completions")
-        self.assertLess(len(starts(ev_lat)), len(starts(ev_fcfs)),
-                        "a fused plan must admit fewer units than a per-node plan")
-        co = Counter(round(e.get("finish_ms") or 0, 3) for e in finishes(ev_lat))
-        self.assertGreater(sum(v - 1 for v in co.values() if v > 1), 0,
-                           "no finish closed several members, so nothing was fused")
+                         "the arm must not lose completions")
+        self.assertEqual(len(starts(ev_lat)), len(starts(ev_fcfs)),
+                         "no unit may be contracted across an unresolved successor")
 
     def test_fusion_respects_memory_feasibility(self):
         """A chain whose peak exceeds the device must NOT be fused."""
@@ -201,6 +205,67 @@ class LatencyAwareFidelityTests(unittest.TestCase):
         import tracing.analysis.latency_aware_lifecycle as lc
         self.assertFalse(hasattr(lc, "choose_reclaim_victim"),
                          "if this appears, update the adaptation note")
+
+
+class ResolvedWindowTests(unittest.TestCase):
+    """The audit's key sentinel: an identical VISIBLE prefix with a different real future
+    must be indistinguishable until the branch resolves.
+
+    Reading the realized template made fusion / prefetch / ranking depend on the future
+    that had not happened yet.  The resolved window closes that: a READY node has not
+    executed, so its successor is NOT exposed; a RUNNING node with several successors has
+    an unresolved branch, so none of them is exposed.
+    """
+
+    class _Node:
+        def __init__(self, node_id, successors, model="m1", lane="gpu"):
+            self.node_id = node_id
+            self.successors = tuple(successors)
+            self.model_id = model
+            self.lane = lane
+
+    def _job(self, successors, state):
+        nodes = {"p": self._Node("p", successors)}
+        for s in successors:
+            nodes[s] = self._Node(s, ())
+
+        class _T:
+            by_id = nodes
+
+        class _J:
+            node_state = dict(state)
+            template = _T()
+
+        return _J()
+
+    def test_ready_node_does_not_leak_its_successor(self):
+        from tracing.analysis.latency_aware_lifecycle import (
+            near_ready_deployments, resolved_graph_view)
+
+        job_x = self._job(["x"], {"p": "ready"})
+        job_y = self._job(["y"], {"p": "ready"})
+        self.assertEqual(resolved_graph_view(job_x), {"p"})
+        self.assertEqual(resolved_graph_view(job_y), {"p"})
+        self.assertEqual(near_ready_deployments([job_x]), near_ready_deployments([job_y]),
+                         "same visible prefix must not be distinguished by the real future")
+        self.assertEqual(near_ready_deployments([job_x]), [])
+
+    def test_unresolved_branch_running_node_exposes_nothing(self):
+        from tracing.analysis.latency_aware_lifecycle import (
+            near_ready_deployments, resolved_graph_view)
+
+        job = self._job(["x", "y"], {"p": "running"})
+        self.assertEqual(resolved_graph_view(job), {"p"})
+        self.assertEqual(near_ready_deployments([job]), [],
+                         "an unresolved branch has no near-ready successor")
+
+    def test_unique_running_successor_is_near_ready(self):
+        from tracing.analysis.latency_aware_lifecycle import (
+            near_ready_deployments, resolved_graph_view)
+
+        job = self._job(["x"], {"p": "running"})
+        self.assertEqual(resolved_graph_view(job), {"p", "x"})
+        self.assertEqual(near_ready_deployments([job]), [("m1", "gpu")])
 
 
 class NonDegeneracyTests(unittest.TestCase):
@@ -418,16 +483,15 @@ class DecompositionTests(unittest.TestCase):
 class InformationContractTests(unittest.TestCase):
     """The arm's information contract is machine-checked, not just prose.
 
-    Latency-Aware's paper assumes the logical workflow graph is KNOWN (Eq (3) and
-    Eq (5) are defined on it), so the Constructor and the near-ready window read the
-    realized template's successors.  That is the paper's own premise and NOT the
-    LLMSched structure leak, where the structure must be PREDICTED.  Pinning it here
-    stops the declaration from silently drifting away from the code.
+    Latency-Aware's paper observes only the RESOLVED logical window L_t: a branch enters
+    only after its control result resolves.  The Constructor and the near-ready window
+    therefore read runtime-resolved nodes, not the realized template's suffix.  Pinning
+    the contract here stops the declaration from silently drifting away from the code.
     """
 
     def test_graph_visibility_contract_is_declared(self):
         from tracing.analysis.latency_aware_predictor import GRAPH_VISIBILITY_CONTRACT
-        self.assertEqual(GRAPH_VISIBILITY_CONTRACT, "logical_graph_assumed_known")
+        self.assertEqual(GRAPH_VISIBILITY_CONTRACT, "runtime_resolved_logical_graph")
 
 
 if __name__ == "__main__":

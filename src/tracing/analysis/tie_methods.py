@@ -87,6 +87,12 @@ def build_tie_bank(templates: Mapping[str, Any]) -> Dict[str, Any]:
     bank: Dict[str, Any] = {"schema": TIE_SCHEMA, "deviation": TIE_DEVIATION, "groups": {}}
     for key, samples in groups.items():
         loads = loads_by_key.get(key, [])
+        # ``load_ms == 0`` means the model was already resident, so the sample records
+        # "no load was required".  The consumer only ever asks for a load estimate when the
+        # live model is NOT resident, i.e. when a load IS required, so the quantity it needs
+        # is E[load | load required].  Averaging the resident zeros in (the unconditional
+        # mean) made a cold load look cheaper than it is and could flip TIE's ranking.
+        required = [value for value in loads if value > 0.0]
         bank["groups"]["%s|%s" % key] = {
             "model_id": key[0],
             "lane": key[1],
@@ -95,9 +101,13 @@ def build_tie_bank(templates: Mapping[str, Any]) -> Dict[str, Any]:
             "runtime_cvar90_ms": upper_cvar(samples, 0.90),
             "runtime_min_ms": min(samples),
             "runtime_max_ms": max(samples),
-            # TIE owns its load estimate, so the score never reaches into estimate()
+            # TIE owns its load estimate, so the score never reaches into estimate().
+            # ``load_mean_ms`` is kept for AUDIT only; the consumed field is the conditional.
             "load_mean_ms": (sum(loads) / len(loads)) if loads else 0.0,
             "load_sample_count": len(loads),
+            "load_required_count": len(required),
+            "load_occurrence_rate": (len(required) / len(loads)) if loads else 0.0,
+            "load_conditional_mean_ms": (sum(required) / len(required)) if required else 0.0,
         }
     return bank
 
@@ -188,19 +198,26 @@ def tie_queue_length(pool: Sequence[Any], competitive_priority: float) -> float:
 
 
 def _tie_required_load(group):
-    """A missing load field is a bank-construction bug, not a zero.
+    """The COLD-load estimate: E[load | load required].
 
-    A zero is only legitimate when the bank records that it saw no load samples.  The
-    real build_tie_bank() always writes load_mean_ms, so the formal path is unaffected.
+    Only called for a model that is NOT resident, i.e. when a load is actually required,
+    so the historical samples in which the model was already resident (load 0) must not be
+    averaged in.  The audit's earlier finding was exactly this: ``load_mean_ms`` is the
+    unconditional mean over resident and non-resident observations, and using it as the
+    non-resident surcharge under-estimated the cost and could change the ordering.
+
+    A missing field is a bank-construction bug, not a zero.  An explicit null is the only
+    legal zero: it records a group that saw no cold load at all.
     """
-    if "load_mean_ms" not in group:
+    if "load_conditional_mean_ms" not in group:
         raise KeyError(
-            "TIE bank group %r has no load_mean_ms; a missing load field must not be "
-            "silently read as zero load" % (group.get("model_id"), group.get("lane"))
+            "TIE bank group %r has no load_conditional_mean_ms; a missing conditional "
+            "load field must not be silently read as the unconditional mean or as zero "
+            % (group.get("model_id"), group.get("lane"))
         )
-    value = group["load_mean_ms"]
+    value = group["load_conditional_mean_ms"]
     if value is None:
-        # an explicit null is the only legal zero: it records a group that saw no load
+        # an explicit null is the only legal zero: it records a group that saw no cold load
         return 0.0
     return float(value)
 

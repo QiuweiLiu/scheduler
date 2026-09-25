@@ -89,6 +89,7 @@ POLICIES = (
     "pythia_completion",
     "llmsched",
     "latency_aware",
+    "agentix",
     "predopt_h10_lam0",
     "predopt_h10_lam25",
     "predopt_h10_lam50",
@@ -3496,10 +3497,15 @@ def choose_action(
         accumulated millisecond durations and then added the current node's
         ``runtime_p50 + load``, which made this a duration-weighted / SRTF-flavoured
         priority rather than Pythia Algorithm 3's.  The completion priority is now
-        unit-correct: no millisecond term is added, and the paper's own wait-time aging
-        is left to the scheduler's hard priority.  omega1 = 1 and omega2 = 0, because
-        S_unblock would need a model-server queue abstraction this simulator does not
-        have, and inventing one would be less honest than omitting it.
+        unit-correct: no millisecond term is added.
+
+        NOT migrated, and stated rather than papered over: the paper's local worker also
+        re-scores on ACCUMULATED WAIT TIME (an aging factor).  The hard service priority
+        below is a FIXED class (0 for "priority", 1 otherwise); it is NOT aging, and
+        ``ready_time`` is only a deterministic tie-break.  This omission is recorded in the
+        freeze manifest.  omega1 = 1 and omega2 = 0, because S_unblock would need a
+        model-server queue abstraction this simulator does not have, and inventing one
+        would be less honest than omitting it.
         """
 
         profiler = (policy_context or {}).get("pythia_profiler")
@@ -3698,6 +3704,7 @@ def choose_action(
         """
 
         from tracing.analysis.latency_aware_fusion import maximal_fusible_chains
+        from tracing.analysis.latency_aware_lifecycle import resolved_graph_view
         from tracing.analysis import latency_aware_scheduler as la
 
         ctx = policy_context if policy_context is not None else {}
@@ -3715,15 +3722,20 @@ def choose_action(
                 "without it the scheduler has no legitimate duration or memory source"
             )
 
-        def chains_for(template: Any) -> Dict[str, tuple[str, ...]]:
-            tid = str(template.template_id)
-            cached = cache.get(tid)
+        def chains_for(job: Any) -> Dict[str, tuple[str, ...]]:
+            # The CONTRACT reads the resolved logical window, not the realized template:
+            # a chain may not cross a successor whose control result has not resolved.
+            # The cache key therefore includes the job's current resolved view, because
+            # the same template yields different chains at different frontier states.
+            view = frozenset(resolved_graph_view(job))
+            key = (str(job.template.template_id), view)
+            cached = cache.get(key)
             if cached is None:
                 cached = {}
-                for chain in maximal_fusible_chains(template):
+                for chain in maximal_fusible_chains(job.template, visible_ids=view):
                     if chain.length > 1:
                         cached[chain.node_ids[0]] = chain.node_ids
-                cache[tid] = cached
+                cache[key] = cached
             return cached
 
         ctx.pop("_fused_chain", None)
@@ -3738,6 +3750,47 @@ def choose_action(
             chosen = action["candidate"]
             if action["fused"]:
                 ctx["_fused_chain"] = list(action["fused"])
+
+    elif policy == "agentix":
+        """Agentix-adapted: non-clairvoyant program-level attained-service priority.
+
+        The priority of a ready call is the service its PROGRAM has already attained -- the
+        sum of its COMPLETED calls' runtimes (PLAS) or its longest completed critical path
+        (ATLAS, ``policy_context['agentix_mode']``).  Lower attained service is scheduled
+        first, which is the paper's head-of-line-blocking fix: a long program's later calls
+        stop starving the short programs behind them.
+
+        Non-clairvoyant by construction: only ``job.completed`` is read.  The template's
+        unexecuted suffix and any predicted value are never consulted, so this arm cannot
+        degenerate into a clairvoyant SRPT.  The hard service priority stays first; the
+        substrate keeps placement, admission memory and residency.
+        """
+
+        from tracing.analysis.agentix_methods import (
+            intrinsic_runtime_of,
+            program_priority_ms,
+        )
+
+        ctx = policy_context if policy_context is not None else {}
+        mode = str(ctx.get("agentix_mode", "plas"))
+
+        def agentix_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            job = jobs[job_index]
+            attained = program_priority_ms(
+                job, job.template, intrinsic_runtime_of(job.template), mode=mode)
+            return (
+                float(item[0]),
+                attained,
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=agentix_score)
 
     elif policy == "predopt_h5_risk":
         if future_artifacts is None:

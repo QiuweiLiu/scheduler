@@ -1,5 +1,87 @@
 # HANDOFF
 
+## 2026-09-26 (3) 复核修复 + Latency 契约更正 + 新增 Agentix（未 commit）
+
+详见 `DECISIONS.md` 同名三节。要点：
+
+### 已实现并验证
+- 复核 P0/P1 修复：Latency resolved-graph view、TIE cold-load、Pythia aging omission、LLMSched interval、runner `--formal`。
+- Latency 契约由 `logical_graph_assumed_known` **更正为 `runtime_resolved_logical_graph`**（论文只观察 resolved `L_t`）。
+- 实证：本 workload 是决策驱动 ReAct 流程，**Latency 的 fusion 无合法机会**（0 合法边），需论文披露。
+- **新增 Agentix-adapted**（NSDI 2026）：`agentix_methods.py`（PLAS/ATLAS）+ `agentix` 策略；gate 10/10；真实 1 集跑通。
+
+### 验证
+聚焦 gate 136/136；全量 372 测试（仅预存 round_robin + 8 环境 error）；fidelity manifest PASS。
+
+### Active
+待 commit/push（含 3 份 GPT 复核文档）；随后把这些改动交给 GPT（新会话）审核 Agentix 实现。
+
+### Next
+1. commit + push
+2. GPT 审核 Agentix 实现与 Latency 契约更正
+3. （用户定）Agentix 进五臂 / 是否补 Maestro；Latency 降级披露措辞
+
+---
+
+# HANDOFF
+
+## 2026-09-26 (2) 按 GPT 复核执行 P0/P1 修复（工作树未 commit）
+
+**依据**：`docs/research/2026-09-26_freeze_breaking_fixes_review.md`。详见 `DECISIONS.md` 同名小节。
+
+### 已修
+- **P0 Latency resolved-graph view**：新增 `resolved_graph_view`；fusion 只允许落在 resolved 窗口内；near-ready 只取 running 的唯一后继；
+  删 `FusedChain.summed_runtime_ms`；新增 identical-prefix/different-future sentinel。**后果：v04.1 上 fusion 不再触发**（改前 3 集约 39 次），
+  Latency 变弱（starts 172→211，1 集 Δ +4087→+5850ms）——这是 GPT 接受的保守解，**需用户确认**。
+- **P1 TIE**：nonresident 改用 `E[load | load>0]`（cold-load mean）；[0,10] sentinel。gate 24/24。
+- **P1 Pythia**：删错误注释，aging 明确列为 omission。gate 13/13。
+- **P1 LLMSched**：interval 全 stage 条件在 known-present 集合。gate 38/38。
+- **P1/P2 runner**：`--formal` 硬断言 fidelity/topology gate、split 700/300、git HEAD 非 "unknown"。
+
+### 验证
+聚焦 gate 138/138；全量 362 测试（仅预存 round_robin + 8 环境 error）；fidelity manifest PASS；`--formal --smoke 1` 通过。
+
+### Open / 待用户决定
+- **Latency fusion 权衡**：接受「弱但不泄漏」还是改成「仅有唯一后继时不泄漏地保留 fusion」（行为不变，但不满足 sentinel）？
+- 本轮**未 commit / 未 push**；复核要求按新 head 重走一次 freeze 声明。
+
+### Next
+1. （用户）确认 fusion 取舍 → commit/push
+2. 按新 head 重跑 GPT freeze 声明
+3. 30 集 freeze-qualified smoke → 300×5
+
+---
+
+# HANDOFF
+
+## 2026-09-26 网页版 GPT 复核结论：NEEDS CHANGE（未据复核改代码）
+
+**复核文档**：`docs/research/2026-09-26_freeze_breaking_fixes_review.md`（GPT-5.6 Sol High，基于公开仓库 diff）。
+
+**复核接受**：LLMSched whole-job + conditional 数学、Pythia 步数修复、Latency load head 与 prefetch 时序（对当前 ready）、runner survivor-mean P0。
+
+**复核推翻 / 新增 blocker**（正式测量前最小项）：
+1. **P0 — Latency-Aware 仍泄漏**：论文假设 **resolved logical window**，不是完整 realized 图；
+   `latency_aware_fusion.py` / `latency_aware_lifecycle.py` 读完整 `job.template` = 真值结构泄漏。
+   → 我在 2026-09-25 §3 记的 `logical_graph_assumed_known` **信息契约结论已作废**。
+2. **P1 — TIE**：nonresident 的 load 应用 **conditional cold-load mean**（`mean(load_ms>0)`），不是含 0 的 unconditional mean。
+3. **P1 — Pythia**：waiting-time aging 未实现；注释错误。
+4. **P1 — LLMSched**：interval 未把 known-present 条件传播到其它 stage（现为 conservative envelope）。
+5. **P1 — runner**：formal 模式需 hard-assert freeze/gate/hash，禁止 `git_head == "unknown"`。P2：删 `FusedChain.summed_runtime_ms`。
+
+**Gate**：30 集可作**工程诊断**；**freeze-qualified smoke 与 300×5 均不批准**；`c06a170` re-pin ≠ freeze 签字。
+
+### Active
+复核文档已落盘；**未**据复核改动任何代码。等待用户决定是否执行上述 5 项最小修复。
+
+### Next
+1. （用户决定）执行 P0+P1 最小修复 → 重新生成 manifest/新 SHA → 重新 freeze 声明 → 30 集 freeze smoke → 300×5
+2. 复核文档与本次控制面更新是否提交/推送（待批准）
+
+---
+
+# HANDOFF
+
 ## 2026-09-25 (2) 审计 P0 修复后（工作树未 commit；上一提交 `2fbb44a`）
 
 ### 本轮已修（全部 freeze-breaking；权威记录见 `DECISIONS.md` 同名小节）

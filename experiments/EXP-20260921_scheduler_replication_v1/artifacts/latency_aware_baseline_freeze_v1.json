@@ -100,8 +100,9 @@
     }
   ],
   "information_contract": {
-    "graph_visibility": "logical_graph_assumed_known",
+    "graph_visibility": "runtime_resolved_logical_graph",
     "constant": "latency_aware_predictor.GRAPH_VISIBILITY_CONTRACT",
-    "note": "The paper's Eq (3) and Eq (5) are defined on a KNOWN logical graph, so the Constructor and the near-ready window read the realized template's successors. This is that paper's own premise, not the LLMSched structure leak; the comparison therefore evaluates complete systems."
+    "note": "The paper observes only the RESOLVED logical window L_t (a branch enters only after its control result resolves). The Constructor and the near-ready window read runtime-resolved nodes only; reading the realized template's unexecuted suffix would be a structure leak.",
+    "supersedes": "logical_graph_assumed_known (too strong; corrected 2026-09-26 per paper Sec 3.2)"
   }
 }

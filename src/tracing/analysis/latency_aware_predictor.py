@@ -72,16 +72,14 @@ LOAD_TIER = "deployment_only"
 
 # INFORMATION CONTRACT of this arm, declared once so the experiment reports what each
 # baseline is allowed to see instead of comparing predictors under unequal inputs.
-# Latency-Aware's paper assumes the logical workflow graph is KNOWN: Eq (3) (fusion) and
-# Eq (5) (near-ready prefetch) are both defined on it, so the Constructor
-# (``latency_aware_fusion``) and the near-ready window (``latency_aware_lifecycle``) read
-# the realized template's successors.  This is that paper's own premise and is NOT the
-# LLMSched structure leak, where the structure must be PREDICTED and reading the template
-# replaced a prediction with truth.  Breaking this arm's graph visibility would make it
-# unfaithful rather than fair; the honest resolution is to declare it and compare
-# complete systems.  Kept as a machine-readable constant, not just prose, so the fidelity
-# manifest can pin it.
-GRAPH_VISIBILITY_CONTRACT = "logical_graph_assumed_known"
+# Latency-Aware's paper observes only the RESOLVED portion of the logical workflow at
+# time t (its L_t): a branch enters only after its control result resolves, and the
+# near-ready window requires branch/role/model/devices to be determined.  It is NOT the
+# complete realized graph, so the Constructor (``latency_aware_fusion``) and the
+# near-ready window (``latency_aware_lifecycle``) must read only runtime-resolved nodes.
+# Reading the realized template's unexecuted suffix would be exactly the structure leak
+# the audit found.  A machine-readable constant so the fidelity manifest can pin it.
+GRAPH_VISIBILITY_CONTRACT = "runtime_resolved_logical_graph"
 
 
 def _load_key(f: Mapping[str, Any]) -> Tuple[Any, ...]:

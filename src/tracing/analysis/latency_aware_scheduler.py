@@ -182,14 +182,16 @@ def rank_ready(
     """Algorithm 1 lines 1-10: rank ready units, then bind each one.
 
     Returns the feasible plans in Eq (12) order.  A fused plan is offered when every
-    member is still pending, which is the fusion-normalised unit competing at its head.
+    member is still pending AND lies inside the resolved logical window; ``chains_for``
+    receives the JOB, not just its template, because the fusion contract is state
+    dependent (a chain may not cross a successor whose branch has not resolved).
     """
 
     steps: List[PlanStep] = []
     for candidate in candidates:
         item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
         job = jobs[job_index]
-        members = chains_for(job.template).get(str(node_id), ())
+        members = chains_for(job).get(str(node_id), ())
         fused: Tuple[str, ...] = ()
         if members and all(job.node_state.get(m) == "pending" for m in members[1:]):
             fused = tuple(members)

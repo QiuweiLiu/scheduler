@@ -1281,3 +1281,127 @@ memory admission；Eq.12 ordering；near-ready prefetch mapping；正式 consume
 - 重新生成的 `baseline_fidelity_manifest_v1.json` **PASS**。
 - 说明：本轮修复属 freeze 例外（可复现 correctness bug），**未**重开 GPT 的 freeze 签字流程；
   若需按新 head 重新走一次 freeze 声明，另行安排。
+
+## 2026-09-26 — 网页版 GPT 复核本轮 freeze-breaking 修复（结论 NEEDS CHANGE）
+
+**来源**：`docs/research/2026-09-26_freeze_breaking_fixes_review.md`（ChatGPT Web，GPT-5.6 Sol High；
+基于公开仓库 `2fbb44a...54a2d25` 与 `c06a170` 的实际 diff）。这是**独立复核**，不是本地测试的复述。
+
+### 复核接受
+- LLMSched whole-job remaining 与 `conditional_state_probs` 的条件化/归一化数学正确，且未误删 query 自身的 ABSENT。
+- Pythia 毫秒→步数修复正确；`1/(1+V)` 的 +1 是自洽 distance convention。
+- TIE 核心公式、compute/load decomposition、CVaR、adaptive beta 无问题。
+- Latency 的 load head（deployment-only）与 prefetch 移到 dispatch 之后：对**当前 ready** 的 work 已修好。
+- runner 的 survivor-mean P0 已关闭。
+
+### 复核推翻（重要，纠正本日志 2026-09-25 §3）
+- **Latency-Aware 读完整 realized template 仍是 P0，不是「论文前提」。** 复核指出论文假设的是
+  **resolved logical window**（只含已解析 branch + ready/immediate near-ready），而非完整 realized 未来图。
+  我在 §3 记的 `GRAPH_VISIBILITY_CONTRACT = "logical_graph_assumed_known"` **解释作废**；
+  `latency_aware_fusion.py` / `latency_aware_lifecycle.py` 读完整 `job.template` 属真值结构泄漏，
+  需改为只读 resolved/visible 部分，并加 **identical-prefix / different-future sentinel**。
+- **TIE 被截断项补全**：`load_mean_ms` 是 resident(0)+nonresident(>0) 的 **unconditional mean**；live 已知道
+  candidate 为 nonresident，应使用 **E[load | load required] = mean(load_ms>0)**。sentinel: `[0,10]` → cold mean `10`，
+  resident surcharge `0`。**这条要正式实验前修，因为它可能改变 TIE 排序。**
+- **Pythia waiting-time aging 实际未实现**：注释称由 hard priority 承担，但 hard priority 是固定 0/1，不是论文的
+  accumulated-wait aging。→ 实现，或在 freeze manifest 明确列为 omission 并删掉错误注释。
+- **LLMSched interval 未把 known-present 条件传播到其它 stage**：现为 conservative envelope，不宜称 exact support。
+- **runner formal gate 仍不够 fail-closed**：formal 模式需硬断言 freeze manifest/gate/episode+split+resource hash，
+  且不允许 `git_head == "unknown"`。
+- **P2**：`FusedChain.summed_runtime_ms` 是无消费的 truth 字段，建议删除。
+
+### 复核结论与 gate
+- **NEEDS CHANGE**；Latency-Aware 为 **REJECT（P0）**。
+- 30 集**工程诊断** smoke：可以；30 集作为 **freeze-qualified** smoke / 300×5：**不批准**。
+- `c06a170` 的 re-pin **不等于**独立 freeze 签字；freeze-breaking 语义改动后应按新 head 重走一次 freeze 声明。
+
+### 下一步最小项（待用户决定是否执行）
+1. Latency resolved/visible graph view（P0，先做）
+2. TIE conditional cold-load estimate（P1）
+3. Pythia aging：实现 或 明确 omission + 删错误注释（P1）
+4. LLMSched interval 全 stage 条件化 或 改称 envelope + over-approx 测试（P1）
+5. runner formal hard gate（P1）+ FusedChain truth 字段清理（P2）
+→ 然后重新生成 manifest、新 SHA、重新走 freeze 声明，再 30 集 freeze smoke，最后 300×5。
+
+## 2026-09-26 — 按复核执行 P0/P1 修复（第二轮）
+
+依据 `docs/research/2026-09-26_freeze_breaking_fixes_review.md` 的清单逐项修复；均为 correctness/fidelity，未调参。
+
+### P0 — Latency-Aware resolved/visible graph view
+- 新增 `latency_aware_lifecycle.resolved_graph_view(job)`：只暴露已 resolved 的节点（ready/running/completed/failed）
+  加 **RUNNING 且唯一后继** 的近 ready 窗口；`near_ready_deployments` 只在该视图内取 running 的后继。
+- `latency_aware_fusion.maximal_fusible_chains(template, visible_ids=...)`：链只落在 resolved 视图内；
+  `rank_ready` 改为 `chains_for(job)`（状态相关，不再按 template 缓存）。
+- 删除 `FusedChain.summed_runtime_ms`（无消费的真值字段，P2）。
+- sentinel：`ResolvedWindowTests`（相同可见前缀 / 不同未来必须不可区分；running 的分叉节点不暴露后继；
+  唯一后继的 running 节点进 near-ready）。
+- **行为影响（必须让用户拍板）**：v04.1 上 fusion 因此**完全不再触发**（改前 3 集约 39 次融合，改后 0）；
+  Latency-Aware 变弱：3 集 starts 172/161/163 → 211/198/205，1 集 smoke Δ 从 +4087ms → +5850ms。
+  near-ready 不变（workload 全节点后继数 ≤1）。这是 GPT 明确接受的「比论文弱但不泄漏」保守解；
+  **备选**：仅当后继唯一（无分支）时才允许跨 ready 节点融合——行为不变，但不满足 GPT 的 identical-prefix sentinel。
+
+### P1 — TIE conditional cold-load
+- bank 新增 `load_required_count / load_occurrence_rate / load_conditional_mean_ms`；consumer 对 nonresident 用
+  `E[load | load>0]`（不再用含 resident 0 的 unconditional mean）。
+- sentinel：`[0,10]` → occurrence 0.5、cold mean 10、resident surcharge 0 / nonresident 10；gate 24/24。
+
+### P1 — Pythia aging
+- 删除「aging 由 hard priority 承担」的错误注释，明确 hard priority 是固定 0/1、不是论文的 accumulated-wait aging；
+  在 freeze manifest `omissions` 记录未迁移 + `V_plus_one_convention`。gate 13/13。
+
+### P1 — LLMSched interval
+- 新增 `conditional_state_probs_for_set`；`job_duration_interval_ms` 对所有未完成 stage 都条件在 known-present 集合上，
+  与 EXPLOIT / current service 同一信息状态。gate 38/38。
+
+### P1/P2 — runner formal gate
+- 新增 `--formal`：硬断言 `BaselineFidelityManifest.pass`、`SchedulerTopologyContractGate.pass`、split=700/300、
+  `git_head` 为 40 位 commit（不允许 "unknown"）。`--formal --smoke 1` 端到端通过。
+
+### 验证
+- 聚焦 gate 138/138；全量 362 测试，仅预存 `round_robin` failure + 8 个环境 error；fidelity manifest PASS。
+- **未 commit/未 push**；未重走 GPT freeze 声明。
+
+## 2026-09-26 — 按复核执行 P0/P1 修复 + Latency 信息契约更正 + 新增 Agentix 基线
+
+### A. 复核 P0/P1 修复（freeze-breaking）
+- **Latency resolved-graph view**：新增 `latency_aware_lifecycle.resolved_graph_view(job)`（只暴露已 resolved 节点 +
+  RUNNING 且唯一后继的近 ready 窗口）；`maximal_fusible_chains(template, visible_ids=)` 只允许落入该视图；
+  `rank_ready` 改用状态相关的 `chains_for(job)`；删除 `FusedChain.summed_runtime_ms`（无消费真值字段）。
+  新增 `ResolvedWindowTests` sentinel。
+- **TIE cold-load**：bank 增 `load_required_count/load_occurrence_rate/load_conditional_mean_ms`；nonresident 用
+  `E[load | load>0]`。[0,10] sentinel。gate 24/24。
+- **Pythia**：删错误 aging 注释；freeze manifest 记为 omission + `V_plus_one_convention`。gate 13/13。
+- **LLMSched**：`conditional_state_probs_for_set`，interval 全 stage 条件化。gate 38/38。
+- **runner**：`--formal` 硬断言 fidelity/topology gate、split 700/300、git HEAD 非 "unknown"。
+- **全量**：372 测试，仅预存 round_robin failure + 8 环境 error；fidelity manifest PASS。
+
+### B. Latency 信息契约更正（依论文原文，纠正 2fbb44a 的过度声明）
+我读了 arXiv:2609.03335v1 §3.2/§2.1/§3.4/Eq(3)：论文观察的是 **resolved portion `L_t`**，
+"A branch enters only after its control result resolves"，planning window 不含 unresolved branch；
+fusion legality（Eq 3）是 **resolved 图上的一对一边**。
+- → 冻结清单的 `logical_graph_assumed_known` 过强，**更正为 `runtime_resolved_logical_graph`**（代码常量、测试、清单同步）。
+- GPT 复核第二轮也据此**撤回**了它"ready 节点的后继一律不算 resolved"的严格读法（A 才是对的、B 会泄漏）。
+
+### C. 实证：本 workload 上 Latency 的 fusion 无合法机会（重要披露）
+对 v04.1（640 模板；`videomme.langgraph_react`/`videomme.star`）统计：
+- planner 之后接什么**不定**（temporal 1268 / spatial 416 / generalist 142 / planner 104 / answer 3）；
+- tool 之后是 planner(3011) 或 answer(596) → 继续/终止也是运行时决定；
+- **没有任何 `tool → tool`**；所有相邻同模型对都跨一个运行时决策点。
+→ 本 workload 是**决策驱动 ReAct 流程**，读 template 往前看 = 偷看 planner 决定。**Latency 的 Constructor 在此
+workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已正确移除）。这不是"把对手改弱"，而是 workload 本身
+没有论文那种"固定连续同模型段"。论文需如实披露（GPT 给的英文措辞见
+`docs/research/2026-09-26_baseline_applicability_review.md`）。
+
+### D. 新增基线：Agentix-adapted（NSDI 2026，原 Autellix）
+依据 `docs/research/2026-09-26_baseline_applicability_review.md`：GPT 建议**不删 Latency-Aware**，而是把它降为
+"可用部件对手"（fusion=N/A），并补一个真正匹配"未来未展开"场景的对手——**Agentix**。
+- 实现：`src/tracing/analysis/agentix_methods.py`（PLAS = 已完成调用服务之和；ATLAS = 已完成关键路径最大值）；
+  模拟器新增 `agentix` 策略（`policy_context['agentix_mode']` = plas|atlas），优先级 = 程序已达服务，小的先跑。
+- **non-clairvoyant 由 gate 钉死**：只读 `job.completed`；未执行节点的 runtime 改动**不影响**分数。
+- 迁移声明（写入 `AGENTIX_DEVIATION`）：只移植优先级规则，原论文的引擎内 batching / 跨引擎路由 / KV 局部性**未迁移**。
+- gate：`tests/test_agentix_fidelity.py` 10/10；真实 confirm 集 1 集跑通（16/16，mean 82449）。
+- 实证核实：Agentix 真实（USENIX NSDI 2026，arXiv:2502.13965）。
+
+### E. 下一步（待用户）
+- Agentix 是否进正式五臂（或替换 Latency 进四臂）；是否再补 Maestro-adapted（ICDCS 2026, arXiv:2606.12950）。
+- 本轮改动**待 commit/push**。

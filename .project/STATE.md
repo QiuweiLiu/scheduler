@@ -115,9 +115,9 @@
 ```yaml
 chatgpt_web:
   status: active
-  generation: 7
-  conversation_id: "6a9822da-e278-83e9-9c1a-675923acda0e"
-  conversation_url: "https://chatgpt.com/c/6a9822da-e278-83e9-9c1a-675923acda0e"
+  generation: 8
+  conversation_id: "6ab6b895-43b8-83ec-982a-4c13ac404115"
+  conversation_url: "https://chatgpt.com/g/g-p-6a45fd9c56e48191a5e1a006582fcdef-diao-du/c/6ab6b895-43b8-83ec-982a-4c13ac404115"
   title: "鏋舵瀯璁捐璇勪及"
   model: "GPT-5.6 Sol"
   reasoning: "High"
