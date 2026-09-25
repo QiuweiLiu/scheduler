@@ -14,7 +14,8 @@
 聚焦 gate 136/136；全量 372 测试（仅预存 round_robin + 8 环境 error）；fidelity manifest PASS。
 
 ### Active
-待 commit/push（含 3 份 GPT 复核文档）；随后把这些改动交给 GPT（新会话）审核 Agentix 实现。
+已提交并推送 **`122e184`**（`c06a170..122e184`，含 3 份 GPT 复核文档、Latency 契约更正、Agentix-adapted）。
+**Agentix 的 GPT 审核暂受阻**：ChatGPT 网页该标签页反复「无法加载你的账户」，项目会话页尤其加载失败；旧会话页可用但已达长度上限。待浏览器恢复后重发 brief。
 
 ### Next
 1. commit + push
