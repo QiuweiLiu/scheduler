@@ -4569,7 +4569,9 @@ def simulate_episode(
             plan = _latency_aware_prefetch_plan()
         if not plan:
             return
-        cursors = {gpu.index: max(0.0, gpu.busy_until) for gpu in gpus}
+        # A prefetch cannot start in the past.  The cursor was seeded from busy_until
+        # alone, so an idle device produced a start time that had already elapsed.
+        cursors = {gpu.index: max(float(now), float(gpu.busy_until)) for gpu in gpus}
         for raw in plan:
             gpu_index = int(raw.get("gpu_index", 0))
             model_id = str(raw.get("model_id") or "")
@@ -4602,7 +4604,9 @@ def simulate_episode(
                 model_node.batch_size,
                 extension_config,
             )
-            start = max(0.0, cursors[gpu_index])
+            # the same lower bound at the point of use, so a plan built earlier in the
+            # event cannot schedule itself backwards
+            start = max(float(now), float(cursors[gpu_index]))
             finish = start + load
             gpu.resident[model_id] = memory
             gpu.prefetch_pending.append((model_id, start, finish))
