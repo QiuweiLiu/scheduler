@@ -1,0 +1,91 @@
+{
+  "gate": "four_joint_baselines",
+  "version": "v1",
+  "mode": "smoke",
+  "config": {
+    "projection": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+    "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+    "episodes_file": "results/processed/r7_workload_v03_no_run_container/episodes/workload_validation_r7_v03.jsonl",
+    "n_episodes": 3,
+    "metric": "mean_completion_ms",
+    "reference": "sameshape_h5_p95",
+    "arms": [
+      "tie_current",
+      "pythia_completion",
+      "llmsched",
+      "latency_aware"
+    ],
+    "seed": 11,
+    "non_inferiority_margin_ms": 485.0,
+    "bootstrap": 2000,
+    "topology_view": "causal_v3",
+    "reference_base_artifacts": "outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts",
+    "reference_overlay_artifacts": "outputs/resource_v2_artifacts/f0_seed11",
+    "future_horizon": 5,
+    "smoke_episodes": 3,
+    "git_head": ""
+  },
+  "reference_summary": {
+    "mean": 90482.20734411625,
+    "n_episodes": 3
+  },
+  "results": {
+    "tie_current": {
+      "mean": 95094.99783174641,
+      "delta_point": 4612.790487630162,
+      "delta_ci95": [
+        -1439.4960537109582,
+        13081.939187499913
+      ],
+      "delta_median": 2195.928329101531,
+      "n_worse": 2,
+      "n_episodes": 3,
+      "verdict": "inferior"
+    },
+    "pythia_completion": {
+      "mean": 90476.44456201176,
+      "delta_point": -5.762782104483146,
+      "delta_ci95": [
+        -4763.159991088833,
+        5565.898437500015
+      ],
+      "delta_median": -820.0267927246314,
+      "n_worse": 1,
+      "n_episodes": 3,
+      "verdict": "inferior"
+    },
+    "llmsched": {
+      "mean": 99674.32240397135,
+      "delta_point": 9192.115059855118,
+      "delta_ci95": [
+        -1084.5372501221282,
+        25110.62549999998
+      ],
+      "delta_median": 3550.256929687501,
+      "n_worse": 2,
+      "n_episodes": 3,
+      "verdict": "inferior"
+    },
+    "latency_aware": {
+      "mean": 100255.46533227545,
+      "delta_point": 9773.257988159201,
+      "delta_ci95": [
+        3832.403875122036,
+        21400.638812500067
+      ],
+      "delta_median": 4086.7312768554984,
+      "n_worse": 3,
+      "n_episodes": 3,
+      "verdict": "inferior"
+    }
+  },
+  "criteria": {
+    "delta": "candidate - sameshape_h5_p95",
+    "non_inferior": "CI_upper < +485 ms",
+    "statistically_better": "CI_upper < 0",
+    "substantively_better": "point <= -485 ms AND CI_upper < 0",
+    "note": "a baseline does NOT need to be close to the reference to count as a successful reproduction; the fidelity gate qualifies it and this run measures it"
+  },
+  "wall_seconds": 36.96572017669678,
+  "artifacts_dir": "experiments/EXP-20260921_scheduler_replication_v1/artifacts"
+}
