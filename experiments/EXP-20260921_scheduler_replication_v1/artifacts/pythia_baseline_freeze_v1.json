@@ -8,11 +8,12 @@
   "freeze": {
     "name": "Pythia Baseline Freeze v1",
     "head": "26484a2",
-    "head_full_sha": "PENDING (the review's declaration reply was truncated twice)",
+    "head_full_sha": "26484a4e545e88a55556e70c91e2b1cb62272ac",
     "status": "APPROVED",
     "approval_quote": "可以正式 freeze",
     "gates": "tests/test_pythia_fidelity.py",
-    "gate_count": 12
+    "gate_count": 12,
+    "declaration_received": true
   },
   "faithful": [
     "workflow profiler / probabilistic finite automaton over a ROLE alphabet",
@@ -27,7 +28,9 @@
     "indexing by the candidate's own role (the agent_id Pythia exposes on a request)"
   ],
   "deviation": [
-    "finite-horizon recursion replaces the stationary solve, because the automaton is cyclic and the undiscounted expectation does not converge"
+    "H=6 fixed finite-horizon recursion replaces Pythia's bounded-regex / repetition-bound representation for expected remaining-distance estimation. The paper bounds its automaton with low-probability transition filtering plus repetition bounds on looping roles (engineer^{3,6}); H=6 is our fixed, train-independent approximation.",
+    "S_unblock / DownstreamIdleRisk not migrated",
+    "speculative and prefix cache routing, model-replica idleness, autoscaling, and the original serving/batching infrastructure are not migrated, being outside the unified GPU abstraction. The paper's Algorithm 3 priority carries both S_completion and S_unblock."
   ],
   "omissions": [
     "cache routing, prefix caching, model-replica idleness, autoscaling: outside this GPU abstraction",
@@ -46,5 +49,13 @@
     "S_completion and the completion-aware priority",
     "the Pythia-specific simulator interface"
   ],
-  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results."
+  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results.",
+  "wording_correction": "Do not write that the finite horizon replaces a stationary solve: Pythia does not estimate this quantity by solving a stationary system. Write that it replaces the bounded-regex / repetition-bound representation.",
+  "not_tunable_after_freeze": [
+    "horizon",
+    "role granularity",
+    "pruning threshold",
+    "priority form"
+  ],
+  "variant_rule": "Adjusting any of the above requires a NEW VARIANT; it must not overwrite the frozen baseline."
 }

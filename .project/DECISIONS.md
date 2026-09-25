@@ -1094,8 +1094,8 @@ v2 gate `tests/test_llmsched_bn_v2.py` **34 项**；全量 **329 测试**（5 �
 
 **决定**：Pythia-adapted 正式冻结。
 
-- **HEAD**：`26484a2`（完整 SHA 待 GPT 补发的声明核对；本地 HEAD 为该提交）
-- **状态**：APPROVED（GPT 明确回复「可以正式 freeze」；详细声明的补发回复连续被截断）
+- **HEAD**：`26484a4e545e88a55556e70c91e2b1cb62272ac`
+- **状态**：APPROVED / FROZEN（声明已收到）
 
 **冻结范围**
 role-level PFA（状态 = role、转移 = train-only 经验分布、低于 `min_prob` 的转移剪枝并归一化）、
@@ -1130,3 +1130,32 @@ role alphabet 的定义（`role:action_family:raw_action`，**不含** occurrenc
 Pythia gate `tests/test_pythia_fidelity.py` **12 项**；全量 **333 测试**（5 个失败套件全部预先存在）；
 v04.1 上 11 roles / 26 retained edges / 4 pruned / 480 train runs，`E[rem]` 跨 0–20627 ms；
 6 个 validation job 全部完成。
+
+### Pythia freeze 声明的补充（GPT 最终回复）
+
+**不得根据最终实验表现调整** horizon、role 粒度、pruning threshold 或 priority 形式；
+需要调整时必须作为**新的 variant**，不覆盖 frozen baseline。
+
+**措辞更正（重要）**：manifest 里不要再写「finite horizon 代替平稳解」——
+Pythia 原文**并不是**用 stationary solve 求这个量。正确说法是：
+
+> finite-horizon recursion replaces Pythia's bounded-regex / repetition-bound
+> representation for expected remaining-distance estimation.
+
+**论文 limitation 要点（GPT 指定要写进 manifest 的）**
+- faithful：历史 train traces → role-level PFA；alphabet 表示 **agent roles** 而非
+  workflow-family label；同一循环 role 保持同一状态（不加 occurrence-position suffix）；
+  train-only 经验 next-role 转移；低概率 transition pruning + retained-row 重新归一化
+  （论文明确用 dominant-percentile filtering，约 5%）；当前 ready request 以**当前
+  agent_id/role** 访问 workflow profile；由预测的 workflow future 计算 expected remaining distance；
+  `S_completion = 1/E[D_remaining]` 作 completion-aware priority。
+- adapted：原论文 `agent_id` → VideoSeek 的 `role:action_family:raw_action`（裸 role 过粗）；
+  PFA/duration statistics → VideoSeek intrinsic runtime 与统一 GPU simulator；
+  node 是本实验的调度执行单元；原系统 global scheduling semantics → 统一 candidate-pool dispatch；
+  `ω1=1, ω2=0`，因本 simulator 无等价于论文 model-replica queue 的 `S_unblock` 状态。
+- deviation：`H=6` 固定有限 horizon 是我们的近似（论文用低概率 transition filtering 加
+  循环 repetition bounds，如 `(engineer)^{3,6}`，构造 bounded probable workflow）；
+  不迁移 `S_unblock` / DownstreamIdleRisk；不迁移 speculative/prefix cache routing、
+  model-replica idleness、autoscaling 及原 Pythia 的 serving/batching infrastructure
+  （不在统一 GPU abstraction 内）。论文 Algorithm 3 原版 priority 同时含
+  `S_completion` 与 `S_unblock`。
