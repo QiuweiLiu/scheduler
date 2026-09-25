@@ -86,45 +86,30 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
-### 四条联合基线 Freeze 状态
-| 基线 | HEAD | 状态 |
+### 四条联合基线 —— 实现层全部冻结，两个总门已建并 PASS（HEAD e6dc902）
+
+| 基线 | 冻结 HEAD | 状态 |
 |---|---|---|
-| LLMSched | 618b26b | **FROZEN** ✅ |
-| Pythia | 26484a2 | **APPROVED**（声明正文待补） |
-| TIE | 早期 | 已冻（15/15 → 21/21 gate） |
-| Latency-Aware | 25efcd | **已推送，等 GPT 复核** |
+| LLMSched | 618b26b | FROZEN |
+| Pythia | 26484a4e… | FROZEN |
+| TIE | c6cbec9… | FROZEN |
+| Latency-Aware | c6cbec9… | FROZEN |
 
-### Latency-Aware 本轮（25efcd）
-GPT 指出的三处：
-- **① 真值泄漏（P0）**：predicted_duration_ms 读 
-ode.compute_ms = max(0.1, runtime_ms − load_ms)
-  = **节点真实内在计算时间** → predictor 在读它本该预测的量，所有 latency 数字循环。
-  改为新模块 latency_aware_predictor.py（**train-only + 按 request 条件化**）：
-  四级 tier (model,lane,action_family,raw_action,batch_size) → (model,lane)，取支持度够的最细一级，
-  连 (model,lane) 都未知则 **fail-closed**；6128 train nodes / 160 skipped；
-  **消费端必须有 predictor 否则 raise**（防静默退回真值）。
-- **② Eq (12) 的 -boundaries_removed（P0）**：论文没有此项，是发明的 tie-break，
-  且让融合候选凭**准入次数**而非真正改变的完成时间获胜。已删；融合靠更短预测完成时间竞争。
-- **③ 非退化 gate**：
-on_degeneracy_report 实测 v04.1 **3 组 / 3 非退化 / fraction 1.0**；
-  inds_to_request 修正为**固定 model+lane**；用 **AST 遍历**断言不**读** compute_ms
-  （字符串搜索会把解释用的 docstring 误判为违规）。
-- **两个测试编码了被否决的语义，已重写**：tie-break 测试改为断言 key 不按准入次数区分；
-  融合时长测试改为跟随 predictor。
+**SchedulerTopologyContractGate v1**（scripts/scheduler_topology_contract_gate.py）— **PASS**
+重新推导而非信任旧产物：640 模板 / 8126 节点 / 169 嵌套合并 / 契约名
+scheduler_projection_of_verified_serial_control_flow_v3_1 / 全节点 
+esource_applicable /
+640 个 chain_tail_is_answer / 串行因果链（无节点多前驱、无悬挂引用）。
+按内容哈希钉住投影：**15c62dafd99701b3883a3fe4…**。并把四份支撑结论（provenance gate、
+seriality gate、嵌套集合相等、嵌套资源守恒）一并收入同一产物。
 
-验证：Latency-Aware gate **12 + 13 + 14**；全量 **337 测试 / 5 个预存失败**；
-端到端 makespan 178515.8，6 job 全完成，缺 predictor 正确 raise。
+**BaselineFidelityManifest v1**（scripts/baseline_fidelity_manifest.py）— **PASS**
+**检查**而非罗列：每条基线的 freeze manifest 必须存在且 status=APPROVED、arm 正确；
+gate 文件必须存在；gate 必须**实际跑绿**。缺失或失败即整体 FAIL，不会报陈旧批准。
+四条全部 reeze=APPROVED + gate=green。
+产物明确写清含义边界：**fidelity 是可比性的前提，不是性能主张**。
 
-### 通道情况（已部分恢复）
-ChatGPT **改了 DOM 结构**：[data-testid^="conversation-turn-"]、[data-message-author-role]、
-rticle **全部匹配 0**，而 main.innerText 有内容 —— 所以旧的 dump 脚本静静写出 0 字节。
-已改用 main.innerText 抓取（.scratch/cdp_reload_dump3.py、cdp_scroll_dump.py）。
-
-**但页面文本到 Pythia 声明就结束了**（17167 字符，滚动无新增，尾部是「目前为止，这次对话有帮助吗？」）。
-搜索 25efcd / latency_aware_predictor / 178515 / 
-on_degeneracy 均为 **-1** ——
-即 **Latency-Aware 那一轮的提交与回复不在这个页面的渲染范围内**。
-需要：在网页上确认该消息落在哪个会话，或直接粘贴 GPT 的回复。
+**下一步**：正式跑四条联合基线实验。此前**不再改**任何 baseline semantics。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
