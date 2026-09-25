@@ -1,3 +1,48 @@
+## 2026-09-25 全面审查后的状态（HEAD 3342dac）
+
+### 已修并验证
+
+**P0-01 预取在过去开始**（workload_v02_simulator.py:4572,4605）
+start = max(0.0, cursor)，cursor 只由 gpu.busy_until 播种 → 设备空闲时预取排到**已过去的时间**。
+真实 workload 前 3 集：12 次预取中 **10 次早于发出事件、5 次已「完成」、最大回溯 ~373 s**。
+→ cursor 播种与使用点都改为以 
+ow 为下界。
+**复测（3 个 confirm 集）：9 次预取，早于发出 0，已完成为 0，最大回溯 0.000 s。**
+
+**P0-02 runner 从未读过冻结分区**（our_joint_baselines.py）
+原来读 1000 集验证文件、--episodes 300 取**前 300**；按 seed-20260914 shuffle 那只有
+**212 dev + 88 confirm**。→ 改为按 data/manifests/validation_split_dev700_confirm300.json
+的 **id** 选取，默认 --split confirm，--split development 仅供调参，并断言选择等于 manifest 集合。
+**验证：confirm=300 / dev=700；文件前 300 确实只含 88 个 confirm（复现了 bug）。**
+
+**Runner fail-closed（GPT 审计项）**
+
+un_arm 现在对每个 episode 断言 ailed_jobs==0、completed_jobs==jobs、metric 有限；
+projection SHA **断言**等于冻结值（不再只是记录）；记录 split manifest 与 episode 文件 hash；
+git_head 改从公开镜像读取（工作树不是 git 仓库，原来记成空字符串）。
+
+验证：**345 测试 / 5 个预存失败**（无回归）；F0 参考在 confirm 集上仍 16/16 完成。
+
+### 仍未修（GPT 全面审查的其余 P0）
+
+| 基线 | 问题 |
+|---|---|
+| LLMSched | EXPLOIT 的 remaining **未条件化 X != ABSENT**（而 EXPLORE 与 current-service 都条件化了），且只算 BN descendants、漏掉与 X 无关仍属 job remaining 的 stage |
+| Pythia | 算的是「duration-weighted remaining **毫秒**」，Algorithm 3 用的是 **regex 上 expected remaining distance（步数）** |
+| Latency-Aware | Constructor / prefetch **读 realized template 未执行后缀** = 真值结构泄漏 |
+| Latency-Aware | load 头是 request-conditioned，但论文是 T_load(d,g)（deployment/device） |
+| Latency-Aware | prefetch 在 ready dispatch 前跑，**可能延迟 ready work** |
+| TIE | load adaptation 的窄条件统计问题（GPT 后半段未读到细节） |
+
+另两条跨基线要点（改进论文，非改代码）：
+- 主表评估**完整系统**，不能单独证明「你的 scheduler 更强」；需 same-interface 2×2。
+- F0 的 future-chain identity 仍来自 J3，**这个 caveat 论文不能藏**。
+
+### 通道
+ChatGPT 换了 DOM（输入框 = ProseMirror contenteditable，turn 选择器失效）→ 已重写
+.scratch/cdp_send3.py（CDP Input.insertText + Enter，并校验 composer 内容）与
+.scratch/cdp_bottom_dump.py（滚动到底 + main.innerText）。
+
 # HANDOFF
 
 ## Goal
