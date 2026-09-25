@@ -1,0 +1,109 @@
+{
+  "gate": "SchedulerTopologyContractGate",
+  "version": "v1",
+  "contract": "scheduler_projection_of_verified_serial_control_flow_v3_1",
+  "projection": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+  "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+  "expected": {
+    "templates": 640,
+    "nodes": 8126,
+    "nested_merged": 169
+  },
+  "checks": {
+    "template_count": {
+      "ok": true,
+      "detail": 640
+    },
+    "node_count": {
+      "ok": true,
+      "detail": 8126
+    },
+    "nested_merged_count": {
+      "ok": true,
+      "detail": 169
+    },
+    "contract_name": {
+      "ok": true,
+      "detail": [
+        "scheduler_projection_of_verified_serial_control_flow_v3_1"
+      ]
+    },
+    "resource_applicable_all": {
+      "ok": true,
+      "detail": 0
+    },
+    "chain_tail_is_answer_all": {
+      "ok": true,
+      "detail": 640
+    },
+    "serial_causal_chain": {
+      "ok": true,
+      "detail": 0
+    },
+    "supporting_scheduler_projection_gate_v041.json": {
+      "ok": true,
+      "detail": {
+        "pass": 640,
+        "fail": 0,
+        "sha256": "8f44b8f3d188664250fbb7164dc994122cfe10c08b1221d54456be91a9dbdaa7"
+      }
+    },
+    "supporting_seriality_gate_v041.json": {
+      "ok": true,
+      "detail": {
+        "pass": 640,
+        "fail": 0,
+        "sha256": "094240c1ff320609e3332835c56a96e30d98954cf85bf9e695c8b2854d2947a6"
+      }
+    },
+    "supporting_nested_merge_set_equality.json": {
+      "ok": true,
+      "detail": {
+        "pass": true,
+        "fail": 0,
+        "sha256": "404107f184be9bd6216ba734df267ab73e914182660b4815534e794c1fd96453"
+      }
+    },
+    "supporting_nested_resource_conservation.json": {
+      "ok": true,
+      "detail": {
+        "pass": null,
+        "fail": null,
+        "sha256": "fdd0942f81b480af0e593ae8361b6dcf8db6fdb77263d0fec6bc135b4e302fb9"
+      }
+    }
+  },
+  "supporting_results": {
+    "scheduler_projection_gate_v041.json": {
+      "pass": 640,
+      "fail": 0,
+      "sha256": "8f44b8f3d188664250fbb7164dc994122cfe10c08b1221d54456be91a9dbdaa7"
+    },
+    "seriality_gate_v041.json": {
+      "pass": 640,
+      "fail": 0,
+      "sha256": "094240c1ff320609e3332835c56a96e30d98954cf85bf9e695c8b2854d2947a6"
+    },
+    "nested_merge_set_equality.json": {
+      "pass": true,
+      "fail": 0,
+      "sha256": "404107f184be9bd6216ba734df267ab73e914182660b4815534e794c1fd96453"
+    },
+    "nested_resource_conservation.json": {
+      "pass": null,
+      "fail": null,
+      "sha256": "fdd0942f81b480af0e593ae8361b6dcf8db6fdb77263d0fec6bc135b4e302fb9"
+    }
+  },
+  "violations": [],
+  "pass": true,
+  "scope": "The topology everything else is measured on: the v04.1 projection's counts, resource applicability, serial causal control flow, terminal markers and its content hash. A scheduling number is only comparable while this gate passes on this hash.",
+  "prohibited_after_freeze": [
+    "the projection file and its hash",
+    "the topology contract name",
+    "the expected template, node and nested-merge counts",
+    "the serial causal-chain derivation",
+    "resource_applicable semantics"
+  ],
+  "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking commit; the counts and the hash must never be adjusted to accommodate a result."
+}

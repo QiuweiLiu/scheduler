@@ -1,0 +1,127 @@
+{
+  "gate": "BaselineFidelityManifest",
+  "version": "v1",
+  "topology_contract_gate": {
+    "present": true,
+    "pass": true,
+    "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+    "gate_sha256": "df73b1f58ecf3225ac76e3aa7cdb88fb6b9a1072f8c6c8e0535172846417e252"
+  },
+  "baselines": [
+    {
+      "arm": "llmsched",
+      "paper": "LLMSched: Uncertainty-Aware Workload Scheduling for Compound LLM Applications",
+      "venue": "IEEE ICDCS 2025, pp. 527-537",
+      "manifest": "llmsched_baseline_freeze_v1.json",
+      "gate_file": "tests/test_llmsched_bn_v2.py",
+      "freeze_head": "618b26bcf717c2bfb00b3545d58dccfb027f494e",
+      "manifest_present": true,
+      "manifest_sha256": "3a8fbd01fbaf5f0c7c4589c2b8a3885b7c0fb6cd24c26552ba0a5199ee6fee97",
+      "freeze_status": "APPROVED",
+      "arm_in_manifest": "llmsched",
+      "faithful_count": 11,
+      "adapted_count": 7,
+      "deviation_count": 3,
+      "gate_present": true,
+      "gate_sha256": "b0f594cf1763831ba072ecd7707d32a75af921ed691e64c8842850c916079b15",
+      "gate_run": {
+        "ran": true,
+        "path": "tests/test_llmsched_bn_v2.py",
+        "returncode": 0,
+        "green": true,
+        "summary": [
+          "Ran 34 tests in 12.723s",
+          "OK"
+        ]
+      }
+    },
+    {
+      "arm": "pythia_completion",
+      "paper": "Pythia: Exploiting Workflow Predictability for Efficient Agent-Native LLM Serving",
+      "venue": "arXiv:2604.25899 (venue UNVERIFIED)",
+      "manifest": "pythia_baseline_freeze_v1.json",
+      "gate_file": "tests/test_pythia_fidelity.py",
+      "freeze_head": "26484a4e545e88a55556e70c91e2b1cb62272ac",
+      "manifest_present": true,
+      "manifest_sha256": "556b2b70b39768697d19a27f839d3280556ea69bac7594f6e499e0eed522a3c4",
+      "freeze_status": "APPROVED",
+      "arm_in_manifest": "pythia_completion",
+      "faithful_count": 5,
+      "adapted_count": 3,
+      "deviation_count": 3,
+      "gate_present": true,
+      "gate_sha256": "2ff86e0ac0893605e5e95186177cbc9078128d01850bf0ab51995b1ab6d7a9bd",
+      "gate_run": {
+        "ran": true,
+        "path": "tests/test_pythia_fidelity.py",
+        "returncode": 0,
+        "green": true,
+        "summary": [
+          "Ran 12 tests in 0.005s",
+          "OK"
+        ]
+      }
+    },
+    {
+      "arm": "tie_current",
+      "paper": "TIE (Tail-Inflated Expectation)",
+      "venue": "ICML 2026, arXiv:2604.00499",
+      "manifest": "tie_baseline_freeze_v1.json",
+      "gate_file": "tests/test_tie_fidelity.py",
+      "freeze_head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
+      "manifest_present": true,
+      "manifest_sha256": "b565fa7917f60c49bc1942b0b7c1fe244704c9eb07d879ffcc6e947e296d2a55",
+      "freeze_status": "APPROVED",
+      "arm_in_manifest": "tie_current",
+      "faithful_count": 4,
+      "adapted_count": 6,
+      "deviation_count": 4,
+      "gate_present": true,
+      "gate_sha256": "c1a511fb7fcb73a55ad1420191e866ee88a53a7358d7cb0043262e8a3b95b47b",
+      "gate_run": {
+        "ran": true,
+        "path": "tests/test_tie_fidelity.py",
+        "returncode": 0,
+        "green": true,
+        "summary": [
+          "Ran 23 tests in 0.008s",
+          "OK"
+        ]
+      }
+    },
+    {
+      "arm": "latency_aware",
+      "paper": "Latency-Aware-Orchestration",
+      "venue": "arXiv:2609.03335 (venue UNVERIFIED)",
+      "manifest": "latency_aware_baseline_freeze_v1.json",
+      "gate_file": "scripts/../tests/test_latency_aware_fidelity.py",
+      "freeze_head": "bc6cbec97dc35d407f8ec250fa729fdfc08ca357",
+      "manifest_present": true,
+      "manifest_sha256": "d90882c39c5b9123bd4c5378c5613304c4cea43d6d588ffa6e04b740b5e0e3af",
+      "freeze_status": "APPROVED",
+      "arm_in_manifest": "latency_aware",
+      "faithful_count": 9,
+      "adapted_count": 7,
+      "deviation_count": 5,
+      "gate_present": true,
+      "gate_sha256": "9cee68b2546f7603997ca847d9191c22e440e8a10d0324ab42a7dcc8b69fe1f9",
+      "gate_run": {
+        "ran": true,
+        "path": "scripts/../tests/test_latency_aware_fidelity.py",
+        "returncode": 0,
+        "green": true,
+        "summary": [
+          "Ran 18 tests in 1.001s",
+          "OK"
+        ]
+      }
+    }
+  ],
+  "n_baselines": 4,
+  "all_frozen": true,
+  "all_gates_green": true,
+  "violations": [],
+  "pass": true,
+  "scope": "The fidelity and freeze status of the four joint baselines, checked rather than asserted: each freeze manifest must exist with status APPROVED and the right arm, each gate file must exist, and each gate must actually run green. A missing or failing gate fails the manifest instead of being reported as a status.",
+  "note": "Fidelity is a precondition for comparing performance, not a claim about it. A green manifest says the baselines implement what their papers describe under the declared adaptations; it says nothing about which one schedules better."
+}
