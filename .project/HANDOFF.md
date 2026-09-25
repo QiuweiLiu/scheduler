@@ -86,28 +86,38 @@ LLM-1…LLM-5 已写出并推送（`111b3e4`），但**消费端尚未迁移**�
    不参与排序 → **EXPLORE 完全由互信息排序**，正是 **L2** 要测的。
    省略 `future_stages` 的调用者拿到**有上限的默认值**，避免调用点静默丢失 scope。
 
-### LLMSched Baseline Freeze v1 —— **已冻结**（HEAD 618b26b）
+### 四条联合基线 Freeze 状态
+| 基线 | HEAD | 状态 |
+|---|---|---|
+| LLMSched | 618b26b | **FROZEN** ✅ |
+| Pythia | 26484a2 | **APPROVED**（声明正文待补） |
+| TIE | 早期 | 已冻（15/15 → 21/21 gate） |
+| Latency-Aware | 25efcd | **已推送，等 GPT 复核** |
 
-### Pythia Baseline Freeze v1 —— **已获批**（HEAD 26484a2）
-GPT 明确回复「可以正式 freeze」；详细声明的**补发回复连续两次被截断**（62 / 2 字符），
-故按它逐项确认过的口径记录，**完整 SHA 与最终声明文本待补**。
+### Latency-Aware 本轮（25efcd）
+GPT 指出的三处：
+- **① 真值泄漏（P0）**：predicted_duration_ms 读 
+ode.compute_ms = max(0.1, runtime_ms − load_ms)
+  = **节点真实内在计算时间** → predictor 在读它本该预测的量，所有 latency 数字循环。
+  改为新模块 latency_aware_predictor.py（**train-only + 按 request 条件化**）：
+  四级 tier (model,lane,action_family,raw_action,batch_size) → (model,lane)，取支持度够的最细一级，
+  连 (model,lane) 都未知则 **fail-closed**；6128 train nodes / 160 skipped；
+  **消费端必须有 predictor 否则 raise**（防静默退回真值）。
+- **② Eq (12) 的 -boundaries_removed（P0）**：论文没有此项，是发明的 tie-break，
+  且让融合候选凭**准入次数**而非真正改变的完成时间获胜。已删；融合靠更短预测完成时间竞争。
+- **③ 非退化 gate**：
+on_degeneracy_report 实测 v04.1 **3 组 / 3 非退化 / fraction 1.0**；
+  inds_to_request 修正为**固定 model+lane**；用 **AST 遍历**断言不**读** compute_ms
+  （字符串搜索会把解释用的 docstring 误判为违规）。
+- **两个测试编码了被否决的语义，已重写**：tie-break 测试改为断言 key 不按准入次数区分；
+  融合时长测试改为跟随 predictor。
 
-- 声明与 manifest 已入库：.project/DECISIONS.md +
-  experiments/EXP-20260921_scheduler_replication_v1/artifacts/pythia_baseline_freeze_v1.json
-- 提交链：8a88c2b（role-PFA 重构）→ 26484a2（候选自有 role 索引 + horizon 措辞修正）
+验证：Latency-Aware gate **12 + 13 + 14**；全量 **337 测试 / 5 个预存失败**；
+端到端 makespan 178515.8，6 job 全完成，缺 predictor 正确 raise。
 
-**Freeze 前关闭的两个 P0**
-1. **alphabet 用错**：旧 frontend 以 	emplate.baseline 为 alphabet —— 那是收集时记录的
-   workflow family 标签，不是 role alphabet，且**根本没建模 role**。
-2. **状态用错 + 当前节点双算**：consumer 以 last_observed_role 索引，而 V(role) 是**该 role 之后**
-   的剩余工作。A→B→C（10/20/40）在 B ready 时得 d(B)+V(A)=80，真实应为 d(B)+V(B)=60。
-   改为从**候选自己的 role**（= Pythia 的 gent_id）索引。端到端 makespan 182738.8 → **182025.1**。
-
-另修正措辞不实：有限 horizon 曾被写成「论文的 bounded probable future」；
-论文实际是低概率转移剪枝 + 对循环 role 的 repetition bounds（engineer^{3,6}）。
-
-验证：Pythia gate **12/12**；全量 **333 测试 / 5 个预存失败**；
-v04.1 上 11 roles / 26 retained edges / 4 pruned / 480 runs，E[rem] 跨 0–20627 ms。
+### 通道异常
+GPT 会话页面进入异常状态：cdp_poll_project.py 挂起、cdp_dump_project.py 存出 **0 字节**，
+但 Chrome（12 进程）与 CDP（/json/version → 200）均正常。Latency-Aware 的复核因此未取到。
 
 ### 仍未做（LLMSched 之外）
 - 上面「Pythia / Latency-Aware / 两个 gate / fusion 重算」各项
