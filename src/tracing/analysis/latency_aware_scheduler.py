@@ -85,7 +85,7 @@ def predicted_duration_ms(
     estimate_row: Mapping[str, Any],
     *,
     resident: bool,
-    predictor: Mapping[str, Any] | None = None,
+    predictor: Mapping[str, Any],
 ) -> Tuple[float, float]:
     """Eq (4): the summed predicted run time of a fused unit plus one load.
 
@@ -101,17 +101,11 @@ def predicted_duration_ms(
 
     load = 0.0 if resident else float(estimate_row["load_p50_ms"])
     if not members:
-        if predictor is None:
-            return float(estimate_row["runtime_p50_ms"]) + load, load
         pred = predict(predictor, job.template.by_id[node_id])
         return float(pred["run_ms"]) + load, load
     total = 0.0
     for member in members:
-        node = job.template.by_id[member]
-        if predictor is None:
-            total += float(estimate_row["runtime_p50_ms"])
-        else:
-            total += float(predict(predictor, node)["run_ms"])
+        total += float(predict(predictor, job.template.by_id[member])["run_ms"])
     return load + total, load
 
 
@@ -121,7 +115,7 @@ def build_plan(
     now: float,
     *,
     fused_members: Sequence[str] = (),
-    predictor: Mapping[str, Any] | None = None,
+    predictor: Mapping[str, Any],
 ) -> PlanStep:
     """Eq (7): start = max(release, gpu availability), completion = start + duration.
 
@@ -137,20 +131,16 @@ def build_plan(
                                            resident=resident, predictor=predictor)
     start = max(float(item[1]), float(gpu.busy_until), float(now))
     members = tuple(fused_members) if fused_members else (str(node_id),)
-    # Peak memory comes from the same request-conditioned predictor as the duration, for
-    # the same reason: workspace_peak_mb on the node is a truth field.
-    if predictor is None:
-        memory = max(
-            (float(job.template.by_id[m].workspace_peak_mb or 0.0) for m in members),
-            default=0.0,
-        )
-    else:
-        memory = max(
-            (float(predict(predictor, job.template.by_id[m])["peak_mem_mb"]
-                   + float(job.template.by_id[m].resident_model_mb or 0.0))
-             for m in members),
-            default=0.0,
-        )
+    # Peak memory comes from the same request-conditioned predictor as the duration,
+    # because workspace_peak_mb on the node is a truth field.  There is deliberately no
+    # fallback: blocking the truth at the simulator wrapper was not enough, because this
+    # module's own entry points stayed reachable with no predictor and read it anyway.
+    memory = max(
+        (float(predict(predictor, job.template.by_id[m])["peak_mem_mb"]
+               + float(job.template.by_id[m].resident_model_mb or 0.0))
+         for m in members),
+        default=0.0,
+    )
     return PlanStep(
         candidate=candidate,
         fused=tuple(fused_members),
@@ -178,7 +168,7 @@ def rank_ready(
     now: float,
     *,
     chains_for: Any,
-    predictor: Mapping[str, Any] | None = None,
+    predictor: Mapping[str, Any],
 ) -> List[PlanStep]:
     """Algorithm 1 lines 1-10: rank ready units, then bind each one.
 
@@ -208,7 +198,7 @@ def choose_action(
     now: float,
     *,
     chains_for: Any,
-    predictor: Mapping[str, Any] | None = None,
+    predictor: Mapping[str, Any],
 ) -> Optional[Dict[str, Any]]:
     """Algorithm 1 lines 3-15 for one commit: the best feasible start, else None."""
 

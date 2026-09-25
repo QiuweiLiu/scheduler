@@ -71,7 +71,11 @@ def build_tie_bank(templates: Mapping[str, Any]) -> Dict[str, Any]:
             continue
         for n in tpl.nodes:
             groups[tie_key(n)].append(float(n.runtime_ms))
-            if getattr(n, "load_ms", None):
+            # A legitimate load of 0 -- an already-resident model -- is a SAMPLE, not a
+            # missing one.  Testing the value for truthiness dropped it, so a training
+            # set of [0, 10] produced a mean of 10 instead of 5: a silent, plausible,
+            # wrong number.
+            if getattr(n, "load_ms", None) is not None:
                 loads_by_key[tie_key(n)].append(float(n.load_ms))
 
     bank: Dict[str, Any] = {"schema": TIE_SCHEMA, "deviation": TIE_DEVIATION, "groups": {}}

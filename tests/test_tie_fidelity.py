@@ -264,5 +264,36 @@ class SentinelMutationTests(unittest.TestCase):
         self.assertEqual(first, "ja", "a smaller CVaR must be able to flip the choice")
 
 
+class ZeroLoadSentinel(unittest.TestCase):
+    """A legitimate load of 0 is a SAMPLE, not a missing one.
+
+    The builder tested ``if getattr(n, "load_ms", None):``, so an already-resident model
+    contributed no load sample at all.  With training loads [0, 10] the bank then reported
+    a mean load of 10 instead of 5: a silent, plausible, wrong value that would have made
+    the model look twice as expensive to load as it is.
+    """
+
+    @staticmethod
+    def with_load(tid, load):
+        return Node(node_id=f"{tid}:n", sequence_index=0, predecessors=(), successors=(),
+                    lane="gpu", model_id="mZ", runtime_ms=100.0, load_ms=load,
+                    workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+                    role="execute", action_family="inference")
+
+    def test_zero_load_is_counted(self):
+        from tracing.analysis.tie_methods import build_tie_bank
+
+        a_node = self.with_load("a", 0.0)
+        b_node = self.with_load("b", 10.0)
+        a = Template("a", "a", "train", "fam", (a_node,), {"a:n": a_node})
+        b = Template("b", "b", "train", "fam", (b_node,), {"b:n": b_node})
+        bank = build_tie_bank({"a": a, "b": b})
+        group = bank["groups"]["mZ|gpu"]
+        self.assertEqual(group["sample_count"], 2)
+        self.assertIn("load_mean_ms", group)
+        self.assertAlmostEqual(group["load_mean_ms"], 5.0,
+                               msg="[0, 10] must average 5; a truthiness guard drops the 0")
+
+
 if __name__ == "__main__":
     unittest.main()

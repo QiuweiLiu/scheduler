@@ -160,23 +160,39 @@ def predict(predictor: Mapping[str, Any], node: Any) -> Dict[str, Any]:
     )
 
 
-def non_degeneracy_report(predictor: Mapping[str, Any],
-                          templates: Mapping[str, Any] | None = None) -> Dict[str, Any]:
-    """Does the predictor actually depend on the request, or only on (model, lane)?
+def non_degeneracy_report(predictor: Mapping[str, Any], *,
+                          templates: Mapping[str, Any] | None = None
+                          ) -> Dict[str, Any]:
+    """Does the predictor depend on the REQUEST, measured on the PRODUCTION path?
 
-    For every (model, lane) group with more than one distinct action_family, check that
-    the predicted run time, memory or load differs across those actions.  A predictor
-    that is constant within a group is behaving like a (model, lane) table -- which is
-    exactly what a TIE-style bank legitimately is, and exactly what this baseline must
-    NOT be, since then it predicts nothing about the request.
+    The first version compared ``tables[1]`` directly, which bypasses ``min_support`` and
+    the production backoff entirely.  Tier-1 raw means could therefore look non-degenerate
+    while the real ``predict()`` fell through to Tier 4 -- one answer per (model, lane) --
+    for every request, which is exactly the vacuity this gate exists to catch.
 
-    Returns per-group spread plus the fraction of groups that are non-degenerate.
+    So the spread is now measured on EFFECTIVE predictions obtained through ``predict()``,
+    and the tier actually used is reported per request.  ``templates`` supplies the
+    requests to probe; when it is omitted the Tier-1 keys are used as the request set.
     """
 
-    groups: Dict[Tuple[str, str], List[Tuple[str, Dict[str, float]]]] = defaultdict(list)
-    for key, row in predictor["tables"][1].items():
-        model_id, lane, action_family = key[0], key[1], key[2]
-        groups[(model_id, lane)].append((action_family, row))
+    requests: List[Any] = []
+    if templates is not None:
+        for template in templates.values():
+            requests.extend(list(template.nodes))
+    if not requests:
+        for key in predictor["tables"][1]:
+            requests.append(_SyntheticRequest(*key))
+
+    groups: Dict[Tuple[str, str], List[Tuple[str, Dict[str, Any]]]] = defaultdict(list)
+    tier_usage: Dict[str, int] = defaultdict(int)
+    for request in requests:
+        f = _features(request)
+        try:
+            prediction = predict(predictor, request)
+        except KeyError:
+            continue
+        tier_usage["T%d" % prediction["tier"]] += 1
+        groups[(f["model_id"], f["lane"])].append((f["action_family"], prediction))
 
     per_group: Dict[str, Any] = {}
     non_degenerate = 0
@@ -203,17 +219,38 @@ def non_degeneracy_report(predictor: Mapping[str, Any],
             "degenerate": degenerate,
         }
 
+    total_requests = sum(tier_usage.values())
     return {
+        "measured_on": "production predict(), not the raw Tier-1 table",
         "groups_with_multiple_actions": considered,
         "non_degenerate_groups": non_degenerate,
         "fraction_non_degenerate": (non_degenerate / considered) if considered else None,
+        "tier_usage": dict(sorted(tier_usage.items())),
+        "tier_usage_fraction": (
+            {k: v / total_requests for k, v in sorted(tier_usage.items())}
+            if total_requests else {}
+        ),
         "per_group": per_group,
         "interpretation": (
-            "A predictor keyed only by (model, lane) would report fraction 0.0, because "
-            "its answer cannot change with the request. This baseline must not report "
-            "that."
+            "A predictor keyed only by (model, lane) would report fraction 0.0 and use T4 "
+            "for every request, because its answer cannot change with the request. This "
+            "baseline must not report that."
         ),
     }
+
+
+class _SyntheticRequest:
+    """A minimal request carrying just the ontology fields the predictor keys on."""
+
+    def __init__(self, model_id, lane, action_family, raw_action="", batch_size=1):
+        self.model_id = model_id
+        self.lane = lane
+        self.action_family = action_family
+        self.raw_action = raw_action or action_family
+        self.batch_size = batch_size
+        self.runtime_ms = 0.0
+        self.workspace_peak_mb = 0.0
+        self.load_ms = 0.0
 
 
 def binds_to_request(predictor: Mapping[str, Any], template: Any,
@@ -230,6 +267,9 @@ def binds_to_request(predictor: Mapping[str, Any], template: Any,
     if not nodes:
         raise ValueError("need a template with at least one node")
     base = nodes[0]
+    # The gate must compare two requests under the SAME real (model, lane), which is what
+    # ``replace`` below guarantees; relying on nodes[0] and nodes[1] of an arbitrary
+    # template does not, because those usually differ in model too.
     # Hold model and lane fixed and change ONLY the request.  Using nodes[0] and nodes[1]
     # of an arbitrary template does not do that: those nodes usually differ in model too,
     # so the comparison would fall through to a coarse tier and report "no movement" for a

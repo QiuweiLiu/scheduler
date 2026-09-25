@@ -64,6 +64,28 @@ def _predictor_for(_episode, templates):
              else {str(t.template_id): t for t in templates})
     return build_latency_predictor(table, min_support=1)
 
+def _P_for(template):
+    """A train-only predictor built from exactly this template."""
+
+    from tracing.analysis.latency_aware_predictor import build_latency_predictor
+    return build_latency_predictor({str(template.template_id): template}, min_support=1)
+
+def _P():
+    """A train-only predictor, because the scheduler now refuses to run without one."""
+
+    from tracing.analysis.latency_aware_predictor import build_latency_predictor
+    from tracing.analysis.workload_v02_simulator import Node, Template
+
+    nodes = []
+    for i in range(6):
+        nodes.append(Node(node_id="p:n%d" % i, sequence_index=i, predecessors=(),
+                          successors=(), lane="gpu", model_id="m1", runtime_ms=100.0,
+                          load_ms=5.0, workspace_peak_mb=100.0, resident_model_mb=90.0,
+                          status="success", role="execute",
+                          action_family="a%d" % (i % 3), raw_action="a%d" % (i % 3)))
+    tpl = Template("p", "p", "train", "fam", tuple(nodes), {n.node_id: n for n in nodes})
+    return build_latency_predictor({"p": tpl}, min_support=1)
+
 class _Gpu:
     def __init__(self, index=0, capacity=40000.0, resident=None, busy_until=0.0):
         self.index = index
@@ -110,7 +132,7 @@ class Eq4FusedDurationTests(unittest.TestCase):
 
         dur, load = predicted_duration_ms(_J(), "t:n0", (), {"runtime_p50_ms": 100.0,
                                                             "load_p50_ms": 7.0},
-                                          resident=True)
+                                          resident=True, predictor=_P())
         self.assertAlmostEqual(load, 0.0)
         self.assertAlmostEqual(dur, 100.0)
 
@@ -126,7 +148,7 @@ class Eq7StartTimeTests(unittest.TestCase):
             template = tpl
             node_state = {"t:n0": "ready"}
 
-        step = build_plan(cand, [_J()], 400.0)
+        step = build_plan(cand, [_J()], 400.0, predictor=_P())
         self.assertAlmostEqual(step.predicted_start_ms, 500.0,
                                msg="the busy device must dominate the release time")
         self.assertAlmostEqual(step.predicted_completion_ms, 600.0)
@@ -141,7 +163,7 @@ class Eq7StartTimeTests(unittest.TestCase):
             template = tpl
             node_state = {"t:n0": "ready"}
 
-        step = build_plan(cand, [_J()], 100.0)
+        step = build_plan(cand, [_J()], 100.0, predictor=_P())
         self.assertAlmostEqual(step.predicted_start_ms, 900.0)
         self.assertAlmostEqual(step.predicted_completion_ms, 1000.0)
 
@@ -157,7 +179,7 @@ class Eq11MemoryTests(unittest.TestCase):
             template = tpl
             node_state = {"t:n0": "ready"}
 
-        step = build_plan(cand, [_J()], 0.0)
+        step = build_plan(cand, [_J()], 0.0, predictor=_P())
         step.memory_mb = 100.0
         self.assertFalse(memory_feasible(step, gpu))
 
@@ -171,7 +193,7 @@ class Eq11MemoryTests(unittest.TestCase):
             template = tpl
             node_state = {"t:n0": "ready"}
 
-        step = build_plan(cand, [_J()], 0.0)
+        step = build_plan(cand, [_J()], 0.0, predictor=_P())
         step.memory_mb = 50.0
         self.assertTrue(memory_feasible(step, gpu))
 
@@ -237,7 +259,11 @@ class IndependenceTests(unittest.TestCase):
             template = tpl
             node_state = {"t:n0": "ready"}
 
-        act = choose_action([cand], [_J()], 0.0, chains_for=lambda t: {})
+        # The predictor is built FROM this template, so the memory it plans with is the
+        # template's own 9000 MB rather than the generic fixture's small value; the test is
+        # about the admission check, not about which predictor is supplied.
+        act = choose_action([cand], [_J()], 0.0, chains_for=lambda t: {},
+                            predictor=_P_for(tpl))
         self.assertIsNone(act, "an infeasible plan must not be committed")
 
     def test_end_to_end_run_still_completes_every_job(self):

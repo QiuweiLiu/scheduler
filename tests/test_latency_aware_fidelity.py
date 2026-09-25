@@ -306,5 +306,59 @@ class NonDegeneracyTests(unittest.TestCase):
                              train_stats=train_resource_stats({first.template_id: first}))
 
 
+class TruthFallbackClosedTests(unittest.TestCase):
+    """The scheduler's OWN entry points must refuse to run without a predictor.
+
+    The simulator wrapper already blocked the truth read, but choose_action still accepted
+    predictor=None and build_plan then read node.workspace_peak_mb.  Blocking one entrance
+    while leaving another open is not a closure.
+    """
+
+    def test_the_formal_entry_points_require_a_predictor(self):
+        import inspect
+        from tracing.analysis import latency_aware_scheduler as la
+
+        for name in ("build_plan", "rank_ready", "choose_action", "predicted_duration_ms"):
+            parameter = inspect.signature(getattr(la, name)).parameters.get("predictor")
+            self.assertIsNotNone(parameter, "%s has no predictor parameter" % name)
+            self.assertIs(parameter.default, inspect.Parameter.empty,
+                          "%s still defaults predictor to None, which keeps the truth "
+                          "fallback reachable" % name)
+
+    def test_the_scheduler_reads_no_node_truth_fields(self):
+        import inspect
+        from tracing.analysis import latency_aware_scheduler as la
+
+        tree = ast.parse(inspect.getsource(la))
+        banned = {"compute_ms", "runtime_ms", "workspace_peak_mb", "load_ms"}
+        offenders = [(n.attr, n.lineno) for n in ast.walk(tree)
+                     if isinstance(n, ast.Attribute) and n.attr in banned]
+        self.assertEqual(offenders, [],
+                         "the scheduler must not read node truth fields: %r" % offenders)
+
+    def test_non_degeneracy_is_measured_on_the_production_path(self):
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.latency_aware_predictor import (
+            build_latency_predictor, non_degeneracy_report)
+        from tracing.analysis.workload_v02_simulator import load_templates
+
+        tpls = load_templates(V041, topology_view="causal_v3")
+        train = {k: v for k, v in tpls.items() if v.split == "train"}
+        prof = build_latency_predictor(tpls)
+        report = non_degeneracy_report(prof, templates=train)
+        self.assertIn("production predict()", report["measured_on"])
+        self.assertGreater(report["groups_with_multiple_actions"], 0)
+        self.assertGreater(report["fraction_non_degenerate"], 0.0)
+        # The tier actually used must be visible: a Tier-1 table can look non-degenerate
+        # while production predict() falls through to Tier 4 for every request.
+        self.assertIn("tier_usage", report)
+        self.assertTrue(report["tier_usage"], "no requests were probed")
+        self.assertGreater(
+            report["tier_usage_fraction"].get("T1", 0.0), 0.0,
+            "every request fell through to a coarser tier, so the finer tiers carry no "
+            "effective information even if their raw table looks non-degenerate")
+
+
 if __name__ == "__main__":
     unittest.main()
