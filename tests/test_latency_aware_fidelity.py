@@ -12,6 +12,13 @@ those checks are recorded as explicitly pending rather than silently claimed.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+V041 = (PROJECT_ROOT / "results" / "processed"
+        / "r7_workload_v041_ontology_no_run_container" / "job_templates_r7_v041.jsonl")
+
+import ast
 import unittest
 from collections import Counter
 
@@ -41,6 +48,14 @@ def chain_template(tid, specs, model="m1", lane="gpu", family="fam"):
     return Template(tid, tid, "train", family, tuple(nodes), {n.node_id: n for n in nodes})
 
 
+def _predictor_for(_episode, templates):
+    """A train-only predictor over exactly these templates."""
+
+    from tracing.analysis.latency_aware_predictor import build_latency_predictor
+    table = (templates if isinstance(templates, dict)
+             else {str(t.template_id): t for t in templates})
+    return build_latency_predictor(table, min_support=1)
+
 class LatencyAwareFidelityTests(unittest.TestCase):
     def test_arm_is_registered(self):
         self.assertIn("latency_aware", POLICIES)
@@ -64,6 +79,7 @@ class LatencyAwareFidelityTests(unittest.TestCase):
                       "deadline_ms": 1e9, "service_class": "normal"}],
         }
         _s, ev_lat = simulate_episode(ep, tpls, "latency_aware", train_stats=stats,
+                                  policy_context={"latency_aware_predictor": _predictor_for(ep, tpls)},
                                       collect_events=True)
         _s2, ev_fcfs = simulate_episode(ep, tpls, "fcfs", train_stats=stats,
                                         collect_events=True)
@@ -91,6 +107,7 @@ class LatencyAwareFidelityTests(unittest.TestCase):
                       "deadline_ms": 1e9, "service_class": "normal"}],
         }
         s, ev = simulate_episode(ep, tpls, "latency_aware", train_stats=stats,
+                                  policy_context={"latency_aware_predictor": _predictor_for(ep, tpls)},
                                  collect_events=True)
         # the run must remain valid regardless; a fused unit that cannot fit is not chosen
         self.assertEqual(s["completed_jobs"] + s["failed_jobs"], 1)
@@ -132,6 +149,7 @@ class LatencyAwareFidelityTests(unittest.TestCase):
                       "deadline_ms": 1e9, "service_class": "normal"}],
         }
         s, ev = simulate_episode(ep, tpls, "latency_aware", train_stats=stats,
+                                  policy_context={"latency_aware_predictor": _predictor_for(ep, tpls)},
                                  collect_events=True)
         events = Counter(str(e.get("event_type")) for e in ev)
         self.assertGreater(events.get("prefetch_start", 0), 0,
@@ -183,6 +201,109 @@ class LatencyAwareFidelityTests(unittest.TestCase):
         import tracing.analysis.latency_aware_lifecycle as lc
         self.assertFalse(hasattr(lc, "choose_reclaim_victim"),
                          "if this appears, update the adaptation note")
+
+
+class NonDegeneracyTests(unittest.TestCase):
+    """The predictor must depend on the REQUEST, not merely on (model, lane).
+
+    This is the check that separates this baseline from a TIE-style bank.  A TIE bank is
+    legitimately keyed by (model, lane), so its distribution cannot change with the
+    request; a predictor that behaves the same way predicts nothing about the request and
+    would make the "latency-aware" front end vacuous.  The gate therefore asserts the
+    opposite of vacuity on the learned table, and pins the truth path shut.
+    """
+
+    def test_the_predictor_moves_when_only_the_request_changes(self):
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.workload_v02_simulator import load_templates
+        from tracing.analysis.latency_aware_predictor import (
+            binds_to_request, build_latency_predictor, non_degeneracy_report)
+
+        tpls = load_templates(V041, topology_view="causal_v3")
+        prof = build_latency_predictor(tpls)
+        report = non_degeneracy_report(prof)
+        self.assertGreater(report["groups_with_multiple_actions"], 0)
+        self.assertIsNotNone(report["fraction_non_degenerate"])
+        self.assertGreater(
+            report["fraction_non_degenerate"], 0.0,
+            "a predictor whose answer never moves with the request is a (model, lane) "
+            "table, which is what TIE legitimately is and what this must not be")
+
+        # the same conclusion, reached through the public comparison helper
+        group = next((name for name, row in report["per_group"].items()
+                      if not row["degenerate"]), None)
+        if group is None:
+            self.skipTest("no non-degenerate group to compare")
+        model_id, lane = group.split("|", 1)
+        template = next(
+            t for t in tpls.values()
+            if any(n.model_id == model_id and n.lane == lane for n in t.nodes))
+        families = [n.action_family for n in template.nodes if n.model_id == model_id]
+        if len(set(families)) < 2:
+            detail = report["per_group"][group]
+            self.assertGreater(
+                max(detail["spread"]["run_ms"], detail["spread"]["peak_mem_mb"],
+                    detail["spread"]["load_ms"]), 0.0)
+            return
+        a, b = list(dict.fromkeys(families))[:2]
+        outcome = binds_to_request(prof, template, a, b)
+        self.assertTrue(outcome["same_model_and_lane"])
+        self.assertTrue(outcome["is_request_conditioned"])
+
+    def test_the_predictor_does_not_read_the_truth_fields(self):
+        """``compute_ms`` is runtime minus load; a predictor using it would be circular."""
+
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        import inspect
+        from tracing.analysis import latency_aware_predictor as module
+        from tracing.analysis import latency_aware_scheduler as la
+
+        def truth_accesses(obj):
+            """Attribute reads of compute_ms in CODE, ignoring any prose about it.
+
+            A string search is not enough: both modules legitimately DISCUSS compute_ms
+            in their docstrings to explain why it must not be used, and a naive search
+            flags the explanation as the offence.
+            """
+
+            tree = ast.parse(inspect.getsource(obj))
+            found = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Attribute) and node.attr == "compute_ms":
+                    found.append(node.lineno)
+            return found
+
+        self.assertEqual(truth_accesses(module), [],
+                         "the predictor must not read the truth compute time")
+        self.assertEqual(truth_accesses(la), [],
+                         "the scheduler must not read the node's truth compute time")
+        # and the artifact says so explicitly, because the claim is load-bearing
+        fake = type("T", (), {"split": "train", "template_id": "t", "nodes": (
+            type("N", (), {"model_id": "m", "lane": "gpu",
+                 "action_family": "a", "raw_action": "a", "batch_size": 1,
+                 "runtime_ms": 1.0, "workspace_peak_mb": 1.0, "load_ms": 0.0})(),)})
+        built = module.build_latency_predictor({"t": fake})
+        self.assertEqual(built["conditions_on"], "request features only; no executed duration")
+
+    def test_the_scheduler_fails_closed_without_a_predictor(self):
+        if not V041.exists():
+            self.skipTest("v04.1 projection not present")
+        from tracing.analysis.workload_v02_simulator import load_templates
+        tpls = load_templates(V041, topology_view="causal_v3")
+        first = next(iter(tpls.values()))
+        episode = {
+            "episode_id": "no-predictor", "split": first.split,
+            "gpu_topology_mb": [4000.0, 4000.0],
+            "initial_residency_hint": [[], []],
+            "jobs": [{"job_instance_id": "j0", "template_id": first.template_id,
+                      "arrival_ms": 0.0, "deadline_ms": 1e9,
+                      "service_class": "normal"}],
+        }
+        with self.assertRaises(ValueError):
+            simulate_episode(episode, {first.template_id: first}, "latency_aware",
+                             train_stats=train_resource_stats({first.template_id: first}))
 
 
 if __name__ == "__main__":

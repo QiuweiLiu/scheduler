@@ -3688,6 +3688,18 @@ def choose_action(
         ctx = policy_context if policy_context is not None else {}
         cache = ctx.setdefault("_fuse_cache", {})
 
+        # The duration and memory the scheduler plans with must be PREDICTIONS.  An
+        # earlier version let it read node.compute_ms, which is the node's actual
+        # intrinsic compute time, so the arm was reading the answer it was supposed to
+        # predict and its latency figures were circular.  Failing closed here rather than
+        # letting a missing predictor silently fall back to a truth field is the point.
+        la_predictor = ctx.get("latency_aware_predictor")
+        if la_predictor is None:
+            raise ValueError(
+                "latency_aware requires policy_context['latency_aware_predictor']; "
+                "without it the scheduler has no legitimate duration or memory source"
+            )
+
         def chains_for(template: Any) -> Dict[str, tuple[str, ...]]:
             tid = str(template.template_id)
             cached = cache.get(tid)
@@ -3700,7 +3712,8 @@ def choose_action(
             return cached
 
         ctx.pop("_fused_chain", None)
-        action = la.choose_action(pool, jobs, decision_time_ms, chains_for=chains_for)
+        action = la.choose_action(pool, jobs, decision_time_ms, chains_for=chains_for,
+                                  predictor=la_predictor)
         if action is None:
             # nothing is admissible on memory grounds; the caller's prefetch hook will
             # try to prepare a near-ready deployment instead

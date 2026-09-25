@@ -29,6 +29,8 @@ demand; choosing the victim by "distant next use" is recorded as pending.
 
 from __future__ import annotations
 
+from tracing.analysis.latency_aware_predictor import predict
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -57,15 +59,19 @@ class PlanStep:
         The paper maximises -A_1..-A_K (admitted units per priority class) and then
         minimises C_F, the latest completion of ready work.  Committing one action per
         event reduces A_k to "prefer the highest service class", so the key is
-        (class, completion, -boundaries_removed, ready_time).  The fusion term is the
-        paper's "a length-h chain removes h-1 intermediate boundaries".
+        (class, completion, ready_time).
+
+        ``-boundaries_removed`` used to sit between the completion and the ready time.
+        The paper's Eq (12) has no such term: it was an invented tie-break, and it also
+        let a fused candidate win on a count rather than on the completion time the fusion
+        actually changes.  Removing it is the faithful choice; a fused plan still competes,
+        through the shorter predicted completion that fusing produces.
         """
 
         item = self.candidate[0]
         return (
             float(item[0]),                       # hard service priority first
             self.predicted_completion_ms,         # C_F
-            -self.boundaries_removed,             # fewer admissions is better
             float(item[1]),                       # ready time
             self.candidate[4].index,
             self.candidate[2],
@@ -79,16 +85,33 @@ def predicted_duration_ms(
     estimate_row: Mapping[str, Any],
     *,
     resident: bool,
+    predictor: Mapping[str, Any] | None = None,
 ) -> Tuple[float, float]:
-    """Eq (4): the summed run time of a fused unit plus one load.
+    """Eq (4): the summed predicted run time of a fused unit plus one load.
 
     Returns (duration_ms, load_ms).  A fused unit pays the model load once.
+
+    The run time comes from the train-only REQUEST-CONDITIONED predictor, never from
+    ``node.compute_ms``.  ``compute_ms`` is ``max(0.1, runtime_ms - load_ms)``, the node's
+    actual intrinsic compute time: using it made the "predictor" read the very quantity it
+    is supposed to predict, and every latency figure derived from it was circular.  The
+    ``estimate_row`` fallback is a train-derived statistics row rather than a per-node
+    truth, so it is legitimate when the predictor is not supplied.
     """
 
     load = 0.0 if resident else float(estimate_row["load_p50_ms"])
     if not members:
-        return float(estimate_row["runtime_p50_ms"]) + load, load
-    total = sum(float(job.template.by_id[m].compute_ms) for m in members)
+        if predictor is None:
+            return float(estimate_row["runtime_p50_ms"]) + load, load
+        pred = predict(predictor, job.template.by_id[node_id])
+        return float(pred["run_ms"]) + load, load
+    total = 0.0
+    for member in members:
+        node = job.template.by_id[member]
+        if predictor is None:
+            total += float(estimate_row["runtime_p50_ms"])
+        else:
+            total += float(predict(predictor, node)["run_ms"])
     return load + total, load
 
 
@@ -98,6 +121,7 @@ def build_plan(
     now: float,
     *,
     fused_members: Sequence[str] = (),
+    predictor: Mapping[str, Any] | None = None,
 ) -> PlanStep:
     """Eq (7): start = max(release, gpu availability), completion = start + duration.
 
@@ -110,13 +134,23 @@ def build_plan(
     job = jobs[job_index]
     resident = model_id in gpu.resident
     duration, load = predicted_duration_ms(job, node_id, fused_members, estimate_row,
-                                           resident=resident)
+                                           resident=resident, predictor=predictor)
     start = max(float(item[1]), float(gpu.busy_until), float(now))
     members = tuple(fused_members) if fused_members else (str(node_id),)
-    memory = max(
-        (float(job.template.by_id[m].workspace_peak_mb or 0.0) for m in members),
-        default=0.0,
-    )
+    # Peak memory comes from the same request-conditioned predictor as the duration, for
+    # the same reason: workspace_peak_mb on the node is a truth field.
+    if predictor is None:
+        memory = max(
+            (float(job.template.by_id[m].workspace_peak_mb or 0.0) for m in members),
+            default=0.0,
+        )
+    else:
+        memory = max(
+            (float(predict(predictor, job.template.by_id[m])["peak_mem_mb"]
+                   + float(job.template.by_id[m].resident_model_mb or 0.0))
+             for m in members),
+            default=0.0,
+        )
     return PlanStep(
         candidate=candidate,
         fused=tuple(fused_members),
@@ -144,6 +178,7 @@ def rank_ready(
     now: float,
     *,
     chains_for: Any,
+    predictor: Mapping[str, Any] | None = None,
 ) -> List[PlanStep]:
     """Algorithm 1 lines 1-10: rank ready units, then bind each one.
 
@@ -159,7 +194,7 @@ def rank_ready(
         fused: Tuple[str, ...] = ()
         if members and all(job.node_state.get(m) == "pending" for m in members[1:]):
             fused = tuple(members)
-        step = build_plan(candidate, jobs, now, fused_members=fused)
+        step = build_plan(candidate, jobs, now, fused_members=fused, predictor=predictor)
         if not memory_feasible(step, gpu):
             step.feasible = False
             step.reject_reason = "admission_memory"
@@ -173,10 +208,11 @@ def choose_action(
     now: float,
     *,
     chains_for: Any,
+    predictor: Mapping[str, Any] | None = None,
 ) -> Optional[Dict[str, Any]]:
     """Algorithm 1 lines 3-15 for one commit: the best feasible start, else None."""
 
-    ranked = rank_ready(candidates, jobs, now, chains_for=chains_for)
+    ranked = rank_ready(candidates, jobs, now, chains_for=chains_for, predictor=predictor)
     for step in ranked:
         if step.feasible:
             return {

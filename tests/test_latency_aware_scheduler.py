@@ -13,6 +13,10 @@ from __future__ import annotations
 import unittest
 from collections import Counter
 
+from tracing.analysis.latency_aware_predictor import (
+    build_latency_predictor,
+    predict,
+)
 from tracing.analysis.latency_aware_scheduler import (
     FUSED_SEPARATOR,
     PlanStep,
@@ -45,6 +49,21 @@ def chain(tid, specs, family="fam"):
     return Template(tid, tid, "train", family, tuple(nodes), {n.node_id: n for n in nodes})
 
 
+
+
+def _tiny_predictor(template):
+    """A one-template, train-only predictor whose table is exactly that template."""
+
+    return build_latency_predictor({str(template.template_id): template}, min_support=1)
+
+def _predictor_for(_episode, templates):
+    """A train-only predictor over exactly these templates."""
+
+    from tracing.analysis.latency_aware_predictor import build_latency_predictor
+    table = (templates if isinstance(templates, dict)
+             else {str(t.template_id): t for t in templates})
+    return build_latency_predictor(table, min_support=1)
+
 class _Gpu:
     def __init__(self, index=0, capacity=40000.0, resident=None, busy_until=0.0):
         self.index = index
@@ -55,26 +74,33 @@ class _Gpu:
 
 
 class Eq4FusedDurationTests(unittest.TestCase):
-    def test_fused_duration_is_the_sum_plus_one_load(self):
-        """compute_ms = runtime_ms - load_ms, so the members' COMPUTE is summed.
+    def test_fused_duration_comes_from_the_predictor_not_from_truth(self):
+        """A fused unit sums the PREDICTED member run times and pays one load.
 
-        Each member contributes runtime - load, and the fused unit pays one load.
+        The old form summed ``compute_ms``, which is ``runtime_ms - load_ms`` -- the
+        members' ACTUAL intrinsic compute time.  Reading truth is what made the whole arm
+        circular, so the sum must now follow the train-only predictor.
         """
-        tpl = chain("t", [(100, "m1", "gpu", 10.0), (200, "m1", "gpu", 10.0),
-                          (300, "m1", "gpu", 10.0)])
+
+        tpl = chain("t", [(100, "m1", "gpu", 5.0), (200, "m1", "gpu", 5.0),
+                          (300, "m1", "gpu", 5.0)])
         row = {"runtime_p50_ms": 100.0, "load_p50_ms": 7.0}
 
         class _J:
             template = tpl
 
+        predictor = _tiny_predictor(tpl)
         dur, load = predicted_duration_ms(_J(), "t:n0", ("t:n0", "t:n1", "t:n2"), row,
-                                          resident=False)
+                                          resident=False, predictor=predictor)
         self.assertAlmostEqual(load, 7.0, msg="a fused unit pays the load once")
-        member_compute = sum(
-            tpl.by_id[m].compute_ms for m in ("t:n0", "t:n1", "t:n2")
-        )
-        self.assertAlmostEqual(member_compute, (100 - 5) + (200 - 5) + (300 - 5))
-        self.assertAlmostEqual(dur, 7.0 + member_compute)
+        predicted_sum = sum(
+            predict(predictor, tpl.by_id[m])["run_ms"] for m in ("t:n0", "t:n1", "t:n2"))
+        self.assertAlmostEqual(dur, 7.0 + predicted_sum)
+        # and it is NOT the truth sum: the predictor returns the train mean, which for a
+        # single train node equals runtime_ms, so the distinguishing check is that the
+        # truth-only path is never consulted
+        truth_sum = sum(tpl.by_id[m].compute_ms for m in ("t:n0", "t:n1", "t:n2"))
+        self.assertNotAlmostEqual(dur, 7.0 + truth_sum, places=6)
 
     def test_resident_unit_pays_no_load(self):
         tpl = chain("t", [(100, "m1", "gpu", 10.0)])
@@ -171,11 +197,27 @@ class Eq12KeyTests(unittest.TestCase):
         self.assertLess(sooner.key, later_fused.key,
                         "C_F precedes the boundary-removal term")
 
-    def test_fusion_breaks_ties_at_equal_completion(self):
+    def test_the_key_carries_no_invented_boundary_term(self):
+        """Eq (12) has no ``-boundaries_removed`` term; it was an invented tie-break.
+
+        The old test asserted that a fused plan wins at EQUAL completion because of the
+        admission count.  That is not the paper's criterion, and it also let a candidate
+        win on a count rather than on the completion time fusion actually changes.
+        """
+
         plain = self._step(0.0, 100.0, 0, 0.0)
         fused = self._step(0.0, 100.0, 3, 0.0)
+        self.assertEqual(plain.key, fused.key,
+                         "at equal completion and equal ready time the key must not "
+                         "distinguish two plans by an admission count")
+
+    def test_fusion_wins_through_the_completion_it_changes(self):
+        """A fused plan competes on C_F, which is the honest mechanism."""
+
+        plain = self._step(0.0, 300.0, 0, 0.0)
+        fused = self._step(0.0, 120.0, 3, 0.0)
         self.assertLess(fused.key, plain.key,
-                        "at equal completion, fewer admissions must win")
+                        "the shorter predicted completion must win")
 
 
 class IndependenceTests(unittest.TestCase):
@@ -206,6 +248,7 @@ class IndependenceTests(unittest.TestCase):
               "jobs": [{"job_instance_id": "j0", "template_id": "t", "arrival_ms": 0.0,
                         "deadline_ms": 1e9, "service_class": "normal"}]}
         s, ev = simulate_episode(ep, tpls, "latency_aware", train_stats=stats,
+                                  policy_context={"latency_aware_predictor": _predictor_for(ep, tpls)},
                                  collect_events=True)
         self.assertEqual(s["completed_jobs"], 1)
         self.assertEqual(s["failed_jobs"], 0)
