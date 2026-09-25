@@ -3502,30 +3502,28 @@ def choose_action(
             raise ValueError("pythia_completion requires policy_context['pythia_profiler']")
 
         from tracing.analysis.pythia_profiler import (
+            current_role,
             expected_remaining_ms,
-            last_observed_role,
             s_completion,
         )
 
-        role_cache = (policy_context or {}).setdefault("pythia_last_role", {})
+        role_cache = (policy_context or {}).setdefault("pythia_role", {})
 
         def pythia_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
             job = jobs[job_index]
-            # The profile is indexed by the last role the job actually OBSERVED, not by
-            # a workflow-family label and not by a completed count: `baseline` is the
-            # grouping the collection recorded rather than a role alphabet, and a count
-            # carries no role information at all.
-            key = job.job_instance_id
-            reached = frozenset(job.completed)
-            cached = role_cache.get(key)
-            if cached is not None and cached[0] == reached:
-                role = cached[1]
-            else:
-                role = last_observed_role(job)
-                role_cache[key] = (reached, role)
+            # The profile is indexed by the CANDIDATE's own role.  V(role) is the work
+            # remaining AFTER that role, so indexing by the last COMPLETED role would both
+            # use the wrong state and count the current node twice: for A -> B -> C with
+            # durations 10/20/40, a ready B would be scored 20 + V(A) = 80 when the true
+            # remaining work from B is 20 + V(B) = 60.  The candidate is already ready, so
+            # its role is exactly the agent_id Pythia exposes and this is not a leak.
+            role = role_cache.get(node_id)
+            if role is None:
+                role = current_role(job, node_id)
+                role_cache[node_id] = role
             load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
             current = float(estimate_row["runtime_p50_ms"]) + load
             d_remaining = current + expected_remaining_ms(profiler, role)

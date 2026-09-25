@@ -21,7 +21,7 @@ from tracing.analysis.pythia_profiler import (
     PROFILER_SCHEMA,
     build_pythia_profiler,
     expected_remaining_ms,
-    last_observed_role,
+    current_role,
     role_alphabet,
     s_completion,
 )
@@ -169,50 +169,51 @@ class TrainOnlyTests(unittest.TestCase):
 
 
 class RuntimeStateTests(unittest.TestCase):
-    def test_the_state_advances_with_completed_nodes(self):
-        tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")], 7.0)
+    def test_the_role_comes_from_the_candidate_not_the_completed_prefix(self):
+        """V(role) EXCLUDES the role it is indexed by, so pairing it with the last
+        completed role counts the current candidate twice.
+
+        Chain A -> B -> C with durations 10/20/40.  With B ready:
+            correct   = d(B) + V(B) = 20 + 40 = 60
+            wrong     = d(B) + V(A) = 20 + 60 = 80
+        """
+
+        tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")],
+                            [10.0, 20.0, 40.0])
+        prof = build_pythia_profiler({"t": tpl})
+        self.assertAlmostEqual(expected_remaining_ms(prof, "planner:p:p"), 60.0, places=6)
+        self.assertAlmostEqual(expected_remaining_ms(prof, "tool:t:t"), 40.0, places=6)
+        self.assertAlmostEqual(expected_remaining_ms(prof, "answer:a:a"), 0.0, places=6)
 
         class FakeJob:
             def __init__(self, completed):
                 self.template = tpl
                 self.completed = completed
 
-        self.assertEqual(last_observed_role(FakeJob(set())), role_alphabet(tpl.nodes[0]))
-        self.assertEqual(last_observed_role(FakeJob({"t:n0"})), role_alphabet(tpl.nodes[0]))
-        self.assertEqual(last_observed_role(FakeJob({"t:n0", "t:n1"})),
-                         role_alphabet(tpl.nodes[1]))
+        # the candidate's own role is what the scorer must index by
+        self.assertEqual(current_role(FakeJob(set()), "t:n1"), role_alphabet(tpl.nodes[1]))
+        current = 20.0
+        correct = current + expected_remaining_ms(prof, current_role(FakeJob({"t:n0"}), "t:n1"))
+        wrong = current + expected_remaining_ms(prof, role_alphabet(tpl.nodes[0]))
+        self.assertAlmostEqual(correct, 60.0, places=6)
+        self.assertAlmostEqual(wrong, 80.0, places=6)
+        self.assertNotAlmostEqual(correct, wrong, places=6)
 
-    def test_the_state_ignores_unexecuted_nodes(self):
-        """Only completed nodes may move the state."""
+    def test_the_current_role_is_not_a_future_leak(self):
+        """A ready node's role is the agent_id Pythia exposes, so reading it is allowed;
+        an UNREADY node must never be scored."""
 
-        tpl = role_template("t", [("planner", "p"), ("tool", "t"), ("answer", "a")], 7.0)
+        tpl = role_template("t", [("planner", "p"), ("tool", "t")], 7.0)
 
         class FakeJob:
-            def __init__(self, completed):
+            def __init__(self):
                 self.template = tpl
-                self.completed = completed
+                self.completed = set()
 
-        before = last_observed_role(FakeJob(set()))
-        # rewrite every unexecuted node; the state must not move
-        mutated_nodes = list(tpl.nodes)
-        for index in (1, 2):
-            mutated_nodes[index] = Node(
-                **{**tpl.nodes[index].__dict__, "role": "something_else",
-                   "action_family": "different", "raw_action": "different"})
-        mutated = Template(tpl.template_id, tpl.video_id, tpl.split, tpl.baseline,
-                           tuple(mutated_nodes),
-                           {n.node_id: n for n in mutated_nodes})
-
-        class FakeMutatedJob(FakeJob):
-            def __init__(self, completed):
-                super().__init__(completed)
-                self.template = mutated
-
-        self.assertEqual(last_observed_role(FakeMutatedJob(set())), before)
-
-    def test_completion_statistic(self):
-        self.assertAlmostEqual(s_completion(100.0), 0.01, places=9)
-        self.assertGreater(s_completion(10.0), s_completion(1000.0))
+        self.assertEqual(current_role(FakeJob(), "t:n0"),
+                         role_alphabet(tpl.nodes[0]))
+        with self.assertRaises(KeyError):
+            current_role(FakeJob(), "nope:n0")
 
 
 class EndToEndTests(unittest.TestCase):

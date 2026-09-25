@@ -27,8 +27,22 @@ Deviation, recorded: the paper derives the automaton from its own trace format. 
 alphabet is the VideoSeek role ontology, and the expected remaining distance is computed
 by a FINITE-HORIZON recursion rather than by solving the stationary system, because real
 workflows loop (a planner is re-entered many times) and the undiscounted expectation over
-a cyclic automaton does not converge.  The horizon IS the paper's "bounded probable
-future", made explicit.
+a cyclic automaton does not converge.
+
+That finite horizon is OUR approximation and must not be described as the paper's bound.
+Pythia bounds its automaton with low-probability transition pruning PLUS repetition bounds
+on looping roles (its regex form is `engineer^{3,6}`), whereas `horizon` here is a
+fixed, train-independent step limit.  The two are not the same mechanism and the paper's
+form is not reproduced.
+
+Adapted rather than literal: the paper's alphabet entry is the CURRENT `agent_id`
+(`engineer`).  A bare VideoSeek role is too coarse to separate the tools that actually
+differ in cost, so the key composes three prefix-observable, stable ontology fields
+(`role:action_family:raw_action`).  Eleven states over 480 train runs shows the key has
+not degenerated into an instance identifier.  The occurrence suffix is deliberately
+DROPPED, which is the faithful choice: Pythia expresses a loop as a REPEATED role
+(`(engineer)^{3,6}`), so appending `#0/#1/#2` would split one looping role into
+several positional states and destroy exactly the structure the automaton is for.
 """
 
 from __future__ import annotations
@@ -45,9 +59,10 @@ PROFILER_SCHEMA = "pythia-role-pfa-v1"
 # future": the automaton keeps only the paths that history says actually happen often.
 DEFAULT_MIN_PROB = 0.05
 
-# How many steps of probable future the expected remaining distance looks ahead.  A
-# finite horizon is required because the automaton is cyclic; this is the explicit form
-# of the paper's bound and is an adaptation hyperparameter, not a value from the paper.
+# How many steps of probable future the expected remaining distance looks ahead.  A finite
+# horizon is required because the automaton is cyclic.  This is OUR fixed,
+# train-independent computational approximation and is NOT the paper's bound, which prunes
+# transitions and applies repetition bounds to looping roles.
 DEFAULT_HORIZON = 6
 
 END = "<end>"
@@ -147,7 +162,16 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         "horizon": int(horizon),
         "alphabet_source": "VideoSeek role ontology (role:action_family:raw_action)",
         "deviation": "finite-horizon recursion replaces the stationary solve, because the "
-                     "automaton is cyclic and the undiscounted expectation does not converge",
+                     "automaton is cyclic and the undiscounted expectation does not converge. "
+                     "This is our fixed, train-independent step limit and is NOT the paper's "
+                     "bound, which prunes transitions and applies repetition bounds to looping "
+                     "roles",
+        "adapted": [
+            "role key composed from role:action_family:raw_action; the paper's alphabet entry "
+            "is the current agent_id and a bare VideoSeek role is too coarse",
+            "the horizon is a fixed computational approximation rather than the paper's "
+            "pruning-plus-repetition-bound automaton",
+        ],
         "omissions": [
             "cache routing, prefix caching, model-replica idleness, autoscaling",
             "S_unblock (no model-server queue in this simulator); omega2 = 0",
@@ -156,10 +180,14 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
 
 
 def expected_remaining_ms(profiler: Mapping[str, Any], role: str) -> float:
-    """E[remaining distance] from the role the job has just finished.
+    """The work remaining AFTER a role, i.e. V(role) in the automaton.
 
-    Reading the LAST OBSERVED role keeps the quantity a historical observation: no
-    unexecuted node's identity, action or duration enters it.
+    V(role) already EXCLUDES the role it is indexed by: it is the expected cost of the
+    roles that follow.  A caller that also holds the current node's own duration must add
+    it once, against the CURRENT node's role.  Indexing by the last COMPLETED role instead
+    would both use the wrong state and count the current candidate twice: for A -> B -> C
+    with durations 10/20/40, a ready B would be scored 20 + V(A) = 80 when the true
+    remaining work from B is 20 + V(B) = 60.
     """
 
     if profiler.get("schema") != PROFILER_SCHEMA:
@@ -173,19 +201,19 @@ def expected_remaining_ms(profiler: Mapping[str, Any], role: str) -> float:
     return float(table[role])
 
 
-def last_observed_role(job: Any) -> str:
-    """The role of the most recently completed node, or the first role if none has.
+def current_role(job: Any, node_id: str) -> str:
+    """The role of the node the scheduler is about to dispatch.
 
-    Uses only completed nodes, so nothing about the unexecuted future is read.
+    This is the quantity Pythia exposes on a request as ``agent_id``: the node is already
+    ready, so its role is known and this is not a future leak.  It is deliberately NOT the
+    last completed role, because ``V`` excludes the role it is indexed by and pairing the
+    two would count the current candidate twice.
     """
 
-    order = sorted(job.template.nodes, key=lambda n: n.sequence_index)
-    done = [n for n in order if n.node_id in job.completed]
-    if done:
-        return role_alphabet(done[-1])
-    if not order:
-        raise ValueError("job template has no nodes")
-    return role_alphabet(order[0])
+    node = job.template.by_id.get(node_id)
+    if node is None:
+        raise KeyError("node %r is not in the job's template" % (node_id,))
+    return role_alphabet(node)
 
 
 def s_completion(d_remaining_ms: float) -> float:
