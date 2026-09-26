@@ -109,3 +109,74 @@ def intrinsic_runtime_of(template: Any) -> Callable[[str], float]:
         return float(node.runtime_ms)
 
     return duration_of
+
+
+# --------------------------------------------------------------------------- #
+# NON-PAPER SENSITIVITY VARIANT: discretised, non-preemptive queueing
+# --------------------------------------------------------------------------- #
+# Agentix's own preemptive scheduler (§4.2.2) discretises the continuous priority into K
+# queues AND demotes a call when it exhausts its DECODING time quantum mid-call, which needs
+# request preemption and KV swap.  Our execution unit is an atomic node, so neither the
+# in-call quantum nor preemption is representable.  This variant keeps only what survives a
+# node-atomic substrate:
+#
+#   * discretisation: bin the program's attained service into K queues and rank by bin;
+#   * demotion ACROSS calls: as a program's attained service grows its later calls land in a
+#     lower queue (the paper demotes within a call instead);
+#   * program-level anti-starvation: promote a call to the top queue when its program's
+#     (wait / service) ratio crosses beta.
+#
+# It must be reported as `Agentix-Discrete-NoPreempt` -- an adaptation that answers "does
+# discretising PLAS and adding anti-starvation change anything?", NOT as the paper's
+# preemptive MLFQ scheduler.  It is a sensitivity mode; the formal arm stays mode='plas'.
+
+AGENTIX_DISCRETE_SCHEMA = "agentix-discrete-nopreempt-v1"
+
+# Pre-registered adaptation constants.  The paper gives K queues but no edges, and no beta.
+DEFAULT_QUEUE_EDGES_MS = (0.0, 30000.0, 90000.0, 210000.0)   # lower edge of each of 4 queues
+DEFAULT_ANTI_STARVATION_BETA = 1.0                           # promote when wait/service >= beta
+
+AGENTIX_DISCRETE_DEVIATION = (
+    "NON-PAPER sensitivity variant. Agentix discretises the program priority into K queues and "
+    "demotes a call when it exhausts its decoding quantum mid-call, requiring request preemption "
+    "and KV swap; our node-atomic substrate cannot represent either. This variant keeps the "
+    "discretisation and the program-level anti-starvation promotion, and applies demotion ACROSS "
+    "calls instead of within a call. In-call quantum demotion and preemption are NOT reproduced."
+)
+
+
+def queue_index(attained_service_ms: float,
+                edges: Sequence[float] = DEFAULT_QUEUE_EDGES_MS) -> int:
+    """The K-queue index for an attained service value; lower index = higher priority."""
+
+    value = max(0.0, float(attained_service_ms))
+    index = 0
+    for position, edge in enumerate(edges):
+        if value >= float(edge):
+            index = position
+        else:
+            break
+    return int(index)
+
+
+def is_starving(wait_ms: float, service_ms: float,
+                beta: float = DEFAULT_ANTI_STARVATION_BETA) -> bool:
+    """Program-level anti-starvation: promote when ``wait / service >= beta``.
+
+    ``service`` is clamped to a small positive floor so a program with no completed service
+    is judged by its wait rather than dividing by zero.
+    """
+
+    if beta <= 0.0:
+        raise ValueError("anti-starvation beta must be positive")
+    return (max(0.0, float(wait_ms)) / max(1.0, float(service_ms))) >= float(beta)
+
+
+def discrete_priority_index(attained_service_ms: float, wait_ms: float,
+                            edges: Sequence[float] = DEFAULT_QUEUE_EDGES_MS,
+                            beta: float = DEFAULT_ANTI_STARVATION_BETA) -> int:
+    """The queue index actually used: 0 (top) when the program is starving, else its bin."""
+
+    if is_starving(wait_ms, attained_service_ms, beta):
+        return 0
+    return queue_index(attained_service_ms, edges)

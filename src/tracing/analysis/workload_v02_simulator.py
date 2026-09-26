@@ -3785,9 +3785,16 @@ def choose_action(
         unexecuted suffix and any predicted value are never consulted, so this arm cannot
         degenerate into a clairvoyant SRPT.  The hard service priority stays first; the
         substrate keeps placement, admission memory and residency.
+
+        ``policy_context['agentix_mode']``:
+          * ``plas`` (default, formal) / ``atlas`` -- continuous attained service;
+          * ``discrete`` -- a NON-PAPER sensitivity variant: discretised, non-preemptive
+            queueing with program-level anti-starvation (see ``agentix_methods``).  It is
+            NOT the paper's preemptive MLFQ scheduler.
         """
 
         from tracing.analysis.agentix_methods import (
+            discrete_priority_index,
             intrinsic_runtime_of,
             program_priority_ms,
         )
@@ -3795,21 +3802,43 @@ def choose_action(
         ctx = policy_context if policy_context is not None else {}
         mode = str(ctx.get("agentix_mode", "plas"))
 
-        def agentix_score(
-            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
-        ) -> tuple[Any, ...]:
-            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
-            job = jobs[job_index]
-            attained = program_priority_ms(
-                job, job.template, intrinsic_runtime_of(job.template), mode=mode)
-            return (
-                float(item[0]),
-                attained,
-                float(item[1]),
-                item[2],
-                item[3],
-                gpu.index,
-            )
+        if mode == "discrete":
+            # NON-PAPER sensitivity variant: discretised, non-preemptive queueing with
+            # program-level anti-starvation (see agentix_methods).  The formal arm is 'plas'.
+            def agentix_score(
+                candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+            ) -> tuple[Any, ...]:
+                item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+                job = jobs[job_index]
+                attained = program_priority_ms(
+                    job, job.template, intrinsic_runtime_of(job.template), mode="plas")
+                wait_ms = float(job.queue_ms) + max(
+                    0.0, float(decision_time_ms) - float(item[1]))
+                queue = discrete_priority_index(attained, wait_ms)
+                return (
+                    float(item[0]),
+                    queue,                   # K-queue index (0 is top); anti-starvation promotes to 0
+                    float(item[1]),
+                    item[2],
+                    item[3],
+                    gpu.index,
+                )
+        else:
+            def agentix_score(
+                candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+            ) -> tuple[Any, ...]:
+                item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+                job = jobs[job_index]
+                attained = program_priority_ms(
+                    job, job.template, intrinsic_runtime_of(job.template), mode=mode)
+                return (
+                    float(item[0]),
+                    attained,
+                    float(item[1]),
+                    item[2],
+                    item[3],
+                    gpu.index,
+                )
 
         chosen = min(pool, key=agentix_score)
 

@@ -1466,3 +1466,18 @@ workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已�
   在 3 集上**决策序列完全一致（0/614 flip）**。不调参；fidelity freeze 不要求它改变 makespan。
 - **re-pin**：Pythia freeze head → `d01d202`；fidelity manifest 重新生成 PASS。
 - 验证：gate 32/32；聚焦 155/155；全量 391（仅预存/环境）。
+
+## 2026-09-26 — Agentix 非抢占离散化敏感性变体（K 档 + 跨调用降级 + 防饿死）
+
+依 GPT 建议：Agentix 的 K 队列/防饿死可在节点级做**非抢占版**；调用级时间片降级与抢占（KV swap）不可表示。
+
+- 新增 `agentix_methods`：`queue_index`（K 档）、`is_starving`（`W/T ≥ β`）、`discrete_priority_index`（饿死→提 0 档）；
+  常量 `DEFAULT_QUEUE_EDGES_MS=(0,30k,90k,210k)`、`DEFAULT_ANTI_STARVATION_BETA=1.0`（论文未给 edges/β → 预注册适配常量）。
+- 模拟器 `agentix_mode=discrete`：key = `(hard, 队列档, ready_time, …)`；**跨调用降级**（服务增长→后续调用落低档）；
+  **程序级防饿死**（`W_total/T_total ≥ β` → 提到 0 档）。
+- **明确标注为非论文机制**：`AGENTIX_DISCRETE_DEVIATION`；**主臂仍是 `plas`**。
+- **精读论文结论（抢占成本）**：抢占**不重新加载模型**，只在 GPU↔CPU 之间搬 **KV 缓存**并**从断点续跑**；
+  代价 = PCIe 搬运 + 调度开销（论文优化后换出次数最多 ↓18×、搬运时间 ↓3–7×）。我们 substrate **无 KV 抽象**，
+  且现有"抢占"是**整节点取消+重算**——**成本模型不同，故不套用**，只留非抢占变体。
+- 验证：Agentix gate 10→**18**；聚焦 **163/163**；全量 **399**（仅预存/环境）。真实 3 集：`discrete` 与 `plas` 结果不同（主臂 `plas` 未变）。
+- 待 commit/push。

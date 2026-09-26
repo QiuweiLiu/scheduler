@@ -17,10 +17,15 @@ import unittest
 
 from tracing.analysis.agentix_methods import (
     AGENTIX_SCHEMA,
+    DEFAULT_ANTI_STARVATION_BETA,
+    DEFAULT_QUEUE_EDGES_MS,
     critical_path_service_ms,
     completed_service_ms,
+    discrete_priority_index,
     intrinsic_runtime_of,
+    is_starving,
     program_priority_ms,
+    queue_index,
 )
 from tracing.analysis.workload_v02_simulator import (
     POLICIES,
@@ -150,6 +155,82 @@ class EndToEndTests(unittest.TestCase):
             policy_context={"agentix_mode": "atlas"})
         self.assertEqual(summary["completed_jobs"], 1)
         self.assertEqual(summary["failed_jobs"], 0)
+
+
+class QueueDiscretizationTests(unittest.TestCase):
+    """NON-PAPER sensitivity variant: discretised, non-preemptive queueing."""
+
+    def test_queue_index_is_monotone_in_service(self):
+        edges = DEFAULT_QUEUE_EDGES_MS
+        idx = [queue_index(v, edges) for v in (0.0, 45000.0, 150000.0, 999999.0)]
+        self.assertEqual(idx, sorted(idx))
+        self.assertEqual(idx[0], 0)
+        self.assertEqual(idx[-1], len(edges) - 1)
+
+    def test_queue_index_boundaries(self):
+        edges = (0.0, 10.0, 20.0)
+        self.assertEqual(queue_index(9.999, edges), 0)
+        self.assertEqual(queue_index(10.0, edges), 1)
+        self.assertEqual(queue_index(25.0, edges), 2)
+
+    def test_anti_starvation_ratio(self):
+        self.assertTrue(is_starving(100.0, 50.0, beta=1.0))    # 2.0 >= 1.0
+        self.assertFalse(is_starving(10.0, 50.0, beta=1.0))    # 0.2 < 1.0
+        with self.assertRaises(ValueError):
+            is_starving(1.0, 1.0, beta=0.0)
+
+    def test_starving_program_is_promoted_to_the_top_queue(self):
+        edges = (0.0, 10.0, 20.0)
+        # high attained service would normally bin to the last queue
+        self.assertEqual(queue_index(100.0, edges), 2)
+        # but a starving program is promoted to queue 0
+        self.assertEqual(discrete_priority_index(100.0, wait_ms=1000.0, edges=edges, beta=1.0), 0)
+        # a non-starving program keeps its bin
+        self.assertEqual(discrete_priority_index(100.0, wait_ms=1.0, edges=edges, beta=1.0), 2)
+
+    def test_demotion_happens_across_calls(self):
+        """A program's LATER calls land in a lower queue as its attained service grows."""
+
+        edges = DEFAULT_QUEUE_EDGES_MS
+        early = queue_index(0.0, edges)          # first call: top queue
+        late = queue_index(300000.0, edges)      # after much service: bottom queue
+        self.assertLess(early, late)
+
+    def test_queueing_does_not_read_the_future(self):
+        tpl = _chain("t", [10.0, 20.0, 40.0])
+        job = _Job(tpl, {"t:n0"})
+        before = queue_index(completed_service_ms(job, intrinsic_runtime_of(tpl)))
+        tpl.by_id["t:n1"] = _node("t:n1", 1, ["t:n0"], 999999.0)
+        tpl.by_id["t:n2"] = _node("t:n2", 2, ["t:n1"], 999999.0)
+        after = queue_index(completed_service_ms(job, intrinsic_runtime_of(tpl)))
+        self.assertEqual(before, after)
+
+
+class DiscreteModeEndToEndTests(unittest.TestCase):
+    def test_discrete_mode_runs_and_completes(self):
+        tpls = {f"t{i}": _chain(f"t{i}", [100.0, 120.0, 140.0]) for i in range(3)}
+        stats = train_resource_stats(tpls)
+        ep = {"episode_id": "agentix-discrete", "split": "train",
+              "gpu_topology_mb": [4000.0, 4000.0], "initial_residency_hint": [[], []],
+              "jobs": [{"job_instance_id": f"j{i}", "template_id": f"t{i}", "arrival_ms": 0.0,
+                        "deadline_ms": 1e9, "service_class": "normal"} for i in range(3)]}
+        summary, events = simulate_episode(ep, tpls, "agentix", train_stats=stats,
+                                           policy_context={"agentix_mode": "discrete"},
+                                           collect_events=True)
+        self.assertEqual(summary["completed_jobs"], 3)
+        self.assertEqual(summary["failed_jobs"], 0)
+        self.assertEqual(len([e for e in events if e.get("event_type") == "node_finish"]), 9)
+
+    def test_unknown_mode_still_fails_closed(self):
+        tpls = {"t0": _chain("t0", [100.0, 120.0, 140.0])}
+        stats = train_resource_stats(tpls)
+        ep = {"episode_id": "x", "split": "train", "gpu_topology_mb": [4000.0],
+              "initial_residency_hint": [[]],
+              "jobs": [{"job_instance_id": "j", "template_id": "t0", "arrival_ms": 0.0,
+                        "deadline_ms": 1e9, "service_class": "normal"}]}
+        with self.assertRaises(ValueError):
+            simulate_episode(ep, tpls, "agentix", train_stats=stats,
+                             policy_context={"agentix_mode": "oracle"})
 
 
 if __name__ == "__main__":

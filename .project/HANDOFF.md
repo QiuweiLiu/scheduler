@@ -1,5 +1,24 @@
 # HANDOFF
 
+## 2026-09-26 (7) Agentix 非抢占离散化敏感性变体
+
+- 新增 `agentix_mode=discrete`：K 档离散化 + **跨调用降级** + **程序级防饿死**；常量 `QUEUE_EDGES_MS`/`BETA` 预注册。
+- **明确非论文机制**（`AGENTIX_DISCRETE_DEVIATION`）；**主臂仍 `plas`**。
+- 精读结论：论文抢占**不重载模型**，只搬 KV 缓存 + 续跑；我们无 KV 抽象、现有抢占是整节点重算 → **不套用**。
+- Agentix gate 10→18；聚焦 163/163；全量 399（仅预存/环境）。
+
+### Active
+待 commit/push。
+
+### Next
+1. commit + push
+2. 请 GPT 终审 Pythia（`d01d202`）+ 本轮 Agentix 变更
+3. Agentix 主臂固定 PLAS 的披露收尾
+
+---
+
+# HANDOFF
+
 ## 2026-09-26 (6) Pythia 终审收尾 + re-pin freeze
 
 - 终审（`docs/research/2026-09-26_pythia_algorithm3_review.md`）：P0 CLOSED，无新泄漏。
