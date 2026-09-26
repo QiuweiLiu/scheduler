@@ -1,5 +1,26 @@
 # HANDOFF
 
+## 2026-09-26 (8) 终审收尾：Pythia ACCEPT + Agentix 服务口径/披露
+
+- **Pythia：算法 ACCEPT**（`docs/research/2026-09-26_pythia_and_agentix_final_review.md`）。只剩 provenance：`head_full_sha` → `d01d202…`，
+  fidelity gate 新增 `head == head_full_sha == frozen` 一致性检查。
+- **Agentix 主臂（PLAS）服务口径**改为"已完成 GPU 节点的观察模型执行服务"（排除 CPU 节点/加载/排队）。
+- **Agentix discrete 敏感性**：wait 改 GPU-only、改名 cross-call re-binning、常量叫 fixed sensitivity parameters、`AGENTIX_DEVIATION` 扩写。
+- GPT 明确：**不做** restart-preemption 的 Agentix 臂。
+- 验证：Agentix gate 22；聚焦 167/167；全量 403（仅预存/环境）。
+
+### Active
+待 commit/push。
+
+### Next
+1. commit + push
+2. （可选）Agentix 主臂正式 freeze（服务口径已修，需写 freeze manifest）
+3. 正式报告前补 telemetry（queue occupancy / promotion rate）
+
+---
+
+# HANDOFF
+
 ## 2026-09-26 (7) Agentix 非抢占离散化敏感性变体
 
 - 新增 `agentix_mode=discrete`：K 档离散化 + **跨调用降级** + **程序级防饿死**；常量 `QUEUE_EDGES_MS`/`BETA` 预注册。

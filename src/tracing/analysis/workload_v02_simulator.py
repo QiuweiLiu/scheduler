@@ -3795,7 +3795,7 @@ def choose_action(
 
         from tracing.analysis.agentix_methods import (
             discrete_priority_index,
-            intrinsic_runtime_of,
+            observed_gpu_service_of,
             program_priority_ms,
         )
 
@@ -3811,9 +3811,11 @@ def choose_action(
                 item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
                 job = jobs[job_index]
                 attained = program_priority_ms(
-                    job, job.template, intrinsic_runtime_of(job.template), mode="plas")
-                wait_ms = float(job.queue_ms) + max(
-                    0.0, float(decision_time_ms) - float(item[1]))
+                    job, job.template, observed_gpu_service_of(job), mode="plas")
+                # GPU-only wait proxy: the current ready CALL's wait, not job.queue_ms (which
+                # also accumulates non-LLM node waits).  Program-level W_p is not separately
+                # accumulated; recorded as a sensitivity limitation.
+                wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
                 queue = discrete_priority_index(attained, wait_ms)
                 return (
                     float(item[0]),
@@ -3830,7 +3832,7 @@ def choose_action(
                 item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
                 job = jobs[job_index]
                 attained = program_priority_ms(
-                    job, job.template, intrinsic_runtime_of(job.template), mode=mode)
+                    job, job.template, observed_gpu_service_of(job), mode=mode)
                 return (
                     float(item[0]),
                     attained,

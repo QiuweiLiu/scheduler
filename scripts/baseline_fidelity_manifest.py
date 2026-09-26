@@ -118,6 +118,18 @@ def main() -> int:
             if entry["freeze_status"] != "APPROVED":
                 violations.append("%s: freeze status %r"
                                   % (spec["arm"], entry["freeze_status"]))
+            # Provenance self-consistency: the manifest's freeze head must equal BOTH the
+            # pinned head in this gate and its own head_full_sha when it carries one.  A
+            # stale head_full_sha silently contradicting head is a freeze artifact defect
+            # that must fail the gate rather than pass.
+            manifest_head = (data.get("freeze") or {}).get("head")
+            if manifest_head != spec["freeze_head"]:
+                violations.append("%s: manifest freeze head %r != pinned %r"
+                                  % (spec["arm"], manifest_head, spec["freeze_head"]))
+            full = (data.get("freeze") or {}).get("head_full_sha")
+            if full is not None and full != manifest_head:
+                violations.append("%s: head_full_sha %r != head %r"
+                                  % (spec["arm"], full, manifest_head))
         else:
             entry["manifest_present"] = False
             violations.append("%s: freeze manifest missing" % spec["arm"])

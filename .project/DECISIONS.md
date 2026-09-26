@@ -1481,3 +1481,30 @@ workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已�
   且现有"抢占"是**整节点取消+重算**——**成本模型不同，故不套用**，只留非抢占变体。
 - 验证：Agentix gate 10→**18**；聚焦 **163/163**；全量 **399**（仅预存/环境）。真实 3 集：`discrete` 与 `plas` 结果不同（主臂 `plas` 未变）。
 - 待 commit/push。
+
+## 2026-09-26 — 终审收尾：Pythia ACCEPT（仅 provenance）+ Agentix 服务口径/披露
+
+依 `docs/research/2026-09-26_pythia_and_agentix_final_review.md`。
+
+### Pythia：算法 ACCEPT，仅剩 provenance
+- 修 `pythia_baseline_freeze_v1.json` 的 `head_full_sha`（旧 `54a2d25…` → **`d01d202…`**），与 `head` 一致。
+- `baseline_fidelity_manifest.py` 新增**一致性检查**：`manifest.freeze.head == pinned freeze_head`，且 `head_full_sha == head`，不一致即 FAIL。
+- gateway PASS。**不会再要求算法复审**。
+- GPT 明确：**不要**做 dev grid 调 ω2/λ/τ；S_unblock decision-inactive 不阻止 freeze，正式 300 集只作 telemetry 报告 action-flip。
+
+### Agentix 主臂（PLAS）服务口径修正
+- 新增 `observed_gpu_service_of(job)`：PLAS 只累加**已完成 GPU 节点**的**观察到的模型执行服务**：
+  排除 CPU/control 节点（lane≠gpu → None）、排除加载（`runtime - load`）、排除排队等待（用 observation store 的 intrinsic，而非 finish−start）。
+- 模拟器 agentix 分支（plas/atlas/discrete）改用该访问器。新增 `ServiceAccountingTests`（4 项）。
+
+### Agentix discrete 敏感性变体收紧
+- 措辞：**cross-call re-binning**（论文另有"within-call quantum demotion"，我们做不了，非替代品）。
+- **wait 改为 GPU-only**：只用当前 ready 调用的等待（不再用含非 LLM 等待的 `job.queue_ms`）；程序级 W_p 未单独累计，记为限制。
+- 常量命名：**fixed sensitivity parameters**（非 "Agentix official configuration"）。
+- `AGENTIX_DEVIATION` 扩写：正式臂 = 连续 PLAS **非抢占**；K 队列/时间片/within-call demotion/防饿死**都不在正式臂**；硬优先级类在前；放置/内存/驻留来自 substrate；
+  **"no prediction of future structure"**（会使用 substrate 对当前 ready 节点的资源估计，措辞不再绝对）。
+- GPT 明确：**不做**"整节点重算式抢占"的 Agentix 臂（成本模型不同）；若将来要做，另叫 **Restart-Preemption sensitivity**。
+- （待办 telemetry）正式报告时补 queue occupancy Q1..Q4 与 anti-starvation promotion rate。
+
+### 验证
+Agentix gate 18→**22**；聚焦 **167/167**；全量 **403**（仅预存/环境）。

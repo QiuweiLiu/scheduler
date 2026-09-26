@@ -16,12 +16,14 @@ from __future__ import annotations
 import unittest
 
 from tracing.analysis.agentix_methods import (
+    AGENTIX_DEVIATION,
     AGENTIX_SCHEMA,
     DEFAULT_ANTI_STARVATION_BETA,
     DEFAULT_QUEUE_EDGES_MS,
     critical_path_service_ms,
     completed_service_ms,
     discrete_priority_index,
+    observed_gpu_service_of,
     intrinsic_runtime_of,
     is_starving,
     program_priority_ms,
@@ -155,6 +157,48 @@ class EndToEndTests(unittest.TestCase):
             policy_context={"agentix_mode": "atlas"})
         self.assertEqual(summary["completed_jobs"], 1)
         self.assertEqual(summary["failed_jobs"], 0)
+
+
+class ServiceAccountingTests(unittest.TestCase):
+    """PLAS service = completed GPU nodes' observed model-executor service, nothing else."""
+
+    @staticmethod
+    def _job(nodes, completed, observed=None):
+        tpl = _template("t", nodes)
+
+        class _J:
+            pass
+
+        j = _J()
+        j.template = tpl
+        j.completed = set(completed)
+        j.observed_intrinsic_ms = dict(observed or {})
+        return j
+
+    def test_non_gpu_nodes_are_excluded(self):
+        g1 = _node("t:g", 0, [], 100.0)
+        c1 = _node("t:c", 1, [], 50.0, lane="cpu")
+        job = self._job([g1, c1], {"t:g", "t:c"})
+        self.assertAlmostEqual(completed_service_ms(job, observed_gpu_service_of(job)), 100.0)
+
+    def test_model_load_is_excluded(self):
+        # runtime 100 with load 30 -> service 70
+        g1 = Node(node_id="t:g", sequence_index=0, predecessors=(), successors=(),
+                  lane="gpu", model_id="m1", runtime_ms=100.0, load_ms=30.0,
+                  workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+                  role="execute", action_family="inference")
+        job = self._job([g1], {"t:g"})
+        self.assertAlmostEqual(completed_service_ms(job, observed_gpu_service_of(job)), 70.0)
+
+    def test_observation_store_is_used(self):
+        g1 = _node("t:g", 0, [], 100.0)
+        job = self._job([g1], {"t:g"}, observed={"t:g": 120.0})
+        # observed runtime 120 (load 0) -> service 120
+        self.assertAlmostEqual(completed_service_ms(job, observed_gpu_service_of(job)), 120.0)
+
+    def test_deviation_discloses_the_formal_arm_boundary(self):
+        for token in ("preemptive", "MLFQ", "quantum", "anti-starvation", "prediction"):
+            self.assertIn(token, AGENTIX_DEVIATION)
 
 
 class QueueDiscretizationTests(unittest.TestCase):

@@ -35,11 +35,16 @@ from typing import Any, Callable, Mapping
 AGENTIX_SCHEMA = "agentix-attained-service-v1"
 
 AGENTIX_DEVIATION = (
-    "Adapted to the unified GPU simulator: Agentix's program-level attained-service priority "
-    "(PLAS / ATLAS) replaces the shared min(pool, key=...) heuristic, while placement, "
-    "admission memory and model residency remain with the substrate. Only the priority rule "
-    "is ported; the paper's engine-level batching, cross-engine routing and KV-locality load "
-    "balancing are NOT reproduced. The arm is non-clairvoyant: it reads only COMPLETED calls."
+    "Adapted to the unified GPU simulator. The FORMAL arm is continuous PLAS, NON-PREEMPTIVE: "
+    "placement, admission memory and model residency remain with the substrate. Not part of the "
+    "formal arm and NOT reproduced: the paper's preemptive MLFQ scheduler (K priority queues, the "
+    "decoding time quantum, in-call demotion when a quantum is exhausted) and program-level "
+    "anti-starvation, all of which need request preemption / KV-cache swapping; plus the "
+    "engine-level batching, cross-engine routing and KV-locality load balancing. The hard "
+    "benchmark service class precedes the PLAS score. Service accounting counts completed GPU "
+    "nodes' observed model-executor service (queued wait and model load excluded). "
+    "Information boundary: NO prediction of future workflow structure or remaining work; the "
+    "current ready node's resource estimates are inherited from the common substrate."
 )
 
 
@@ -51,7 +56,13 @@ def completed_service_ms(job: Any, duration_of: Callable[[str], float]) -> float
     non-clairvoyant assumption.
     """
 
-    return float(sum(float(duration_of(node_id)) for node_id in job.completed))
+    total = 0.0
+    for node_id in job.completed:
+        value = duration_of(node_id)
+        if value is None:
+            continue  # e.g. a non-LLM node that carries no model-executor service
+        total += float(value)
+    return float(total)
 
 
 def critical_path_service_ms(job: Any, template: Any, duration_of: Callable[[str], float]) -> float:
@@ -96,6 +107,32 @@ def program_priority_ms(job: Any, template: Any, duration_of: Callable[[str], fl
     raise ValueError("unknown Agentix mode %r; use 'plas' or 'atlas'" % (mode,))
 
 
+def observed_gpu_service_of(job: Any) -> Callable[[str], float]:
+    """Accessor for a COMPLETED GPU node's observed model-executor SERVICE.
+
+    Agentix's PLAS sums the cumulative execution time of completed LLM calls on the engine's
+    MODEL EXECUTOR.  Three things must therefore be excluded, all of which the raw template
+    ``runtime_ms`` would wrongly include:
+      * non-LLM (CPU/control/API) nodes -- ``lane != 'gpu'`` returns ``None`` and is skipped;
+      * the model LOADING cost -- our substrate defines ``compute_ms = runtime_ms - load_ms``;
+      * queue wait -- the observation store records the intrinsic runtime, not
+        ``finish - start`` (which would fold in this schedule's own queue delay).
+    The value is read from the observation store written on completion when available.
+    """
+
+    observed = getattr(job, "observed_intrinsic_ms", None) or {}
+
+    def duration_of(node_id: str):
+        node = job.template.by_id.get(node_id)
+        if node is None or str(getattr(node, "lane", "gpu")) != "gpu":
+            return None
+        runtime = float(observed[node_id]) if node_id in observed else float(node.runtime_ms)
+        load = float(getattr(node, "load_ms", 0.0) or 0.0)
+        return max(0.0, runtime - load)
+
+    return duration_of
+
+
 def intrinsic_runtime_of(template: Any) -> Callable[[str], float]:
     """Adapter from a completed node id to its ACTUAL service time.
 
@@ -121,8 +158,9 @@ def intrinsic_runtime_of(template: Any) -> Callable[[str], float]:
 # node-atomic substrate:
 #
 #   * discretisation: bin the program's attained service into K queues and rank by bin;
-#   * demotion ACROSS calls: as a program's attained service grows its later calls land in a
-#     lower queue (the paper demotes within a call instead);
+#   * CROSS-CALL RE-BINNING: as a program's attained service grows its later calls land in a
+#     lower queue.  This is NOT a substitute for the paper's within-call demotion, which the
+#     paper performs when a call exhausts its decoding quantum mid-call;
 #   * program-level anti-starvation: promote a call to the top queue when its program's
 #     (wait / service) ratio crosses beta.
 #
