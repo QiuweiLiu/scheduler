@@ -29,9 +29,9 @@ Adaptations recorded (NOT the paper's exact mechanism):
     role has no model-serving demand to unblock);
   * S_unblock is the RAW SUM over such roles (the paper's form); its scale relative to
     S_completion is set by the frozen ``omega2``, never by a candidate-wise mean;
-  * ``omega1``, ``omega2``, ``lambda`` and ``tau`` are PRE-REGISTERED, data-independent
-    adaptation constants -- the paper gives the form but no values.  They are frozen now
-    and must not be re-tuned against the evaluation episodes.
+  * ``omega1``, ``omega2``, ``lambda`` and ``tau`` are DATA-INDEPENDENT adaptation constants
+    fixed BEFORE formal measurement -- the paper gives the priority form but no values.
+    They were not selected by optimising formal-evaluation performance, and are frozen now.
 """
 
 from __future__ import annotations
@@ -47,9 +47,9 @@ from tracing.analysis.pythia_profiler import (
 
 PYTHIA_SCHEMA = "pythia-algorithm3-priority-v1"
 
-# Pre-registered, data-independent adaptation constants.  The paper states the priority
-# FORM but gives no values; these are declared constants from the start, not tuned on any
-# evaluation episode.
+# Data-independent adaptation constants fixed before formal measurement.  The paper states
+# the priority FORM but gives no values; these are not selected by optimising evaluation
+# performance and are frozen henceforth.
 PYTHIA_OMEGA1 = 1.0
 PYTHIA_OMEGA2 = 1.0
 PYTHIA_AGING_WEIGHT = 1.0
@@ -83,15 +83,16 @@ def expected_distance_to_role(profiler: Mapping[str, Any], current_role: str,
     Returns ``None`` when ``target_role`` is not reached within the bounded horizon (then it
     must not contribute).  This is the paper's ``E[D(current, a)]``: the distance the CURRENT
     agent is away from a downstream agent, not the downstream agent's distance to terminal.
+    ``target_role == current_role`` is a first-RETURN time, not zero.
     """
 
     if profiler.get("schema") != "pythia-role-pfa-v3":
         raise ValueError("Pythia profiler schema mismatch: %r" % (profiler.get("schema"),))
     steps = int(profiler["horizon"] if horizon is None else horizon)
     edges = profiler["edge_prob"]
-    if str(target_role) == str(current_role):
-        return 0.0
-
+    # No ``target == current -> 0`` shortcut: a role can recur (Pythia's loops are repeated
+    # roles), and the quantity is then the first-RETURN time E[T_A+ | T_A+ <= H] >= 1.  If
+    # it never recurs the hit probability stays zero and ``None`` is returned.
     front: Dict[str, float] = {str(current_role): 1.0}
     hit_prob = 0.0
     hit_weighted = 0.0

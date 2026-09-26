@@ -16,12 +16,12 @@ Chain migrated:
     train-only traces -> role-alphabet PFA -> pruned bounded probable future
         -> E[remaining distance] -> completion-aware priority
 
-NOT migrated, stated as omissions rather than faked:
-  * cache routing, prefix caching, model-replica idleness and autoscaling are outside
+Partially migrated, stated precisely:
+  * cache routing, prefix caching, model-replica idleness and autoscaling remain outside
     this GPU execution abstraction;
-  * the downstream-idle term ``S_unblock`` is omitted because the simulator has no
-    model-server queue to attach it to.  The review preferred an honest omission over
-    inventing one, so the priority is ``omega1 * S_completion`` with omega2 = 0.
+  * the downstream-idle term ``S_unblock`` IS implemented (see ``pythia_methods``) as a
+    queue-demand proxy: the simulator has no model-replica queue, so a future role's
+    deployment is "idle-risk" when it has no scheduler-visible ready/running demand.
 
 Deviation, recorded: the paper derives the automaton from its own trace format.  Here the
 alphabet is the VideoSeek role ontology, and the expected remaining distance is computed
@@ -261,7 +261,8 @@ def reachable_future_roles(profiler: Mapping[str, Any], role: str,
     Breadth-first over the PRUNED transition graph only -- it never reads the realized
     template, so a role that the workflow "will actually" visit cannot enter unless the
     train-only automaton makes it reachable.  The paper's DownstreamIdleRisk is stated over
-    the bounded probable future; this is that set for our PFA.
+    the bounded probable future; this is that set for our PFA.  The START role may appear
+    (a loop re-enters it); its distance is therefore a first-RETURN time, not zero.
     """
 
     if profiler.get("schema") != PROFILER_SCHEMA:
@@ -274,7 +275,10 @@ def reachable_future_roles(profiler: Mapping[str, Any], role: str,
         nxt: List[str] = []
         for current in frontier:
             for following in edges.get(current, {}):
-                if following == END or following in seen or following == role:
+                if following == END or following in seen:
+                    # Pythia expresses a loop as a REPEATED role, so the current role may
+                    # legitimately recur as a future role; it is added once, and the
+                    # distance to it is then the first-RETURN time, not zero.
                     continue
                 seen.add(following)
                 nxt.append(following)

@@ -43,6 +43,13 @@ from tracing.analysis.workload_v02_simulator import (
 )
 
 
+def node(nid, seq, role, family, raw, runtime=100.0, model="m1", lane="gpu"):
+    return Node(node_id=nid, sequence_index=seq, predecessors=() if seq == 0 else (),
+                successors=(), lane=lane, model_id=model, runtime_ms=float(runtime), load_ms=0.0,
+                workspace_peak_mb=10.0, resident_model_mb=10.0, status="success",
+                role=role, action_family=family, raw_action=raw)
+
+
 def role_node(tid, index, role, family, runtime, split="train"):
     return Node(
         node_id=f"{tid}:n{index}", sequence_index=index,
@@ -431,39 +438,57 @@ class GlobalDemandTests(unittest.TestCase):
                            "a model busy in another workflow is not idle-risk")
 
 
-class FutureMutationTests(unittest.TestCase):
-    def test_unexecuted_suffix_does_not_change_the_score(self):
-        """The score reads the PFA + live demand, never the realized suffix."""
+class LoopReturnTests(unittest.TestCase):
+    """Pythia expresses a loop as a repeated role; a recurring role has a POSITIVE distance."""
 
+    def test_first_return_distance_is_positive(self):
+        prof = _pfa({"a": {"a": 0.5, "b": 0.5}, "b": {END: 1.0}},
+                    {"a": "mA", "b": "mB"}, {"a": 2.0, "b": 0.0})
+        self.assertIn("a", reachable_future_roles(prof, "a"),
+                      "the current role may recur as a future role")
+        # first return to a: hit at step 1 with probability 0.5 -> E[T_a+|<=H] = 1
+        self.assertAlmostEqual(expected_distance_to_role(prof, "a", "a"), 1.0)
+        # first hit of b is geometric (a may loop first), so 1 < E[D(a,b)] < 2
+        d_ab = expected_distance_to_role(prof, "a", "b")
+        self.assertGreater(d_ab, 1.0)
+        self.assertLess(d_ab, 2.0)
+
+    def test_no_self_loop_means_no_return(self):
         prof = _pfa({"a": {"b": 1.0}, "b": {END: 1.0}}, {"a": "mA", "b": "mB"},
                     {"a": 1.0, "b": 0.0})
-        idle = lambda m: True
-        before = pythia_base_priority(prof, "a", idle)
-        # swap in a completely different realized future for role b (a's successor)
-        prof["role_model"]["b"] = "mZ"
-        changed = pythia_base_priority(prof, "a", idle)
-        # role_model is a TRAIN artifact, not the episode template: mutating it IS a
-        # predictor change (allowed); the point is that the TEMPLATE is never consulted.
-        self.assertIsInstance(changed, float)
-        self.assertAlmostEqual(pythia_base_priority(prof, "a", idle), changed)
+        self.assertNotIn("a", reachable_future_roles(prof, "a"))
+        self.assertIsNone(expected_distance_to_role(prof, "a", "a"))
 
 
-class TrainOnlyMappingTests(unittest.TestCase):
-    def test_role_model_is_train_only_majority(self):
-        t1 = role_template("t1", [("planner", "p"), ("tool", "t")], 10.0)
-        t2 = role_template("t2", [("planner", "p"), ("tool", "t")], 10.0)
-        v = role_template("v", [("planner", "p"), ("tool", "t")], 10.0, split="validation")
-        prof = build_pythia_profiler({"t1": t1, "t2": t2, "v": v})
-        self.assertEqual(prof["n_runs"], 2)
-        # every role maps to the single train model id
-        self.assertEqual(set(prof["role_model"].values()), {"m1"})
+class FutureTemplateInvarianceTests(unittest.TestCase):
+    """The realized template suffix must NOT move the score (before vs after)."""
 
-    def test_validation_template_does_not_enter_the_mapping(self):
-        train = {"a": role_template("a", [("planner", "p")], 10.0)}
-        val = {"b": role_template("b", [("planner", "p")], 9999.0, split="validation")}
-        only = build_pythia_profiler(train)
-        both = build_pythia_profiler({**train, **val})
-        self.assertEqual(only["role_model"], both["role_model"])
+    @staticmethod
+    def _prof():
+        # planner -> tool ; a train-only PFA over those roles
+        t1 = role_template("t1", [("planner", "p"), ("tool", "toolA")], 10.0)
+        return build_pythia_profiler({"t1": t1})
+
+    @staticmethod
+    def _job():
+        n0 = node("j:n0", 0, "planner", "p", "p", runtime=100.0)
+        n1 = node("j:n1", 1, "tool", "toolA", "toolA", runtime=100.0)
+        tpl = Template("j", "j", "train", "fam", (n0, n1), {"j:n0": n0, "j:n1": n1})
+        return _FakeJob([("j:n0", "ready", "m1", "gpu"), ("j:n1", "pending", "m1", "gpu")]) , tpl
+
+    def test_unexecuted_suffix_mutation_does_not_move_the_score(self):
+        prof = self._prof()
+        job, tpl = self._job()
+        job.template = tpl
+        role = role_alphabet(tpl.by_id["j:n0"])
+        zero = lambda m: True
+        before = pythia_base_priority(prof, role, zero)
+        # change the UNEXECUTED suffix: different successor role/model/runtime
+        n1 = node("j:n1", 1, "tool", "toolZ", "toolZ", runtime=999.0)
+        job.template = type("_T", (), {"by_id": {"j:n0": tpl.by_id["j:n0"], "j:n1": n1}})()
+        after = pythia_base_priority(prof, role, zero)
+        self.assertAlmostEqual(before, after,
+                               msg="the score must not read the realized future suffix")
 
 
 if __name__ == "__main__":

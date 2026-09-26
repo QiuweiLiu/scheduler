@@ -84,26 +84,26 @@
       "omega2": 1.0,
       "aging_weight": 1.0,
       "aging_scale_ms": 30000.0,
-      "provenance": "PRE-REGISTERED, data-independent adaptation constants declared from the start; the paper gives the priority FORM but no values. Not tuned on any evaluation episode."
+      "provenance": "Data-independent adaptation constants fixed BEFORE formal measurement; values were not selected by optimising formal-evaluation performance, and are frozen henceforth."
     },
     "schema": "pythia-role-pfa-v3",
     "non_degeneracy_probe": {
       "episodes": 3,
       "aging_changes_result": true,
-      "S_unblock_alone_changes_makespan": false,
-      "both_differs_from_completion_only": true,
-      "S_unblock_nonzero_rate": "585/727 = 80.5%",
-      "mean_S_unblock": "0.310"
+      "S_unblock_nonzero_rate": "585/727 = 80.5% (score-active)",
+      "S_unblock_action_flip_rate": "0/614 decisions: the decision sequence is IDENTICAL with omega2=0 vs omega2=1 (aging off)",
+      "note": "S_unblock is implemented and score-active at the candidate level but OPERATIONALLY INACTIVE on this workload/sample; reported honestly, not tuned. A fidelity freeze does not require it to change the makespan."
     },
     "sentinels": [
-      "distance is current->target; nearer idle agent contributes more (D(A,B)=1 > D(A,C)=2)",
+      "distance is current->target; nearer idle agent contributes more (D(A,B)=1 < D(A,C)=2)",
+      "a recurring role (self-loop) has a POSITIVE first-return distance; no self-loop -> unreachable",
       "raw-sum cardinality: two idle future agents outweigh one",
       "CPU-lane future roles excluded",
       "probabilistic deployment mapping is marginalised by P(model|role)",
       "cross-workflow global demand: a model busy elsewhere is not idle-risk",
-      "role_model/role_model_dist are train-only and validation-invariant",
+      "role_model / role_model_dist / role_lane are train-only and validation-invariant",
       "aging monotone in wait and dimensionless",
-      "PFA mutation changes the score; template suffix is never read"
+      "PFA mutation changes the score; a real Template's UNEXECUTED suffix mutation does not"
     ]
   }
 }
