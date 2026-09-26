@@ -1451,3 +1451,18 @@ workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已�
 - sentinel 24→**32**：距离方向、raw-sum 基数、CPU-lane 排除、概率映射加权、跨 workflow 全局需求、模板后缀不改分、ageing 无量纲/单调。
 - **Non-degeneracy**（3 confirm 集）：aging 改变结果 ✓；both ≠ completion-only ✓；**S_unblock 候选级非零率 80.5%**（均值 0.310）；单独加 S_unblock 在这 3 集上未改 makespan（**如实记录**）。
 - 全量 **391** 测试（仅预存 `round_robin` + 8 环境 error）；fidelity manifest **PASS**。待 commit/push；随后请 GPT 终审 freeze。
+
+## 2026-09-26 — Pythia 终审收尾：loop 边界 + 有效 sentinel + re-pin freeze
+
+依 `docs/research/2026-09-26_pythia_algorithm3_review.md` 终审（P0 已 CLOSED，无新泄漏；余为小 P1）。
+- **loop 保真**：角色可重复出现（Pythia 用重复 role 表示循环）。删除 `target==current → 0` 特判与
+  `following==role` 排除，改为一阶**回访距离** `E[T_A+ | ≤H]`。gate：`A→A→B` 时 `D+(A,A)=1`；无自环则 `None`。
+- **修正无效 sentinel**：原"后缀不改分"测试实为 after-vs-after 且改的是 profiler；改为对**真实 Template 的未执行后缀**
+  （后继 role/model/runtime）做 before/after 对比。
+- **train-only 不变**：断言扩展至 `role_model_dist` 与 `role_lane`。
+- **措辞**：常量改为"**正式测量前固定的、与数据无关的适配常量**"（不再写 "pre-registered from the start"）；profiler 顶部
+  过时 docstring（S_unblock omitted / omega2=0）已删。
+- **如实披露**：S_unblock **score-active**（候选级非零 585/727 = 80.5%）但**决策 inactive**——ω2=0 vs 1（aging off）
+  在 3 集上**决策序列完全一致（0/614 flip）**。不调参；fidelity freeze 不要求它改变 makespan。
+- **re-pin**：Pythia freeze head → `d01d202`；fidelity manifest 重新生成 PASS。
+- 验证：gate 32/32；聚焦 155/155；全量 391（仅预存/环境）。

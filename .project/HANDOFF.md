@@ -1,5 +1,21 @@
 # HANDOFF
 
+## 2026-09-26 (6) Pythia 终审收尾 + re-pin freeze
+
+- 终审（`docs/research/2026-09-26_pythia_algorithm3_review.md`）：P0 CLOSED，无新泄漏。
+- 修完小 P1：loop 回访距离、**有效**的模板后缀不变 sentinel、train-only 不变（含 dist/lane）、常量措辞、删过时 docstring。
+- 如实披露：S_unblock score-active（80.5%）但 decision-inactive（0/614 flip）。
+- **Pythia freeze re-pin → `d01d202`**；gate 32/32；全量 391（仅预存/环境）；fidelity manifest PASS。
+- 已推送：`08d28b4`(P0 fix) → `d01d202`(P1 fix) → `d1a8e86`(re-pin)。origin/main = `d1a8e86`。
+
+### Next
+1. 请 GPT 对 `d01d202` 给最终 ACCEPT/FREEZE 结论（预期通过）
+2. Agentix 披露收尾（主臂固定 PLAS；MLQ/时间片/防饿死/抢占列 unavailable）
+
+---
+
+# HANDOFF
+
 ## 2026-09-26 (5) Pythia S_unblock 修正（GPT P0）（未 commit）
 
 GPT 复核（`docs/research/2026-09-26_pythia_algorithm3_review.md`）判定：无泄漏，但 **S_unblock 距离量错 = P0，不能 freeze**。
