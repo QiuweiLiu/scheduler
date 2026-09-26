@@ -53,7 +53,7 @@ from typing import Any, Dict, List, Mapping, Tuple
 
 from tracing.analysis.llmsched_stage import canonical_stage_base, intrinsic_duration_ms
 
-PROFILER_SCHEMA = "pythia-role-pfa-v2"
+PROFILER_SCHEMA = "pythia-role-pfa-v3"
 
 # Transitions rarer than this are pruned, which is the paper's "bounded probable
 # future": the automaton keeps only the paths that history says actually happen often.
@@ -93,6 +93,9 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
     transitions: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     durations: Dict[str, List[float]] = defaultdict(list)
     starts: Dict[str, int] = defaultdict(int)
+    # Train-only role -> model evidence, for the DownstreamIdleRisk term: a future role's
+    # deployment is not carried by the role key, so it is mapped from TRAIN history only.
+    model_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     n_runs = 0
 
     for tpl in templates.values():
@@ -106,6 +109,7 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         for index, node in enumerate(order):
             here = role_alphabet(node)
             durations[here].append(intrinsic_duration_ms(node))
+            model_counts[here][str(getattr(node, "model_id", "") or "")] += 1
             following = role_alphabet(order[index + 1]) if index + 1 < len(order) else END
             transitions[here][following] += 1
 
@@ -156,6 +160,15 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
             nxt_value[role] = acc
         value = nxt_value
 
+    # Frozen, TRAIN-ONLY role -> deployment mapping (majority model, deterministic
+    # tie-break).  The DownstreamIdleRisk term needs a future role's model, which the role
+    # key does not carry; deriving it from train history keeps the term a prediction and
+    # never a read of the realized future.
+    role_model = {
+        role: sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+        for role, counts in model_counts.items() if counts
+    }
+
     return {
         "schema": PROFILER_SCHEMA,
         "alphabet": sorted(pruned),
@@ -165,6 +178,7 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         "mean_duration_ms": {k: float(v) for k, v in mean_duration.items()},
         "start_prob": start_prob,
         "expected_remaining_steps_by_role": {k: float(v) for k, v in value.items()},
+        "role_model": role_model,
         "pruned_edges": [{"from": a, "to": b, "prob": p} for a, b, p in sorted(pruned_away)],
         "n_runs": n_runs,
         "min_prob": float(min_prob),
@@ -183,7 +197,10 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         ],
         "omissions": [
             "cache routing, prefix caching, model-replica idleness, autoscaling",
-            "S_unblock (no model-server queue in this simulator); omega2 = 0",
+            "model-replica queue depth: S_unblock uses a queue-demand PROXY (scheduler-visible "
+            "ready+running requests per model), not the paper's replica queue",
+            "local worker waiting-time aging is a Pythia-specific dimensionless re-score, not "
+            "the paper's worker loop",
         ],
     }
 
@@ -208,6 +225,36 @@ def expected_remaining_steps(profiler: Mapping[str, Any], role: str) -> float:
             "disagree" % (role,)
         )
     return float(table[role])
+
+
+def reachable_future_roles(profiler: Mapping[str, Any], role: str,
+                           horizon: int | None = None) -> List[str]:
+    """The retained-PFA roles reachable from ``role`` within the bounded horizon.
+
+    Breadth-first over the PRUNED transition graph only -- it never reads the realized
+    template, so a role that the workflow "will actually" visit cannot enter unless the
+    train-only automaton makes it reachable.  The paper's DownstreamIdleRisk is stated over
+    the bounded probable future; this is that set for our PFA.
+    """
+
+    if profiler.get("schema") != PROFILER_SCHEMA:
+        raise ValueError("Pythia profiler schema mismatch: %r" % (profiler.get("schema"),))
+    steps = int(profiler["horizon"] if horizon is None else horizon)
+    edges = profiler["edge_prob"]
+    seen: set[str] = set()
+    frontier = [role]
+    for _ in range(max(0, steps)):
+        nxt: List[str] = []
+        for current in frontier:
+            for following in edges.get(current, {}):
+                if following == END or following in seen or following == role:
+                    continue
+                seen.add(following)
+                nxt.append(following)
+        frontier = nxt
+        if not frontier:
+            break
+    return sorted(seen)
 
 
 def current_role(job: Any, node_id: str) -> str:

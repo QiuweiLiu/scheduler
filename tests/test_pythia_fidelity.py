@@ -22,8 +22,14 @@ from tracing.analysis.pythia_profiler import (
     build_pythia_profiler,
     expected_remaining_steps,
     current_role,
+    reachable_future_roles,
     role_alphabet,
     s_completion,
+)
+from tracing.analysis.pythia_methods import (
+    pythia_base_priority,
+    pythia_effective_priority,
+    unblock_score,
 )
 from tracing.analysis.workload_v02_simulator import (
     POLICIES,
@@ -261,6 +267,99 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(summary["failed_jobs"], 0)
         # a profiler partitioned by the workflow family cannot serve this call
         self.assertNotIn("families", prof)
+
+
+class AgingTests(unittest.TestCase):
+    """Algorithm 3's worker-side aging, restored and dimensionless."""
+
+    def test_aging_is_monotone_in_wait(self):
+        a = pythia_effective_priority(0.5, 0.0)
+        b = pythia_effective_priority(0.5, 10000.0)
+        c = pythia_effective_priority(0.5, 20000.0)
+        self.assertLess(a, b)
+        self.assertLess(b, c)
+
+    def test_aging_is_dimensionless_not_millisecond_added(self):
+        """A millisecond quantity must not be added to a score in (0, 1]."""
+
+        # base 0.5 with lambda=1, tau=30000 -> wait 15000 adds exactly 0.5
+        self.assertAlmostEqual(pythia_effective_priority(0.5, 15000.0, 1.0, 30000.0), 1.0)
+
+    def test_zero_wait_is_the_identity(self):
+        self.assertAlmostEqual(pythia_effective_priority(0.37, 0.0), 0.37)
+
+    def test_bad_scale_fails_closed(self):
+        with self.assertRaises(ValueError):
+            pythia_effective_priority(0.5, 1.0, 1.0, 0.0)
+
+
+def _pfa(edge_prob, role_model, v):
+    return {
+        "schema": PROFILER_SCHEMA,
+        "alphabet": sorted(role_model),
+        "edge_prob": edge_prob,
+        "role_model": role_model,
+        "expected_remaining_steps_by_role": v,
+        "horizon": 6,
+    }
+
+
+class UnblockTests(unittest.TestCase):
+    """S_unblock = DownstreamIdleRisk over the reached future (queue-demand proxy)."""
+
+    def _prof(self):
+        return _pfa({"a": {"b": 1.0}, "b": {END: 1.0}},
+                    {"a": "mA", "b": "mB"}, {"a": 1.0, "b": 0.0})
+
+    def test_reachable_future_excludes_end_and_start(self):
+        self.assertEqual(reachable_future_roles(self._prof(), "a"), ["b"])
+
+    def test_idle_downstream_model_raises_the_score(self):
+        prof = self._prof()
+        idle = lambda m: m == "mB"
+        busy = lambda m: False
+        self.assertAlmostEqual(unblock_score(prof, "a", busy), 0.0)
+        self.assertAlmostEqual(unblock_score(prof, "a", idle), 1.0)
+
+    def test_unrelated_model_demand_does_not_matter(self):
+        prof = self._prof()
+        only_other = lambda m: m == "mC"
+        self.assertAlmostEqual(unblock_score(prof, "a", only_other), 0.0)
+
+    def test_pfa_mutation_changes_the_score(self):
+        """It must consume the train-only predictor, not the template."""
+
+        prof = self._prof()
+        idle = lambda m: True
+        before = unblock_score(prof, "a", idle)
+        prof["edge_prob"]["a"] = {END: 1.0}   # no reachable future role any more
+        after = unblock_score(prof, "a", idle)
+        self.assertNotAlmostEqual(before, after)
+        self.assertAlmostEqual(after, 0.0)
+
+    def test_base_priority_combines_both_halves(self):
+        prof = self._prof()
+        idle = lambda m: True
+        # omega1 * S_completion(a)=1/(1+1)=0.5  + omega2 * 1.0
+        self.assertAlmostEqual(pythia_base_priority(prof, "a", idle), 1.5)
+
+
+class TrainOnlyMappingTests(unittest.TestCase):
+    def test_role_model_is_train_only_majority(self):
+        t1 = role_template("t1", [("planner", "p"), ("tool", "t")], 10.0)
+        t2 = role_template("t2", [("planner", "p"), ("tool", "t")], 10.0)
+        v = role_template("v", [("planner", "p"), ("tool", "t")], 10.0, split="validation")
+        prof = build_pythia_profiler({"t1": t1, "t2": t2, "v": v})
+        self.assertEqual(prof["n_runs"], 2)
+        # every role maps to the single train model id
+        self.assertEqual(set(prof["role_model"].values()), {"m1"})
+
+    def test_validation_template_does_not_enter_the_mapping(self):
+        train = {"a": role_template("a", [("planner", "p")], 10.0)}
+        val = {"b": role_template("b", [("planner", "p")], 9999.0, split="validation")}
+        only = build_pythia_profiler(train)
+        both = build_pythia_profiler({**train, **val})
+        self.assertEqual(only["role_model"], both["role_model"])
 
 
 if __name__ == "__main__":

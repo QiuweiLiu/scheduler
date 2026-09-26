@@ -12,7 +12,7 @@
     "status": "APPROVED",
     "approval_quote": "可以正式 freeze",
     "gates": "tests/test_pythia_fidelity.py",
-    "gate_count": 12,
+    "gate_count": 24,
     "declaration_received": true,
     "freeze_breaking_fix_commit": "54a2d25088832049afb0cf860cdabfe5152c8c3d"
   },
@@ -26,7 +26,10 @@
   "adapted": [
     "role key composed from role:action_family:raw_action, because the paper's alphabet entry is the current agent_id and a bare VideoSeek role is too coarse",
     "the finite horizon is OUR fixed, train-independent step limit and is NOT the paper's bound, which prunes transitions and applies repetition bounds to looping roles",
-    "indexing by the candidate's own role (the agent_id Pythia exposes on a request)"
+    "indexing by the candidate's own role (the agent_id Pythia exposes on a request)",
+    "S_unblock approximated by a queue-demand PROXY (scheduler-visible ready+running GPU requests per model), because this simulator has no model-replica queue",
+    "aging expressed as a dimensionless re-score S + lambda*(wait/tau); the paper's worker loop is not reproduced",
+    "S_unblock is the mean idle-risk over PFA-reachable future roles, bounded in [0,1] so it is commensurate with S_completion"
   ],
   "deviation": [
     "H=6 fixed finite-horizon recursion replaces Pythia's bounded-regex / repetition-bound representation for expected remaining-distance estimation. The paper bounds its automaton with low-probability transition filtering plus repetition bounds on looping roles (engineer^{3,6}); H=6 is our fixed, train-independent approximation.",
@@ -48,8 +51,8 @@
     "PFA structure, transition semantics, pruning threshold and renormalisation",
     "DEFAULT_HORIZON and the expected-remaining recursion",
     "the current_role indexing semantics",
-    "S_completion and the completion-aware priority",
-    "the Pythia-specific simulator interface"
+    "the Pythia-specific simulator interface",
+    "the Algorithm 3 base priority (omega1/omega2), aging weight/scale, role_model mapping and the queue-demand proxy"
   ],
   "freeze_breaking_exception": "A reproducible correctness bug only, recorded as a freeze-breaking fix and never retuned to improve results.",
   "wording_correction": "Do not write that the finite horizon replaces a stationary solve: Pythia does not estimate this quantity by solving a stationary system. Write that it replaces the bounded-regex / repetition-bound representation.",
@@ -69,5 +72,35 @@
       "not_a_retune": true
     }
   ],
-  "V_plus_one_convention": "V counts future non-END roles AFTER the current request; therefore D_remaining = 1 + V(current_role)."
+  "V_plus_one_convention": "V counts future non-END roles AFTER the current request; therefore D_remaining = 1 + V(current_role).",
+  "algorithm3_restoration_20260926": {
+    "change": "Restored the FULL Algorithm 3 base priority omega1*S_completion + omega2*S_unblock plus worker-side aging, so the arm is no longer a completion-only variant.",
+    "S_completion": "1/(1+V(role)), V = expected remaining distance in steps over the train-only role-PFA",
+    "S_unblock": "mean over reachable future roles of S_completion(V(a)) when role a's train-mapped model has zero visible ready/running demand",
+    "aging": "S_eff = S_base + lambda*(wait/tau), dimensionless",
+    "frozen_constants": {
+      "omega1": 1.0,
+      "omega2": 1.0,
+      "aging_weight": 1.0,
+      "aging_scale_ms": 30000.0,
+      "source": "pre-registered defaults; the paper states the form but gives no values"
+    },
+    "new_artifact_fields": [
+      "role_model (train-only majority model per role)",
+      "reachable_future_roles()"
+    ],
+    "schema": "pythia-role-pfa-v3",
+    "non_degeneracy_probe": {
+      "episodes": 3,
+      "aging_changes_result": true,
+      "S_unblock_changes_result": true,
+      "S_unblock_nonzero_rate": "660/729 = 90.5%"
+    },
+    "sentinels": [
+      "aging monotone in wait; dimensionless",
+      "S_unblock: idle downstream raises it; unrelated model demand irrelevant; PFA mutation changes it",
+      "role_model is train-only and validation-invariant",
+      "reachable_future_roles excludes END and the start role"
+    ]
+  }
 }

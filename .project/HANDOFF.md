@@ -1,5 +1,30 @@
 # HANDOFF
 
+## 2026-09-26 (4) Pythia Algorithm 3 补齐 + Agentix 去伪声明（未 commit）
+
+### 本轮已实现
+- **Pythia 补齐**：新增 `pythia_methods.py`（`omega1*S_completion + omega2*S_unblock` + 无量纲 aging）；
+  `pythia_profiler` 增 `role_model`（train-only）与 `reachable_future_roles()`，schema → `pythia-role-pfa-v3`；
+  模拟器 Pythia 分支改为消费全部三项 + 当前 model-demand 代理。**取代 completion-only 版本为正式主基线。**
+- **非退化实测**：aging 与 S_unblock 都改变结果；S_unblock 非零率 **90.5%**（3 confirm 集）。
+- **Agentix**：删除 `critical_path_service_ms` 的"ATLAS 等价"错误声明，改标 ATLAS VARIANT。
+- **未补**（GPT 判定）：Agentix K 队列/抢占/防饿死；LLMSched sample_tasks。
+
+### 验证
+聚焦 gate 147/147；全量 383 测试（仅预存 round_robin + 8 环境 error）；fidelity manifest PASS。
+
+### Active
+待 commit/push。之后按 GPT 建议：按新 head **重新 freeze Pythia**，并（可选）把本轮实现交 GPT 复核。
+
+### Next
+1. commit + push（含 `docs/research/2026-09-26_{baseline_strengthening_adjudication,agentix_baseline_review}.md`）
+2. 重新 freeze Pythia（head/常量/清单）
+3. Agentix 主臂固定 PLAS；补披露（MLQ/时间片/防饿死/抢占 unavailable）
+
+---
+
+# HANDOFF
+
 ## 2026-09-26 (3) 复核修复 + Latency 契约更正 + 新增 Agentix（未 commit）
 
 详见 `DECISIONS.md` 同名三节。要点：

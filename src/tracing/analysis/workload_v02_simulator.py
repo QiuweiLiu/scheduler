@@ -3489,59 +3489,87 @@ def choose_action(
         chosen = min(pool, key=tie_score)
 
     elif policy == "pythia_completion":
-        """Pythia-adapted: history-derived profiler + completion-aware priority.
+        """Pythia-adapted: the FULL Algorithm 3 priority, not just its completion half.
 
-        S_completion = 1 / (1 + E[D_remaining]) where D_remaining is the expected
-        remaining DISTANCE IN STEPS over the train-only role-PFA (see
-        ``tracing.analysis.pythia_profiler``).  Per the audit, the earlier version
-        accumulated millisecond durations and then added the current node's
-        ``runtime_p50 + load``, which made this a duration-weighted / SRTF-flavoured
-        priority rather than Pythia Algorithm 3's.  The completion priority is now
-        unit-correct: no millisecond term is added.
+        Pythia Algorithm 3's base priority is
+            ``omega1 * S_completion + omega2 * S_unblock``
+        and the local worker re-scores each window with an aging factor on accumulated
+        waiting time.  This branch restores BOTH halves (see ``pythia_methods``):
 
-        NOT migrated, and stated rather than papered over: the paper's local worker also
-        re-scores on ACCUMULATED WAIT TIME (an aging factor).  The hard service priority
-        below is a FIXED class (0 for "priority", 1 otherwise); it is NOT aging, and
-        ``ready_time`` is only a deterministic tie-break.  This omission is recorded in the
-        freeze manifest.  omega1 = 1 and omega2 = 0, because S_unblock would need a
-        model-server queue abstraction this simulator does not have, and inventing one
-        would be less honest than omitting it.
+          * ``S_completion = 1 / (1 + V(role))``, V = expected remaining DISTANCE IN STEPS
+            over the train-only role-PFA.  No millisecond term is added -- the earlier port
+            accumulated milliseconds, which was a unit error.
+          * ``S_unblock`` = DownstreamIdleRisk: mean over the PFA-reachable future roles of
+            ``S_completion(V(a))`` when the deployment that role maps to has NO visible
+            ready/running demand.  The paper reads replica queue depth; this simulator has
+            no replica queue, so it uses a queue-demand PROXY.  Future roles come from the
+            TRAIN-ONLY PFA and a train-only role->model mapping, never from the template.
+          * aging: ``S_eff = S_base + lambda * (wait / tau)``, dimensionless.
+
+        The hard service priority stays first (the benchmark substrate contract); Pythia's
+        priorities order programs WITHIN a class.  ``omega1``/``omega2``/``lambda``/``tau``
+        are pre-registered frozen constants (the paper gives no values).
         """
 
         profiler = (policy_context or {}).get("pythia_profiler")
         if profiler is None:
             raise ValueError("pythia_completion requires policy_context['pythia_profiler']")
 
-        from tracing.analysis.pythia_profiler import (
-            current_role,
-            expected_remaining_steps,
-            s_completion,
+        from tracing.analysis.pythia_profiler import current_role
+        from tracing.analysis.pythia_methods import (
+            PYTHIA_AGING_SCALE_MS,
+            PYTHIA_AGING_WEIGHT,
+            PYTHIA_OMEGA1,
+            PYTHIA_OMEGA2,
+            pythia_base_priority,
+            pythia_effective_priority,
         )
 
-        role_cache = (policy_context or {}).setdefault("pythia_role", {})
+        ctx = policy_context if policy_context is not None else {}
+        omega1 = float(ctx.get("pythia_omega1", PYTHIA_OMEGA1))
+        omega2 = float(ctx.get("pythia_omega2", PYTHIA_OMEGA2))
+        aging_weight = float(ctx.get("pythia_aging_weight", PYTHIA_AGING_WEIGHT))
+        aging_scale_ms = float(ctx.get("pythia_aging_scale_ms", PYTHIA_AGING_SCALE_MS))
+
+        # Live, scheduler-VISIBLE model demand: ready + running GPU requests per model.  This
+        # is the queue-demand proxy for the paper's replica queue depth; a model with zero
+        # visible demand is idle-risk.  Resident != busy, so residency is deliberately NOT
+        # used here, and planned future demand is not read (that would be circular).
+        demand: dict[str, int] = {}
+        for _job in jobs:
+            for _nid, _state in _job.node_state.items():
+                if _state not in ("ready", "running"):
+                    continue
+                _node = _job.template.by_id[_nid]
+                if str(getattr(_node, "lane", "gpu")) != "gpu":
+                    continue
+                _model = str(_node.model_id)
+                demand[_model] = demand.get(_model, 0) + 1
+
+        def model_is_idle(model_id: str) -> bool:
+            return demand.get(str(model_id), 0) == 0
+
+        role_cache = ctx.setdefault("pythia_role", {})
 
         def pythia_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
             job = jobs[job_index]
-            # The profile is indexed by the CANDIDATE's own role.  V(role) is the work
-            # remaining AFTER that role, so indexing by the last COMPLETED role would both
-            # use the wrong state and count the current node twice: for A -> B -> C with
-            # durations 10/20/40, a ready B would be scored 20 + V(A) = 80 when the true
-            # remaining work from B is 20 + V(B) = 60.  The candidate is already ready, so
-            # its role is exactly the agent_id Pythia exposes and this is not a leak.
+            # Indexed by the CANDIDATE's own role: V(role) is the work remaining AFTER that
+            # role, so indexing by the last COMPLETED role would use the wrong state and
+            # double-count the current node.
             role = role_cache.get(node_id)
             if role is None:
                 role = current_role(job, node_id)
                 role_cache[node_id] = role
-            # D_remaining is a distance in STEPS, so no millisecond term is added.  Adding
-            # the candidate's runtime/load here would be a unit error and would turn the
-            # completion priority back into a duration-weighted one.
-            d_remaining = expected_remaining_steps(profiler, role)
+            base = pythia_base_priority(profiler, role, model_is_idle,
+                                        omega1=omega1, omega2=omega2)
+            wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
+            effective = pythia_effective_priority(base, wait_ms, aging_weight, aging_scale_ms)
             return (
                 float(item[0]),          # the hard service priority stays first
-                -s_completion(d_remaining),   # smaller key wins, so negate S
+                -effective,              # smaller key wins, so negate S_eff
                 float(item[1]),
                 item[2],
                 item[3],

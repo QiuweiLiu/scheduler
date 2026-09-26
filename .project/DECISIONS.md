@@ -1405,3 +1405,34 @@ workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已�
 ### E. 下一步（待用户）
 - Agentix 是否进正式五臂（或替换 Latency 进四臂）；是否再补 Maestro-adapted（ICDCS 2026, arXiv:2606.12950）。
 - 本轮改动**待 commit/push**。
+
+## 2026-09-26 — Pythia Algorithm 3 补齐（S_unblock + aging）+ Agentix ATLAS 去伪声明
+
+依据 `docs/research/2026-09-26_baseline_strengthening_adjudication.md`（GPT 原则：**可表达的机制就补；缺原语的写 omission，不硬造**）。
+
+### Pythia 补齐（取代 completion-only 版本成为正式主基线）
+- 新增 `src/tracing/analysis/pythia_methods.py`：
+  - `pythia_base_priority = omega1*S_completion + omega2*S_unblock`（补回论文的第二项）；
+  - `pythia_effective_priority = S_base + lambda*(wait/tau)`，**无量纲**（未复用 SRTF 的"毫秒-毫秒"aging）。
+- **S_unblock = DownstreamIdleRisk**：对 PFA **可达未来 role**（`reachable_future_roles`）取 `S_completion(V(a))` 的**均值**，
+  仅当该 role 的**训练期映射 model**（`profiler["role_model"]`）当前**没有** ready/running 需求（**队列需求代理**）时计入。
+  **只读训练期 PFA + 当前可见 demand，绝不读模板。**
+- `pythia_profiler` 新增训练期 `role_model`（role→多数 model）与 `reachable_future_roles()`；schema → **`pythia-role-pfa-v3`**。
+- 冻结常量：`omega1=1, omega2=1, lambda=1, tau=30000ms`（论文只给形式不给值；**预注册默认**，待 dev 网格一次性选定后冻结）。
+- 迁移声明（写入清单）：replica queue depth → **queue-demand proxy**；aging 是我们的无量纲 re-score，非论文 worker loop；
+  S_unblock 取**均值**（论文是未标定尺度的求和）。
+
+### Non-degeneracy（3 个 confirm 集实测）
+- `completion only` vs `+aging` vs `+S_unblock` vs `both` **互不相同** → 两机制都生效。
+- **S_unblock 非零率 660/729 = 90.5%**（候选级评分）。
+
+### 未补（GPT 判定，已记录）
+- **Agentix K 队列 / 抢占 / 防饿死**：依赖我们没有的 token/KV 抢占原语，**硬补比 omission 更不忠实** → 正式臂固定 **PLAS non-preemptive**，其余列 unavailable。
+- **LLMSched `sample_tasks(r)`**：需要"stage 内可部分执行的 task 集"，当前 node 抽象不提供 → 保持 omission。
+
+### Agentix 去伪声明
+- 删除 `critical_path_service_ms` 里"重算与论文等价"的错误声明，改标 **ATLAS VARIANT**（精确重算 ≠ 论文的"每程序一标量继承"）。
+
+### 验证
+- 聚焦 gate **147/147**（Pythia 13→24）；全量 **383** 测试，仅预存 `round_robin` + 8 环境 error；fidelity manifest **PASS**。
+- **待 commit/push**；GPT 建议补齐后按新 head **重新 freeze Pythia**（清单已写 `algorithm3_restoration_20260926`）。

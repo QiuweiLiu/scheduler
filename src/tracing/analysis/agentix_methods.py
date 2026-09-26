@@ -55,13 +55,17 @@ def completed_service_ms(job: Any, duration_of: Callable[[str], float]) -> float
 
 
 def critical_path_service_ms(job: Any, template: Any, duration_of: Callable[[str], float]) -> float:
-    """ATLAS: the program's longest COMPLETED critical path (one scalar per program).
+    """ATLAS VARIANT: the program's longest COMPLETED critical path.
 
-    The paper keeps a single scalar per program: the longest observed critical path, which
-    each active call inherits and which grows as calls complete.  Recomputing it from the
-    completed set is equivalent and avoids hidden state.  A predecessor that has not
-    completed contributes nothing, so a partially observed path is never extrapolated into
-    the future.
+    This is NOT the paper's ATLAS.  Agentix Algorithm 1 keeps ONE scalar per program -- the
+    longest observed critical path -- which a call INHERITS at arrival and which is updated
+    on completion as ``max(scalar, inherited + own_model_time)``; it deliberately does not
+    track dependencies, and that inheritance can over-count across branches (for
+    ``a(1) -> {b(100), c(1) -> e(1)}`` with ``b`` first, the paper's scalar reaches 102 while
+    the true completed critical path is 101).  This function instead recomputes the exact
+    longest path over the completed subgraph.  On a SERIAL program the two coincide, which is
+    why the arm is used with ``mode='plas'`` on serial workloads; this variant is kept for
+    parallel-workload experiments only and must NOT be described as faithful ATLAS.
     """
 
     order = sorted(job.completed, key=lambda node_id: int(template.by_id[node_id].sequence_index))
