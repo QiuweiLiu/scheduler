@@ -3499,11 +3499,13 @@ def choose_action(
           * ``S_completion = 1 / (1 + V(role))``, V = expected remaining DISTANCE IN STEPS
             over the train-only role-PFA.  No millisecond term is added -- the earlier port
             accumulated milliseconds, which was a unit error.
-          * ``S_unblock`` = DownstreamIdleRisk: mean over the PFA-reachable future roles of
-            ``S_completion(V(a))`` when the deployment that role maps to has NO visible
-            ready/running demand.  The paper reads replica queue depth; this simulator has
-            no replica queue, so it uses a queue-demand PROXY.  Future roles come from the
-            TRAIN-ONLY PFA and a train-only role->model mapping, never from the template.
+          * ``S_unblock`` = DownstreamIdleRisk: SUM over the PFA-reachable GPU future roles
+            whose train-mapped deployment has NO visible ready/running demand of
+            ``1 / E[D(current, a)]`` -- the distance from the CURRENT role to the future
+            agent, so a nearer downstream agent is worth more.  The paper reads replica
+            queue depth; this simulator has no replica queue, so it uses a queue-demand
+            PROXY.  Future roles come from the TRAIN-ONLY PFA and a train-only role->model
+            mapping, never from the template.
           * aging: ``S_eff = S_base + lambda * (wait / tau)``, dimensionless.
 
         The hard service priority stays first (the benchmark substrate contract); Pythia's
@@ -3523,6 +3525,7 @@ def choose_action(
             PYTHIA_OMEGA2,
             pythia_base_priority,
             pythia_effective_priority,
+            visible_model_demand,
         )
 
         ctx = policy_context if policy_context is not None else {}
@@ -3531,22 +3534,12 @@ def choose_action(
         aging_weight = float(ctx.get("pythia_aging_weight", PYTHIA_AGING_WEIGHT))
         aging_scale_ms = float(ctx.get("pythia_aging_scale_ms", PYTHIA_AGING_SCALE_MS))
 
-        # Live, scheduler-VISIBLE model demand: ready + running GPU requests per model.  This
-        # is the queue-demand proxy for the paper's replica queue depth; a model with zero
-        # visible demand is idle-risk.  Resident != busy, so residency is deliberately NOT
-        # used here, and planned future demand is not read (that would be circular).
-        demand: dict[str, int] = {}
-        for _job in jobs:
-            for _nid, _state in _job.node_state.items():
-                if _state not in ("ready", "running"):
-                    continue
-                _node = _job.template.by_id[_nid]
-                if str(getattr(_node, "lane", "gpu")) != "gpu":
-                    continue
-                _model = str(_node.model_id)
-                demand[_model] = demand.get(_model, 0) + 1
+        # Scheduler-VISIBLE model demand, merged across ALL workflows (a model is not
+        # starved just because this workflow is not using it).  Zero visible demand is the
+        # queue-demand proxy; residency is deliberately NOT consulted (resident != busy).
+        demand = visible_model_demand(jobs)
 
-        def model_is_idle(model_id: str) -> bool:
+        def model_has_zero_visible_demand(model_id: str) -> bool:
             return demand.get(str(model_id), 0) == 0
 
         role_cache = ctx.setdefault("pythia_role", {})
@@ -3563,7 +3556,7 @@ def choose_action(
             if role is None:
                 role = current_role(job, node_id)
                 role_cache[node_id] = role
-            base = pythia_base_priority(profiler, role, model_is_idle,
+            base = pythia_base_priority(profiler, role, model_has_zero_visible_demand,
                                         omega1=omega1, omega2=omega2)
             wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
             effective = pythia_effective_priority(base, wait_ms, aging_weight, aging_scale_ms)

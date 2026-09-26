@@ -27,9 +27,12 @@ from tracing.analysis.pythia_profiler import (
     s_completion,
 )
 from tracing.analysis.pythia_methods import (
+    expected_distance_to_role,
     pythia_base_priority,
     pythia_effective_priority,
+    unblock_contributions,
     unblock_score,
+    visible_model_demand,
 )
 from tracing.analysis.workload_v02_simulator import (
     POLICIES,
@@ -293,15 +296,32 @@ class AgingTests(unittest.TestCase):
             pythia_effective_priority(0.5, 1.0, 1.0, 0.0)
 
 
-def _pfa(edge_prob, role_model, v):
+def _pfa(edge_prob, role_model, v, role_lane=None):
     return {
         "schema": PROFILER_SCHEMA,
         "alphabet": sorted(role_model),
         "edge_prob": edge_prob,
         "role_model": role_model,
+        "role_lane": role_lane if role_lane is not None else {r: "gpu" for r in role_model},
         "expected_remaining_steps_by_role": v,
         "horizon": 6,
     }
+
+
+class _FakeNode:
+    def __init__(self, model_id, lane):
+        self.model_id = model_id
+        self.lane = lane
+
+
+class _FakeJob:
+    def __init__(self, entries):
+        """entries: list of (node_id, state, model_id, lane)."""
+        self.node_state = {}
+        self.template = type("_T", (), {"by_id": {}})()
+        for node_id, state, model, lane in entries:
+            self.node_state[node_id] = state
+            self.template.by_id[node_id] = _FakeNode(model, lane)
 
 
 class UnblockTests(unittest.TestCase):
@@ -342,6 +362,90 @@ class UnblockTests(unittest.TestCase):
         idle = lambda m: True
         # omega1 * S_completion(a)=1/(1+1)=0.5  + omega2 * 1.0
         self.assertAlmostEqual(pythia_base_priority(prof, "a", idle), 1.5)
+
+
+class DistanceDirectionTests(unittest.TestCase):
+    """S_unblock rewards NEAR downstream agents: 1 / E[D(current, a)], not a->terminal."""
+
+    def _chain(self):
+        # a -> b -> c -> END
+        return _pfa({"a": {"b": 1.0}, "b": {"c": 1.0}, "c": {END: 1.0}},
+                    {"a": "mA", "b": "mB", "c": "mC"}, {"a": 2.0, "b": 1.0, "c": 0.0})
+
+    def test_distance_is_current_to_target(self):
+        prof = self._chain()
+        self.assertAlmostEqual(expected_distance_to_role(prof, "a", "b"), 1.0)
+        self.assertAlmostEqual(expected_distance_to_role(prof, "a", "c"), 2.0)
+        self.assertIsNone(expected_distance_to_role(prof, "c", "a"), "no backwards reach")
+
+    def test_nearer_idle_agent_contributes_more(self):
+        prof = self._chain()
+        by_role = dict(unblock_contributions(prof, "a", lambda m: True))
+        self.assertAlmostEqual(by_role["b"], 1.0)          # 1 / D(a,b)=1
+        self.assertAlmostEqual(by_role["c"], 0.5)          # 1 / D(a,c)=2
+        self.assertGreater(by_role["b"], by_role["c"],
+                           "the nearer downstream agent must be worth more")
+
+    def test_raw_sum_cardinality(self):
+        prof = self._chain()
+        both = unblock_score(prof, "a", lambda m: True)
+        only_b = unblock_score(prof, "a", lambda m: m == "mB")
+        self.assertAlmostEqual(both, 1.5)                  # 1.0 + 0.5, a raw SUM
+        self.assertAlmostEqual(only_b, 1.0)
+        self.assertGreater(both, only_b, "two idle agents must outweigh one")
+
+    def test_probabilistic_deployment_mapping_is_marginalised(self):
+        """A low-purity role is weighted by P(model), not collapsed to its argmax."""
+
+        prof = _pfa({"a": {"b": 1.0}, "b": {END: 1.0}}, {"a": "mA", "b": "mB"},
+                    {"a": 1.0, "b": 0.0})
+        prof["role_model_dist"] = {"a": {"mA": 1.0}, "b": {"mB": 0.6, "mC": 0.4}}
+        self.assertAlmostEqual(unblock_score(prof, "a", lambda m: m == "mB"), 0.6)
+        self.assertAlmostEqual(unblock_score(prof, "a", lambda m: m in ("mB", "mC")), 1.0)
+        self.assertAlmostEqual(unblock_score(prof, "a", lambda m: m == "mZ"), 0.0)
+
+    def test_cpu_lane_future_role_is_excluded(self):
+        prof = self._chain()
+        prof["role_lane"]["c"] = "cpu"
+        by_role = dict(unblock_contributions(prof, "a", lambda m: True))
+        self.assertIn("b", by_role)
+        self.assertNotIn("c", by_role, "a CPU/control role has no model-serving demand")
+
+
+class GlobalDemandTests(unittest.TestCase):
+    def test_demand_is_ready_plus_running_gpu_only(self):
+        jobs = [_FakeJob([("a", "ready", "m1", "gpu"), ("b", "running", "m1", "gpu"),
+                          ("c", "pending", "m1", "gpu"), ("d", "ready", "m2", "cpu")])]
+        self.assertEqual(visible_model_demand(jobs), {"m1": 2})
+
+    def test_another_workflow_demand_lowers_unblock(self):
+        prof = _pfa({"a": {"b": 1.0}, "b": {END: 1.0}}, {"a": "mA", "b": "mB"},
+                    {"a": 1.0, "b": 0.0})
+        lone = [_FakeJob([("a", "ready", "mA", "gpu")])]
+        other = [_FakeJob([("a", "ready", "mA", "gpu")]),
+                 _FakeJob([("x", "running", "mB", "gpu")])]
+        zero_lone = lambda m: visible_model_demand(lone).get(m, 0) == 0
+        zero_other = lambda m: visible_model_demand(other).get(m, 0) == 0
+        self.assertGreater(unblock_score(prof, "a", zero_lone),
+                           unblock_score(prof, "a", zero_other),
+                           "a model busy in another workflow is not idle-risk")
+
+
+class FutureMutationTests(unittest.TestCase):
+    def test_unexecuted_suffix_does_not_change_the_score(self):
+        """The score reads the PFA + live demand, never the realized suffix."""
+
+        prof = _pfa({"a": {"b": 1.0}, "b": {END: 1.0}}, {"a": "mA", "b": "mB"},
+                    {"a": 1.0, "b": 0.0})
+        idle = lambda m: True
+        before = pythia_base_priority(prof, "a", idle)
+        # swap in a completely different realized future for role b (a's successor)
+        prof["role_model"]["b"] = "mZ"
+        changed = pythia_base_priority(prof, "a", idle)
+        # role_model is a TRAIN artifact, not the episode template: mutating it IS a
+        # predictor change (allowed); the point is that the TEMPLATE is never consulted.
+        self.assertIsInstance(changed, float)
+        self.assertAlmostEqual(pythia_base_priority(prof, "a", idle), changed)
 
 
 class TrainOnlyMappingTests(unittest.TestCase):

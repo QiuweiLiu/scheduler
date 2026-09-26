@@ -12,7 +12,7 @@
     "status": "APPROVED",
     "approval_quote": "可以正式 freeze",
     "gates": "tests/test_pythia_fidelity.py",
-    "gate_count": 24,
+    "gate_count": 32,
     "declaration_received": true,
     "freeze_breaking_fix_commit": "54a2d25088832049afb0cf860cdabfe5152c8c3d"
   },
@@ -27,19 +27,18 @@
     "role key composed from role:action_family:raw_action, because the paper's alphabet entry is the current agent_id and a bare VideoSeek role is too coarse",
     "the finite horizon is OUR fixed, train-independent step limit and is NOT the paper's bound, which prunes transitions and applies repetition bounds to looping roles",
     "indexing by the candidate's own role (the agent_id Pythia exposes on a request)",
-    "S_unblock approximated by a queue-demand PROXY (scheduler-visible ready+running GPU requests per model), because this simulator has no model-replica queue",
-    "aging expressed as a dimensionless re-score S + lambda*(wait/tau); the paper's worker loop is not reproduced",
-    "S_unblock is the mean idle-risk over PFA-reachable future roles, bounded in [0,1] so it is commensurate with S_completion"
+    "S_unblock is DownstreamIdleRisk over the train-only PFA: SUM over reachable GPU future roles of idle-weight / E[D(current, a)], where idle-weight = sum of P(model|role) over models with zero scheduler-visible ready+running demand",
+    "queue-demand PROXY replaces the paper's model-replica queue depth (zero visible demand, not literal replica idleness)",
+    "aging is a dimensionless re-score S + lambda*(wait/tau), not the paper's worker loop"
   ],
   "deviation": [
     "H=6 fixed finite-horizon recursion replaces Pythia's bounded-regex / repetition-bound representation for expected remaining-distance estimation. The paper bounds its automaton with low-probability transition filtering plus repetition bounds on looping roles (engineer^{3,6}); H=6 is our fixed, train-independent approximation.",
-    "S_unblock / DownstreamIdleRisk not migrated",
-    "speculative and prefix cache routing, model-replica idleness, autoscaling, and the original serving/batching infrastructure are not migrated, being outside the unified GPU abstraction. The paper's Algorithm 3 priority carries both S_completion and S_unblock."
+    "Algorithm 3's S_unblock uses a queue-demand proxy and a train-only role->model distribution; the paper's literal replica queue and worker aging loop are not reproduced"
   ],
   "omissions": [
-    "cache routing, prefix caching, model-replica idleness, autoscaling: outside this GPU abstraction",
-    "S_unblock omitted, because the simulator has no model-server queue to attach it to; omega2 = 0",
-    "local worker waiting-time aging is NOT migrated: the arm's hard service priority is a FIXED class (0/1) and ready_time is only a deterministic tie-break, so this reproduces Pythia's S_completion component, not its aging loop"
+    "cache routing, prefix caching, model-replica idleness, autoscaling",
+    "model-replica queue depth: S_unblock uses the scheduler-visible zero-demand proxy",
+    "the paper's local-worker aging loop: ours is a dimensionless re-score"
   ],
   "defects_closed_before_freeze": [
     "template.baseline used as the alphabet, which is not a role alphabet at all",
@@ -74,33 +73,37 @@
   ],
   "V_plus_one_convention": "V counts future non-END roles AFTER the current request; therefore D_remaining = 1 + V(current_role).",
   "algorithm3_restoration_20260926": {
-    "change": "Restored the FULL Algorithm 3 base priority omega1*S_completion + omega2*S_unblock plus worker-side aging, so the arm is no longer a completion-only variant.",
-    "S_completion": "1/(1+V(role)), V = expected remaining distance in steps over the train-only role-PFA",
-    "S_unblock": "mean over reachable future roles of S_completion(V(a)) when role a's train-mapped model has zero visible ready/running demand",
+    "change": "Restored the full Algorithm 3 priority omega1*S_completion + omega2*S_unblock plus aging (a first pass used the WRONG distance and a candidate-wise mean; both corrected).",
+    "S_completion": "1/(1+V(role)), V = expected remaining distance in steps (frozen convention)",
+    "S_unblock": "SUM over PFA-reachable GPU future roles a of idle_weight(a)/E[D(current_role, a)], where idle_weight(a)=sum_m P(m|a)*I[D_m==0]; E[D(current,a)] is the first-hit distance on the pruned PFA (current -> a, NOT a -> terminal)",
+    "idle_proxy": "D_m = count of scheduler-visible ready+running GPU requests for model m, merged across workflows; zero demand = idle-risk",
+    "role_model": "train-only; both the argmax role_model and the full role_model_dist are stored, and S_unblock marginalises over the DISTRIBUTION because purity is low for planner (0.53) and answer_generation (0.50)",
     "aging": "S_eff = S_base + lambda*(wait/tau), dimensionless",
     "frozen_constants": {
       "omega1": 1.0,
       "omega2": 1.0,
       "aging_weight": 1.0,
       "aging_scale_ms": 30000.0,
-      "source": "pre-registered defaults; the paper states the form but gives no values"
+      "provenance": "PRE-REGISTERED, data-independent adaptation constants declared from the start; the paper gives the priority FORM but no values. Not tuned on any evaluation episode."
     },
-    "new_artifact_fields": [
-      "role_model (train-only majority model per role)",
-      "reachable_future_roles()"
-    ],
     "schema": "pythia-role-pfa-v3",
     "non_degeneracy_probe": {
       "episodes": 3,
       "aging_changes_result": true,
-      "S_unblock_changes_result": true,
-      "S_unblock_nonzero_rate": "660/729 = 90.5%"
+      "S_unblock_alone_changes_makespan": false,
+      "both_differs_from_completion_only": true,
+      "S_unblock_nonzero_rate": "585/727 = 80.5%",
+      "mean_S_unblock": "0.310"
     },
     "sentinels": [
-      "aging monotone in wait; dimensionless",
-      "S_unblock: idle downstream raises it; unrelated model demand irrelevant; PFA mutation changes it",
-      "role_model is train-only and validation-invariant",
-      "reachable_future_roles excludes END and the start role"
+      "distance is current->target; nearer idle agent contributes more (D(A,B)=1 > D(A,C)=2)",
+      "raw-sum cardinality: two idle future agents outweigh one",
+      "CPU-lane future roles excluded",
+      "probabilistic deployment mapping is marginalised by P(model|role)",
+      "cross-workflow global demand: a model busy elsewhere is not idle-risk",
+      "role_model/role_model_dist are train-only and validation-invariant",
+      "aging monotone in wait and dimensionless",
+      "PFA mutation changes the score; template suffix is never read"
     ]
   }
 }

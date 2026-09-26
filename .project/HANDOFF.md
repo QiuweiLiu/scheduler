@@ -1,5 +1,27 @@
 # HANDOFF
 
+## 2026-09-26 (5) Pythia S_unblock 修正（GPT P0）（未 commit）
+
+GPT 复核（`docs/research/2026-09-26_pythia_algorithm3_review.md`）判定：无泄漏，但 **S_unblock 距离量错 = P0，不能 freeze**。
+
+### 已修
+- **P0**：`expected_distance_to_role()`（current→future 首次命中距离）取代 `expected_remaining_steps(future)`；贡献 = `idle_weight / E[D(current,a)]`；方向 gate 钉死。
+- **P1**：raw sum（非均值）；按 `role_model_dist` 的 P(model|role) 加权（planner 纯度 0.53、answer 0.50）；GPU-lane 过滤；改名 `model_has_zero_visible_demand` + `visible_model_demand()`；常量统一为预注册固定值；清单矛盾文案清除。
+- sentinel 24→32；gate 155/155；全量 391（仅预存/环境）；fidelity manifest PASS。
+- Non-degeneracy：aging 改变结果；both≠completion-only；S_unblock 非零率 80.5%（单加未改 makespan，已记录）。
+
+### Active
+待 commit/push；随后请 GPT 终审 Pythia freeze。
+
+### Next
+1. commit + push
+2. GPT 终审 Pythia（预期 ACCEPT/FREEZE）
+3. Agentix 披露收尾
+
+---
+
+# HANDOFF
+
 ## 2026-09-26 (4) Pythia Algorithm 3 补齐 + Agentix 去伪声明（未 commit）
 
 ### 本轮已实现

@@ -96,6 +96,7 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
     # Train-only role -> model evidence, for the DownstreamIdleRisk term: a future role's
     # deployment is not carried by the role key, so it is mapped from TRAIN history only.
     model_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    lane_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     n_runs = 0
 
     for tpl in templates.values():
@@ -110,6 +111,7 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
             here = role_alphabet(node)
             durations[here].append(intrinsic_duration_ms(node))
             model_counts[here][str(getattr(node, "model_id", "") or "")] += 1
+            lane_counts[here][str(getattr(node, "lane", "") or "")] += 1
             following = role_alphabet(order[index + 1]) if index + 1 < len(order) else END
             transitions[here][following] += 1
 
@@ -168,6 +170,28 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         role: sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
         for role, counts in model_counts.items() if counts
     }
+    role_model_dist = {
+        role: {m: c / float(sum(counts.values())) for m, c in counts.items()}
+        for role, counts in model_counts.items() if counts
+    }
+    role_lane = {
+        role: sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+        for role, counts in lane_counts.items() if counts
+    }
+    # Purity diagnostic: how concentrated the train-only role -> model mapping is.  A
+    # near-1.0 majority fraction means the mapping is effectively deterministic; a low one
+    # means the argmax is a coarse summary and the model should be marginalised instead.
+    role_model_purity = {}
+    for role, counts in model_counts.items():
+        if not counts:
+            continue
+        total = float(sum(counts.values()))
+        majority = role_model[role]
+        role_model_purity[role] = {
+            "majority_model": majority,
+            "majority_fraction": counts[majority] / total,
+            "support": len(counts),
+        }
 
     return {
         "schema": PROFILER_SCHEMA,
@@ -179,6 +203,9 @@ def build_pythia_profiler(templates: Mapping[str, Any], *,
         "start_prob": start_prob,
         "expected_remaining_steps_by_role": {k: float(v) for k, v in value.items()},
         "role_model": role_model,
+        "role_model_dist": role_model_dist,
+        "role_lane": role_lane,
+        "role_model_purity": role_model_purity,
         "pruned_edges": [{"from": a, "to": b, "prob": p} for a, b, p in sorted(pruned_away)],
         "n_runs": n_runs,
         "min_prob": float(min_prob),

@@ -1436,3 +1436,18 @@ workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已�
 ### 验证
 - 聚焦 gate **147/147**（Pythia 13→24）；全量 **383** 测试，仅预存 `round_robin` + 8 环境 error；fidelity manifest **PASS**。
 - **待 commit/push**；GPT 建议补齐后按新 head **重新 freeze Pythia**（清单已写 `algorithm3_restoration_20260926`）。
+
+## 2026-09-26 — Pythia S_unblock 修正（GPT P0）：距离量 / 求和 / 概率映射
+
+依 `docs/research/2026-09-26_pythia_algorithm3_review.md`（GPT 复核：**无泄漏，但 S_unblock 的距离量定义错 = P0，不能 freeze**）。
+- **P0 修正**：原用 `expected_remaining_steps(future)`（future→terminal）；论文要 **`E[D(current, a)]`**（current→future）。
+  新增 `expected_distance_to_role()`（裁剪 PFA 上的**首次命中**距离）；贡献改为 `idle_weight / E[D(current,a)]`；方向由 gate 钉死（D(A,B)=1 > D(A,C)=2）。
+- **P1**：candidate-wise 均值 → **原始求和**；缩放交给冻结的 ω2。
+- **P1**：role→model 由 argmax 单点 → **按 `role_model_dist` 的 `P(model|role)` 加权**（实测纯度：planner **0.53**、answer_generation **0.50** → 单点太粗）。
+- **P1**：S_unblock 只对 **GPU lane** 的未来 role 生效（CPU/control role 无 model-serving demand）。
+- **P1**：`model_is_idle` → `model_has_zero_visible_demand`；新增可测的 `visible_model_demand(jobs)`（**跨 workflow 合并**）。
+- **P1**：常量状态统一为**预注册、与数据无关的固定适配常量**（ω1=ω2=1, λ=1, τ=30s），删除 "pending dev-grid"。
+- **P1**：冻结清单旧矛盾文案（`S_unblock omitted` / `omega2=0` / `aging not migrated`）**全部清除**。
+- sentinel 24→**32**：距离方向、raw-sum 基数、CPU-lane 排除、概率映射加权、跨 workflow 全局需求、模板后缀不改分、ageing 无量纲/单调。
+- **Non-degeneracy**（3 confirm 集）：aging 改变结果 ✓；both ≠ completion-only ✓；**S_unblock 候选级非零率 80.5%**（均值 0.310）；单独加 S_unblock 在这 3 集上未改 makespan（**如实记录**）。
+- 全量 **391** 测试（仅预存 `round_robin` + 8 环境 error）；fidelity manifest **PASS**。待 commit/push；随后请 GPT 终审 freeze。
