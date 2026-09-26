@@ -33,7 +33,7 @@ BASELINES = [
         "venue": "IEEE ICDCS 2025, pp. 527-537",
         "manifest": "llmsched_baseline_freeze_v1.json",
         "gate_file": "tests/test_llmsched_bn_v2.py",
-        "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+        "freeze_head": "2fdcf1d96e6c0dae9b66214a5ed7a1dfc547cd33",
     },
     {
         "arm": "pythia_completion",
@@ -62,6 +62,14 @@ BASELINES = [
         # would certify a baseline whose prefetch had gone back to pre-empting ready work.
         "extra_gate_files": ["scripts/../tests/test_latency_aware_scheduler.py"],
         "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+    },
+    {
+        "arm": "agentix",
+        "paper": "Agentix (Autellix): An Efficient Serving Engine for LLM Agents as General Programs",
+        "venue": "USENIX NSDI 2026, pp. 2443-2459",
+        "manifest": "agentix_baseline_freeze_v1.json",
+        "gate_file": "tests/test_agentix_fidelity.py",
+        "freeze_head": "aa5a11ab871e050c9ba205b6c5cf4004d0a617f3",
     },
 ]
 

@@ -14,23 +14,23 @@
       "venue": "IEEE ICDCS 2025, pp. 527-537",
       "manifest": "llmsched_baseline_freeze_v1.json",
       "gate_file": "tests/test_llmsched_bn_v2.py",
-      "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+      "freeze_head": "2fdcf1d96e6c0dae9b66214a5ed7a1dfc547cd33",
       "manifest_present": true,
-      "manifest_sha256": "cef2560c2756e8ee7d36f94c6a6ab821b78bfbda864235a20d57bd5ef0a5c7ee",
+      "manifest_sha256": "112ef1a8ad21ac4f23dd4b9b5a677fbc67c0a7935b7105999457b3ea07b8586e",
       "freeze_status": "APPROVED",
       "arm_in_manifest": "llmsched",
       "faithful_count": 11,
       "adapted_count": 7,
       "deviation_count": 3,
       "gate_present": true,
-      "gate_sha256": "271150a663f8d1b8cd8a7de972955cc6b9eb762d8d260b7feeb81e272d2d9320",
+      "gate_sha256": "aaef4a28ca8aa4b90b9a79b14517118e0d1ceee9bc6232f8e0bac9981b9583c2",
       "gate_run": {
         "ran": true,
         "path": "tests/test_llmsched_bn_v2.py",
         "returncode": 0,
         "green": true,
         "summary": [
-          "Ran 38 tests in 17.949s",
+          "Ran 39 tests in 17.639s",
           "OK"
         ]
       }
@@ -43,7 +43,7 @@
       "gate_file": "tests/test_pythia_fidelity.py",
       "freeze_head": "d01d202f2625c37cd54586a67aa233ab7d6ffa81",
       "manifest_present": true,
-      "manifest_sha256": "6b3b61b49bd0d57c5dad94129f2d2b552d40c639b331983a422ae1cd7adac3bf",
+      "manifest_sha256": "c23c7a1d80730eccd533524b6a376ded3bab6e18dc182fdeef1c6f30faa5e3b1",
       "freeze_status": "APPROVED",
       "arm_in_manifest": "pythia_completion",
       "faithful_count": 5,
@@ -84,7 +84,7 @@
         "returncode": 0,
         "green": true,
         "summary": [
-          "Ran 24 tests in 0.007s",
+          "Ran 24 tests in 0.006s",
           "OK"
         ]
       }
@@ -114,7 +114,7 @@
         "returncode": 0,
         "green": true,
         "summary": [
-          "Ran 22 tests in 1.017s",
+          "Ran 22 tests in 1.033s",
           "OK"
         ]
       },
@@ -125,14 +125,41 @@
           "returncode": 0,
           "green": true,
           "summary": [
-            "Ran 14 tests in 0.005s",
+            "Ran 14 tests in 0.006s",
             "OK"
           ]
         }
       ]
+    },
+    {
+      "arm": "agentix",
+      "paper": "Agentix (Autellix): An Efficient Serving Engine for LLM Agents as General Programs",
+      "venue": "USENIX NSDI 2026, pp. 2443-2459",
+      "manifest": "agentix_baseline_freeze_v1.json",
+      "gate_file": "tests/test_agentix_fidelity.py",
+      "freeze_head": "aa5a11ab871e050c9ba205b6c5cf4004d0a617f3",
+      "manifest_present": true,
+      "manifest_sha256": "5e9a7fc67dfca0a56e0805c6f5549d2f498dfada2717cc49d99c90a49e6e6ccc",
+      "freeze_status": "APPROVED",
+      "arm_in_manifest": "agentix",
+      "faithful_count": 3,
+      "adapted_count": 4,
+      "deviation_count": 2,
+      "gate_present": true,
+      "gate_sha256": "827bb4bc0de8a9aebda2539414b1f7e01bd9859c9b2becddbd6398510f362523",
+      "gate_run": {
+        "ran": true,
+        "path": "tests/test_agentix_fidelity.py",
+        "returncode": 0,
+        "green": true,
+        "summary": [
+          "Ran 26 tests in 0.009s",
+          "OK"
+        ]
+      }
     }
   ],
-  "n_baselines": 4,
+  "n_baselines": 5,
   "all_frozen": true,
   "all_gates_green": true,
   "violations": [],
