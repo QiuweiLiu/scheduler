@@ -41,7 +41,7 @@ BASELINES = [
         "venue": "arXiv:2604.25899 (venue UNVERIFIED)",
         "manifest": "pythia_baseline_freeze_v1.json",
         "gate_file": "tests/test_pythia_fidelity.py",
-        "freeze_head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+        "freeze_head": "d01d202f2625c37cd54586a67aa233ab7d6ffa81",
     },
     {
         "arm": "tie_current",

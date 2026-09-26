@@ -7,14 +7,14 @@
   "arm": "pythia_completion",
   "freeze": {
     "name": "Pythia Baseline Freeze v1",
-    "head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
+    "head": "d01d202f2625c37cd54586a67aa233ab7d6ffa81",
     "head_full_sha": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
     "status": "APPROVED",
     "approval_quote": "可以正式 freeze",
     "gates": "tests/test_pythia_fidelity.py",
     "gate_count": 32,
     "declaration_received": true,
-    "freeze_breaking_fix_commit": "54a2d25088832049afb0cf860cdabfe5152c8c3d"
+    "freeze_breaking_fix_commit": "d01d202f2625c37cd54586a67aa233ab7d6ffa81"
   },
   "faithful": [
     "workflow profiler / probabilistic finite automaton over a ROLE alphabet",
@@ -104,6 +104,7 @@
       "role_model / role_model_dist / role_lane are train-only and validation-invariant",
       "aging monotone in wait and dimensionless",
       "PFA mutation changes the score; a real Template's UNEXECUTED suffix mutation does not"
-    ]
+    ],
+    "restoration_commit": "d01d202f2625c37cd54586a67aa233ab7d6ffa81"
   }
 }
