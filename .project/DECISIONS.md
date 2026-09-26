@@ -1544,3 +1544,14 @@ Agentix gate 18→**22**；聚焦 **167/167**；全量 **403**（仅预存/环�
 
 telemetry 只作 **appendix / fidelity diagnostic**（非主结果表）；报告项：queue occupancy shares、`K_nonempty`、promotion count/rate。
 验证：Agentix gate 22→**26**；聚焦 **171/171**；全量 **407**（仅预存/环境）。
+
+## 2026-09-26 — LLMSched freeze-breaking 修复：验证期 OOV stage 导致崩溃（30 集 smoke 发现）
+
+- **缺陷**：`evidence_from_completed()` 只要某个**已完成**节点映射到冻结词表（**训练集**）之外的 canonical stage 就 `raise KeyError`。
+  词表是训练集的 `base#occurrence` 组合，验证集出现更深循环（如 `...#4`）即 OOV → **臂在 episode 中途崩溃**。
+  首次 30 集 smoke 即触发（`HT2iYl6E_Vo_...:action:18`）。
+- **修复**：`evidence_from_completed(..., on_unknown="raise"|"skip", stats=)`：默认 `raise`（保留**训练期** fail-closed gate）；
+  模拟器 LLMSched 分支用 **`skip`** 并计数 `policy_context['llmsched_evidence_stats']['oov_skipped']`。
+  理由：网络里**没有这个变量**，它就无法作为证据；后验不条件在它上面。
+- gate 38→**39**（新增 `EvidenceUnknownStageTests`）；30 集 5 臂 smoke 通过。属 correctness 修复，非调参。
+- 冻结清单已加 `freeze_breaking_fixes` 记录；**待 re-pin LLMSched head**。

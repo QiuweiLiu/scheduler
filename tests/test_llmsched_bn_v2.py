@@ -727,6 +727,34 @@ class L7EndToEndConsumer(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------- #
+class EvidenceUnknownStageTests(unittest.TestCase):
+    """At inference a validation-only occurrence is SKIPPED, not fatal; train still fails."""
+
+    class _Disc:
+        def state_of(self, ms):
+            return "D0"
+
+    def test_default_raises_but_skip_policy_skips(self):
+        prof = {"stage_order": ["x#0"], "discretizer": self._Disc()}
+        n0 = node("t:n0", 0, "planner", "p", "p")
+        tpl = Template("t", "t", "train", "fam", (n0,), {"t:n0": n0})
+
+        class _J:
+            def __init__(self):
+                self.template = tpl
+                self.completed = {"t:n0"}
+                self.observed_intrinsic_ms = {"t:n0": 1.0}
+
+        j = _J()
+        with self.assertRaises(KeyError):
+            evidence_from_completed(j, prof, observed_ms=j.observed_intrinsic_ms)
+        stats = {}
+        ev = evidence_from_completed(j, prof, observed_ms=j.observed_intrinsic_ms,
+                                     on_unknown="skip", stats=stats)
+        self.assertEqual(ev, {})
+        self.assertEqual(stats.get("oov_skipped"), 1)
+
+
 class UnitGates(unittest.TestCase):
     """The five ordinary gates the review asked to keep alongside L1-L7."""
 

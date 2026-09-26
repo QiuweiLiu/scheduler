@@ -1193,7 +1193,9 @@ def _induced_width(parents: Mapping[str, Sequence[str]], order: Sequence[str]) -
 # evidence
 # --------------------------------------------------------------------------- #
 def evidence_from_completed(job: Any, profiler: Mapping[str, Any],
-                            observed_ms: Mapping[str, float] | None = None
+                            observed_ms: Mapping[str, float] | None = None, *,
+                            on_unknown: str = "raise",
+                            stats: Dict[str, Any] | None = None
                             ) -> Dict[str, str]:
     """Build the per-job evidence dict from COMPLETED nodes only.
 
@@ -1224,11 +1226,23 @@ def evidence_from_completed(job: Any, profiler: Mapping[str, Any],
         if node.node_id not in job.completed:
             continue
         if stage not in known:
-            raise KeyError(
-                "completed node %r maps to canonical stage %r, which is not in the "
-                "frozen vocabulary; the ontology and the model disagree"
-                % (node.node_id, stage)
-            )
+            # The network has no variable for this stage.  A TRAIN mismatch means the
+            # ontology and the model disagree and must fail closed; at INFERENCE on a
+            # validation/test split an unseen occurrence index (the vocabulary is train-only)
+            # is expected, so the stage is SKIPPED rather than crashing the arm -- the
+            # posterior simply cannot condition on a stage the model does not contain.
+            if on_unknown == "raise":
+                raise KeyError(
+                    "completed node %r maps to canonical stage %r, which is not in the "
+                    "frozen vocabulary; the ontology and the model disagree"
+                    % (node.node_id, stage)
+                )
+            elif on_unknown == "skip":
+                if stats is not None:
+                    stats["oov_skipped"] = int(stats.get("oov_skipped", 0)) + 1
+                continue
+            else:
+                raise ValueError("unknown on_unknown policy %r" % (on_unknown,))
         # The duration must be an OBSERVATION, not the template's frozen value.  The
         # two are numerically equal here because the simulator's truth provider is
         # seeded from the template, so the point is not the number: it is that the

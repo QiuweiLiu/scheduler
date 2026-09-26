@@ -3640,7 +3640,9 @@ def choose_action(
             if entry is not None and entry[0] == done:
                 return entry[1]
             value = evidence_from_completed(
-                job, profiler, observed_ms=job.observed_intrinsic_ms)
+                job, profiler, observed_ms=job.observed_intrinsic_ms,
+                on_unknown="skip",
+                stats=ctx.setdefault("llmsched_evidence_stats", {"oov_skipped": 0}))
             evidence_cache[key] = (done, value)
             return value
 

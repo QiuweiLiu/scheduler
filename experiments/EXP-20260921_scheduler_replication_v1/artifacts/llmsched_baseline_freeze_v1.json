@@ -16,7 +16,7 @@
     "head": "54a2d25088832049afb0cf860cdabfe5152c8c3d",
     "status": "APPROVED",
     "gates": "tests/test_llmsched_bn_v2.py",
-    "gate_count": 34,
+    "gate_count": 39,
     "freeze_breaking_fix_commit": "54a2d25088832049afb0cf860cdabfe5152c8c3d"
   },
   "faithful": [
@@ -79,6 +79,13 @@
       "defect": "EXPLOIT's remaining-work estimator walked only the candidate's network DESCENDANTS and conditioned every posterior on the completed evidence alone, while EXPLORE and current service condition on X != ABSENT. A stage with no directed path from the candidate was dropped, and the three consumers sat in different information states.",
       "fix": "new expected_job_remaining_ms(profiler, evidence, current_stage) sums EVERY unresolved model-side stage with each posterior conditioned on current_stage != ABSENT; job_duration_interval_ms accepts known_present so a ready stage cannot contribute a spurious zero; the dead load term is removed because intrinsic durations already contain cold load. Eq.6 (correlated descendants + top-4) is unchanged.",
       "verification": "tests/test_llmsched_bn_v2.py L8WholeJobRemainingAndKnownPresent (4 gates); 38-test gate green.",
+      "not_a_retune": true
+    },
+    {
+      "date": "2026-09-26",
+      "defect": "evidence_from_completed() raised KeyError whenever a COMPLETED node mapped to a canonical stage outside the frozen (train-only) vocabulary.  The vocabulary is train-only, so a validation episode with a deeper loop occurrence (e.g. 'videotool_generalist:summarize:summarization-tool#4') is out-of-vocabulary and the arm crashed mid-episode -- discovered on the first 30-episode smoke.",
+      "fix": "evidence_from_completed() gains on_unknown='raise'|'skip' (default 'raise', preserving the train-time fail-closed gate) and the simulator's LLMSched branch uses 'skip' with a counter (policy_context['llmsched_evidence_stats']['oov_skipped']).  A stage the network has no variable for simply cannot be evidence; the posterior is not conditioned on it.",
+      "verification": "tests/test_llmsched_bn_v2.py EvidenceUnknownStageTests; gate 38 -> 39; 30-episode 5-arm smoke completes.",
       "not_a_retune": true
     }
   ]

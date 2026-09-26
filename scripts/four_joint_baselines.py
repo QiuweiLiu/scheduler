@@ -70,7 +70,7 @@ F0_ARTIFACTS = ROOT / "outputs/resource_v2_artifacts/f0_seed11"
 FUTURE_HORIZON = 5
 
 REFERENCE = "sameshape_h5_p95"
-ARMS = ("tie_current", "pythia_completion", "llmsched", "latency_aware")
+ARMS = ("tie_current", "pythia_completion", "llmsched", "latency_aware", "agentix")
 METRIC = "mean_completion_ms"
 NI_MARGIN_MS = 485.0
 SEED = 11
@@ -121,6 +121,11 @@ def build_context(arm: str, templates: Dict[str, Any]) -> Dict[str, Any]:
     if arm == "latency_aware":
         from tracing.analysis.latency_aware_predictor import build_latency_predictor
         return {"latency_aware_predictor": build_latency_predictor(templates)}
+    if arm == "agentix":
+        # Formal arm is continuous PLAS, non-preemptive: no artifact; it reads only the
+        # program's COMPLETED GPU calls' service from the live job state.  The
+        # non-preemptive discrete sensitivity (agentix_mode='discrete') is NOT this arm.
+        return {}
     raise ValueError("unknown arm %r" % arm)
 
 
