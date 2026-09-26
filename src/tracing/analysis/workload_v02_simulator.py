@@ -3805,18 +3805,43 @@ def choose_action(
         if mode == "discrete":
             # NON-PAPER sensitivity variant: discretised, non-preemptive queueing with
             # program-level anti-starvation (see agentix_methods).  The formal arm is 'plas'.
+            from tracing.analysis.agentix_methods import is_starving
+
+            # Activation telemetry, recorded once per DECISION over the distinct ready calls
+            # (the pool replicates a call per free device, so counting pool entries would
+            # multiply it).  These are mechanism-aliveness diagnostics, NOT performance
+            # metrics, and must never be used to tune the arm.
+            queue_counts: Dict[int, int] = ctx.setdefault("agentix_queue_counts", {})
+            tally = ctx.setdefault("agentix_telemetry", {"decisions": 0, "calls": 0, "promotions": 0})
+            attained_cache: Dict[int, float] = {}
+            queue_of: Dict[tuple, int] = {}
+            seen_calls = set()
+            for candidate in pool:
+                item, job_index, node_id, _model_id, _gpu, _row, _fit = candidate
+                key = (job_index, node_id)
+                if key in seen_calls:
+                    continue
+                seen_calls.add(key)
+                job = jobs[job_index]
+                if job_index not in attained_cache:
+                    attained_cache[job_index] = program_priority_ms(
+                        job, job.template, observed_gpu_service_of(job), mode="plas")
+                attained = attained_cache[job_index]
+                wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
+                starving = is_starving(wait_ms, attained)
+                index = 0 if starving else discrete_priority_index(attained, wait_ms)
+                queue_of[key] = index
+                queue_counts[index] = queue_counts.get(index, 0) + 1
+                tally["calls"] += 1
+                if starving:
+                    tally["promotions"] += 1
+            tally["decisions"] += 1
+
             def agentix_score(
                 candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
             ) -> tuple[Any, ...]:
                 item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
-                job = jobs[job_index]
-                attained = program_priority_ms(
-                    job, job.template, observed_gpu_service_of(job), mode="plas")
-                # GPU-only wait proxy: the current ready CALL's wait, not job.queue_ms (which
-                # also accumulates non-LLM node waits).  Program-level W_p is not separately
-                # accumulated; recorded as a sensitivity limitation.
-                wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
-                queue = discrete_priority_index(attained, wait_ms)
+                queue = queue_of.get((job_index, node_id), 0)
                 return (
                     float(item[0]),
                     queue,                   # K-queue index (0 is top); anti-starvation promotes to 0

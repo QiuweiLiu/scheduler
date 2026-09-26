@@ -1508,3 +1508,16 @@ workload 上结构性 N/A**（改前约 39 次融合全部是越界融合，已�
 
 ### 验证
 Agentix gate 18→**22**；聚焦 **167/167**；全量 **403**（仅预存/环境）。
+
+## 2026-09-26 — Agentix discrete 模式加入 activation telemetry（并发现档位未被用满）
+
+- 在 `agentix_mode=discrete` 中记录**决策级** telemetry（去重后的 ready 调用，非 pool 条目）：
+  `policy_context['agentix_queue_counts']`（各档占用）与 `policy_context['agentix_telemetry']`（decisions/calls/promotions）。
+  用途仅为"机制是否活着"，**不得用于调参**。
+- **真实 3 集实测（confirm）**：
+  - 去重 ready 调用评分 **659 次**，**防饿死提升 62 次 = 9.4%** → 防饿死机制活跃。
+  - **档位占用：Q1=364, Q2=295, Q3=0, Q4=0** → 我们给的 edges `(0,30k,90k,210k)` 下，
+    **Q3/Q4 从未被用到**，离散化实际只等价于 **K=2**。
+  - 即：当前常量下"4 档"名不副实。若要 K=4 真正生效，应把 edges 按**训练期**已完成的每秒服务分布取分位
+    （train-only，非按结果调参），而不是拍固定毫秒值。
+- 状态：telemetry 仅为**报告用**；edges 是否改用 train-quantile 校准**待定**（不擅自改）。

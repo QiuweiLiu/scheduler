@@ -10,7 +10,7 @@
 - 验证：Agentix gate 22；聚焦 167/167；全量 403（仅预存/环境）。
 
 ### Active
-待 commit/push。
+Agentix discrete telemetry 已加并实测：**防饿死提升 9.4%**，但**Q3/Q4 未被用到（实际 K=2）**；edges 是否改 train-quantile 校准**待定**。
 
 ### Next
 1. commit + push
@@ -29,7 +29,7 @@
 - Agentix gate 10→18；聚焦 163/163；全量 399（仅预存/环境）。
 
 ### Active
-待 commit/push。
+Agentix discrete telemetry 已加并实测：**防饿死提升 9.4%**，但**Q3/Q4 未被用到（实际 K=2）**；edges 是否改 train-quantile 校准**待定**。
 
 ### Next
 1. commit + push
