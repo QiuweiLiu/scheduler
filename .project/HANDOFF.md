@@ -1,5 +1,24 @@
 # HANDOFF
 
+## 2026-09-26 (9) 正式 5 臂测量完成（confirm300）
+
+- `--formal` 通过（fidelity + topology gate + pinned HEAD）。commit `694e6fc`，300 集，31 min。
+- 产物：`experiments/EXP-20260921_scheduler_replication_v1/artifacts/four_baseline_formal_v1.json`。
+- **F0 显著优于全部 5 条基线**（Δ 的 CI95 下界全部 > 0）：LLMSched +7.0s、TIE +14.7s、Latency +16.4s、Pythia +33.5s、Agentix +47.1s。
+- 这是**完整系统对比**，非"调度器隔离"结论；每条基线的 adaptation/omission 必须随表披露。
+
+### Active
+formal 结果已记录到 EXPERIMENT_GATE / DECISIONS。待 commit/push。
+
+### Next
+1. commit + push
+2. same-interface 2×2（若要主张"调度器更强"）
+3. 论文：把五条基线的 disclosure 与零机会统计随表写出
+
+---
+
+# HANDOFF
+
 ## 2026-09-26 (8) 终审收尾：Pythia ACCEPT + Agentix 服务口径/披露
 
 - **Pythia：算法 ACCEPT**（`docs/research/2026-09-26_pythia_and_agentix_final_review.md`）。只剩 provenance：`head_full_sha` → `d01d202…`，

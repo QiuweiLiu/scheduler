@@ -1,0 +1,49 @@
+{
+  "paper": {
+    "title": "Agentix (early arXiv: Autellix): An Efficient Serving Engine for LLM Agents as General Programs",
+    "venue": "USENIX NSDI 2026, pp. 2443-2459",
+    "arxiv": "2502.13965"
+  },
+  "arm": "agentix",
+  "freeze": {
+    "name": "Agentix-PLAS Baseline Freeze v1",
+    "head": "aa5a11ab871e050c9ba205b6c5cf4004d0a617f3",
+    "status": "APPROVED",
+    "gates": "tests/test_agentix_fidelity.py",
+    "gate_count": 26,
+    "note": "Formal arm = continuous PLAS, NON-PREEMPTIVE. Frozen at the commit that introduced the implementation."
+  },
+  "faithful": [
+    "non-clairvoyant program-level scheduling",
+    "PLAS: a call's priority is its program's completed LLM calls' cumulative service (Eq. 1)",
+    "lower attained service is scheduled first"
+  ],
+  "adapted": [
+    "priority-only port: the execution unit is a GPU node; placement, admission memory and model residency stay with the substrate",
+    "the hard benchmark service class precedes the PLAS score (substrate contract; Agentix publishes no such class)",
+    "service accounting counts completed GPU nodes' observed model-executor service (queued wait and model load excluded)",
+    "ATLAS optional variant recomputes the exact completed critical path; the paper keeps one inherited per-program scalar -- they coincide on serial programs"
+  ],
+  "deviation": [
+    "the preemptive MLFQ scheduler is NOT part of the formal arm: K queues, the decoding time quantum, in-call demotion and program-level anti-starvation all require request preemption / KV-cache swapping, which the node-atomic substrate cannot represent",
+    "engine-level batching, cross-engine routing and KV-locality load balancing are not reproduced"
+  ],
+  "omissions": [
+    "preemptive MLFQ / decoding quantum / in-call demotion",
+    "program-level anti-starvation (only in the non-preemptive discrete SENSITIVITY variant, not the formal arm)",
+    "cross-engine routing and KV-cache transfer cost"
+  ],
+  "non_paper_variants": {
+    "Agentix-Discrete-NoPreempt": "non-preemptive discretisation + cross-call re-binning + anti-starvation; K=4 with train-only quantile edges; explicitly NOT the paper's mechanism"
+  },
+  "information_contract": {
+    "reads": "only job.completed (completed calls); the current ready node's resource estimates are inherited from the substrate",
+    "never": "future workflow structure, remaining work, or the realized template suffix",
+    "note": "the paper is non-clairvoyant; reading the future would be unfaithful"
+  },
+  "prohibited_after_freeze": [
+    "the PLAS priority definition and the non-clairvoyance boundary",
+    "service accounting (completed GPU nodes' observed service, load excluded)",
+    "claiming the paper's preemptive scheduler is reproduced"
+  ]
+}

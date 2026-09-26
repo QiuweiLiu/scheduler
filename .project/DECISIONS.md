@@ -1555,3 +1555,25 @@ telemetry 只作 **appendix / fidelity diagnostic**（非主结果表）；报�
   理由：网络里**没有这个变量**，它就无法作为证据；后验不条件在它上面。
 - gate 38→**39**（新增 `EvidenceUnknownStageTests`）；30 集 5 臂 smoke 通过。属 correctness 修复，非调参。
 - 冻结清单已加 `freeze_breaking_fixes` 记录；**待 re-pin LLMSched head**。
+
+## 2026-09-26 — 正式 5 臂测量完成（frozen confirm300）
+
+- 命令：`four_joint_baselines.py --formal`（hard gate：fidelity manifest PASS + topology gate PASS + git HEAD pinned）。
+- 环境：commit `694e6fc`，投影 SHA `15c62daf…`，确认集 300，metric `mean_completion_ms`，reference `F0 sameshape_h5_p95`，bootstrap 2000，seed 11。
+- 运行 1879.8 s（≈31 min）。产物：`experiments/EXP-20260921_scheduler_replication_v1/artifacts/four_baseline_formal_v1.json`。
+
+**结果（Δ = 基线 − F0；正=更差）**
+
+| 基线 | Δ (ms) | CI95 | 更差集数 | 判定 |
+|---|---|---|---|---|
+| LLMSched | +7,049 | [5,941, 8,259] | 260/300 | inferior |
+| TIE | +14,714 | [12,359, 17,316] | 268/300 | inferior |
+| Latency-Aware | +16,353 | [13,707, 19,252] | 257/300 | inferior |
+| Pythia | +33,510 | [28,900, 38,620] | 294/300 | inferior |
+| Agentix (PLAS) | +47,055 | [40,606, 54,058] | 294/300 | inferior |
+
+（F0 均值 99,967 ms）
+
+- **所有基线的 Δ CI 下界均 > 0** → F0 在 confirm300 上**统计显著优于全部五条基线**。
+- **结论范围**：这是**同一 substrate 上的"完整系统"对比**，**不能**单独主张"我们的调度器比别人的调度器强"（那需要 same-interface 2×2）。
+- 注意：这五条各自带有已冻结并披露的 adaptation/omission（Latency 的 fusion=N/A；Agentix 仅 PLAS 非抢占等），论文必须随表披露。

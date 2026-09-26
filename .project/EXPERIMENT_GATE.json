@@ -2705,6 +2705,74 @@
         "re_pin_is_not_a_freeze_signoff": true,
         "followup_fixes_20260926": "Latency resolved-graph view; TIE conditional cold-load; Pythia aging omission; LLMSched interval conditioning; runner --formal gate; FusedChain truth field removed",
         "fusion_disabled_on_v04_1": true
+      },
+      "formal_run_20260926": {
+        "registered": true,
+        "status": "COMPLETED",
+        "commit": "694e6fc7149cbe03cd1287436ba31aa2d829b4c6",
+        "arms": [
+          "tie_current",
+          "pythia_completion",
+          "llmsched",
+          "latency_aware",
+          "agentix"
+        ],
+        "reference": "F0 sameshape_h5_p95",
+        "episodes": "frozen confirm300",
+        "metric": "mean_completion_ms",
+        "non_inferiority_margin_ms": 485.0,
+        "bootstrap": 2000,
+        "runtime_s": 1879.8,
+        "reference_mean_ms": 99967.0,
+        "artifact": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/four_baseline_formal_v1.json",
+        "results": {
+          "llmsched": {
+            "delta": 7048.8,
+            "ci95": [
+              5941,
+              8259
+            ],
+            "worse": "260/300",
+            "verdict": "inferior"
+          },
+          "tie_current": {
+            "delta": 14713.8,
+            "ci95": [
+              12359,
+              17316
+            ],
+            "worse": "268/300",
+            "verdict": "inferior"
+          },
+          "latency_aware": {
+            "delta": 16352.7,
+            "ci95": [
+              13707,
+              19252
+            ],
+            "worse": "257/300",
+            "verdict": "inferior"
+          },
+          "pythia_completion": {
+            "delta": 33510.4,
+            "ci95": [
+              28900,
+              38620
+            ],
+            "worse": "294/300",
+            "verdict": "inferior"
+          },
+          "agentix": {
+            "delta": 47054.8,
+            "ci95": [
+              40606,
+              54058
+            ],
+            "worse": "294/300",
+            "verdict": "inferior"
+          }
+        },
+        "interpretation": "Complete-system comparison on one substrate; F0 is statistically better than every baseline (all Delta CI95 strictly above zero). NOT a scheduler-isolated claim."
       }
     }
   },
@@ -2713,5 +2781,9 @@
     "Add new experiments here before formal runs (gate + registration)."
   ],
   "schema": "experiment-gate-v1",
-  "updated_at": "2026-09-26"
+  "updated_at": "2026-09-26",
+  "smoke_passed": true,
+  "ledger_registered": true,
+  "commit": "694e6fc7149cbe03cd1287436ba31aa2d829b4c6",
+  "active_formal_run": "EXP-20260921_scheduler_replication_v1 / 5-arm confirm300"
 }
