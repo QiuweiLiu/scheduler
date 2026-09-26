@@ -18,6 +18,7 @@ import unittest
 from tracing.analysis.agentix_methods import (
     AGENTIX_DEVIATION,
     AGENTIX_SCHEMA,
+    calibrate_queue_edges,
     DEFAULT_ANTI_STARVATION_BETA,
     DEFAULT_QUEUE_EDGES_MS,
     critical_path_service_ms,
@@ -199,6 +200,42 @@ class ServiceAccountingTests(unittest.TestCase):
     def test_deviation_discloses_the_formal_arm_boundary(self):
         for token in ("preemptive", "MLFQ", "quantum", "anti-starvation", "prediction"):
             self.assertIn(token, AGENTIX_DEVIATION)
+
+
+class EdgeCalibrationTests(unittest.TestCase):
+    """Train-only quantile calibration of the K-queue boundaries (paper publishes none)."""
+
+    @staticmethod
+    def _train(tid, runtimes, split="train"):
+        tpl = _chain(tid, runtimes)
+        return Template(tid, tid, split, "fam", tpl.nodes, tpl.by_id)
+
+    def test_edges_are_monotone_and_capped_at_k(self):
+        tpls = {f"t{i}": self._train(f"t{i}", [100.0, 200.0, 300.0, 400.0, 500.0])
+                for i in range(5)}
+        edges = calibrate_queue_edges(tpls, queues=4)
+        self.assertEqual(edges[0], 0.0)
+        self.assertEqual(edges, tuple(sorted(edges)))
+        self.assertLessEqual(len(edges), 4)
+
+    def test_validation_templates_are_excluded(self):
+        train = {"t": self._train("t", [1000.0, 1000.0, 1000.0, 1000.0])}
+        val = {"v": self._train("v", [1.0, 1.0, 1.0, 1.0], split="validation")}
+        only = calibrate_queue_edges(train, queues=4)
+        both = calibrate_queue_edges({**train, **val}, queues=4)
+        self.assertEqual(only, both)
+
+    def test_duplicate_boundaries_are_merged_never_jittered(self):
+        # every program has ONE gpu call, so every admission sees attained service 0
+        tpls = {f"t{i}": self._train(f"t{i}", [100.0]) for i in range(6)}
+        edges = calibrate_queue_edges(tpls, queues=4)
+        self.assertEqual(edges, (0.0,), "identical quantiles must collapse to one bin")
+
+    def test_more_data_produces_more_bins(self):
+        # varying program lengths give a spread of attained-service values
+        tpls = {f"t{i}": self._train(f"t{i}", [1000.0] * (i + 2)) for i in range(8)}
+        edges = calibrate_queue_edges(tpls, queues=4)
+        self.assertGreater(len(edges), 1)
 
 
 class QueueDiscretizationTests(unittest.TestCase):

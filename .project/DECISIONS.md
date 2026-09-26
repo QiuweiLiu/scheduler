@@ -1521,3 +1521,26 @@ Agentix gate 18→**22**；聚焦 **167/167**；全量 **403**（仅预存/环�
   - 即：当前常量下"4 档"名不副实。若要 K=4 真正生效，应把 edges 按**训练期**已完成的每秒服务分布取分位
     （train-only，非按结果调参），而不是拍固定毫秒值。
 - 状态：telemetry 仅为**报告用**；edges 是否改用 train-quantile 校准**待定**（不擅自改）。
+
+## 2026-09-26 — Agentix discrete 档界改为 train-only 分位校准（K=4）
+
+背景：论文（Autellix/Agentix §4.2.2/§5）只给了形式（连续区间、Q1_lo=0、QK_hi=∞、β 判据），
+**没有给 K、档界、时间片、β 的任何数值**。原先拍的固定毫秒界 `(0,30k,90k,210k)` 经 telemetry 证明**尺度失配**（Q3/Q4 恒空，实际 K=2）。
+依 GPT 结论采用**方案 B**：
+
+- 新增 `agentix_methods.calibrate_queue_edges(templates, queues=4)`：
+  - 校准量 = **训练集**中"**每次 GPU/LLM 调用 admission 时刻的 PLAS 已达服务**"的分布（不是单次调用 runtime，也不是 program 总服务）；
+  - 档界 = `[0, q25, q50, q75]`（末档到 ∞）；**重复分位合并，绝不抖动边界**；
+  - **只用训练集输入分布**，不涉及 latency/makespan/throughput/action-flip 等任何评测结果；正式测量前冻结，之后**禁止重标定**。
+- 模拟器 `agentix_mode=discrete` 从 `policy_context['agentix_queue_edges']` 读档界；缺省才回落到固定常量（仅测试夹具用）。
+- `β=1.0` 保持**固定、无量纲**（累计等待 ≥ 累计服务即提升）；不随分位校准，不按结果调。
+- `AGENTIX_DISCRETE_DEVIATION` 改用 GPT 给的措辞（写明 K/边界/β 均为**我们的适配**、论文未公布）。
+
+**真实数据（3 confirm 集）**
+- 校准档界：`(0, 13785, 23111, 35100)` ms。
+- 占用：Q1 26.1% / Q2 17.3% / Q3 26.1% / Q4 30.5% → **K_nonempty = 4**（四档全部用上）。
+- 防饿死提升：**66/678 = 9.7%**。
+- 对照（改前固定界）：Q1 364 / Q2 295 / Q3 0 / Q4 0 → K_nonempty=2。
+
+telemetry 只作 **appendix / fidelity diagnostic**（非主结果表）；报告项：queue occupancy shares、`K_nonempty`、promotion count/rate。
+验证：Agentix gate 22→**26**；聚焦 **171/171**；全量 **407**（仅预存/环境）。

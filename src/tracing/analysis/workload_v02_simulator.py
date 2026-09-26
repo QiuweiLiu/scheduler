@@ -3794,6 +3794,7 @@ def choose_action(
         """
 
         from tracing.analysis.agentix_methods import (
+            DEFAULT_QUEUE_EDGES_MS,
             discrete_priority_index,
             observed_gpu_service_of,
             program_priority_ms,
@@ -3806,6 +3807,10 @@ def choose_action(
             # NON-PAPER sensitivity variant: discretised, non-preemptive queueing with
             # program-level anti-starvation (see agentix_methods).  The formal arm is 'plas'.
             from tracing.analysis.agentix_methods import is_starving
+
+            # Queue edges: train-only quantile calibration supplied by the caller.  The
+            # paper publishes no boundaries, so the fallback is only for fixtures/tests.
+            edges = tuple(ctx.get("agentix_queue_edges", DEFAULT_QUEUE_EDGES_MS))
 
             # Activation telemetry, recorded once per DECISION over the distinct ready calls
             # (the pool replicates a call per free device, so counting pool entries would
@@ -3829,7 +3834,7 @@ def choose_action(
                 attained = attained_cache[job_index]
                 wait_ms = max(0.0, float(decision_time_ms) - float(item[1]))
                 starving = is_starving(wait_ms, attained)
-                index = 0 if starving else discrete_priority_index(attained, wait_ms)
+                index = 0 if starving else discrete_priority_index(attained, wait_ms, edges)
                 queue_of[key] = index
                 queue_counts[index] = queue_counts.get(index, 0) + 1
                 tally["calls"] += 1

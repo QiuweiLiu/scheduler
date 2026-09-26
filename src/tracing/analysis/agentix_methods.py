@@ -170,16 +170,24 @@ def intrinsic_runtime_of(template: Any) -> Callable[[str], float]:
 
 AGENTIX_DISCRETE_SCHEMA = "agentix-discrete-nopreempt-v1"
 
-# Pre-registered adaptation constants.  The paper gives K queues but no edges, and no beta.
-DEFAULT_QUEUE_EDGES_MS = (0.0, 30000.0, 90000.0, 210000.0)   # lower edge of each of 4 queues
+# The paper gives K queues but publishes NO edges, NO K, and NO beta.  Edges are therefore
+# calibrated ONCE from the TRAIN split by a fixed rule (see calibrate_queue_edges); the tuple
+# below is only a FALLBACK when no train calibration is supplied (e.g. unit fixtures).
+DEFAULT_QUEUE_EDGES_MS = (0.0, 30000.0, 90000.0, 210000.0)   # fallback lower edges of 4 queues
 DEFAULT_ANTI_STARVATION_BETA = 1.0                           # promote when wait/service >= beta
+DEFAULT_QUEUES = 4
 
 AGENTIX_DISCRETE_DEVIATION = (
-    "NON-PAPER sensitivity variant. Agentix discretises the program priority into K queues and "
-    "demotes a call when it exhausts its decoding quantum mid-call, requiring request preemption "
-    "and KV swap; our node-atomic substrate cannot represent either. This variant keeps the "
-    "discretisation and the program-level anti-starvation promotion, and applies demotion ACROSS "
-    "calls instead of within a call. In-call quantum demotion and preemption are NOT reproduced."
+    "Agentix-Discrete-NoPreempt is a non-paper sensitivity variant. The original Agentix "
+    "discretises program priorities into K queues, but does not publish K, queue boundaries, time "
+    "quanta, or a default anti-starvation threshold beta. Because our node-atomic simulator cannot "
+    "reproduce decoding-quantum demotion or KV-preserving preemption, we retain only call-arrival "
+    "priority discretisation and program-level anti-starvation. We fix K=4; queue boundaries are "
+    "calibrated once from the 25th/50th/75th percentiles of train-only PLAS attained service "
+    "observed at LLM/GPU-call admission, with duplicate boundaries merged. This calibration uses "
+    "no performance outcome and is frozen before formal evaluation. We fix beta=1 as a "
+    "data-independent sensitivity constant. These values are adaptation choices, not settings "
+    "reported by Agentix."
 )
 
 
@@ -218,3 +226,64 @@ def discrete_priority_index(attained_service_ms: float, wait_ms: float,
     if is_starving(wait_ms, attained_service_ms, beta):
         return 0
     return queue_index(attained_service_ms, edges)
+
+
+# --------------------------------------------------------------------------- #
+# train-only queue-edge calibration (the paper publishes no boundaries)
+# --------------------------------------------------------------------------- #
+def _admitted_service_distribution(templates: Mapping[str, Any]) -> list:
+    """PLAS attained service observed AT each GPU/LLM call admission, train split only.
+
+    This is the quantity Agentix looks up to choose a call's initial queue: the sum of the
+    program's COMPLETED GPU calls' service BEFORE this call.  For a serial program it is the
+    running prefix sum and is independent of the schedule; for a parallel program the order
+    follows the template's sequence, which is the training execution order.  Only GPU
+    (model-executor) calls contribute service, and model load is excluded.
+    """
+
+    values = []
+    for template in templates.values():
+        if str(getattr(template, "split", None)) != "train":
+            continue
+        running = 0.0
+        for node in sorted(template.nodes, key=lambda n: n.sequence_index):
+            if str(getattr(node, "lane", "gpu")) != "gpu":
+                continue
+            # the attained service AT this call's admission (before this call runs)
+            values.append(running)
+            runtime = float(getattr(node, "runtime_ms", 0.0) or 0.0)
+            load = float(getattr(node, "load_ms", 0.0) or 0.0)
+            running += max(0.0, runtime - load)
+    return values
+
+
+def _quantile(sorted_values: list, fraction: float) -> float:
+    if not sorted_values:
+        raise ValueError("quantile of an empty sample")
+    position = (len(sorted_values) - 1) * float(fraction)
+    lower = int(position)
+    upper = min(lower + 1, len(sorted_values) - 1)
+    weight = position - lower
+    return float(sorted_values[lower] * (1.0 - weight) + sorted_values[upper] * weight)
+
+
+def calibrate_queue_edges(templates: Mapping[str, Any],
+                          queues: int = DEFAULT_QUEUES) -> tuple:
+    """Train-only quantile edges for the K queues; duplicate boundaries are MERGED.
+
+    The rule is fixed before formal measurement and reads ONLY the train attained-service
+    distribution -- no latency, makespan, throughput or any evaluation outcome participates.
+    Edges are ``[0, q25, q50, q75, ...]`` (internal quantiles only; the last queue runs to
+    infinity), so the returned tuple has at most ``queues`` entries.
+    """
+
+    sample = sorted(_admitted_service_distribution(templates))
+    if not sample:
+        return DEFAULT_QUEUE_EDGES_MS
+    internal = max(0, int(queues) - 1)
+    edges = [0.0]
+    for index in range(1, internal + 1):
+        boundary = _quantile(sample, index / float(internal + 1))
+        if boundary > edges[-1] + 1e-9:      # duplicate boundaries are merged, never jittered
+            edges.append(boundary)
+    return tuple(edges)
