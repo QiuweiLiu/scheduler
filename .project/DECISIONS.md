@@ -1757,3 +1757,24 @@ r3 的 paired 检验显示 α=0.80 与 0.85 的 Δcomp 差为 **+0.0470 [0.0353,
   **重建**了该条目，并标注 `RECONSTRUCTION_NOTICE`（重跑精确复现原 natural/1.05 行：0.6688 / 0.9149 / p50 2）；
   该条目保留并标注 `superseded_by: stress_regime_v2_20260927`。
 - **教训**：同步前必须**先 diff 目标目录的未提交改动**，再决定覆盖；`.project/` 下文件应先比对后写入。
+
+## 2026-09-27 — 撤回上一条"误覆盖"更正；并发现 v1 stress 四臂 ladder 早已完成
+
+**撤回**：我在上一条写"同步时覆盖了 `scheduler_public_repo` 中未提交的 `stress_regime_20260927` 条目且无法恢复"——**该说法错误，予以撤回**。
+核实结果：该条目**嵌套在** `experiments.EXP-20260921_scheduler_replication_v1.stress_regime_20260927`（不是顶层），
+本机与 public repo **两边都完好无损**（含 `rho_calibration` / `dev_structural_2x2` / `ladder_confirm300_stress` /
+`baselines_on_stress_vs_F0` / `status_note` 全部字段）。我此前按**顶层键**比对，故误判为"丢失"，并据此在同一路径下**重复添加**了一个重建条目——
+现已**删除该重复条**，并给原条目加 `historical_note`。**没有数据丢失**。
+
+**新发现（本会话重大遗漏）**：v1 stress（ρ*=1.05）**已经完成 confirm300 四臂 ladder**：
+- Myopic 133161 / F0_H5 127210 / Truth_H5 125985 / Oracle 120827 ms
+- **O_H5 = 7176 ms**（Natural 仅 851 ms，**8.4×**）、**O_full = 12334 ms**（Natural 2852）、**Coverage_H5 = 0.582**（Natural 0.298）、Realized 0.829（Natural 0.453）
+- 五条基线在 stress 上 vs F0：llmsched +17544 / tie +26698 / latency_aware +32635 / pythia +75971 / agentix +131127
+
+**含义**：v1 stress **确实大幅提高了 H5 的可操作价值**（851→7176 ms），这与 08-18 后"争用不足导致 H5 无价值"的假设**方向相反**，
+也与 00:20 GPT 报告引用的 8 月 pilot（争用↑但 PredOpt-H5≈Myopic）**互相矛盾**。
+
+**待决（需用户/GPT 裁定）**：既然 v1 stress 已给出 O_H5=7176 ms 的正面结果，**Stress-v2（α*=0.80）是否仍必要**？
+- 若 v1 ladder 可信 → 论文核心问题已有答案，v2 可能只是更干净的复现；
+- 若 v1 因 construct-validity 问题不可信 → 仍需 v2 复现。
+- **必须先核实 v1 ladder 的产物/命令/commit 是否可追溯**（当前仓库 artifacts 中未见对应 ladder 文件）。

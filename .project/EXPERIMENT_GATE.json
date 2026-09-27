@@ -2877,7 +2877,8 @@
           "pythia_completion": 75971,
           "agentix": 131127
         },
-        "status_note": "post-hoc stress study, NOT an independent confirmatory test (confirm300 was already inspected). Natural confirm300 kept unchanged."
+        "status_note": "post-hoc stress study, NOT an independent confirmatory test (confirm300 was already inspected). Natural confirm300 kept unchanged.",
+        "historical_note": "v1 (absolute-rho, rho*=1.05) stress regime, built and ladder-measured by a prior session; historical: superseded by the v2 protocol. Its ladder (O_H5=7176ms, O_full=12334ms, coverage 0.582) is NOT v2 evidence and must not be reported as a v2 result."
       }
     },
     "stress_regime_v1_20260927": {
@@ -3115,68 +3116,6 @@
         ],
         "next": "run Myopic -> F0 -> Truth-H5 -> Oracle once on the frozen stress regime; reveal O_H5 = Myopic-TruthH5, O_full = Myopic-Oracle, H5Coverage = O_H5/O_full. No further workload/gate edits."
       }
-    },
-    "stress_regime_20260927": {
-      "status": "BUILT + validated (dev-only rho selection)",
-      "commit": "6daef3f2abd7e5f505f36280241ae312ebcb4bdb",
-      "name": "High-Contention Stress Regime v1 (arrival-compressed, all-normal)",
-      "transform": "arrival scaled by rho_old/rho*; service_class all-normal; deadline keeps its absolute post-arrival budget; templates/job-count/order/episode membership UNCHANGED (paired with the Natural confirm300)",
-      "producer": "scripts/preprocess/build_stress_episodes.py (self-check: realized load recomputed == rho*)",
-      "episodes": "results/processed/r7_workload_v03_stress_rho105/episodes/workload_validation_rho105.jsonl",
-      "rho_calibration": {
-        "split": "development only",
-        "anchor": "myopic",
-        "grid": [
-          1.05,
-          1.1,
-          1.2,
-          1.3,
-          1.4,
-          1.5
-        ],
-        "rule": "smallest rho with competitive_rate in [0.50,0.70], gpu_util in [0.80,0.92], ready_jobs_p50>=2, zero failures",
-        "selected_rho": 1.05,
-        "scan": {
-          "natural": {
-            "C": 0.4217,
-            "util": 0.7281,
-            "p50": 1
-          },
-          "1.05": {
-            "C": 0.6688,
-            "util": 0.9149,
-            "p50": 2
-          },
-          "1.10": {
-            "C": 0.715,
-            "util": 0.9278,
-            "p50": 3
-          },
-          "1.20": {
-            "C": 0.7797,
-            "util": 0.9391,
-            "p50": 3
-          },
-          "1.30": {
-            "C": 0.8098,
-            "util": 0.9452,
-            "p50": 3
-          },
-          "1.40": {
-            "C": 0.8278,
-            "util": 0.9507,
-            "p50": 4
-          },
-          "1.50": {
-            "C": 0.838,
-            "util": 0.9557,
-            "p50": 4
-          }
-        }
-      },
-      "superseded_by": "stress_regime_v2_20260927",
-      "superseded_note": "v1 absolute-rho selection on dev (rho=1.05, which does qualify on dev) was valid under the original dev-only rule. Superseded after the construct-validity audit (arrival x rho_old/rho EXPANDS episodes whose rho_old exceeds the target) and the v2 redesign.",
-      "RECONSTRUCTION_NOTICE": "The original working-tree entry was accidentally overwritten during a sync on 2026-09-27 and could not be recovered. This entry is RECONSTRUCTED: header fields are from a captured `git diff` of the original; the scan block is re-derived by re-running the frozen v1 builder on the same 100 development episodes (pooled/decision-micro competitive, anchor=myopic). The re-run reproduces the original natural/1.05 rows exactly (0.6688 / 0.9149 / p50 2). Fields beyond 'rho_calibration', if any, could not be recovered."
     }
   },
   "notes": [
