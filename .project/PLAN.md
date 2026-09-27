@@ -34,13 +34,12 @@ C ≤ 0.85；U ≤ 0.95；ordering-retention ≥ 0.80；0 failed；0 capacity vi
 
 ---
 
-**当前计划 = Stress regime v1**（更公平的基线对比）。下面 09-15/09-17 的历史段落保留作背景。
+**⚠️ HISTORICAL（2026-09-27 起）**：以下 v1（绝对目标 ρ）段落**已被顶部 Stress-v2 协议取代**，仅作背景保留。
+v1 的 ρ 网格 {1.05…1.50} 在 **dev** 上曾选出 ρ=1.05；其被取代的理由是 **construct validity**
+（`arrival×(ρ_old/ρ)` 对 ρ_old>ρ 的集是拉伸，只得到"均匀化"），不是数值不合格。v1 的一切条目不构成当前计划。
 
-> **进度（2026-09-27）**：变换 `stress-arrival-compression-all-normal-v1` 已实现，**ρ=1.05 已生成**
-> （`results/processed/r7_workload_v03_stress_rho105/`，300 集；manifest 已记录"模板未改、job 数未改、
-> arrival 乘性缩放、all-normal、deadline 保持绝对预算"）。**待办**：补齐 ρ 网格 → Myopic-only 结构门选最小合格值。
-> 另注：**主 workload 现为 v04 因果模板**（`r7_workload_v04_causal_v31_no_run_container`，
-> `verified_serial_control_flow_v3_1`，`chain_tail_is_answer` 640/640），经 `topology_view` 选择 legacy / causal_v3。
+> **主 workload**：v04 因果模板（`r7_workload_v04_causal_v31_no_run_container`，`verified_serial_control_flow_v3_1`，
+> `chain_tail_is_answer` 640/640），经 `topology_view` 选择 legacy / causal_v3。
 
 ## 当前目标：Stress regime v1 —— 让基线与 F0 的对比在足够争用下成立
 
@@ -71,7 +70,7 @@ Future Opportunity 只能是**建成后的诊断结果**，不能成为回头调
 | metadata | 重算并记录 `episode_window_ms` / `arrival_span_ms` / `target_offered_compute_load` / `realized_offered_compute_load`，**不得留旧值** |
 | 暂缓 | C 方案（长短配比：按 train total-GPU-service 三分位重排 template_id）Phase 2 再做 |
 
-### ρ' 标定门（dev-only）
+### ρ' 标定门（dev-only）—— **HISTORICAL，已被顶部 Stress-v2 的 α 门取代**
 
 - 网格：**{1.05, 1.10, 1.20, 1.30, 1.40, 1.50}**；锚策略：**Myopic**；
 - 结构指标：`distinct-job competitive rate` + `GPU utilization`（+ `p50 ready jobs`）；

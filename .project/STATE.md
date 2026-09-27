@@ -95,24 +95,25 @@
 
 ## 未决问题与风险
 
-- **Stress regime 标定未完成**（ρ 网格只做了 1.05）；stress 的"是否真能制造 H5 opportunity"尚未知。
+- **Stress-v2 已冻结 α\*=0.80**（见顶部；评审 r3 ACCEPT）；**confirm300 的 v2 α=0.80 配对产物已生成**，四臂尚未跑。
+- 门禁中另存一份 **v1 stress 四臂 ladder 数字**（O_H5=7176 ms），但**无任何产物文件可追溯**；按 2026-09-27 决定**不采用**，仅留 historical。
 - **same-interface 2×2 未做** → 目前**不能**主张"调度器更强"。
-- 09-26 的工作**尚未 commit/push**。
+- 09-26 → 09-27 工作**已 commit/push**（GitHub `QiuweiLiu/scheduler`，`bf0da99`）。
 - 两个**预先存在**的 bug 已定位未修（09-23 记录）：`round_robin` 实跑 myopic；`fcfs` 安全。
 - 全是仿真实验（无真实系统回放）；S_* 为域外推断。
 - 控制面完整性（编码损坏）已处理，见文末。
 
 ## 下一步（按优先级）
 
-1. 补齐 stress ρ 网格 → **Myopic-only 结构门**选出最小合格 ρ'（禁用性能指标）→ 冻结。
-2. 冻结后一次性跑 Myopic → F0 → Truth-H5 → Oracle；H5 opportunity 仍小则如实报告失败，**不回头调 ρ'**。
+1. **在已冻结的 v2 上一次性跑四臂**：`experiments/.../r7_workload_v03_stressv2_confirm080`（confirm300，α=0.80）
+   → Myopic → F0 → Truth-H5 → Oracle，揭晓 `O_H5 / O_full / H5Coverage`。**不得再改 workload/gate**。
+2. 若 H5 仍小 → 如实报告"提高到达争用未显著提高 H5 可操作价值"，不回头调参。
 3. 五条冻结基线**仅在科学上值得时**在 stress 上跑；论文随表写 disclosure 与零机会统计。
-4. commit + push（09-26 工作）。
-5. （可选）same-interface 2×2；随后再谈 Phase 17 契约修复 / H10-lite 等方向。
+4. （可选）same-interface 2×2；随后再谈 Phase 17 契约修复 / H10-lite 等方向。
 
 ## 记录指针
 
-- 计划：`.project/PLAN.md`（顶部 = stress regime v1）。
+- 计划：`.project/PLAN.md`（顶部 = **Stress-v2** 协议；v1 段落已标 HISTORICAL）。
 - 门禁：`.project/EXPERIMENT_GATE.json`（`stress_regime_v1_20260927`、`EXP-20260921_scheduler_replication_v1`、
   `EXP-20260921_histres_causal_input_v1`、`EXP-20260919_j_series_resource_dist_v1`、`EXP-20260911_*`）。
 - 决策：`.project/DECISIONS.md`（尾部为 09-26/09-27 条目）。

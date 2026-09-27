@@ -184,6 +184,10 @@ def main() -> int:
         util_series = summary.get("gpu_utilization")
         if util_series is None:
             raise KeyError("simulate_episode summary lacks gpu_utilization for %r" % ep.get("episode_id"))
+        # capacity violation := an admission failure (simulated OOM). Counted explicitly so the
+        # gate never references a quantity that is not actually measured.
+        sim_oom = sum(1 for e in events
+                      if e.get("event_type") == "node_fail" and e.get("reason") == "simulated_oom")
         per_episode.append({
             "key": ep.get("parent_episode_id") or ep.get("episode_id"),
             "episode_id": ep.get("episode_id"),
@@ -195,6 +199,7 @@ def main() -> int:
             "ordering_retention": (ep_multi_feasible / ep_multi_ready) if ep_multi_ready else None,
             "gpu_utilization": (statistics.fmean(util_series) if util_series else None),
             "failed_jobs": int(summary["failed_jobs"]),
+            "simulated_oom": sim_oom,
         })
 
     ep_comp = [r["competitive_rate"] for r in per_episode if r["competitive_rate"] is not None]
@@ -220,7 +225,7 @@ def main() -> int:
         "competitive_macro": round(statistics.fmean(ep_comp), 4) if ep_comp else None,
         "competitive_macro_ci95": bootstrap_ci(ep_comp, statistics.fmean),
         "competitive_pooled": round(sum(1 for n in ready_counts if n >= 2) / len(ready_counts), 4) if ready_counts else None,
-        "ready_jobs_p50_macro": round(statistics.fmean(ep_p50), 4) if ep_p50 else None,
+        "ready_jobs_p50_macro": round(statistics.median(ep_p50), 4) if ep_p50 else None,
         "ready_jobs_p50_pooled": quantile(ready_counts, 0.5),
         "ready_jobs_p90_pooled": quantile(ready_counts, 0.9),
         "gpu_utilization_macro": round(statistics.fmean(ep_util), 4) if ep_util else None,
@@ -231,6 +236,8 @@ def main() -> int:
         "multi_ready_decisions": total_multi_ready,
         "multi_feasible_decisions": total_multi_feasible,
         "failed_jobs": sum(r["failed_jobs"] for r in per_episode),
+        "simulated_oom_count": sum(r["simulated_oom"] for r in per_episode),
+        "capacity_violation_definition": "simulated_oom_count (admission failure: node_fail with reason='simulated_oom')",
         "episodes_with_multi_ready": sum(1 for r in per_episode if r["multi_ready_decisions"] > 0),
     }
 
@@ -239,15 +246,21 @@ def main() -> int:
         for line in Path(args.pair_with).read_text(encoding="utf-8").splitlines():
             if line.strip():
                 row = json.loads(line)
+                if row["key"] in other:
+                    raise ValueError("duplicate key %r in %s" % (row["key"], args.pair_with))
                 other[row["key"]] = row
-        pairs_c = [(r["competitive_rate"], other[r["key"]]["competitive_rate"])
-                   for r in per_episode
-                   if r["key"] in other and r["competitive_rate"] is not None
-                   and other[r["key"]]["competitive_rate"] is not None]
-        pairs_u = [(r["gpu_utilization"], other[r["key"]]["gpu_utilization"])
-                   for r in per_episode
-                   if r["key"] in other and r["gpu_utilization"] is not None
-                   and other[r["key"]]["gpu_utilization"] is not None]
+        cur_keys = {r["key"] for r in per_episode}
+        if len(cur_keys) != len(per_episode):
+            raise ValueError("current run has duplicate episode keys")
+        if cur_keys != set(other):
+            raise ValueError("paired key sets differ: current-only=%r paired-only=%r"
+                             % (sorted(cur_keys - set(other))[:3], sorted(set(other) - cur_keys)[:3]))
+        pairs_c = [(r["competitive_rate"], other[r["key"]]["competitive_rate"]) for r in per_episode]
+        pairs_u = [(r["gpu_utilization"], other[r["key"]]["gpu_utilization"]) for r in per_episode]
+        if any(a is None or b is None for a, b in pairs_c) or any(a is None or b is None for a, b in pairs_u):
+            raise ValueError("paired comparison contains a None metric")
+        if len(pairs_c) != len(per_episode) or len(pairs_u) != len(per_episode):
+            raise ValueError("paired count %d != episodes %d" % (len(pairs_c), len(per_episode)))
         report["paired_vs"] = args.pair_with
         report["paired_episodes"] = len(pairs_c)
         report["paired_delta_competitive"] = round(statistics.fmean(a - b for a, b in pairs_c), 4) if pairs_c else None

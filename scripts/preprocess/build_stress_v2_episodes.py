@@ -20,7 +20,10 @@ Design (frozen 2026-09-27, after the v1 construct-validity audit):
   * service class: ``all_normal`` (removes the builder's synthetic ``job_index % 4``
     priority barrier) -- default on
   * deadline: the SAME absolute post-arrival budget, ``deadline' = arrival' + (deadline - arrival)``
-  * window / span / load metadata: RECOMPUTED, never left stale
+  * metadata: ``episode_window_ms`` is transformed consistently as ``old_window * alpha``;
+    ``arrival_span_ms`` is recomputed from the transformed arrivals; the realized load is recomputed
+  * each arrival is rounded to the workload timestamp precision (1e-3 ms), so every inter-arrival
+    gap is scaled by the same ``alpha`` up to that rounding
 
 The transform is rejected if it is not exactly invertible: recomputing the realized
 load from the written file must equal ``rho_before / alpha`` for every episode.
@@ -131,6 +134,11 @@ def main() -> int:
     src_sha = sha256_file(src)
     rows = read_jsonl(src)
     all_normal = not args.keep_service_class
+    src_ids = [ep.get("episode_id") for ep in rows]
+    if any(not i for i in src_ids):
+        raise AssertionError("source has an empty episode_id")
+    if len(set(src_ids)) != len(src_ids):
+        raise AssertionError("source has duplicate episode_ids")
     out_rows = [transform_episode(ep, args.alpha, all_normal) for ep in rows]
     for src_ep, out_ep in zip(rows, out_rows):
         out_ep["parent_episode_sha256"] = episode_sha256(src_ep)
@@ -149,6 +157,11 @@ def main() -> int:
         if len(src_jobs) != len(out_jobs):
             bad.append((eid, "job count changed %d -> %d" % (len(src_jobs), len(out_jobs))))
             continue
+        jids = [j.get("job_instance_id") for j in out_jobs]
+        if any(not i for i in jids) or len(set(jids)) != len(jids):
+            bad.append((eid, "empty or duplicate job_instance_id"))
+        if all_normal and any(j.get("service_class") != "normal" for j in out_jobs):
+            bad.append((eid, "all_normal=True but a job is not service_class='normal'"))
         prev_new = None
         for s, o in zip(src_jobs, out_jobs):
             for field in ("job_instance_id", "template_id"):

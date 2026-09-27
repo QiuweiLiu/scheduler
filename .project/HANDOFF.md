@@ -57,13 +57,15 @@
 
 ## Open
 
-- **Stress-v2 已冻结 α\*=0.80**（评审 r1/r2 REJECT → **r3 ACCEPT，0 P0/0 P1**）。
-  v1（绝对 ρ）作废；v2 = 对每集每个到达间隔同乘 α（严格压缩）。dev 100 集机械选取，A0B0 + B-only 双对照（B 结构上无效 −0.0048/0.0000），
-  α=0.80 通过全门（Δcomp +0.1462 [0.1194,0.1766]、Δutil +0.1039、p50 2.14、0 失败）；α=0.85 仅差 0.0008 且 CI 跨阈。
-  **待办**：一次性跑 Myopic→F0→Truth-H5→Oracle（冻结后不得再改）。
+- **Stress-v2 已冻结 α\*=0.80**（本地评审 r1/r2 REJECT → **r3 ACCEPT**；其后 **GPT GitHub 审阅**给出 NEEDS SMALL FIX，
+  6 个 P1 已修：p50 macro 的 median/mean bug、配对 fail-closed、capacity 语义、rev3 重跑、控制面 stale、confirm300 产物）。
+  rev3 结论不变：α=0.80 通过全门（Δcomp +0.1462 [0.1194,0.1766]、Δutil +0.1039、p50macro 2.0、simulated_oom 0、0 失败）；
+  α=0.85 差 0.0008 且 CI 跨阈。
+  **待办**：在 `r7_workload_v03_stressv2_confirm080`（confirm300，α=0.80，已生成并校验配对）上一次性跑 Myopic→F0→Truth-H5→Oracle。
+- **门禁里另有一份 v1 stress 四臂 ladder（O_H5=7176 ms），无产物可追溯 → 2026-09-27 决定不采用，仅留 historical。**
 - same-interface 2×2（若要主张"调度器更强"）。
 - 论文：五条基线 disclosure + 零机会统计随表写出；Natural regime 的 post-hoc 措辞。
-- 09-26 → 09-27 工作**尚未 commit/push**（工作树未提交；最近提交 `694e6fc`）。
+- 09-26 → 09-27 工作**已 commit/push**（GitHub `QiuweiLiu/scheduler`：`0603b43` + `bf0da99`）。
 - 既有 bug（09-23 记录，已定位未修）：`round_robin` 实跑 myopic；`fcfs` 安全——可能影响引用 round_robin 臂的结论。
 
 ## Active

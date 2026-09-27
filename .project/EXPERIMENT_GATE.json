@@ -2878,11 +2878,12 @@
           "agentix": 131127
         },
         "status_note": "post-hoc stress study, NOT an independent confirmatory test (confirm300 was already inspected). Natural confirm300 kept unchanged.",
-        "historical_note": "v1 (absolute-rho, rho*=1.05) stress regime, built and ladder-measured by a prior session; historical: superseded by the v2 protocol. Its ladder (O_H5=7176ms, O_full=12334ms, coverage 0.582) is NOT v2 evidence and must not be reported as a v2 result."
+        "historical_note": "v1 (absolute-rho, rho*=1.05) stress regime, built and ladder-measured by a prior session; historical: superseded by the v2 protocol. Its ladder (O_H5=7176ms, O_full=12334ms, coverage 0.582) is NOT v2 evidence and must not be reported as a v2 result.",
+        "ladder_verification_status": "UNVERIFIED: the ladder numbers below exist only inside this gate entry; no artifact, command or log file backs them (searched the repo on 2026-09-27). Per the 2026-09-27 decision they are NOT adopted; historical only."
       }
     },
     "stress_regime_v1_20260927": {
-      "active": true,
+      "active": false,
       "status": "failed_construct_validity_audit",
       "decision_source": "GPT final ruling 2026-09-26 (project conversation 6ab6b895-43b8-83ec-982a-4c13ac404115): ACCEPT WITH REFINEMENTS; Phase 1 = A+B only, C deferred; deadline unchanged; confirm300 only a deterministic paired transform; rho chosen by a dev-only structural gate at the minimum qualifying value",
       "question": "raise scheduling contention enough to test the baseline-arms and F0 fairly (the natural confirm300 offered only 851 ms of H5 truth-vs-myopic information value)",
@@ -2975,11 +2976,13 @@
         "natural_reference": "competitive 0.5866, util 0.7703 -- already inside the competitive band, fails only util",
         "premise_flag": "min qualifying rho 0.83 < Natural median load 0.85 (~= mean 0.8185) => the qualifying regime is a UNIFORMIZATION, not a contention increase; running it would be inconclusive for 'does contention help'. Escalate before freezing."
       },
-      "construct_validity_audit_20260927": "Natural episodes carry heterogeneous rho_old in [0.50,1.05]; arrival x (rho_old/rho) EXPANDS episodes with rho_old>rho instead of compressing, so the transform homogenizes rather than uniformly pressurizes. The original absolute window [competitive 0.50-0.70, util 0.80-0.92] overlaps the Natural regime (Natural competitive 0.5866 already inside). Verdict: failed construct-validity pilot, NOT an evaluation result."
+      "construct_validity_audit_20260927": "Natural episodes carry heterogeneous rho_old in [0.50,1.05]; arrival x (rho_old/rho) EXPANDS episodes with rho_old>rho instead of compressing, so the transform homogenizes rather than uniformly pressurizes. The original absolute window [competitive 0.50-0.70, util 0.80-0.92] overlaps the Natural regime (Natural competitive 0.5866 already inside). Verdict: failed construct-validity pilot, NOT an evaluation result.",
+      "historical_only": true,
+      "superseded_by": "stress_regime_v2_20260927"
     },
     "stress_regime_v2_20260927": {
       "type": "post-hoc stress regime (construct-validity corrected)",
-      "status": "FROZEN_alpha_0.80_review_accepted",
+      "status": "FROZEN_alpha_0.80_rev3_reverified",
       "supersedes": "stress_regime_v1_20260927",
       "transform": "multiplicative arrival scale alpha applied to every inter-arrival gap of every episode (arrival_new = arrival_old * alpha); deadline' = arrival' + (deadline - arrival)",
       "preserves": "templates, graph, job membership, service semantics, arrival ordering, burst shape, natural heterogeneity; strictly compressive for every episode",
@@ -3115,7 +3118,24 @@
           "All stress-regime results are post-hoc (introduced and revised after inspecting Natural-regime results); the original Natural confirm300 evaluation is unchanged."
         ],
         "next": "run Myopic -> F0 -> Truth-H5 -> Oracle once on the frozen stress regime; reveal O_H5 = Myopic-TruthH5, O_full = Myopic-Oracle, H5Coverage = O_H5/O_full. No further workload/gate edits."
-      }
+      },
+      "rev3_20260927": {
+        "artifact": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/stress_alpha_calibration_v2_rev3.json",
+        "trigger": "GPT GitHub review of 0603b43 -> NEEDS SMALL FIX",
+        "fixes": {
+          "P1-1": "ready_jobs_p50_macro now statistics.median(ep_p50) (was fmean) -- the bug GPT found in the gate metric",
+          "P1-2": "paired bootstrap is fail-closed: duplicate keys, key-set mismatch and count mismatch now raise",
+          "P1-3": "capacity violation bound to simulated_oom_count (node_fail reason='simulated_oom'), output explicitly",
+          "P1-4": "re-run structural-only with the SAME grid/gate/dev100/Myopic/anchor (metric-correctness change only)",
+          "P1-5": "control plane de-contradicted: v1 PLAN/STATE sections marked HISTORICAL; HANDOFF commit line fixed",
+          "P1-6": "confirm300 v2 alpha=0.80 paired artifact generated + pairing verified"
+        },
+        "result": "UNCHANGED: alpha*=0.80 (dComp +0.1462 [0.1194,0.1766]; p50macro 2.0; simulated_oom 0; 0 failures); alpha=0.85 still fails by 0.0008",
+        "gate_fields_renamed": {
+          "capacity_violations": "replaced by simulated_oom_max=0 with an explicit definition"
+        }
+      },
+      "confirm300_artifact": "results/processed/r7_workload_v03_stressv2_confirm080/episodes/workload_validation_alpha080.jsonl (300 eps, alpha=0.80, all_normal, pairing verified)"
     }
   },
   "notes": [
