@@ -1,5 +1,114 @@
 # Plan
 
+**Last Updated:** 2026-09-27
+## Stress-v2 协议（2026-09-27 GPT 裁定后冻结；取代 v1 的绝对-ρ 方案）
+
+> v1（绝对目标 ρ）**construct-validity 审计失败**：Natural 各集自带 ρ_old∈[0.50,1.05]，
+> `arrival × (ρ_old/ρ)` 对 ρ_old>ρ 的集实为**拉伸**而非压缩，且原判据窗与 Natural 大幅重叠 → 只选到"均匀化"点。
+> 序号原因：(i) 判据窗口错位 > (iii) "H5 小=争用不足"未证实 > (ii) 到达压缩杠杆有效、只是绝对-ρ 参数化不干净。
+
+**变换（Stress-v2）**：单一乘性到达缩放 α∈(0,1)，对**每一集**的**每个到达间隔**同乘 α
+（`arrival_new = arrival_old × α`，首到达为 0 时退化为 `= α·a`）。保持 templates / graph /
+job 成员 / service 语义 / 到达顺序 / burst 形状 / 自然异质性不变；对所有集**严格压缩**。
+deadline 沿用 `deadline' = arrival' + (deadline − arrival)`。
+
+**Control**：先生成 **α=1.0 + all-normal 的 dev control**（分离 A 压缩 vs B 去优先级）。
+
+**网格（一次性冻结）**：α ∈ {0.95, 0.90, 0.85, 0.80, 0.75, 0.70}（α=0.70 等效旧 ρ≈1.5 的压强）。
+
+**主结构指标**（dev + all-normal + Myopic）：competitive（**episode-macro 为主**、decision-micro 为副）、
+GPU util、**ordering-bound guard** = `Pr(N_feasible_distinct_GPU ≥ 2 | N_ready_distinct_GPU ≥ 2)`。
+
+**资格门（冻结）**：Δcompetitive ≥ **+0.10** vs control；Δutil ≥ **+0.05** vs control；
+C ≤ 0.85；U ≤ 0.95；ordering-retention ≥ 0.80；0 failed；0 capacity violation；median ready≥2。
+
+**机械选取**：从 α=0.95 往小扫，取**满足全部门且 α 最大（压缩最轻）**的点。
+若一个都没有 → **Stress-v2 calibration FAIL，停止 workload engineering，转路线 (d)**。
+**绝不**：扩网格 / 改门 / 看 Truth-H5 后再调 / 追加 0.87、0.83 之类"刚好过门"的点。
+
+**参数选择只用 development**；confirm300 不得参与任何参数选择。
+
+**冻结后诊断**（一次性揭晓）：`O_H5 = Myopic−TruthH5`、`O_full = Myopic−Oracle`、
+`H5Coverage = O_H5/O_full`（Natural 现值 851 ms / 2852 ms / ≈29.8%）。
+五条论文基线与 F0 的差距**不得**作为 stress 有效性判据。
+
+---
+
+**当前计划 = Stress regime v1**（更公平的基线对比）。下面 09-15/09-17 的历史段落保留作背景。
+
+> **进度（2026-09-27）**：变换 `stress-arrival-compression-all-normal-v1` 已实现，**ρ=1.05 已生成**
+> （`results/processed/r7_workload_v03_stress_rho105/`，300 集；manifest 已记录"模板未改、job 数未改、
+> arrival 乘性缩放、all-normal、deadline 保持绝对预算"）。**待办**：补齐 ρ 网格 → Myopic-only 结构门选最小合格值。
+> 另注：**主 workload 现为 v04 因果模板**（`r7_workload_v04_causal_v31_no_run_container`，
+> `verified_serial_control_flow_v3_1`，`chain_tail_is_answer` 640/640），经 `topology_view` 选择 legacy / causal_v3。
+
+## 当前目标：Stress regime v1 —— 让基线与 F0 的对比在足够争用下成立
+
+**动机**：Natural regime（原 confirm300）的争用有限——H5 truth-vs-myopic 的信息价值只有 **851 ms**，
+不足以公平区分五条基线与 F0。需要一个**更高争用**的 regime 来检验"未来信息该以什么形式进入调度"。
+
+**归因纪律（最重要）**：不能为了让自己方法赢而造 workload。
+ρ' 只能由 **dev-only 结构指标**机械选出，**标定期间禁止看任何性能指标**（F0 / Truth-H5 / Oracle / 论文基线）；
+Future Opportunity 只能是**建成后的诊断结果**，不能成为回头调 ρ' 的理由。
+
+### 命名与统计地位
+
+- 用 **High-Contention Stress Regime** 或 **Arrival-Compressed All-Normal Stress Regime**；
+- **不得**称 new confirm set / held-out stress test / independent test —— 它复用了已看过的 confirm300 模板分配，
+  且该问题是在看过 Natural 结果之后提出的 → 只能作为 **post-hoc stress study** 报告；
+- Natural regime 的 confirm300 **完全冻结、原样保留**（作为原确认性评测 + QoS sensitivity）。
+
+### 协议 v1（冻结）
+
+| 项 | 规则 |
+|---|---|
+| templates / graph | **不变** |
+| episode 成员 | 与 Natural confirm300 **精确配对** |
+| job 数分布 | **不变**（保留原 16/32/64 分配，否则 arrival 密度与 program 数同时变，无法归因） |
+| arrival | 同一归一化实现与顺序，**乘性缩放** `scale = ρ_old / ρ'`，`arrival'_j = arrival_j × scale` |
+| deadline | `deadline'_j = arrival'_j + (deadline_j − arrival_j)`（保持"到达后预算"不变） |
+| service_class | **全部 normal**（B 方案）；原 priority/normal 版本留作 QoS sensitivity |
+| metadata | 重算并记录 `episode_window_ms` / `arrival_span_ms` / `target_offered_compute_load` / `realized_offered_compute_load`，**不得留旧值** |
+| 暂缓 | C 方案（长短配比：按 train total-GPU-service 三分位重排 template_id）Phase 2 再做 |
+
+### ρ' 标定门（dev-only）
+
+- 网格：**{1.05, 1.10, 1.20, 1.30, 1.40, 1.50}**；锚策略：**Myopic**；
+- 结构指标：`distinct-job competitive rate` + `GPU utilization`（+ `p50 ready jobs`）；
+- 选择规则：**满足全部条件的最小 ρ'** —— competitive rate 50–70%、utilization 80–92%、
+  p50 ready jobs ≥ 2、零失败/零容量违规；
+- **冻结后**一次性跑：Myopic → F0 → Truth-H5 → Oracle（各一次）；
+- 若 H5 opportunity 仍小 → **如实报告 stress 未能制造可用的 H5 opportunity，禁止回头调 ρ'**；
+- 五条冻结基线仅在科学上值得时才跑。
+
+### 必须记录的坑
+
+1. **ρ>1 是 transient overload，不是稳态利用率**：准确说法是 "arrival-window offered compute load = 1.5"；
+   episode 末尾会停止到达并 drain 队列。
+2. **小心从 ordering-bound 变成 saturation-bound**：若 GPU util≈1 且 ready queue 长期巨大，
+   排序差异会退化成"谁被饿死"而不是"是否提前利用 future" → 所以取**最小合格 ρ'**。
+3. **cache/lifecycle 会被放大**：必须记录 `load-positive rate`、`evictions / dispatch`、
+   `load+eviction time / GPU busy time`；解释时区分 **future-aware ordering gain** 与
+   **model-locality / placement gain**（沿用已准备的 common-placement diagnostic）。
+4. **all-normal 改变 Natural 的 QoS 语义** → Natural 原版**绝不可删**。
+5. **arrival 用乘性缩放**，不要重新生成 normalized positions（否则 burst 同步性、Alibaba gap 比例、Poisson 实现、job 顺序都可能变）。
+
+### 论文措辞（GPT 定稿，可直接用）
+
+> After observing that the original workload offered limited scheduling contention, we conducted a separate post-hoc
+> stress analysis. We retained the original confirm300 evaluation unchanged and constructed a deterministic
+> high-contention transform that preserves the exact template assignments and workflow graphs while modifying only
+> arrival compression and the synthetic service-class labels. The stress intensity was selected using development-set
+> structural metrics only, without consulting any method's latency or completion-time performance. Because the stress
+> regime was designed after inspection of the natural-regime results and no untouched final test remained, we report it
+> as a post-hoc stress study rather than independent confirmatory evidence.
+
+（若之后还留有一个从未看过的 sealed test：在 stress 协议完全冻结后，把同一 transform 一次性应用到 sealed test，
+那部分才可升级为 confirmatory stress evaluation。）
+
+---
+
+
 **Last Updated:** 2026-09-15
 
 ## Current Objective

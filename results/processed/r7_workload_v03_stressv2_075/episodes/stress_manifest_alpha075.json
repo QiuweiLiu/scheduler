@@ -1,0 +1,18 @@
+{
+  "schema_version": "stress-episode-manifest-v2",
+  "transform_version": "stress-arrival-scale-alpha-v2",
+  "source_episodes": "/tmp/stress/dev_natural.jsonl",
+  "source_episodes_sha256": "f8c2b4c7fd9dbe1119e26e77823e5337f2646066dbead73af339c3f943f49874",
+  "alpha": 0.75,
+  "all_normal": true,
+  "episodes": 100,
+  "output": "results/processed/r7_workload_v03_stressv2_075/episodes/workload_validation_alpha075.jsonl",
+  "output_sha256": "390235fc9dc7a43f9a76fd43a2c51c5ea2798fc03db2c864477051ac6f71d6ba",
+  "rules": {
+    "templates_changed": false,
+    "job_count_changed": false,
+    "arrival": "every inter-arrival gap scaled by the same alpha (arrival' = arrival * alpha)",
+    "service_class": "all_normal",
+    "deadline": "preserve_absolute_budget"
+  }
+}

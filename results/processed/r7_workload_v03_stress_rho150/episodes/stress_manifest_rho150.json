@@ -1,0 +1,18 @@
+{
+  "schema_version": "stress-episode-manifest-v1",
+  "transform_version": "stress-arrival-compression-all-normal-v1",
+  "source_episodes": "/tmp/stress/confirm_natural.jsonl",
+  "source_episodes_sha256": "37e9854d3ec701d2e5ddd58ab624ee6438ec801dd376d3a3f5053e5c6aedaac0",
+  "rho": 1.5,
+  "all_normal": true,
+  "episodes": 300,
+  "output": "results/processed/r7_workload_v03_stress_rho150/episodes/workload_validation_rho150.jsonl",
+  "output_sha256": "9a9d97f4a46f33e549ff5b8fc6407a855706b33eedcc88be58006a0bf64a719c",
+  "rules": {
+    "templates_changed": false,
+    "job_count_changed": false,
+    "arrival_realization": "same normalized realization scaled by rho_old/rho",
+    "service_class": "all_normal",
+    "deadline": "preserve_absolute_budget"
+  }
+}

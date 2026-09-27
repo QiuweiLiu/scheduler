@@ -1,0 +1,372 @@
+{
+  "schema_version": "stress-alpha-calibration-v2-rev2",
+  "date": "2026-09-27",
+  "transform_version": "stress-arrival-scale-alpha-v2",
+  "supersedes": [
+    "stress_alpha_calibration_v2.json (REJECT r1)",
+    "stress_alpha_calibration_v2_corrected.json (REJECT r2)"
+  ],
+  "review_history": {
+    "r1": "REJECT 4 P1",
+    "r2": "REJECT; P1-01/02/03 partially fixed; new P1-05 sign conflict + P1-06 scope/proxy proof"
+  },
+  "fixes_round2": {
+    "P1-01_P1-06": "scope restricted to GPU decisions (missing lane raises); ordering_retention documented as CAPACITY PROXY, explicitly NOT an admission/ordering guarantee",
+    "P1-02": "ready_jobs_p50 reported BOTH macro and pooled; paired episode-level bootstrap CI added (--pair-with)",
+    "P1-03": "builder checks missing 'jobs', non-null job ids/templates, window==span consistency when SOURCE had window==span",
+    "P1-05": "A/B sign fixed and defined explicitly"
+  },
+  "gate": {
+    "delta_competitive_vs_control": 0.1,
+    "delta_util_vs_control": 0.05,
+    "competitive_max": 0.85,
+    "util_max": 0.95,
+    "ordering_retention_min": 0.8,
+    "failed_jobs": 0,
+    "ready_jobs_p50_macro_min": 2,
+    "script": "scripts/preprocess/stress_structural_metrics.py",
+    "policy": "myopic",
+    "topology_view": "causal_v3",
+    "templates": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+    "source_episodes": "/tmp/stress/dev_natural.jsonl",
+    "n_source_episodes": 100,
+    "split": "development",
+    "performance_metrics_consulted": false
+  },
+  "rows": [
+    {
+      "label": "A0B0_natural_dev",
+      "alpha": "naturalA0B0",
+      "competitive_macro": 0.4237,
+      "competitive_macro_ci95": [
+        0.3817,
+        0.4692
+      ],
+      "competitive_pooled": 0.4217,
+      "gpu_utilization_macro": 0.7281,
+      "gpu_utilization_macro_ci95": [
+        0.6968,
+        0.7586
+      ],
+      "ready_jobs_p50_macro": 1.66,
+      "ready_jobs_p50_pooled": 1,
+      "ready_jobs_p90_pooled": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 6008,
+      "multi_feasible_decisions": 6008,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": null,
+      "paired_delta_competitive_ci95_vs_B_only": null,
+      "paired_delta_util_vs_B_only": null,
+      "paired_delta_util_ci95_vs_B_only": null,
+      "passes_point_estimate": false,
+      "passes_ci_lower_bound": false
+    },
+    {
+      "label": "B_only_alpha1.00",
+      "alpha": "alpha100",
+      "competitive_macro": 0.4189,
+      "competitive_macro_ci95": [
+        0.376,
+        0.4643
+      ],
+      "competitive_pooled": 0.4168,
+      "gpu_utilization_macro": 0.7281,
+      "gpu_utilization_macro_ci95": [
+        0.6965,
+        0.7586
+      ],
+      "ready_jobs_p50_macro": 1.66,
+      "ready_jobs_p50_pooled": 1,
+      "ready_jobs_p90_pooled": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 5938,
+      "multi_feasible_decisions": 5938,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": null,
+      "paired_delta_competitive_ci95_vs_B_only": null,
+      "paired_delta_util_vs_B_only": null,
+      "paired_delta_util_ci95_vs_B_only": null,
+      "passes_point_estimate": false,
+      "passes_ci_lower_bound": false
+    },
+    {
+      "label": "alpha0.95",
+      "alpha": "alpha095",
+      "competitive_macro": 0.4466,
+      "competitive_macro_ci95": [
+        0.4037,
+        0.4908
+      ],
+      "competitive_pooled": 0.4437,
+      "gpu_utilization_macro": 0.7562,
+      "gpu_utilization_macro_ci95": [
+        0.7247,
+        0.787
+      ],
+      "ready_jobs_p50_macro": 1.76,
+      "ready_jobs_p50_pooled": 1,
+      "ready_jobs_p90_pooled": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 6322,
+      "multi_feasible_decisions": 6322,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": 0.0278,
+      "paired_delta_competitive_ci95_vs_B_only": [
+        0.0201,
+        0.0359
+      ],
+      "paired_delta_util_vs_B_only": 0.028,
+      "paired_delta_util_ci95_vs_B_only": [
+        0.0257,
+        0.0303
+      ],
+      "passes_point_estimate": false,
+      "passes_ci_lower_bound": false
+    },
+    {
+      "label": "alpha0.90",
+      "alpha": "alpha090",
+      "competitive_macro": 0.4835,
+      "competitive_macro_ci95": [
+        0.4406,
+        0.528
+      ],
+      "competitive_pooled": 0.4795,
+      "gpu_utilization_macro": 0.7824,
+      "gpu_utilization_macro_ci95": [
+        0.7514,
+        0.8125
+      ],
+      "ready_jobs_p50_macro": 1.86,
+      "ready_jobs_p50_pooled": 1,
+      "ready_jobs_p90_pooled": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 6831,
+      "multi_feasible_decisions": 6831,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": 0.0646,
+      "paired_delta_competitive_ci95_vs_B_only": [
+        0.0514,
+        0.0782
+      ],
+      "paired_delta_util_vs_B_only": 0.0542,
+      "paired_delta_util_ci95_vs_B_only": [
+        0.0493,
+        0.0588
+      ],
+      "passes_point_estimate": false,
+      "passes_ci_lower_bound": false
+    },
+    {
+      "label": "alpha0.85",
+      "alpha": "alpha085",
+      "competitive_macro": 0.5181,
+      "competitive_macro_ci95": [
+        0.4751,
+        0.5625
+      ],
+      "competitive_pooled": 0.5139,
+      "gpu_utilization_macro": 0.807,
+      "gpu_utilization_macro_ci95": [
+        0.7772,
+        0.8357
+      ],
+      "ready_jobs_p50_macro": 2.01,
+      "ready_jobs_p50_pooled": 2,
+      "ready_jobs_p90_pooled": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 7321,
+      "multi_feasible_decisions": 7321,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": 0.0992,
+      "paired_delta_competitive_ci95_vs_B_only": [
+        0.0808,
+        0.1188
+      ],
+      "paired_delta_util_vs_B_only": 0.0789,
+      "paired_delta_util_ci95_vs_B_only": [
+        0.0718,
+        0.0855
+      ],
+      "passes_point_estimate": false,
+      "passes_ci_lower_bound": false
+    },
+    {
+      "label": "alpha0.80",
+      "alpha": "alpha080",
+      "competitive_macro": 0.5651,
+      "competitive_macro_ci95": [
+        0.5206,
+        0.6091
+      ],
+      "competitive_pooled": 0.56,
+      "gpu_utilization_macro": 0.8321,
+      "gpu_utilization_macro_ci95": [
+        0.8039,
+        0.8593
+      ],
+      "ready_jobs_p50_macro": 2.14,
+      "ready_jobs_p50_pooled": 2,
+      "ready_jobs_p90_pooled": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 7979,
+      "multi_feasible_decisions": 7979,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": 0.1462,
+      "paired_delta_competitive_ci95_vs_B_only": [
+        0.1194,
+        0.1766
+      ],
+      "paired_delta_util_vs_B_only": 0.1039,
+      "paired_delta_util_ci95_vs_B_only": [
+        0.0945,
+        0.1129
+      ],
+      "passes_point_estimate": true,
+      "passes_ci_lower_bound": true
+    },
+    {
+      "label": "alpha0.75",
+      "alpha": "alpha075",
+      "competitive_macro": 0.6069,
+      "competitive_macro_ci95": [
+        0.5631,
+        0.6504
+      ],
+      "competitive_pooled": 0.6015,
+      "gpu_utilization_macro": 0.8548,
+      "gpu_utilization_macro_ci95": [
+        0.8284,
+        0.8799
+      ],
+      "ready_jobs_p50_macro": 2.43,
+      "ready_jobs_p50_pooled": 2,
+      "ready_jobs_p90_pooled": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 8569,
+      "multi_feasible_decisions": 8569,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": 0.188,
+      "paired_delta_competitive_ci95_vs_B_only": [
+        0.1565,
+        0.2212
+      ],
+      "paired_delta_util_vs_B_only": 0.1266,
+      "paired_delta_util_ci95_vs_B_only": [
+        0.1146,
+        0.138
+      ],
+      "passes_point_estimate": true,
+      "passes_ci_lower_bound": true
+    },
+    {
+      "label": "alpha0.70",
+      "alpha": "alpha070",
+      "competitive_macro": 0.6583,
+      "competitive_macro_ci95": [
+        0.6172,
+        0.6976
+      ],
+      "competitive_pooled": 0.6523,
+      "gpu_utilization_macro": 0.8763,
+      "gpu_utilization_macro_ci95": [
+        0.8523,
+        0.8994
+      ],
+      "ready_jobs_p50_macro": 2.73,
+      "ready_jobs_p50_pooled": 2,
+      "ready_jobs_p90_pooled": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 9293,
+      "multi_feasible_decisions": 9293,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "paired_delta_competitive_vs_B_only": 0.2394,
+      "paired_delta_competitive_ci95_vs_B_only": [
+        0.2036,
+        0.2769
+      ],
+      "paired_delta_util_vs_B_only": 0.1481,
+      "paired_delta_util_ci95_vs_B_only": [
+        0.1338,
+        0.162
+      ],
+      "passes_point_estimate": true,
+      "passes_ci_lower_bound": true
+    }
+  ],
+  "ab_separation": {
+    "definition": "delta = (B_only - A0B0_natural) on dev; negative means B-only is lower",
+    "A0B0_natural_competitive": 0.4237,
+    "B_only_competitive": 0.4189,
+    "b_only_minus_natural_competitive": -0.0048,
+    "b_only_minus_natural_util": 0.0,
+    "note": "service-class removal (B) is structurally inert (competitive -0.0048, util 0.0000); grid deltas are vs B-only so they isolate arrival compression (A)"
+  },
+  "outcome": {
+    "grid_frozen": [
+      0.95,
+      0.9,
+      0.85,
+      0.8,
+      0.75,
+      0.7
+    ],
+    "selection_rule": "largest alpha satisfying every gate",
+    "alpha_star": 0.8,
+    "robustness": {
+      "alpha0.80": {
+        "dComp": 0.1462,
+        "paired_ci95": [
+          0.1194,
+          0.1766
+        ],
+        "ci_lower_bound_ge_0.10": true,
+        "dUtil": 0.1039
+      },
+      "alpha0.85": {
+        "dComp": 0.0992,
+        "paired_ci95": [
+          0.0808,
+          0.1188
+        ],
+        "ci_lower_bound_ge_0.10": false,
+        "note": "fails on the point estimate AND its CI includes 0.10 -> genuinely borderline; disclosed"
+      },
+      "alpha0.90": {
+        "dComp": 0.0646,
+        "paired_ci95": [
+          0.0514,
+          0.0782
+        ]
+      },
+      "conclusion": "alpha=0.80 is the largest alpha that passes on the point estimate AND also passes the conservative CI-lower-bound reading (0.1194>=0.10)"
+    },
+    "ordering_retention_note": "capacity-proxy ordering_retention_macro == 1.0 at every alpha; guard non-binding; NOT a claim about full admission feasibility",
+    "p50_note": "ready_jobs_p50_macro (primary) = 2.14 at 0.80, 2.01 at 0.85, 1.86 at 0.90 (fails >=2); pooled = 2/2/1"
+  },
+  "provenance": {
+    "scripts": {
+      "scripts/preprocess/build_stress_v2_episodes.py": "dcd45d1a5d6c4d5b016050647d4fc840f209b4111dbfc3dc6af231e2bdbcd419",
+      "scripts/preprocess/stress_structural_metrics.py": "9cbb50178d0e12e7882b72e5d7be50de588c85e34a42b0e9112ab2b244c67f8e"
+    },
+    "protocol_file_mtime_utc": "2026-09-27T06:51:34Z",
+    "provenance_limitation": "local mirror is NOT a git repository; protocol/result ordering evidenced only by mtimes + this record; commit evidence must be recorded on the canonical repo"
+  }
+}

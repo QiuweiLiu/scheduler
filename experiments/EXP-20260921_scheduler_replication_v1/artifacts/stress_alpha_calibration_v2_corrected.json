@@ -1,0 +1,258 @@
+{
+  "schema_version": "stress-alpha-calibration-v2-corrected",
+  "date": "2026-09-27",
+  "transform_version": "stress-arrival-scale-alpha-v2",
+  "supersedes": "stress_alpha_calibration_v2.json (review REJECT 2026-09-27)",
+  "reviewed_by": "reviewer task review-stressv2-metric-calibration-20260927 (code-reviewer + experiment-reviewer) -- REJECT, 4 P1",
+  "fixes_applied": {
+    "P1-01": "ordering_retention recomputed from scheduler_state as Pr(#distinct FEASIBLE GPU jobs>=2 | #distinct ready GPU jobs>=2); feasible = >=1 free GPU with capacity>=peak_memory_p95_mb; event feasible_candidate_count NO LONGER used",
+    "P1-02": "per-episode metrics emitted; primary = episode-macro; 95% bootstrap CI over episodes (seed 20260927, 2000 resamples) reported",
+    "P1-03": "builder source->output invariant checks added (job count/ids/templates, per-job arrival*alpha, order, deadline budget, window/span recompute, missing fields) + parent_episode_sha256 now filled",
+    "P1-04": "A0B0 natural dev control added; B-only control (alpha=1.0 all-normal) measured; freeze record with hashes+mtimes (see provenance_limitation)"
+  },
+  "gate": {
+    "delta_competitive_vs_control": 0.1,
+    "delta_util_vs_control": 0.05,
+    "competitive_max": 0.85,
+    "util_max": 0.95,
+    "ordering_retention_min": 0.8,
+    "failed_jobs": 0,
+    "median_ready_min": 2,
+    "script": "scripts/preprocess/stress_structural_metrics.py",
+    "policy": "myopic",
+    "topology_view": "causal_v3",
+    "templates": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+    "source_episodes": "/tmp/stress/dev_natural.jsonl",
+    "n_source_episodes": 100,
+    "split": "development (verified subset of dev700, disjoint from confirm300)",
+    "performance_metrics_consulted": false
+  },
+  "rows": [
+    {
+      "label": "A0B0_natural",
+      "alpha": "naturalA0B0",
+      "competitive_macro": 0.4237,
+      "competitive_macro_ci95": [
+        0.3817,
+        0.4692
+      ],
+      "gpu_utilization_macro": 0.7281,
+      "gpu_utilization_macro_ci95": [
+        0.6968,
+        0.7586
+      ],
+      "ready_jobs_p50": 1,
+      "ready_jobs_p90": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 6008,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.0048,
+      "delta_util_vs_B_only": 0.0,
+      "qualifies": false
+    },
+    {
+      "label": "B_only_alpha1.00",
+      "alpha": "alpha100",
+      "competitive_macro": 0.4189,
+      "competitive_macro_ci95": [
+        0.376,
+        0.4643
+      ],
+      "gpu_utilization_macro": 0.7281,
+      "gpu_utilization_macro_ci95": [
+        0.6965,
+        0.7586
+      ],
+      "ready_jobs_p50": 1,
+      "ready_jobs_p90": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 5938,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.0,
+      "delta_util_vs_B_only": 0.0,
+      "qualifies": false
+    },
+    {
+      "label": "alpha0.95",
+      "alpha": "alpha095",
+      "competitive_macro": 0.4466,
+      "competitive_macro_ci95": [
+        0.4037,
+        0.4908
+      ],
+      "gpu_utilization_macro": 0.7562,
+      "gpu_utilization_macro_ci95": [
+        0.7247,
+        0.787
+      ],
+      "ready_jobs_p50": 1,
+      "ready_jobs_p90": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 6322,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.0277,
+      "delta_util_vs_B_only": 0.0281,
+      "qualifies": false
+    },
+    {
+      "label": "alpha0.90",
+      "alpha": "alpha090",
+      "competitive_macro": 0.4835,
+      "competitive_macro_ci95": [
+        0.4406,
+        0.528
+      ],
+      "gpu_utilization_macro": 0.7824,
+      "gpu_utilization_macro_ci95": [
+        0.7514,
+        0.8125
+      ],
+      "ready_jobs_p50": 1,
+      "ready_jobs_p90": 4,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 6831,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.0646,
+      "delta_util_vs_B_only": 0.0543,
+      "qualifies": false
+    },
+    {
+      "label": "alpha0.85",
+      "alpha": "alpha085",
+      "competitive_macro": 0.5181,
+      "competitive_macro_ci95": [
+        0.4751,
+        0.5625
+      ],
+      "gpu_utilization_macro": 0.807,
+      "gpu_utilization_macro_ci95": [
+        0.7772,
+        0.8357
+      ],
+      "ready_jobs_p50": 2,
+      "ready_jobs_p90": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 7321,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.0992,
+      "delta_util_vs_B_only": 0.0789,
+      "qualifies": false
+    },
+    {
+      "label": "alpha0.80",
+      "alpha": "alpha080",
+      "competitive_macro": 0.5651,
+      "competitive_macro_ci95": [
+        0.5206,
+        0.6091
+      ],
+      "gpu_utilization_macro": 0.8321,
+      "gpu_utilization_macro_ci95": [
+        0.8039,
+        0.8593
+      ],
+      "ready_jobs_p50": 2,
+      "ready_jobs_p90": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 7979,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.1462,
+      "delta_util_vs_B_only": 0.104,
+      "qualifies": true
+    },
+    {
+      "label": "alpha0.75",
+      "alpha": "alpha075",
+      "competitive_macro": 0.6069,
+      "competitive_macro_ci95": [
+        0.5631,
+        0.6504
+      ],
+      "gpu_utilization_macro": 0.8548,
+      "gpu_utilization_macro_ci95": [
+        0.8284,
+        0.8799
+      ],
+      "ready_jobs_p50": 2,
+      "ready_jobs_p90": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 8569,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.188,
+      "delta_util_vs_B_only": 0.1267,
+      "qualifies": true
+    },
+    {
+      "label": "alpha0.70",
+      "alpha": "alpha070",
+      "competitive_macro": 0.6583,
+      "competitive_macro_ci95": [
+        0.6172,
+        0.6976
+      ],
+      "gpu_utilization_macro": 0.8763,
+      "gpu_utilization_macro_ci95": [
+        0.8523,
+        0.8994
+      ],
+      "ready_jobs_p50": 2,
+      "ready_jobs_p90": 5,
+      "ordering_retention_macro": 1.0,
+      "ordering_retention_pooled": 1.0,
+      "multi_ready_decisions": 9293,
+      "episodes_with_multi_ready": 100,
+      "failed_jobs": 0,
+      "delta_competitive_vs_B_only": 0.2394,
+      "delta_util_vs_B_only": 0.1482,
+      "qualifies": true
+    }
+  ],
+  "ab_separation": {
+    "A0B0_natural_competitive": 0.4237,
+    "B_only_competitive": 0.4189,
+    "B_only_delta_competitive": -0.0048,
+    "B_only_delta_util": 0.0,
+    "note": "service-class removal (B) is structurally inert (delta_competitive +0.0048, delta_util 0.0000); all grid deltas are measured against B-only, so they isolate the arrival-compression (A) effect"
+  },
+  "outcome": {
+    "grid_frozen": [
+      0.95,
+      0.9,
+      0.85,
+      0.8,
+      0.75,
+      0.7
+    ],
+    "selection_rule": "largest alpha satisfying every gate",
+    "alpha_star": 0.8,
+    "fragility_note": "alpha=0.85 fails ONLY by delta_competitive 0.0992 < 0.10 (margin 0.0008, inside the bootstrap CI half-width ~0.045) -> the 0.80-vs-0.85 boundary is statistically indistinguishable; alpha*=0.80 is a deterministic consequence of the frozen rule, and this fragility must be disclosed",
+    "ordering_retention_note": "ordering_retention_macro == 1.0 at every alpha; the guard is non-binding, so no admission-bound regime was detected"
+  },
+  "provenance": {
+    "scripts": {
+      "scripts/preprocess/build_stress_v2_episodes.py": "ec0ed88dfe6506ed889e2c5ca27276b944246368da2a83935fa4bff57a4fd356",
+      "scripts/preprocess/stress_structural_metrics.py": "59fed7c10b29f87133e54788ea319272c7e6cc5acb0e35cffdc1f412f11497a7"
+    },
+    "protocol_file_mtime_utc": "2026-09-27T06:51:34Z",
+    "measurement_outputs_mtime_utc": [
+      "2026-09-27T08:00:26Z",
+      "2026-09-27T08:00:30Z",
+      "2026-09-27T08:00:47Z"
+    ],
+    "provenance_limitation": "the local mirror /Volumes/Lenovo/scheduler is NOT a git repository, so no commit evidence is available locally; protocol/result ordering is evidenced only by file mtimes + this record. Commit evidence must be recorded on the canonical repo (Windows F:\\scheduler / remote)."
+  }
+}

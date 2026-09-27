@@ -1577,3 +1577,183 @@ telemetry 只作 **appendix / fidelity diagnostic**（非主结果表）；报�
 - **所有基线的 Δ CI 下界均 > 0** → F0 在 confirm300 上**统计显著优于全部五条基线**。
 - **结论范围**：这是**同一 substrate 上的"完整系统"对比**，**不能**单独主张"我们的调度器比别人的调度器强"（那需要 same-interface 2×2）。
 - 注意：这五条各自带有已冻结并披露的 adaptation/omission（Latency 的 fusion=N/A；Agentix 仅 PLAS 非抢占等），论文必须随表披露。
+
+## 2026-09-27 — Stress regime v1 立项：为公平基线对比而**不重采样**的确定性高争用变换（GPT 终审 ACCEPT WITH REFINEMENTS）
+
+- **Decision**：新建 **High-Contention Stress Regime**（Arrival-Compressed All-Normal），Phase 1 只做 **A（到达压缩）+B（all-normal）**，
+  **C（长短配比）暂缓**；Natural confirm300 **完全冻结**；stress 由 confirm300 经**确定性 paired transform** 派生
+  （templates/graph 不变、episode 成员精确配对、job 数分布不变、arrival 乘性缩放 `scale = ρ_old/ρ'`、
+  `deadline' = arrival' + (deadline − arrival)`、同步重算 window/span/target/realized load）。
+- **Evidence / Source**：项目会话 `6ab6b895-43b8-83ec-982a-4c13ac404115`（GPT-5.6 Sol + High）终审；
+  动机数字 = Natural regime 的 H5 truth-vs-myopic 信息价值仅 **851 ms**；详见
+  `.project/EXPERIMENT_GATE.json` 的 `stress_regime_v1_20260927` 与 `.project/PLAN.md` 顶部。
+- **Reason**：Natural regime 争用不足，五条基线与 F0 的差距不足以支撑"未来信息该以什么形式进入调度"的结论；
+  但**不能为了让自己的方法赢而造 workload**，所以 ρ' 必须由 dev-only **结构指标**机械选出，
+  标定期间禁用一切性能指标（F0/Truth-H5/Oracle/论文基线），Future Opportunity 只能是建成后的诊断。
+- **Alternatives considered**：① 直接固定 ρ'∈{1.2,1.5}（被否：等于事后拍板）；② 重新采样 episodes（被否：会同时改变 arrival 密度与 program 数，无法归因，
+  且复用已看过的 confirm300 模板分配反而更应配对）；③ C 方案长短配比（Phase 2 再做，因为它重排 template_id）。
+- **Consequence**：
+  - 命名纪律：**只能**叫 stress regime，**不得**称 new confirm set / held-out / independent test；
+    论文按 GPT 定稿的 post-hoc stress study 措辞写（见 PLAN.md）。
+  - 冻结后一次性跑 Myopic → F0 → Truth-H5 → Oracle；若 H5 opportunity 仍小 → **如实报告失败，禁止回头调 ρ'**。
+  - 必须记录的坑：ρ>1 是 transient overload（不是稳态利用率）；警惕 ordering-bound → saturation-bound；
+    cache/lifecycle 放大（记录 load-positive rate、evictions/dispatch、load+eviction time / GPU busy time，
+    区分 ordering gain 与 locality gain）；Natural 原版绝不可删。
+
+
+## 2026-09-27 — Stress regime v1 ρ 网格标定：预注册网格全部失败，最小合格 ρ'=0.83 触发前提质疑
+
+**Decision**：**暂停冻结 ρ'**，把标定结果与"合格点不增加争用"的前提质疑上报评审，再决定下一步（不静默按 0.83 冻结）。
+
+**Evidence**（结构门，Myopic-only，判据 competitive 0.50–0.70 ∧ util 0.80–0.92 ∧ p50≥2 ∧ 0 失败；
+`experiments/EXP-20260921_scheduler_replication_v1/artifacts/stress_rho_calibration_v1.json`）：
+- 预注册网格 {1.05,1.10,1.20,1.30,1.40,1.50}：**无一合格**（competitive ≥ 0.8168 > 0.70；util ≥ 0.9225 ≥ 0.92）。
+- 细化低端网格 {0.80…0.95}：**最小合格 ρ' = 0.83**（comp 0.5384、util 0.8039、p50 2、0 失败）；
+  ρ=0.82 差一点（util 0.7958 < 0.80），ρ=0.95 越上界（comp 0.7189 > 0.70）。
+- Natural 参照：competitive 0.5866（**已在带内**）、util 0.7703（差 3 点）；自然每集负载 mean 0.8185 / median 0.85。
+
+**Reason**：网格 {1.05…} 似乎假设 Natural 负载≈1.0，实测 mean 0.8185 / median 0.85，故起点偏高；
+而唯一能进带的 ρ'=0.83 < 自然中位负载，ρ=0.83 的 competitive 还低于自然 → 空转风险。
+
+**Alternatives**：(a) 直接按 0.83 冻结并跑四臂（**否决**：若 H5 仍小则不可归因）；
+(b) 换争用杠杆（如 episode_window 压缩 / 提高并发而不是压到达）；(c) 重审判据带（是否 util 80% 下界过严）。
+
+**Consequence**：stress regime 暂不进入四臂测量；需 GPT/评审确认后才冻结 ρ'。Natural confirm300 不动。
+
+
+## 2026-09-27 — Stress-v1 construct-validity 审计失败；GPT 裁定转 Stress-v2（乘性到达缩放 α）
+
+**Decision**：**放弃 v1 的绝对-ρ 方案，不按 ρ'=0.83 冻结**；改用 **Stress-v2** = 单一乘性到达缩放 α
+（`arrival_new = arrival_old × α`，对每集每个到达间隔同乘 α），并在 **dev + all-normal** 上按**冻结网格**
+{0.95,0.90,0.85,0.80,0.75,0.70} 与**冻结资格门**机械选 α；**一次冻结，不再改**。依据：本轮 GPT 评审
+（项目会话 `6ab6b895-…`，2026-09-27）。
+
+**Evidence**：
+- v1 的 `arrival × (ρ_old/ρ)` 是**逐集不同**的缩放：Natural 各集 ρ_old∈[0.50,1.05]，
+  对 ρ_old>ρ 的集实为**拉伸** → 变换是"拉向 ρ"的均匀化，**不是统一加压**。
+- 实测：预注册网格 {1.05…1.50} 无一合格；细化后唯一合格 ρ'=0.83 的 competitive（0.5384）**低于** Natural（0.5866）。
+- 原判据窗 [competitive 0.50–0.70] 与 Natural（0.5866）**重叠** → 原门实际定义的是"中等竞争区"，与"High-Contention"命名目标不一致。
+
+**原因排序（GPT）**：(i) 判据窗口错位 > (iii) "H5 小=争用不足"的假说未经证实 > (ii) 到达压缩杠杆**有效**、只是绝对-ρ 参数化不干净。
+
+**Alternatives**：(a) 按 0.83 跑——**否决**（construct validity 不成立）；
+(c) 只重审判据带——**暂不选**（绝对-ρ 仍会破坏各集相对负载结构）；
+(d) 放弃 stress 转 same-interface 2×2——**保留为 Stress-v2 失败后的去向**。
+
+**Consequence**：新增门禁 `stress_regime_v2_20260927`；参数选择**只用 development**（本轮 v1 误用了 confirm300，
+须在 disclosure 中披露）；v1 记为 **failed construct-validity pilot**；冻结后一次性揭晓诊断量
+`O_H5=Myopic−TruthH5`、`O_full=Myopic−Oracle`、`H5Coverage=O_H5/O_full`（Natural 现值 851 ms / 2852 ms / ≈29.8%）。
+五条论文基线与 F0 的差距**不得**作为 stress 有效性判据。
+
+
+## 2026-09-27 — Stress-v2 标定：dev 上机械选出 α*=0.80
+
+**Decision**：按 Stress-v2 冻结协议，在 **development**（dev 100 集）上以 Myopic-only 结构门机械选出
+**α\* = 0.80**（从 α=0.95 向小扫，取满足全部资格门的**最大** α）。**待独立评审 metric 变更后正式冻结**。
+
+**Evidence**（control = α=1.0 + all-normal；`stress_alpha_calibration_v2.json`）：
+- control：competitive 0.4168、util 0.7281、p50 1。
+- α=0.95 → Δcomp +0.0269；0.90 → +0.0627；0.85 → **+0.0971（差 0.003 未过 0.10）**；
+  **0.80 → Δcomp +0.1432、Δutil +0.1040、C 0.5600、U 0.8321、orderRet 1.0、0 失败、p50 2 → 全门通过**；
+  0.75/0.70 亦通过但压缩更重。
+- **ordering-retention 在所有 α 上均为 1.0** → 不存在 admission-bound，该 guard 不约束。
+- 与 v1 对比：v1 的绝对-ρ 在 confirm 上只选到"均匀化"点；v2 在 dev+all-normal 上 control 已是中等竞争（0.4168/0.7281），
+  乘性 α 单调抬升争用 → **construct validity 恢复**。
+
+**Consequence**：α 选定但**暂不宣布冻结**——`stress_structural_metrics.py` 本轮新增 `ordering_retention`
+属于 **metric 变更**，按纪律需独立评审后方可作为最终门。评审通过后冻结 α*=0.80，再在 confirm300 配对上做
+Myopic→F0→Truth-H5→Oracle 一次性测量并揭晓 `O_H5/O_full/H5Coverage`。
+
+
+## 2026-09-27 — Stress-v2 标定被独立评审 REJECT（0 P0 / 4 P1）：不冻结 α*
+
+**Decision**：**不冻结 α\*=0.80**。标定算术在网格内自洽，但指标语义、统计汇总与自检强度未达最终 gate 要求，按纪律需先修 4 个 P1。
+
+**Evidence**（reviewer task `review-stressv2-metric-calibration-20260927`，procedure = code-reviewer + experiment-reviewer）：
+- **P1-01** `ordering_retention` 的实现未绑定其定义：分子用事件字段 `feasible_candidate_count`，
+  但未证明它计的是 **distinct jobs** 而非 candidate **actions**；未用 `candidate_count`；未按 GPU 过滤；scope 是全部 `node_dispatch`。
+- **P1-02** 只有 pooled/micro 汇总，无 per-episode（macro）与不确定性；α=0.85 仅差 **0.0029** 落选，
+  100 集池化不足以定"稳定边界"。
+- **P1-03** v2 self-check 只验 realized-load 恒等式，**不验**逐 job 到达/间隔、顺序、成员、deadline budget、window/span、job 数、缺失字段；
+  `episode_window_ms` 直接取 `old_window×α` 而非由变换后 arrival 重算。
+- **P1-04** 缺同一 dev split 上的 A=0,B=0 natural control（B 效应不可分）；v2 门/网格缺"结果前锁定"的时间戳/提交证据。
+
+**Alternatives**：直接冻结 α\*=0.80——**否决**（P1-02/P1-04 使边界不可稳）；改门放宽——**禁止**（违反冻结协议）。
+
+**Consequence**：Stress-v2 停在 `calibration_review_REJECT_pending_fixes`。最小修复要求已记入
+`EXPERIMENT_GATE.json`；修完并复核后方可用 **macro 门**重判 α（仍不得再调网格），再进 confirm 配对测量。
+
+
+## 2026-09-27 — Stress-v2 四个 P1 已修；α*=0.80 在 macro 门下复现（待复核）
+
+**Decision**：按评审最小修复清单修完 4 项，用 **episode-macro 门 + CI** 重判，**α\* 仍为 0.80**；提交复核，**仍未冻结**。
+
+**Evidence**（`stress_alpha_calibration_v2_corrected.json`）：
+- **对照组**：A=0,B=0 natural(dev) comp 0.4237 / util 0.7281；B-only(α=1.0 all-normal) comp 0.4189 / util 0.7281
+  → **B（去优先级）在结构上几乎无效**（Δcomp +0.0048、Δutil 0.0000），故所有 Δ 只反映 **A（到达压缩）**。
+- macro 门（vs B-only）：α=0.95/0.90/0.85 均 fail（dComp +0.0277/+0.0646/**+0.0992**）；
+  **α=0.80 PASS**（comp 0.5651 [0.5206,0.6091]、util 0.8321、dComp **+0.1462**、dUtil **+0.1040**、orderRet 1.0、0 失败、p50 2）。
+- **P1-01** 已按 **distinct feasible GPU jobs** 从 `scheduler_state` 精确重算（不再用事件的 `feasible_candidate_count`）；
+  **P1-02** 已出 per-episode + macro + 2000 次 bootstrap CI；**P1-03** builder 已加 source→output 不变式自检
+  （逐 job 到达×α、顺序、成员、deadline budget、window/span、缺失字段）并填入 `parent_episode_sha256`；
+  **P1-04** 已补 A0B0 与 B-only 对照、写下含哈希与 mtime 的冻结记录。
+
+**Consequence**：**脆弱点必须披露**——α=0.85 仅差 **0.0008**，落在 CI 半宽内，故 0.80 与 0.85 在统计上不可区分；
+α\*=0.80 只是冻结规则的确定性推论。另：本地镜像 `/Volumes/Lenovo/scheduler` **不是 git 仓库**，
+无法提供 commit 级"结果前锁定"证据，须在规范仓库（Windows/远端）补记。复核通过后方可冻结并进入 confirm 配对测量。
+
+
+## 2026-09-27 — Stress-v2 第二轮 P1 已修；paired CI 判 α*=0.80 稳健（待 r3 复核）
+
+**Decision**：修完第二轮 P1（P1-05 符号、P1-06 scope/代理、p50 macro/pooled、paired CI、builder 加强），
+用 **paired episode-level bootstrap** 重判：**α\*=0.80 在点估计与 CI 下界两种读法下都通过**；仍**不冻结**，交 r3 复核。
+
+**Evidence**（`stress_alpha_calibration_v2_rev2.json`）：
+- 范围已限定 GPU decision（缺 `lane` 直接报错）；`ordering_retention` 明确标注为 **capacity proxy**，不再宣称 admission/ordering 保证。
+- **paired Δcomp vs B-only**：α=0.95 +0.0278 [0.0201,0.0359]；0.90 +0.0646 [0.0514,0.0782]；
+  **0.85 +0.0992 [0.0808,0.1188]（点估计<0.10 且 CI 含 0.10 → 真·边界）**；
+  **0.80 +0.1462 [0.1194,0.1766]（点估计与 CI 下界均 ≥0.10）**；0.75/0.70 亦通过。
+- **A/B 分离（符号已修正）**：B-only − A0B0 natural = **−0.0048**（util 0.0000）→ B（去优先级）结构上无效，网格 Δ 只反映 A（到达压缩）。
+- `ready_jobs_p50_macro` = 2.14(0.80) / 2.01(0.85) / **1.86(0.90，<2 不通)**；pooled 分别 2/2/1。
+
+**Consequence**：α\*=0.80 不再依赖"刚好卡线"——它是网格中**唯一在保守读法下也成立**的最大 α。r3 通过后即可冻结。
+
+
+## 2026-09-27 — Stress-v2 冻结：α*=0.80（评审 r3 ACCEPT，0 P0 / 0 P1）
+
+**Decision**：**冻结 α\*=0.80**（固定网格 {0.95,0.90,0.85,0.80,0.75,0.70} 上满足全门的最大 α；dev 100 集）。
+据此可进入"一次性" Myopic → F0 → Truth-H5 → Oracle 测量，**此后不得再改 workload/gate**。
+
+**Evidence**：`stress_alpha_calibration_v2_rev2.json`；评审 r3（task `review-stressv2-metric-calibration-20260927`）
+逐条判定 r2 遗留项 **全部 FIXED**：P1-05 符号、P1-06 GPU scope、P1-01 capacity-proxy 标注、P1-02 p50 macro/pooled + paired bootstrap、P1-03 window/span 自检。
+
+**Correction（自我纠正）**：上一轮我在 DECISIONS 写"0.80 与 0.85 在统计上不可区分"——**该说法错误，予以撤回**。
+r3 的 paired 检验显示 α=0.80 与 0.85 的 Δcomp 差为 **+0.0470 [0.0353, 0.0601]**（不含 0），二者可区分；
+真实情况是：**α=0.85 vs control 的 dComp 点估计 0.0992 < 0.10，且其 CI [0.0808,0.1188] 跨越 0.10** → 只有 α=0.85 自身是边界，不是"两者不可分"。
+
+**必须随文披露**（已写入门禁 `frozen_20260927.disclosures`）：
+① α=0.80 是固定离散网格最大合格值，非连续全局最优；② α=0.85 仅差 0.0008 且 CI 跨阈；
+③ `ordering_retention=1.0` 只是 **capacity proxy**，不构成 residency/eviction/admission/ordering 保证；
+④ 标定仅用 100 集 dev，本地无 git（仅 hash+mtime）；⑤ B 结构上无效（−0.0048 / 0.0000）；
+⑥ stress 全程为 **post-hoc**，Natural confirm300 不变。
+
+**Consequence**：Stress regime 进入"已冻结、待一次性测量"状态；下一步跑四臂并揭晓 `O_H5 / O_full / H5Coverage`。
+若 H5 仍小 → 如实报告"提高到达争用未显著提高 H5 可操作价值"，不得再改 workload。
+
+## 2026-09-27 — 两处更正：v1 标定用的是**错误 split**；以及一次误覆盖事件
+
+**更正 1（方法）**：我此前写"v1 预注册网格 {1.05…1.50} 无一合格"——**该结论建立在 confirm300 上，而规则要求 dev-only**。
+在正确的 **dev** 分片上，ρ=1.05 的 competitive 0.6688、util 0.9149、p50 2，**是合格的**：
+上一会话（跨机同步自 `scheduler_public_repo`）据 dev 网格选定 **ρ=1.05**，记录于门禁 `stress_regime_20260927`（当时未提交）。
+我误用 confirm 分片（Natural confirm300 负载中位 0.85、结构更满）才得出"全灭"。
+- **结论**：v1 的 **ρ=1.05 选择在原规则下成立**；被否决的真正理由是 **construct validity**（`arrival×(ρ_old/ρ)` 对 ρ_old>ρ 的集是**拉伸**），
+  以及**分片纪律被破坏**。v2（统一乘性 α）仍是更好的设计，α*=0.80 的冻结不变。
+- **教训**：标定必须用 dev；跨机同步的未提交改动必须先核对再覆盖。
+
+**更正 2（事故，如实记录）**：在把本机改动同步进 `scheduler_public_repo` 时，**先复制后合并**，导致覆盖掉了
+`scheduler_public_repo/.project/EXPERIMENT_GATE.json` 中**上一会话尚未提交**的 `stress_regime_20260927` 条目，
+且**无法恢复**（该文件未 staged、无备份）。
+- **处置**：按捕获到的 `git diff` 头部字段 + 用冻结的 v1 builder 在同一 100 集 dev 上**重跑**得到 scan，
+  **重建**了该条目，并标注 `RECONSTRUCTION_NOTICE`（重跑精确复现原 natural/1.05 行：0.6688 / 0.9149 / p50 2）；
+  该条目保留并标注 `superseded_by: stress_regime_v2_20260927`。
+- **教训**：同步前必须**先 diff 目标目录的未提交改动**，再决定覆盖；`.project/` 下文件应先比对后写入。

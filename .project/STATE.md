@@ -1,4 +1,20 @@
-﻿## 指标口径审计（2026-09-18）— 前提撤回
+## 2026-09-27 当前阶段：Stress regime —— **v1 作废 / v2 已冻结 α*=0.80，待一次性四臂测量**
+
+- **目标**：把争用提到足够高，使五条基线与 F0 的对比有意义（Natural confirm300 的 H5 信息价值只有 **851 ms**）。
+- **v1（绝对目标 ρ）作废**：construct-validity 审计失败——各集自带 ρ_old∈[0.50,1.05]，
+  `arrival×(ρ_old/ρ)` 对 ρ_old>ρ 的集实为**拉伸**，只选到"均匀化"点（ρ'=0.83，competitive 反低于 Natural）。
+- **v2（乘性到达缩放 α）已冻结 α\*=0.80**：
+  - 变换：对**每集每个到达间隔**同乘 α；保持模板/图/成员/顺序/异质性，**严格压缩**；deadline 保持绝对预算。
+  - 对照：**A0B0 natural(dev)** 与 **B-only(α=1.0 all-normal)**；**B 结构上无效**（Δcomp −0.0048、Δutil 0.0000）。
+  - 机械选取（dev 100 集，**禁用性能指标**）：从 α=0.95 往小扫，取**满足全门的最大 α** →
+    α=0.95/0.90/0.85 落选（0.85 仅差 0.0008 且 CI 跨阈），**α=0.80 通过**（comp 0.5651、util 0.8321、Δcomp +0.1462 [0.1194,0.1766]、Δutil +0.1039、p50 2.14、orderRet 1.0、0 失败）。
+  - 评审：r1/r2 REJECT → **r3 ACCEPT（0 P0 / 0 P1）**；披露项已写入门禁。
+- **限制（必须随文披露）**：α\* 是固定网格最大合格值；`ordering_retention` 仅 **capacity proxy**（不建模 residency/eviction/admission）；
+  标定仅 100 集 dev；本地无 git；stress 全程 **post-hoc**，Natural confirm300 不变。
+- **下一步**：一次性跑 Myopic → F0 → Truth-H5 → Oracle，揭晓 `O_H5=Myopic−TruthH5`、`O_full=Myopic−Oracle`、`H5Coverage=O_H5/O_full`；
+  若 H5 仍小 → 如实报告"提高到达争用未显著提高 H5 可操作价值"，**不得再改 workload**。
+
+## 2026-09-18 指标口径审计 — 前提撤回
 
 - **"预测器严重失准"不成立**：用同一套统计代码给 J 验证集打分，**逐位复现**验收数字
   （覆盖 0.5555/0.9166/0.9680、RuntimeQScore 845.0）⇒ 两套打分同尺。
@@ -8,109 +24,107 @@
 - 90%+ 是**分类头**（结构/行为），与资源头（覆盖/pinball）无关。
 - 唯一真实残余：p50 覆盖 R7 0.427 vs 域内 0.556。
 - 连带：Phase 18 的"乐观"基准要从 1.0 改为 0.632；**C2 需重新论证**；禁止写"低估约 60%"。
+
 # State
 
-## Current Stage (2026-09-18)
+## Current Stage (2026-09-27)
 
-- 涓荤嚎涓嶅彉锛氳棰?Agent 鏈潵棰勬祴 鈫?GPU 璋冨害銆?*涓?workload 宸插垏鍒?v03**锛坄r7_workload_v03_no_run_container`锛岀Щ闄?640 涓噸澶嶈鏁板鍣ㄨ妭鐐癸級銆?
-- **鏈洖鍚堬紙Windows 鎵ц锛?*锛歅hase 21 pilot 缁撴 = 棰勬敞鍐岃礋缁撴灉锛?*宸垎鎴愮珛**锛夈€?
-  - S_* `task_context` 淇锛?6 瑙嗛 paired masked/fixed锛?*FAIL 鍏ㄩ儴鍥涙潯 calibration gate**锛?
-    fixed p50 R=0.397锛堥棬闄?[0.70,1.30]锛夈€乧ov p50/p90/p95 = 0.396/0.844/0.916銆乸50 pinball **鏄捐憲鎭跺寲 +51.6ms [27.2,74.4]**銆?
-  - 绠＄嚎 gate 鍏ㄨ繃锛坖oin 1.0銆乽nknown_rate 0銆乣prefix_hash` 975/975 涓€鑷淬€乧heckpoint SHA 鏈彉锛夆啋 **骞插噣鍗曞彉閲忓鐓?*銆?
-  - 鈫?**涓嶉噸鐢熸垚 S_* 棰勬祴鍖呫€佷笉閲嶈窇璋冨害鏃?*锛堣缁撹瀵?鍐呭瀛楁"浠嶆垚绔嬶級銆?
-- **鍚屾棩浜嬪悗浠ｇ爜瀹℃煡锛堟渶缁堢粨璁猴級锛歝ontext 鍧楁棤缂洪櫡锛孭hase 21 鎬绘嫭缁撹鎴愮珛**
-  - 鏈熼棿鏇炬彁鍑?涓変釜 stack 瀛楁琚?null 閬斀 鈫?100% UNK"鐨?P0锛?*缁忓鏌ヤ负璇姤骞跺凡鎾ゅ洖**銆?
-  - 鏍瑰洜锛氭帰閽堢敤 `dict.get(field)`锛?*鏃犳硶鍖哄垎"閿笉瀛樺湪"涓?閿瓨鍦ㄤ絾鍊间负 null"**锛?閿瓨鍦ㄤ笖涓?null"鏄帹鏂€岄潪瀹炴祴銆?
-  - 鍐冲畾鎬у弽璇侊紙鏄惧紡娴嬮敭瀛樺湪鎬э級锛歚task_context` 鐨勯敭闆?975/975 =
-    {answer_type, domain, official_task_type, question_type, required_modalities, sub_category, temporal_scope}
-    鈥斺€?鎭板ソ 7 涓敭锛屼笌 `_task_context()` 杈撳嚭鍙婂煙鍐?J 甯冨眬**瀹屽叏涓€鑷?*锛?
-    `baseline`/`model_stack_id`/`planner_model_id` 鐨?`key_present = False`锛?75/975锛?
-    鈫?缂栫爜鍣ㄦ甯歌蛋 `else` 鍒嗘敮銆佷粠 `stack_context` 璇荤湡瀹炲€硷紙`baseline = langgraph_react`锛?*in_vocab**锛夈€?
-  - 鐪熸娈嬩綑锛堝潎闈?bug锛夛細`temporal_scope = "unknown"` 鈫?UNK锛?*registry 鏃犳瀛楁**锛屾暟鎹竟鐣岋級锛?
-    `model_stack_id = stack_a_qwen3_vl8b_yolo11x` 鈫?OOV锛?*鏁版嵁闆嗗懡鍚嶆紓绉?*锛屽煙鍐呬负杩戜技鍊?`stack_a_qwen3_vl8b`锛夛紝
-    鍙︿竴鍗?486 涓敋鐐癸紙`stack_b_..._yolo26n`锛夊湪璇嶈〃鍐咃紱`planner_model_id` 鍩熷唴璇嶈〃鍙湁 `unknown`锛堜粠鏉ヤ笉鍚俊鎭級锛?
-    `required_modalities` 瀛楃涓插舰鎬佸煙鍐呬篃瀛樺湪锛圝 train 3439 琛屾槸瀛楃涓诧級銆?
-  - **鏈仛浠讳綍绠＄嚎鏀瑰姩**锛堜笉闇€瑕侊級锛涙暀璁凡鐧昏锛氬璁″繀椤绘樉寮忔祴閿瓨鍦ㄦ€э紝涓嶅緱鐢?`.get()` 鎺ㄦ柇銆?
-- **鐙珛 GPT 瀹℃煡宸插畬鎴愶紙Sol + High锛?*锛?*鏍稿績璐熺粨鏋?PASS + 璇姤鎾ゅ洖 PASS**锛涗絾椹冲洖"涓嶅瓨鍦ㄥ悓绫绘湭淇緭鍏ョ己鍙?
-  涓?璇樊涓昏鏉ヨ嚜缁撴瀯閿欓厤/鍒嗗竷鍋忕Щ"锛堝凡鎾ゅ洖锛夈€傚綊妗?`docs/research/2026-09-18_fas_phase21_review_gpt.md`銆?
-  - **瀹冭姹傜殑涓や釜灏佸瓨鍓嶆鏌ユ垜宸茶窇瀹屽苟鍏ㄩ儴閫氳繃**锛氱湡鍊奸『搴忕瓑浠锋€?640/640 + 64/64 妯℃澘瀹屽叏涓€鑷?
-    锛圦1 杞?VERIFIED锛宲ilot 鏃犻渶閲嶈窇锛夛紱涓?pack 鍧?`min_steps=5`锛圥0-2 鍏抽棴锛夈€?
-  - **鏂板叧閿偣**锛歚__UNK__` 鈮?璁粌鏃剁殑瀛楅潰閲?`"unknown"` token 鈫?`planner_model_id` / `model_stack_id`(stack_a) /
-    `temporal_scope` 浠嶆槸鐪熷疄鐨?deployment input mismatch銆?
-  - **闆舵垚鏈垎灞傦紙鐜版湁杈撳嚭锛?*锛歩n-vocab 鐨?stack_b 鏍″噯鏄庢樉濂戒簬 OOV 鐨?stack_a
-    锛坒ixed R50 0.5820 vs 0.1751锛沜ov90 0.9012 vs 0.7878锛沜ov95 0.9699 vs 0.8620锛夆啋 鍛戒腑"鍏堟煡 stack canonicalization"銆?
-    浣?*鏈夋贩娣?*锛堜袱鑰呮湰灏辨槸涓嶅悓鎵ц鏍堛€乺untime 鍒嗗竷涓嶅悓锛夛紝闇€閰嶅鍙嶄簨瀹炴墠鑳藉畾鍥犳灉銆?
-- **涓嬩竴姝ワ紙GPT 鎸囧畾锛屽潎鍑犲崄绉掔骇锛?*锛?1-B1 鎶?`planner_model_id` 璁句负瀛楅潰閲?`"unknown"`锛?
-  21-B2 鎶?`stack_a_qwen3_vl8b_yolo11x` 鏄犲皠鍒拌瘝琛ㄥ唴鐨?`stack_a_qwen3_vl8b`锛?*鍓嶇疆锛氬厛纭 stack identity 瀹氫箟鐩稿悓**锛夈€?
-  鍒ゆ嵁锛歮ean pinball 鏀瑰杽 鈮?0% + CI upper < 0 + coverage/R50 鏈濈洰鏍囩Щ鍔ㄣ€備袱鑰呴兘澶辫触鎵嶅綊鍥犲埌鍒嗗竷鍋忕Щ銆?
-- **寰呯敤鎴峰喅绛?*锛氣憼 鏄惁鎵ц 21-B1 / 21-B2锛堝墠缃殑 stack identity 纭锛夛紱鈶?鏂瑰悜 A锛圥2 sweep + v03-confirm300锛?
-  B锛圥hase 17 濂戠害淇锛? C锛圚10-lite 绛夛級銆?
-- 鍐犲啗涓庢満鍒惰〃杩颁粛鎸?09-17 鐘舵€侊細**v03 涓?`predopt_h5_q95`锛?r95锛変负褰撳墠鍐犲啗**锛屾満鍒?= "涓庢湭鏉ユ瀵归綈鐨勪繚瀹堝熬閮ㄨ仛鍚?銆?
+- **主线**：agent workflow 的未来信息**以什么形式**进入 GPU 调度（runtime / risk / topology / information value）。
+- **预测器**：**F0（seed 11）为部署预测器**（`EXP-20260921_histres_causal_input_v1`，commit `a01e7eb`）。
+  历史执行遥测**无增量价值**（CI 跨 0）；完整重训 + 16-bin 离散头相对冻结 J3 **提升约 28.7%**，
+  且 F0 是第一个同时改善"真值参照排序"的预测器。
+- **主实验**：`EXP-20260921_scheduler_replication_v1`（commit `b6d5077`），主臂 F0 `sameshape_h5_p95`、历史臂 A0（J3）。
+  **formal 5 臂 confirm300 已完成**（commit `694e6fc`，300 集，1879.8 s）：F0 **显著优于全部五条基线**
+  （LLMSched +7,049 / TIE +14,714 / Latency-Aware +16,353 / Pythia +33,510 / Agentix +47,055 ms，Δ CI 下界全部 > 0；
+  F0 均值 99,967 ms）。**范围限定**：这是同一 substrate 的"完整系统对比"，**不能**单独主张"我们的调度器更强"
+  （需 same-interface 2×2）；五条基线各自的 adaptation/omission 必须随表披露。
+- **workload**：主用 **v04 因果模板**（`r7_workload_v04_causal_v31_no_run_container`，schema v0.3，
+  `verified_serial_control_flow_v3_1`，`chain_tail_is_answer` 640/640，8,295 节点，容器已排除）；
+  模拟器 `load_templates` 有显式 `topology_view`（`legacy` / `causal_v3`）与两条 fail-closed 规则。
+  另有 v03（去容器，保留）、v041（ontology）、以及 **v03 stress ρ=1.05**。
+- **压力 regime**：进行中（见本文件顶部 09-27 段与 `.project/PLAN.md`）。
+- **纪律**：Natural confirm300 冻结保留作确认性评测与 QoS sensitivity；stress 只作 post-hoc。
 
-## Current Stage (2026-09-17)
+## 近期阶段摘要（2026-09-15 → 09-26）
 
-- 涓荤嚎涓嶅彉锛氳棰?Agent 鏈潵棰勬祴 鈫?GPU 璋冨害锛涘啝鍐涗粛鏄?r95/q95锛堥€愭楠?runtime p95 姹傚拰锛夈€?
-- **09-16 鈫?09-17 鏂板**锛?
-  - Phase 11鈥?5锛歳untime-only 姝ｄ氦鏃忥紙C2 涓ユ牸妫€楠岄€氳繃锛夈€丆VaR 閲嶅啓锛堝浐瀹氶暱搴﹀悗鍦烘櫙鏃忎粛钀藉悗 15鈥?7.5s锛夈€?
-    浼樺寲鍨嬪弬鑰冮噸璺戯紙exploratory negative锛屼粛钀藉悗 ~19s锛夈€丆P-RHO executed 鍙橀噺淇 + 300 闆嗛厤瀵广€?
-  - **trace 渚濊禆鍋囪琚惁**锛氭湭绾︽潫 MOM run 灞傚垎閲?鈭?.139锛圕I 鍏ㄨ礋锛夈€佹埅鏂?ICC=0銆佸熬閮?lift 鍙屼晶涓嶆樉钁?
-    鈫?鏀惧純"鍏卞崟璋?灏鹃儴鍏卞姩"鐗╃悊鍙欎簨锛屾敼鎸?**forecast-error-aware ranking surrogate**銆?
-  - 鍏紑浠撳簱涓よ疆瀹￠槄鐨?P0/P1/P2 鍏ㄩ儴钀藉湴锛堣 `POSTFIX_REPORT.md`锛夈€?
-  - **Phase 16锛堟湰鍥炲悎锛?*锛歰racle 瀵圭収 confounded 璁ゅ畾 + 鎾ゅ洖锛涙柊澧?`sameshape_h5_{p50,p95,truth}` 涓夎噦锛坥pt-in锛屾湭璺戯級銆?
-- **09-15 娈佃惤浠ヤ笅浠嶆槸鏈夋晥缁嗚妭蹇収**锛屼絾鍏?涓嬩竴姝?鍒楄〃宸茶繃鏃讹紙鍘嬪姏 sweep 瀹炰负宸插畬鎴愶紝6/6 cell 鏄捐憲涓烘锛夈€?
+> 说明：本文件原 09-15/09-17/09-18 三段正文在 2026-09-27 发现**不可逆编码损坏**（详见文末"控制面完整性"），
+> 已按归档与门禁**重写为摘要**；逐字原文见 `.project/archive/`（09-15 快照）与
+> `.project/archive/2026-09-27_handoff_log/HANDOFF_log_20260926.md`（09-18 → 09-26 流水）。
 
-## Current Stage (2026-09-15)
+- **09-15**：Phase 0–7 完成；消费方式锦标赛定出 q95 冠军；dev700 / frozen confirm300 切分建立；
+  GPT 给出系统论文定位与最小补充实验表。
+- **09-17**：oracle 对照 key 形状混淆被认定并撤回（`trueopt_h5` 与预测族不同 key 形状）；
+  runtime/load 契约审计发现 load 被部分重复计入（修法待定，未动预测器）。
+- **09-17 → 09-21**：发现 R7 workload 把"整条流墙钟容器"当普通 GPU 节点调度（640/8,935 节点，占 node runtime **50.24%**）
+  → 建 **v03 去容器 workload**（重建自检 21,000 条 episode 逐字段 0 不匹配）；Phase 20-A/20-B 给出消费层证据。
+- **09-18**：Phase 21（补 task_context）pilot 在 Windows 执行 → **预注册负结果**（四条 calibration gate 全 FAIL、
+  p50 pinball 显著恶化 +51.6 ms）；事后审查判定"context 块缺失"为**误报并撤回** → 不重生成预测包、不重跑调度。
+- **09-19 → 09-21**：资源分布预测器线（`EXP-20260919_j_series_resource_dist_v1`，R1/R1b viability PASS、strong FAIL）；
+  因果历史遥测线（`EXP-20260921_histres_causal_input_v1`）定出 **F0**。
+- **09-23**：拓扑契约回归修复 → **v04 因果模板**；调度机会量化（修正图下 `Pr(feasible≥2)=52.82%`、
+  `Pr(ready GPU≥2)=68.24%`）；四条论文基线全部实现；新增 6 个测试套件（全量 276，5 个失败套件均为预先存在）。
+- **09-25 → 09-26**：五条基线的 adaptation 收尾（Pythia ACCEPT + re-pin、Agentix PLAS 服务口径 + discrete 敏感性、
+  LLMSched freeze-breaking 修复）→ **formal 5 臂测量完成**。
 
-- 涓荤嚎锛氳棰?Agent 宸ヤ綔娴佹湭鏉ラ娴?鈫?GPU 璋冨害锛坒orecast-aware scheduling锛夛紱Phase 0鈥? 鍏ㄩ儴瀹屾垚骞跺綊妗ｃ€?
-- **褰撳墠鍐犲啗閰嶇疆**锛欻5 棰勬祴鍣紙J3:seed11锛寁3.1 濂戠害锛?+ **q95 娑堣垂**锛堥€愭楠?runtime p95 鐩稿姞锛沴oad 鍒嗛噺涓庢敹鐩婃棤鍏筹級銆?
-  - dev700锛?79,125ms锛?*鈭?7,229 [鈭?9,037, 鈭?5,476]** vs E2锛沵iss 鈭?.40pp銆?
-  - frozen confirm300锛堥娆′娇鐢級锛?83,248 vs 202,012锛?*鈭?8,765 [鈭?1,948, 鈭?5,932]**锛宮iss 鈭?.36pp銆?
-- 璇勬祴绾緥锛歷alidation 宸插垏 **700 dev / 300 frozen confirm**锛坄data/manifests/validation_split_dev700_confirm300.json`锛宻eed 20260914锛夛紱
-  璋冨弬鍙湪 dev锛涘啝鍐涘彧鍦?confirm 璺戜竴娆°€傝繍琛屽櫒鏀寔 `--episode-ids-file`銆?
-- 澶栭儴璇勫锛欸PT 鏂囩尞 + 璁″垝锛坄docs/research/2026-09-14_fas_phase6_gpt_literature.md`锛夛紱绯荤粺璁烘枃瀹氫綅宸插畾绋匡紙`docs/research/2026-09-15_fas_system_story_gpt.md`锛夛細涓昏础鐚?= future-action-aware scheduling system锛涙満鍒惰础鐚?= continuation/horizon 涓诲 + runtime-tail 娑堣垂锛涘叧閿柊棰栨€ц竟鐣?= 棰勬祴**鍔ㄦ€佸睍寮€銆佸皻涓嶅瓨鍦?*鐨勬湭鏉ユ帶鍒舵祦锛堝尯鍒簬 Parrot 鐨勫凡鐭?DAG锛夛紱鏈€灏忚ˉ鍏呭疄楠?= P0 鐪熷疄 GPU replay锛堟渶澶х煭鏉匡級鈫?P1 鍘嬪姏 sweep + 棰勬祴璐ㄩ噺鏁忔劅鎬?鈫?P2 H10-lite銆傛晠浜嬬嚎銆佸熀绾挎竻鍗曚笌鎶曠姒傜巼瑙?`docs/research/2026-09-15_fas_novelty_venue_gpt.md`锛氱函浠跨湡 FGCS/JPDC/ICPP/CCGrid 鐜板疄锛岃ˉ 2-GPU replay 鍚?MLSys 12%鈫?5鈥?5%銆丄TC/EuroSys 杩涘叆鍙啿鍖洪棿锛涘绋夸笁澶ф敾鍑伙紙simulator artifact / 鍗?workload / q95 璋冨弬锛夊繀椤荤敤 replay + pressure sweep + 鏈哄埗鍒嗘瀽闃插尽銆傝ˉ鍏呭疄楠屾€昏〃涓庝笁妗ｅ疄楠岄泦瑙?`docs/research/2026-09-15_fas_experiment_table_gpt.md`锛涘伐涓氱數姊?Agent 瀹氫綅涓虹浜?workload / case study锛堝喕缁撴帴鍙ｄ笌 q95锛屽彧閲嶇敓鎴?artifacts锛涙渶濂戒笌 2-GPU replay 鍚堝苟鍋氾級銆?
+## 活跃约束（必须遵守）
 
-## 娲昏穬绾︽潫锛堝繀椤婚伒瀹堬級
+- `T_final` 封存；`S_*` 只允许推理、不拟合；holdout 不进入正式决策（历史 holdout 已用于 R0/J 判定，保持密封语义）。
+- **Natural confirm300 冻结保留**；stress regime 只能作 post-hoc，且标定期间禁用一切性能指标。
+- 运行器是 resume 式：同一 `--output-dir` 会跳过已有 `(episode_id, policy)`；重跑同一策略请换新目录。
+- **本机（macOS）**不能跑 torch / predictor packer / GPU 实验；训练机为 Windows（`D:\anaconda\envs\scheduler\python.exe`，仓库 `F:\scheduler`）。
+  其余调度运行 `PYTHONPATH=src`。
+- 可用 artifacts：`outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts`（含每步 model_probabilities 与每行 length_probabilities）、
+  `outputs/sstar_predictor_artifacts_sched/prediction_artifacts`（无分布）、H10：`outputs/sstar_predictor_artifacts_h10[_sched]`。
+- Git 只提交代码/schema/配置/清单/文档/小型指标；不提交视频、权重、原始 trace、缓存、大型输出。
+- 论文纪律：基线必须随表披露 adaptation/omission；不得声称"调度器更强"（除非 same-interface 2×2）；
+  Phase 18 类"乐观"表述须以 **0.632** 为基准，禁止写"低估约 60%"。
 
-- `T_final` 灏佸瓨锛沗S_*` 鍙厑璁告帹鐞嗐€佷笉鎷熷悎锛沨oldout 涓嶈繘鍏ユ寮忓喅绛栵紙鍘嗗彶 holdout 宸茬敤浜?R0/J 鍒ゅ畾锛屼繚鎸佸瘑灏佽涔夛級銆?
-- 杩愯鍣ㄦ槸 resume 寮忥細鍚屼竴 `--output-dir` 浼氳烦杩囧凡鏈?`(episode_id, policy)`锛涢噸璺戝悓涓€绛栫暐璇锋崲鏂扮洰褰曘€?
-- 鍙敤 artifacts锛歚outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts`锛堝甫姣忔 model_probabilities 涓庢瘡琛?length_probabilities锛?
-  涓?`outputs/sstar_predictor_artifacts_sched/prediction_artifacts`锛堟棤鍒嗗竷锛夈€侶10锛歚outputs/sstar_predictor_artifacts_h10[_sched]`銆?
-- 鐜锛氳В閲婂櫒 `D:\anaconda\envs\scheduler\python.exe`锛坱orch 2.6.0+cu124锛孯TX 3060 Laptop锛夛紝鎵€鏈夎皟搴﹁繍琛?`PYTHONPATH=src`銆?
-- 妗ユ帴锛欳hrome for Testing (`E:\chrome-for-testing\chrome-win64\chrome.exe`) 蹇呴』甯?
-  `--proxy-server=http://127.0.0.1:7897`锛堟湰鏈虹洿杩?chatgpt.com 瓒呮椂锛夛紱浼氳瘽 URL `https://chatgpt.com/c/6a9822da-...`銆?
-- Git 鍙彁浜や唬鐮?schema/閰嶇疆/娓呭崟/鏂囨。/灏忓瀷鎸囨爣锛涗笉鎻愪氦瑙嗛銆佹潈閲嶃€佸師濮?trace銆佺紦瀛樸€佸ぇ鍨嬭緭鍑恒€?
+## 已验证结论（按主题）
 
-## 宸查獙璇佺粨璁猴紙鎸変富棰橈級
+1. **消费方式（v03-dev700，Phase 20-B 九臂）**：`oracle-truth` 仅比 **p95** 好 **1.3 s**；**p90 ≈ p95**；
+   p50 ≈ E0（不显著）；**tail-shuffle 打乱对齐后收益全失**（+4.25 s）；scaled-p50 显著更差（+15.1 s）。
+   → 收益来自"**与未来步对齐的保守尾部聚合**"，不是"有未来信息"、不是"尺度放大"。
+2. **workload 构造**：整条流容器节点 640/8,935 却占 node runtime **50.24%**（GPU 的 50.5%）；v03 已排除，
+   重建自检 21,000 条 episode 逐字段 0 不匹配；v04 因果契约修复后 `chain_tail_is_answer` 640/640。
+3. **指标口径**：域内 `Σp50/Σ真值 = 0.6322`；RuntimeQScore **R7 782.1 优于域内 845.0**；
+   p50 覆盖 R7 0.427 vs 域内 0.556（唯一真实残余）。
+4. **预测器**：F0（seed 11）为部署预测器；历史执行遥测无增量价值；重训 + 16-bin 头 ≈ +28.7%。
+5. **基线复现**：五条基线（LLMSched / TIE / Pythia / Latency-Aware / Agentix）已实现并在 confirm300 上与 F0 正式对比（结果见上）。
+6. **J 线（历史）**：runtime 显著优于 B1（J2/J3 3/3 seeds），但 load-duration 贴线越界 → 无 Core GO；
+   J4 解耦负结果；H10 朴素重训负迁移（需 H10-lite）。
 
-1. **淇℃伅浠峰€?*锛氭湭鏉ョ粨鏋勯娴嬫樉钁椾紭浜庢棤鏈潵锛圗2 vs E0 鈭?7,065ms锛?000 闆嗭級锛?
-   oracle 璧勬簮 鈮?闈欐€佽〃锛?83,845 vs 184,514锛夆啋 **璧勬簮棰勬祴涓嶆槸鐡堕**锛涚湡鍊煎唴瀹瑰弽鑰屾洿宸紙+14,222ms锛夛紝
-   鍘绘帀妯″瀷韬唤鏇村ソ锛堚垝12,334ms锛夆啋 鍐呭/韬唤鏃犳浠峰€硷紝**闀垮害/缁堟缁撴瀯鏄富瑕佷环鍊兼潵婧?*銆?
-2. **Horizon**锛氱湡鍊?H10 vs H5 = 鈭?0,231ms [鈭?1,115, 鈭?,363]锛汬10 鈮?鏃犵晫 oracle锛汬20=H10 楗卞拰 鈫?H5鈫扝10 鏄渶澶у彲閮ㄧ讲鏉犳潌銆?
-3. **娑堣垂鏂瑰紡锛?6 鍙樹綋锛岀粨璁虹ǔ瀹氾級**锛?*q95锛堥€愭楠?runtime p95 姹傚拰锛夋渶浼?*锛?
-   鍦烘櫙閲囨牱+CVaR锛堢嫭绔?鈭?3.2k / 鍏卞崟璋?鈭?.8~鈭?0.5k锛夈€佽嚜閫傚簲椋庨櫓锛堚垝11.4k锛夈€佹満浼氱害鏉熴€佺敓瀛樸€佺紦瀛樸€佸唴瀹瑰叏閮ㄦ洿宸紱
-   **绾潎鍊?+13.8k銆乴oad 灏鹃儴锛坙d95锛?15.1k**锛況t95 鈮?q95锛?11ms锛岀粺璁＄瓑浠凤級銆?
-   鈫?鏈哄埗锛氫环鍊兼潵鑷棰勬祴閾?**runtime 灏鹃儴** 鐨?瀹屽叏鐩稿叧寮?鎯╃綒锛涘 load 缁村害鎴栧钩鍧囧寲澶勭悊浼氬墛寮卞畠銆?
-4. **J 绾匡紙棰勬祴鍣級**锛歳untime 鏄捐憲浼樹簬 B1锛圝2/J3 3/3 seeds锛夛紝浣?load-duration 璐寸嚎瓒婄晫锛?5.2%/+5.3%锛夆啋 鏃?Core GO锛?
-   J4 瑙ｈ€﹁礋缁撴灉锛涘綊鍥狅紙蟿=.90 宸€佅?.95 濂姐€佷腑浣嶆暟鏍″噯鏇村ソ锛夊凡缁撴锛汮 绾挎敹鏉熴€?
-5. **H10 閲嶈锛堟湸绱犲欢闀跨獥鍙ｏ級**锛氳礋杩佺Щ 鈥斺€?鍓?5 姝ラ€€鍖栵紙next-family 0.803鈫?.640銆乺untime pinball +62%锛夛紝璋冨害 +14.6s锛?
-   闇€ H10-lite锛圚5 backbone + 鍚庢杈呭姪澶达級銆?
+## 未决问题与风险
 
-## 鏈喅闂涓庨闄?
+- **Stress regime 标定未完成**（ρ 网格只做了 1.05）；stress 的"是否真能制造 H5 opportunity"尚未知。
+- **same-interface 2×2 未做** → 目前**不能**主张"调度器更强"。
+- 09-26 的工作**尚未 commit/push**。
+- 两个**预先存在**的 bug 已定位未修（09-23 记录）：`round_robin` 实跑 myopic；`fcfs` 安全。
+- 全是仿真实验（无真实系统回放）；S_* 为域外推断。
+- 控制面完整性（编码损坏）已处理，见文末。
 
-- H10 璐熻縼绉绘湭淇锛圚10-lite 鏈疄鐜帮級锛沜ache-aware 娑堣垂缂?residency/reuse 鏁版嵁锛堟殏缂擄級銆?
-- 鍏ㄦ槸浠跨湡瀹為獙锛堟棤鐪熷疄绯荤粺锛夛紱璁烘枃鍙鎬?鐭澘寰?GPT 璇勪及锛堝彲鑳介渶璺?workload/鏈熼檺绋冲仴鎬т笌棰勬祴鍣楁秷璐硅仈鍚堝疄楠岋級銆?
-- S_* 鍩熷閫€鍖栧凡閲忓寲锛坮ole 0.912/family 0.803/runtime pinball 1,045锛夛紱娑堣垂缁撹鍙湪褰撳墠 workload/鏈熼檺璁剧疆楠岃瘉杩囥€?
-- 1,000 闆嗗凡琚娆′娇鐢?鈫?渚濊禆 dev/confirm 绾緥鎺у埗杩囨嫙鍚堬紝鍚庣画鏂版秷璐瑰櫒蹇呴』鍏堝湪 dev 涓婃姤銆?
+## 下一步（按优先级）
 
-## 涓嬩竴姝ワ紙鎸変紭鍏堢骇锛?
+1. 补齐 stress ρ 网格 → **Myopic-only 结构门**选出最小合格 ρ'（禁用性能指标）→ 冻结。
+2. 冻结后一次性跑 Myopic → F0 → Truth-H5 → Oracle；H5 opportunity 仍小则如实报告失败，**不回头调 ρ'**。
+3. 五条冻结基线**仅在科学上值得时**在 stress 上跑；论文随表写 disclosure 与零机会统计。
+4. commit + push（09-26 工作）。
+5. （可选）same-interface 2×2；随后再谈 Phase 17 契约修复 / H10-lite 等方向。
 
-1. 鍏堟牳楠?GPT 寮曠敤璁烘枃鐨勭湡浼?鍑哄锛圥arrot銆丳ythia銆丳BKV銆丗ATE銆丼OLA銆乂idur 绛夛級锛屽啀鏇存柊璁″垝銆?
-2. H10-lite锛圚5 backbone + 鍚庢 horizon 杈呭姪澶?闄嶆潈锛宮ulti-resolution锛夈€?
-3. 澶囬€夛細7-D queue-aware rollout锛堥鏈熶綆锛夈€佽法鏈熼檺/位 绋冲仴鎬с€侀娴嬪櫒 seed 绋冲仴鎬э紙J3 seed22/33锛夈€?
+## 记录指针
 
-## ChatGPT Web 缁戝畾锛堟潈濞佹簮锛?026-09-18 浠庡綊妗ｆ仮澶嶏級
+- 计划：`.project/PLAN.md`（顶部 = stress regime v1）。
+- 门禁：`.project/EXPERIMENT_GATE.json`（`stress_regime_v1_20260927`、`EXP-20260921_scheduler_replication_v1`、
+  `EXP-20260921_histres_causal_input_v1`、`EXP-20260919_j_series_resource_dist_v1`、`EXP-20260911_*`）。
+- 决策：`.project/DECISIONS.md`（尾部为 09-26/09-27 条目）。
+- 实验记录：`experiments/EXP-20260921_scheduler_replication_v1/`（含 `artifacts/four_baseline_formal_v1.json`）、
+  `experiments/EXP-20260911_forecast_aware_scheduling/PHASE*`。
+- 文献/评审：`docs/research/2026-09-*.md`（含 `2026-09-18_fas_phase21_review_gpt.md`、`2026-09-25_four_baseline_review_gpt.md`、
+  `2026-09-26_pythia_and_agentix_final_review.md`）。
+- 归档：`.project/archive/2026-09-15_pre_compact/`（09-15 快照）、
+  `.project/archive/2026-09-27_handoff_log/HANDOFF_log_20260926.md`（09-18→09-26 流水）、
+  `.project/archive/2026-09-27_state_corrupted/`（本次重写前的损坏副本）。
 
-2026-09-15 鍘嬬缉鏃惰鍧椾粠娲昏穬 STATE 涓㈠け锛屼粎瀛樺綊妗ｏ紱鐜版仮澶嶅苟鏇存柊銆俿kill 瑙勫畾姝ゅ潡鏄細璇濈粦瀹氱殑鍞竴鐪熺浉婧愩€?
+## ChatGPT Web 绑定（权威源，2026-09-18 从归档恢复）
 
 ```yaml
 chatgpt_web:
@@ -122,26 +136,14 @@ chatgpt_web:
   model: "GPT-5.6 Sol"
   reasoning: "High"
   created_at: "2026-09-02 21:30 CST"
-  last_verified_at: "2026-09-08 17:19 CST"
-  last_used_at: "2026-09-08 17:19 CST"
+  last_verified_at: "2026-09-27 (opencode session: URL re-confirmed by the project owner; page loaded, project scope 调度)"
+  last_used_at: "2026-09-27"
   parent_conversation_id: null
   last_rollover_reason: null
+  # NOTE 2026-09-27: this project-scoped conversation is the authoritative one.
+  # The older conversation 6a9822da-e278-83e9-9c1a-675923acda0e (recorded in the
+  # 09-15 HANDOFF) is at its length limit and must not be used for new briefs.
 ```
-
-**2026-09-18 瀹炴祴锛圵indows 渚фˉ鎺ワ級**锛氫細璇濆彲杈俱€佺嚎绋嬪仴搴凤紙鏈疆涓?Phase 21 璁″垝锛夛紝妯″瀷閫夋嫨鍣ㄥ綋鍓嶆樉绀?
-**`DS Flash`** 鑰岄潪鐧昏鐨?`GPT-5.6 Sol` 鈫?model gate 鎷掔粷鎻愪氦锛坄selected_model: null`銆乣high_selected: false`锛夛紝
-**鏈彁浜や换浣?brief**銆傚湪鐢ㄦ埛鎶婅浼氳瘽鐨勬墜鍔ㄦā鍨嬪垏鍥?`GPT-5.6 Sol` + High 涔嬪墠锛岀綉椤靛鏌ヤ笉鍙敤銆?
-
-## 璁板綍鎸囬拡
-
-- 瀹為獙璁板綍锛歚experiments/EXP-20260911_forecast_aware_scheduling/PHASE{0..7A,7BC}_REPORT.md`锛?
-  `experiments/EXP-20260911_p9d_j_*`锛圧0/J/J4/H10/predictor acceptance锛夈€?
-- 鏂囩尞/璇勫锛歚docs/research/2026-09-14_fas_phase6_gpt_literature.md`銆乣docs/research/2026-09-11_fas_*`銆乣docs/p9d_*`銆?
-- 鎺у埗闈㈠巻鍙诧紙鏈褰掓。锛夛細`.project/archive/2026-09-15_pre_compact/`銆?
-- 闂ㄧ锛歚.project/EXPERIMENT_GATE.json`锛堟椿璺冨疄楠?+ 鎸囬拡锛夈€?
-
-
-
 
 ## 2026-09-23 状态追加
 
@@ -154,3 +156,15 @@ chatgpt_web:
 - **新增 6 个测试套件**（tie / pythia / llmsched / latency_aware_fusion / latency_aware_fidelity /
   latency_aware_scheduler），全量 276 个测试，5 个失败套件**全部预先存在**。
 - **两个预先存在的 bug 已定位未修**：`round_robin` 实跑 myopic；`fcfs` 安全。
+
+## 控制面完整性说明（2026-09-27）
+
+- **发现**：本文件自 `# State` 以下的 09-15/09-17/09-18 三段正文与部分小标题存在**不可逆编码损坏**
+  （UTF-8 文本被按 GBK 解读后再编码，部分字节已丢失为 `?`）。已验证 gbk 反解仅能部分恢复（86/150 行仍含损坏字符），
+  **不做自动批量修复**。
+- **处置（本次）**：损坏文件原样归档到 `.project/archive/2026-09-27_state_corrupted/STATE_corrupted_20260927.md`；
+  本文件按**归档 + 门禁 + 09-26 HANDOFF 流水**重写为可读版本；可读段落（09-18 口径审计、09-23 追加、ChatGPT 绑定块）**逐字保留**。
+- **教训**：跨机器（Windows ↔ macOS）写同一份 UTF-8 文件时，必须避免用按 GBK 默认编码的工具读写；
+  控制面文件的编码应显式声明 UTF-8。
+- **同时**：`.project/HANDOFF.md` 已由日志（403 行、11 个 `# HANDOFF` 块）收敛为快照；
+  旧日志归档在 `.project/archive/2026-09-27_handoff_log/`。
