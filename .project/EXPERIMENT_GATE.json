@@ -3009,8 +3009,9 @@
         "util_max": 0.95,
         "ordering_retention_min": 0.8,
         "failed_jobs": 0,
-        "capacity_violations": 0,
-        "median_ready_min": 2
+        "median_ready_min": 2,
+        "simulated_oom_max": 0,
+        "capacity_violation_definition": "simulated_oom_count (node_fail with reason='simulated_oom'); the simulator's GPU admission-failure path"
       },
       "selection_rule": "scan from alpha=0.95 downward; pick the LARGEST alpha (mildest compression) satisfying every gate; if none -> calibration FAIL, stop workload engineering and go to route (d)",
       "forbidden": [
@@ -3106,7 +3107,7 @@
         "selection_rule": "largest alpha satisfying every gate",
         "split": "development (dev_natural 100 eps; subset of dev700, disjoint from confirm300)",
         "controls": "A0B0 natural + B-only (alpha=1.0 all-normal)",
-        "evidence": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/stress_alpha_calibration_v2_rev2.json",
+        "evidence": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/stress_alpha_calibration_v2_rev3.json",
         "review": "reviewer task review-stressv2-metric-calibration-20260927 (r1 REJECT, r2 REJECT, r3 ACCEPT; 0 P0 / 0 P1 remaining)",
         "disclosures": [
           "alpha=0.80 is the largest QUALIFYING value on the fixed discrete grid, not a global optimum over continuous alpha.",
@@ -3117,7 +3118,8 @@
           "B (service-class removal) is structurally inert: competitive -0.0048, util 0.0000 vs A0B0 natural.",
           "All stress-regime results are post-hoc (introduced and revised after inspecting Natural-regime results); the original Natural confirm300 evaluation is unchanged."
         ],
-        "next": "run Myopic -> F0 -> Truth-H5 -> Oracle once on the frozen stress regime; reveal O_H5 = Myopic-TruthH5, O_full = Myopic-Oracle, H5Coverage = O_H5/O_full. No further workload/gate edits."
+        "next": "run Myopic -> F0 -> Truth-H5 -> Oracle once on the frozen stress regime; reveal O_H5 = Myopic-TruthH5, O_full = Myopic-Oracle, H5Coverage = O_H5/O_full. No further workload/gate edits.",
+        "evidence_note": "rev3 supersedes rev2 for the median-of-per-episode-medians fix; rev2 had a known metric bug"
       },
       "rev3_20260927": {
         "artifact": "experiments/EXP-20260921_scheduler_replication_v1/artifacts/stress_alpha_calibration_v2_rev3.json",
@@ -3146,6 +3148,8 @@
   "updated_at": "2026-09-27",
   "smoke_passed": true,
   "ledger_registered": true,
-  "commit": "694e6fc7149cbe03cd1287436ba31aa2d829b4c6",
-  "active_formal_run": "EXP-20260921_scheduler_replication_v1 / 5-arm confirm300"
+  "commit": "7549572afbe3fc0e291c5ed10395d40bf690a11c",
+  "active_formal_run": "stress_regime_v2_20260927 (FROZEN alpha=0.80; four-arm planned, not yet run)",
+  "last_formal_run": "EXP-20260921_scheduler_replication_v1 / 5-arm confirm300",
+  "last_formal_run_commit": "694e6fc7149cbe03cd1287436ba31aa2d829b4c6"
 }

@@ -1778,3 +1778,23 @@ r3 的 paired 检验显示 α=0.80 与 0.85 的 Δcomp 差为 **+0.0470 [0.0353,
 - 若 v1 ladder 可信 → 论文核心问题已有答案，v2 可能只是更干净的复现；
 - 若 v1 因 construct-validity 问题不可信 → 仍需 v2 复现。
 - **必须先核实 v1 ladder 的产物/命令/commit 是否可追溯**（当前仓库 artifacts 中未见对应 ladder 文件）。
+
+## 2026-09-27 — Stress-v2 α*=0.80 获 GPT GitHub 侧 **ACCEPT**（修完最后 2 个字段）
+
+**Decision**：**接受 α\*=0.80 冻结**，可进入 confirm300 四臂（Myopic → F0 → Truth-H5 → Oracle）；**不再重标定、不碰 α、不扩网格、不改门**。
+
+**Evidence**（GPT 对提交 `7549572` 的 GitHub 复核，逐项 PASS，均给出仓库行号证据）：
+- P1-1 `ready_jobs_p50_macro` 已为 `statistics.median`；rev3 中 α=.80 的 p50macro=**2.0**（旧 2.14 是 mean-of-medians 的 bug），仍满足 ≥2。
+- P1-2 配对 fail-closed（重复 key / 键集不等 / None / 数量不符均 raise）✅
+- P1-3 `simulated_oom_count` 与仿真器 admission 失败路径（`plan_gpu_admission` → `node_fail reason='simulated_oom'`）**语义一致** ✅
+- P1-4 rev3 原协议重跑，数值自洽 ✅
+- P1-6 confirm300 产物：300 个 parent ID 与 `data/manifests/validation_split_confirm300_ids.txt` **集合完全相等**；
+  job 数/模板顺序/α 缩放/deadline budget/all-normal 全部 0 异常 ✅（本地亦独立复核一致）
+- 14 个"仅空白"artifact 文件：逐行去空白后序列完全相等 → **无语义改动，可容忍**，不清理。
+
+**收尾**：GPT 指出 `EXPERIMENT_GATE.json` 两处仍指向旧语义（`capacity_violations:0` 与 `frozen.evidence → rev2`），已修：
+改为 `simulated_oom_max:0` + 定义，`evidence → stress_alpha_calibration_v2_rev3.json`；并更新 footer
+`active_formal_run`（旧五臂记录保留为 `last_formal_run`）。
+
+**Consequence**：Stress-v2 冻结在方法、实现、数据三方面均被接受。下一步在 `r7_workload_v03_stressv2_confirm080`
+上一次性跑四臂；**不得再改 workload/gate**。
