@@ -50,7 +50,6 @@ experiments/            experiment records (reports and small metrics; large art
 data/manifests/         dataset registries (splits, dataset cards, dev/confirm split)
 results/processed/      processed datasets (predictor datasets, workload episodes, enrichment)
 outputs/                frozen predictor checkpoints + packed prediction artifacts + audits
-.project/               project control plane (state, plan, decisions, experiment gate)
 ```
 
 ## Data availability
@@ -88,6 +87,9 @@ python scripts/verify_trace_dependence.py \
 ```
 
 ## Notes
+
+- Experimental substrate integration (two-task co-location, prefetch interference, occupancy accounting): see [implementation boundaries and focused tests](docs/substrate_integration.md). This is a bounded engineering implementation, not a completed real-replay validation. Continuous LLM batching and prefix-cache execution remain unsupported.
+- Project coordination files are maintained locally and excluded from this public repository; only code and experiment/reproduction material are published.
 
 - The runner is **resume-style** and writes `run_fingerprint.json` (hashes of templates, episodes,
   artifact manifest and the semantic code files). Resuming a directory whose fingerprint differs is

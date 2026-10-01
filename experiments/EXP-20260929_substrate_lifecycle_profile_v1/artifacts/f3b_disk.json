@@ -1,0 +1,95 @@
+{
+ "method": "posix_fadvise(POSIX_FADV_DONTNEED) per-file, then sequential readv",
+ "note": "不需要 root；比 drop_caches 更精确（只影响目标文件）",
+ "chunk_mib": 8,
+ "reps": 5,
+ "models": {
+  "Qwen3-VL-8B": {
+   "n_files": 4,
+   "total_mib": 16722.0,
+   "files": {
+    "model-00001-of-00004.safetensors": {
+     "mib": 4675.2,
+     "median_ms": 2457.5,
+     "gbs": 1.858,
+     "min_ms": 2349.8,
+     "max_ms": 2498.9
+    },
+    "model-00002-of-00004.safetensors": {
+     "mib": 4688.2,
+     "median_ms": 2442.9,
+     "gbs": 1.874,
+     "min_ms": 2415.5,
+     "max_ms": 2461.0
+    },
+    "model-00003-of-00004.safetensors": {
+     "mib": 4768.2,
+     "median_ms": 2411.0,
+     "gbs": 1.931,
+     "min_ms": 2386.0,
+     "max_ms": 2438.5
+    },
+    "model-00004-of-00004.safetensors": {
+     "mib": 2590.4,
+     "median_ms": 1668.0,
+     "gbs": 1.517,
+     "min_ms": 1618.2,
+     "max_ms": 1721.5
+    }
+   },
+   "median_gbs": 1.866,
+   "full_model_read_ms": 8751.4
+  },
+  "Qwen3-4B": {
+   "n_files": 3,
+   "total_mib": 7672.3,
+   "files": {
+    "model-00001-of-00003.safetensors": {
+     "mib": 3774.5,
+     "median_ms": 2360.2,
+     "gbs": 1.562,
+     "min_ms": 2322.8,
+     "max_ms": 2428.5
+    },
+    "model-00002-of-00003.safetensors": {
+     "mib": 3802.7,
+     "median_ms": 2322.3,
+     "gbs": 1.599,
+     "min_ms": 2307.5,
+     "max_ms": 2341.7
+    },
+    "model-00003-of-00003.safetensors": {
+     "mib": 95.0,
+     "median_ms": 49.4,
+     "gbs": 1.879,
+     "min_ms": 48.9,
+     "max_ms": 51.5
+    }
+   },
+   "median_gbs": 1.599,
+   "full_model_read_ms": 4685.7
+  },
+  "Qwen2.5-VL-3B": {
+   "n_files": 2,
+   "total_mib": 7161.5,
+   "files": {
+    "model-00001-of-00002.safetensors": {
+     "mib": 3798.2,
+     "median_ms": 2128.9,
+     "gbs": 1.742,
+     "min_ms": 2101.1,
+     "max_ms": 2604.4
+    },
+    "model-00002-of-00002.safetensors": {
+     "mib": 3363.3,
+     "median_ms": 1889.4,
+     "gbs": 1.738,
+     "min_ms": 1874.2,
+     "max_ms": 1937.5
+    }
+   },
+   "median_gbs": 1.74,
+   "full_model_read_ms": 4019.3
+  }
+ }
+}

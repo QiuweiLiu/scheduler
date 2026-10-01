@@ -1,0 +1,57 @@
+{
+ "schema_version": "scheduler-phase-profile-config-v0.1",
+ "phase_profile": {
+  "enabled": true,
+  "strict": true,
+  "source_experiment": "EXP-20260929_substrate_phase_profile_v1",
+  "source_metrics": "experiments/EXP-20260929_substrate_phase_profile_v1/artifacts/llm_phase_profile_v1.json",
+  "semantics": {
+   "role": "observational_only",
+   "runtime_ms": "UNCHANGED - this profile never replaces or scales node.runtime_ms",
+    "decomposition": "measured coefficients only; per-request prefill/decode/image durations are unavailable",
+    "counts": "input_token_count, output_token_count, and image_count are unavailable",
+    "coverage": "direct GPU nodes only; nested composite GPU work is unsupported",
+   "kv": "corrected = raw kv_peak minus logits buffer (0.2898 MB/token)",
+   "vision_absent_for": "Qwen3-4B is a text-only planner and consumes no frames",
+   "strict_scope": "strict only enforces the models listed in covered_models; YOLO detector and CPU adapters are outside the HF generate() phase profile by design"
+  },
+  "models": {
+   "Qwen3-VL-8B-Instruct": {
+    "prefill_us_per_token": 190.01,
+    "prefill_intercept_ms": 9.8,
+    "tpot_ms": 28.423,
+    "tpot_cv": 0.0026,
+    "kv_mb_per_token_measured_corrected": 0.1485,
+    "vision": {
+     "image_tokens_added": 222.0,
+     "prefill_ms_per_image": 53.0,
+     "mem_mb_per_image": 102.8
+    }
+   },
+   "Qwen3-4B": {
+    "prefill_us_per_token": 114.57,
+    "prefill_intercept_ms": 8.1,
+    "tpot_ms": 29.038,
+    "tpot_cv": 0.014,
+    "kv_mb_per_token_measured_corrected": 0.1458
+   },
+   "Qwen2.5-VL-3B-Instruct": {
+    "prefill_us_per_token": 75.29,
+    "prefill_intercept_ms": 10.2,
+    "tpot_ms": 23.295,
+    "tpot_cv": 0.0023,
+    "kv_mb_per_token_measured_corrected": 0.0391,
+    "vision": {
+     "image_tokens_added": 301.0,
+     "prefill_ms_per_image": 70.2,
+     "mem_mb_per_image": 104.5
+    }
+   }
+  },
+  "covered_models": [
+   "Qwen3-VL-8B-Instruct",
+   "Qwen3-4B",
+   "Qwen2.5-VL-3B-Instruct"
+  ]
+ }
+}

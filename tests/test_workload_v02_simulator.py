@@ -1,7 +1,23 @@
 #!/usr/bin/env python3
+from pathlib import Path
 import unittest
 
-from tracing.analysis.workload_v02_simulator import GPU, Job, Node, Template, choose_action, plan_gpu_admission
+from tracing.analysis.workload_v02_simulator import (
+    GPU,
+    Job,
+    Node,
+    Template,
+    choose_action,
+    colocation_slowdowns,
+    load_colocation_profile,
+    load_measured_engine_profile,
+    load_prefetch_interference_profile,
+    phase_decomposition,
+    plan_gpu_admission,
+    simulate_episode,
+    validate_colocation_profile,
+    validate_prefetch_interference_profile,
+)
 
 
 def make_node(model: str, resident_mb: float) -> Node:
@@ -20,7 +36,625 @@ def make_node(model: str, resident_mb: float) -> Node:
     )
 
 
+def coloc_node(node_id: str, model: str, runtime: float, shape: str, workspace: float = 100.0, load: float = 0.0) -> Node:
+    return Node(
+        node_id=node_id,
+        sequence_index=0,
+        predecessors=(),
+        successors=(),
+        lane="gpu",
+        model_id=model,
+        runtime_ms=runtime,
+        load_ms=load,
+        workspace_peak_mb=workspace,
+        resident_model_mb=100.0,
+        status="success",
+        workload_shape=shape,
+    )
+
+
+def simple_template(template_id: str, node: Node) -> Template:
+    return Template(template_id, "video", "train", "test", (node,), {node.node_id: node})
+
+
+def coloc_profile(cells):
+    return {
+        "enabled": True,
+        "engine": "hf_substrate",
+        "provenance_kind": "synthetic",
+        "source_artifact": "synthetic-f1.json",
+        "source_experiment": "synthetic-f1",
+        "gpu_identity": "synthetic-gpu",
+        "probe_source_artifact": "synthetic-probe.json",
+        "probe_metadata": {"probe": "synthetic"},
+        "cells": cells,
+    }
+
+
 class AdmissionTests(unittest.TestCase):
+    def test_phase_profile_exposes_coefficients_without_invented_counts(self) -> None:
+        node = make_node("Qwen3-VL-8B-Instruct", 17000.0)
+        result = phase_decomposition(
+            node,
+            {},
+            {
+                "phase_profile": {
+                    "enabled": True,
+                    "models": {
+                        "Qwen3-VL-8B-Instruct": {
+                            "prefill_us_per_token": 190.01,
+                            "prefill_intercept_ms": 9.8,
+                            "tpot_ms": 28.423,
+                            "kv_mb_per_token_measured_corrected": 0.1485,
+                            "vision": {
+                                "image_tokens_added": 222.0,
+                                "prefill_ms_per_image": 53.0,
+                                "mem_mb_per_image": 102.8,
+                            },
+                        }
+                    },
+                }
+            },
+        )
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(result["prefill_us_per_token"], 190.01)
+        self.assertEqual(result["vision_image_tokens_per_image"], 222.0)
+        self.assertIsNone(result["input_token_count"])
+        self.assertIsNone(result["output_token_count"])
+        self.assertIsNone(result["image_count"])
+        self.assertFalse(result["phase_durations_available"])
+        self.assertNotIn("attributed_prefill_ms", result)
+
+    def test_measured_colocation_dispatches_second_task_with_asymmetric_slowdown(self) -> None:
+        first = coloc_node("a:n", "model-a", 100.0, "short")
+        second = coloc_node("b:n", "model-b", 100.0, "short")
+        profile = coloc_profile(
+            [{
+                "model_a": "model-a", "shape_a": "short",
+                "model_b": "model-b", "shape_b": "short",
+                "slowdown_a": 2.0, "slowdown_b": 3.0, "feasible": True,
+            }]
+        )
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        episode = {
+            "episode_id": "coloc",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", first), "b": simple_template("b", second)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={
+                "colocation_profile": profile,
+                "transition_profile": {
+                    "models": {
+                        model: {"cold_load_ms": 999.0, "evict_proxy_ms": 1.0, "checkpoint_supported": False}
+                        for model in ("model-a", "model-b")
+                    }
+                },
+            },
+            collect_events=True,
+        )
+        starts = [event for event in events if event.get("event_type") == "node_start"]
+        finishes = [event for event in events if event.get("event_type") == "node_finish"]
+        self.assertEqual(len(starts), 2)
+        self.assertEqual([event["start_ms"] for event in starts], [0.0, 0.0])
+        self.assertTrue(starts[1]["colocation_active"])
+        self.assertEqual(starts[1]["colocation_slowdown"], 3.0)
+        dispatch = [event for event in events if event.get("event_type") == "node_dispatch"]
+        self.assertEqual(dispatch[1]["scheduler_state"]["gpus"][0]["active_task_count"], 1)
+        self.assertEqual(dispatch[1]["scheduler_state"]["gpus"][0]["allowed_concurrency"], 2)
+        self.assertEqual(dispatch[1]["scheduler_state"]["ready_nodes"][0]["dispatchable_gpu_indices"], [0])
+        self.assertEqual([event["finish_ms"] for event in finishes], [200.0, 233.333])
+        self.assertLessEqual(max(summary["gpu_utilization"]), 1.0)
+
+    def test_colocation_memory_counts_shared_model_once_and_protects_different_models(self) -> None:
+        shared_a = coloc_node("a:n", "model-a", 100.0, "short", workspace=200.0)
+        shared_b = coloc_node("b:n", "model-a", 100.0, "short", workspace=200.0)
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 200.0, "count": 100},
+        }
+        profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "short",
+            "model_b": "model-a", "shape_b": "short",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        episode = {
+            "episode_id": "shared-memory",
+            "split": "train",
+            "gpu_topology_mb": [300.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        _summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", shared_a), "b": simple_template("b", shared_b)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"colocation_profile": profile},
+            collect_events=True,
+        )
+        self.assertEqual(len([event for event in events if event.get("event_type") == "node_start"]), 2)
+
+        different = coloc_node("b:n", "model-b", 100.0, "short", workspace=200.0)
+        different_stats = dict(stats)
+        different_stats["model-b|gpu|0|exact"] = dict(stats["model-a|gpu|0|exact"])
+        different_profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "short",
+            "model_b": "model-b", "shape_b": "short",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        different_episode = dict(episode)
+        different_episode["episode_id"] = "different-memory"
+        _summary, different_events = simulate_episode(
+            different_episode,
+            {"a": simple_template("a", shared_a), "b": simple_template("b", different)},
+            "fcfs",
+            train_stats=different_stats,
+            extension_config={"colocation_profile": different_profile},
+            collect_events=True,
+        )
+        starts = [event for event in different_events if event.get("event_type") == "node_start"]
+        self.assertEqual(len(starts), 2)
+        self.assertEqual(starts[0]["node_id"], "a:n")
+        self.assertGreaterEqual(starts[1]["start_ms"], 100.0)
+
+    def test_measured_engine_artifacts_are_explicitly_unsupported(self) -> None:
+        cases = (
+            (
+                "experiments/EXP-20260929_vllm_batching_v1/artifacts/v5c_continuous.json",
+                "unsupported_missing_request_metadata",
+            ),
+            (
+                "experiments/EXP-20260929_vllm_prefix_cache_v1/artifacts/v6c_prefix_cache.json",
+                "unsupported_missing_trace_prefix_identity",
+            ),
+            (
+                "experiments/EXP-20260929_vllm_preemption_v1/artifacts/v7_preemption.json",
+                "unsupported_preemption_count_unavailable",
+            ),
+        )
+        for path, status in cases:
+            profile = load_measured_engine_profile(Path(path), "vllm")
+            self.assertFalse(profile["supports_execution"])
+            self.assertEqual(profile["status"], status)
+        with self.assertRaises(ValueError):
+            load_measured_engine_profile(
+                Path("experiments/EXP-20260929_vllm_batching_v1/artifacts/v5c_continuous.json"),
+                "hf_substrate",
+            )
+
+    def test_pred_mpc_rejects_busy_colocation_without_exact_rollout_support(self) -> None:
+        node = coloc_node("candidate", "model-b", 10.0, "short")
+        template = simple_template("candidate-template", node)
+        job = Job(
+            "job",
+            template,
+            0.0,
+            None,
+            "normal",
+            {"candidate": "ready"},
+        )
+        gpu = GPU(index=0, capacity_mb=1000.0, resident={"model-a": 100.0, "model-b": 100.0})
+        gpu.add_active_task(
+            "active", 0.0, 100.0, owner=(0, "active"), model_id="model-a", workload_shape="short"
+        )
+        profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "short",
+            "model_b": "model-b", "shape_b": "short",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        stats = {
+            "model-b|gpu|0|exact": {
+                "runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0,
+                "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100,
+            }
+        }
+        with self.assertRaises(ValueError):
+            choose_action(
+                "pred_mpc_h3",
+                [(0.0, 0.0, 0, "candidate")],
+                [job],
+                [gpu],
+                stats,
+                0,
+                future_artifacts={},
+                extension_config={"colocation_profile": profile},
+            )
+
+    def test_f1_loader_preserves_provenance_and_explicit_model_alias(self) -> None:
+        profile = load_colocation_profile(
+            Path("experiments/EXP-20260929_substrate_colocation_surface_v1/artifacts/colocation_cost_table_v1.json")
+        )
+        self.assertEqual(profile["engine"], "hf_substrate")
+        self.assertEqual(profile["source_experiment"], "EXP-20260929_substrate_colocation_surface_v1")
+        self.assertEqual(profile["gpu_identity"], "NVIDIA GeForce RTX 4080 SUPER")
+        self.assertIn("Qwen3-4B", profile["probe_metadata"])
+        self.assertEqual(profile["model_aliases"]["Qwen3-VL-8B"], "Qwen3-VL-8B-Instruct")
+        self.assertEqual(len(profile["cells"]), 45)
+        validate_colocation_profile(
+            {"colocation_profile": profile},
+            {"gpu_model": "NVIDIA GeForce RTX 4080 SUPER"},
+        )
+
+    def test_colocation_lookup_reverses_measured_arm_factors(self) -> None:
+        profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "medium",
+            "model_b": "model-b", "shape_b": "medium",
+            "slowdown_a": 2.0, "slowdown_b": 3.0, "feasible": True,
+        }])
+        active = GPU(index=0, capacity_mb=1000.0)
+        task_id = active.add_active_task(
+            "b", 0.0, 100.0, model_id="model-b", workload_shape="medium"
+        )
+        task = active.active_tasks[task_id]
+        candidate = coloc_node("a:n", "model-a", 100.0, "medium")
+        self.assertEqual(colocation_slowdowns(profile, task, candidate), (3.0, 2.0))
+
+    def test_measured_colocation_rejects_missing_or_mismatched_gpu_identity(self) -> None:
+        profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "medium",
+            "model_b": "model-b", "shape_b": "medium",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        profile["provenance_kind"] = "measured"
+        profile["gpu_identity"] = "RTX-4080-SUPER"
+        profile["probe_metadata"] = {"probe": "measured"}
+        profile["probe_source_artifact"] = "probe.json"
+        with self.assertRaises(ValueError):
+            validate_colocation_profile({"colocation_profile": profile}, {"gpu_model": "other-gpu"})
+
+    def test_f4_loader_preserves_copy_and_full_modes(self) -> None:
+        profile = load_prefetch_interference_profile(
+            Path("experiments/EXP-20260929_substrate_overlap_matrix_v1/artifacts/f4_overlap_matrix.json")
+        )
+        self.assertEqual(profile["engine"], "hf_substrate")
+        self.assertEqual(profile["source_experiment"], "EXP-20260929_substrate_overlap_matrix_v1")
+        self.assertEqual(profile["gpu_identity"], "NVIDIA GeForce RTX 4080 SUPER")
+        self.assertIn("probe_text_tokens", profile["probe_metadata"])
+        self.assertEqual(len(profile["pairs"]), 6)
+        self.assertIn("copy_slowdown", profile["pairs"][0])
+        self.assertIn("full_slowdown", profile["pairs"][0])
+        validate_prefetch_interference_profile(
+            {"prefetch_interference": profile, "prefetch_interference_mode": "full"},
+            {"gpu_model": "NVIDIA GeForce RTX 4080 SUPER"},
+        )
+        with self.assertRaises(ValueError):
+            validate_prefetch_interference_profile(
+                {"prefetch_interference": profile, "prefetch_interference_mode": "copy"},
+                {"gpu_model": "NVIDIA GeForce RTX 4080 SUPER"},
+            )
+
+    def test_canonical_f1_loader_activates_warm_measured_pair(self) -> None:
+        profile = load_colocation_profile(
+            Path("experiments/EXP-20260929_substrate_colocation_surface_v1/artifacts/colocation_cost_table_v1.json")
+        )
+        first = coloc_node("first:n", "Qwen3-4B", 100.0, "short")
+        second = coloc_node("second:n", "Qwen2.5-VL-3B-Instruct", 100.0, "short")
+        stats = {
+            f"{node.model_id}|gpu|0|exact": {
+                "runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0,
+                "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100,
+            }
+            for node in (first, second)
+        }
+        episode = {
+            "episode_id": "canonical-f1-warm-smoke",
+            "split": "train",
+            "gpu_topology_mb": [32760.0],
+            "gpu_identity": "NVIDIA GeForce RTX 4080 SUPER",
+            "initial_residency_hint": [["Qwen3-4B", "Qwen2.5-VL-3B-Instruct"]],
+            "jobs": [
+                {"job_instance_id": "j1", "template_id": "first", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "j2", "template_id": "second", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode,
+            {"first": simple_template("first", first), "second": simple_template("second", second)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"colocation_profile": profile},
+        )
+        starts = [event for event in events if event.get("event_type") == "node_start"]
+        self.assertEqual(len(starts), 2)
+        self.assertTrue(starts[1]["colocation_active"])
+        self.assertGreater(starts[1]["colocation_slowdown"], 1.0)
+        self.assertEqual(summary["colocation_profile_status"], "enabled")
+
+    def test_prefetch_interference_slows_only_overlapping_inference(self) -> None:
+        infer = coloc_node("infer:n", "infer-model", 100.0, "short")
+        loader = coloc_node("load:n", "load-model", 10.0, "short", load=20.0)
+        templates = {
+            "infer": simple_template("infer", infer),
+            "load": simple_template("load", loader),
+        }
+        stats = {
+            "infer-model|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "load-model|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        interference = {
+            "enabled": True,
+            "engine": "hf_substrate",
+            "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-f4.json",
+            "source_experiment": "synthetic-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-f4-probe.json",
+            "probe_metadata": {"probe": "synthetic"},
+            "supported_workload_shape": "short",
+            "pairs": [{"infer": "infer-model", "load": "load-model", "copy_slowdown": 2.0, "copy_dilation": 1.0, "full_slowdown": 2.0, "full_dilation": 1.0}],
+        }
+        episode = {
+            "episode_id": "prefetch-overlap",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [[]],
+            "jobs": [{"job_instance_id": "j", "template_id": "infer", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"}],
+        }
+        config = {
+            "prefetch_plan": [{"gpu_index": 0, "model_id": "load-model"}],
+            "prefetch_overlap": True,
+            "prefetch_interference": interference,
+            "prefetch_interference_mode": "copy",
+        }
+        summary, events = simulate_episode(episode, templates, "fcfs", train_stats=stats, extension_config=config)
+        self.assertEqual([event["finish_ms"] for event in events if event.get("event_type") == "node_finish"], [110.0])
+        self.assertEqual(summary["prefetch_interference_events"], {"copy": 1})
+        self.assertEqual(len([event for event in events if event.get("event_type") == "node_interference_start"]), 1)
+
+        no_overlap_config = dict(config)
+        no_overlap_config["prefetch_overlap"] = False
+        _summary, no_overlap_events = simulate_episode(
+            episode, templates, "fcfs", train_stats=stats, extension_config=no_overlap_config
+        )
+        self.assertEqual(
+            [event["finish_ms"] for event in no_overlap_events if event.get("event_type") == "node_finish"],
+            [120.0],
+        )
+        self.assertEqual(
+            [event for event in no_overlap_events if event.get("event_type") == "node_interference_start"],
+            [],
+        )
+
+        unsupported_profile = dict(interference)
+        unsupported_profile["supported_workload_shape"] = "medium"
+        unsupported_config = dict(config)
+        unsupported_config["prefetch_interference"] = unsupported_profile
+        unsupported_summary, unsupported_events = simulate_episode(
+            episode, templates, "fcfs", train_stats=stats, extension_config=unsupported_config
+        )
+        self.assertEqual(unsupported_summary["prefetch_interference_unsupported"], {"unsupported_workload_shape": 1})
+        self.assertTrue(
+            any(event.get("event_type") == "prefetch_interference_unsupported" for event in unsupported_events)
+        )
+
+        missing_pair = dict(interference)
+        missing_pair["pairs"] = [{"infer": "other-model", "load": "other-load", "copy_slowdown": 2.0, "copy_dilation": 1.0}]
+        missing_pair_config = dict(config)
+        missing_pair_config["prefetch_interference"] = missing_pair
+        missing_pair_summary, missing_pair_events = simulate_episode(
+            episode, templates, "fcfs", train_stats=stats, extension_config=missing_pair_config
+        )
+        self.assertEqual(missing_pair_summary["prefetch_interference_events"], {})
+        self.assertEqual(missing_pair_summary["prefetch_interference_unsupported"], {"missing_measured_pair": 1})
+        self.assertTrue(any(event.get("deferred_reason") == "missing_measured_pair" for event in missing_pair_events if event.get("event_type") == "prefetch_start"))
+
+        missing_dilation = dict(interference)
+        missing_dilation["pairs"] = [{"infer": "infer-model", "load": "load-model", "copy_slowdown": 2.0}]
+        missing_dilation_config = dict(config)
+        missing_dilation_config["prefetch_interference"] = missing_dilation
+        missing_dilation_summary, missing_dilation_events = simulate_episode(
+            episode, templates, "fcfs", train_stats=stats, extension_config=missing_dilation_config
+        )
+        self.assertEqual(missing_dilation_summary["prefetch_interference_events"], {})
+        self.assertEqual(
+            missing_dilation_summary["prefetch_interference_unsupported"],
+            {"missing_or_invalid_dilation": 1},
+        )
+        self.assertFalse(
+            next(event for event in missing_dilation_events if event.get("event_type") == "prefetch_start")["residency_committed"]
+        )
+        self.assertTrue(any(event.get("deferred_reason") == "missing_or_invalid_dilation" for event in missing_dilation_events if event.get("event_type") == "prefetch_start"))
+
+    def test_preemption_removes_one_live_task_and_keeps_survivor_progress(self) -> None:
+        nodes = {
+            model: coloc_node(f"{model}:n", model, 100.0, "short")
+            for model in ("model-a", "model-b", "model-c")
+        }
+        stats = {
+            f"{model}|gpu|0|exact": {
+                "runtime_p50_ms": 100.0,
+                "runtime_p90_ms": 100.0,
+                "load_p50_ms": 0.0,
+                "memory_p95_mb": 100.0,
+                "count": 100,
+            }
+            for model in nodes
+        }
+        cells = []
+        for active, candidate in (("model-a", "model-b"), ("model-b", "model-c"), ("model-c", "model-a")):
+            cells.append({
+                "model_a": active, "shape_a": "short",
+                "model_b": candidate, "shape_b": "short",
+                "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+            })
+        episode = {
+            "episode_id": "preempt-coloc",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b", "model-c"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jc", "template_id": "c", "arrival_ms": 50.0, "deadline_ms": 1000.0, "service_class": "priority"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode,
+            {model[-1]: simple_template(model[-1], node) for model, node in nodes.items()},
+            "myopic_preempt",
+            train_stats=stats,
+            extension_config={
+                "preemption_enabled": True,
+                "max_preemptions": 1,
+                "colocation_profile": coloc_profile(cells),
+            },
+            collect_events=True,
+        )
+        preempts = [event for event in events if event.get("event_type") == "node_preempt"]
+        self.assertEqual(summary["preemptions"], 1)
+        self.assertEqual(len(preempts), 1)
+        self.assertEqual(preempts[0]["node_id"], "model-a:n")
+        starts = [event for event in events if event.get("event_type") == "node_start"]
+        self.assertIn("model-b:n", [event["node_id"] for event in starts])
+        self.assertIn("model-c:n", [event["node_id"] for event in starts])
+        b_finishes = [event for event in events if event.get("event_type") == "node_finish" and event.get("node_id") == "model-b:n"]
+        self.assertEqual(len(b_finishes), 1)
+
+        cold_episode = dict(episode)
+        cold_episode["initial_residency_hint"] = [["model-a", "model-b"]]
+        cold_summary, cold_events = simulate_episode(
+            cold_episode,
+            {model[-1]: simple_template(model[-1], node) for model, node in nodes.items()},
+            "myopic_preempt", train_stats=stats,
+            extension_config={"preemption_enabled": True, "max_preemptions": 1,
+                              "colocation_profile": coloc_profile(cells)},
+        )
+        self.assertEqual(cold_summary["preemptions"], 0)
+        self.assertIn("target_not_dispatchable_with_survivor", cold_summary["preemption_blocked_reasons"])
+        self.assertFalse(any(e["event_type"] == "node_preempt" for e in cold_events))
+
+    def test_prefetch_pending_blocks_preemption_before_model_is_resident(self) -> None:
+        infer = coloc_node("infer:n", "infer-model", 500.0, "short")
+        loader = coloc_node("load:n", "load-model", 10.0, "short", load=1000.0)
+        target = coloc_node("target:n", "target-model", 10.0, "short")
+        templates = {
+            "infer": simple_template("infer", infer),
+            "load": simple_template("load", loader),
+            "target": simple_template("target", target),
+        }
+        stats = {
+            f"{model}|gpu|0|exact": {
+                "runtime_p50_ms": 500.0 if model == "infer-model" else 10.0,
+                "runtime_p90_ms": 500.0 if model == "infer-model" else 10.0,
+                "load_p50_ms": 0.0,
+                "memory_p95_mb": 100.0,
+                "count": 100,
+            }
+            for model in ("infer-model", "load-model", "target-model")
+        }
+        config = {
+            "preemption_enabled": True,
+            "max_preemptions": 1,
+            "prefetch_plan": [{"gpu_index": 0, "model_id": "load-model"}],
+            "prefetch_overlap": True,
+            "prefetch_interference_mode": "copy",
+            "prefetch_interference": {
+                "engine": "hf_substrate",
+                "provenance_kind": "synthetic",
+                "source_artifact": "synthetic-f4.json",
+                "source_experiment": "synthetic-f4",
+                "gpu_identity": "synthetic-gpu",
+                "probe_source_artifact": "synthetic-f4-probe.json",
+                "probe_metadata": {"probe": "synthetic"},
+                "supported_workload_shape": "short",
+                "pairs": [{"infer": "infer-model", "load": "load-model", "copy_slowdown": 2.0, "copy_dilation": 1.0}],
+            },
+        }
+        episode = {
+            "episode_id": "prefetch-preempt-guard",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [[]],
+            "jobs": [
+                {"job_instance_id": "ji", "template_id": "infer", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jt", "template_id": "target", "arrival_ms": 50.0, "deadline_ms": 1000.0, "service_class": "priority"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode, templates, "myopic_preempt", train_stats=stats, extension_config=config
+        )
+        self.assertEqual(summary["preemptions"], 0)
+        self.assertIn("prefetch_pending_preemption_unsupported", summary["preemption_blocked_reasons"])
+        self.assertEqual([event for event in events if event.get("event_type") == "node_preempt"], [])
+
+    def test_gpu_ledger_unions_overlapping_intervals(self) -> None:
+        gpu = GPU(index=0, capacity_mb=100.0)
+        first = gpu.add_active_task("first", 0.0, 10.0, owner=(0, "first"))
+        survivor = gpu.add_active_task("survivor", 5.0, 15.0, owner=(1, "survivor"))
+
+        self.assertEqual(gpu.busy_until, 15.0)
+        self.assertEqual(gpu.busy_time_ms, 15.0)
+        gpu.remove_active_task(first, 10.0)
+        self.assertEqual(gpu.active_node, (1, "survivor"))
+        self.assertEqual(gpu.busy_until, 15.0)
+        self.assertEqual(gpu.busy_time_ms, 15.0)
+        self.assertLessEqual(gpu.busy_time_ms / gpu.busy_end_ms, 1.0)
+        gpu.remove_active_task(survivor, 15.0)
+        self.assertEqual(gpu.busy_time_ms, 15.0)
+
+    def test_transition_time_never_consumes_inference_progress(self) -> None:
+        gpu = GPU(index=0, capacity_mb=1000.0)
+        task_id = gpu.add_active_task(
+            "cold", 0.0, 150.0, owner=(0, "cold"),
+            work_ms=100.0, work_start_ms=50.0,
+        )
+        task = gpu.update_task_progress(task_id, 25.0)
+        self.assertEqual(task.remaining_work_ms, 100.0)
+        self.assertEqual(task.finish_ms, 150.0)
+        task = gpu.update_task_progress(task_id, 75.0)
+        self.assertEqual(task.remaining_work_ms, 75.0)
+        task = gpu.set_task_slowdown(task_id, 2.0, 75.0)
+        self.assertEqual(task.finish_ms, 225.0)
+
+    def test_all_gpu_identities_must_match_measured_profile(self) -> None:
+        profile = coloc_profile([{
+            "model_a": "a", "shape_a": "short",
+            "model_b": "b", "shape_b": "short",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        with self.assertRaises(ValueError):
+            validate_colocation_profile(
+                {"colocation_profile": profile},
+                {"gpu_identity": ["synthetic-gpu", "unmeasured-gpu"]},
+            )
+    def test_gpu_ledger_keeps_composite_reservation_and_removes_only_victim(self) -> None:
+        gpu = GPU(index=0, capacity_mb=100.0)
+        victim = gpu.add_active_task("victim", 0.0, 100.0, owner=(0, "victim"))
+        gpu.add_active_task("composite", 40.0, 80.0, kind="composite", owner=(1, "c"))
+
+        gpu.remove_active_task(victim, 20.0)
+        self.assertIsNone(gpu.active_node)
+        self.assertEqual(gpu.busy_until, 80.0)
+        self.assertEqual(gpu.busy_time_ms, 60.0)
+
+    def test_gpu_ledger_rejects_invalid_intervals(self) -> None:
+        gpu = GPU(index=0, capacity_mb=100.0)
+        with self.assertRaises(ValueError):
+            gpu.add_active_task("negative", -1.0, 1.0)
+        with self.assertRaises(ValueError):
+            gpu.add_active_task("reversed", 2.0, 1.0)
+
     def test_new_model_admission_evicts_before_ledger_check(self) -> None:
         gpu = GPU(
             index=0,

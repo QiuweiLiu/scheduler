@@ -1,0 +1,116 @@
+{
+ "environment": {
+  "torch": "2.8.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "total_mem_mib": 32230.8,
+  "host_mem_gb": 503.5
+ },
+ "config": {
+  "reps": 20,
+  "cold_reps": 5,
+  "h2d_mib": 2048,
+  "note": "L4_evict_ms 含 gc.collect，是 allocator 释放代价的上界"
+ },
+ "models": {
+  "Qwen3-VL-8B": {
+   "warm_peak_mb": 16722.0,
+   "weight_files_mib": 16722.0,
+   "cache_drop": "/bin/sh: 1: cannot create /proc/sys/vm/drop_caches: Permission denied",
+   "L1_cold_full_load_ms": {
+    "n": 5,
+    "median": 5080.1,
+    "min": 5040.2,
+    "max": 5164.0
+   },
+   "L2_warm_full_reload_ms": {
+    "n": 20,
+    "median": 5191.0,
+    "min": 4990.8,
+    "max": 5647.5
+   },
+   "L4_evict_ms": {
+    "n": 20,
+    "median": 167.8,
+    "min": 112.2,
+    "max": 186.3
+   }
+  },
+  "Qwen3-4B": {
+   "warm_peak_mb": 7672.3,
+   "weight_files_mib": 7672.3,
+   "cache_drop": "/bin/sh: 1: cannot create /proc/sys/vm/drop_caches: Permission denied",
+   "L1_cold_full_load_ms": {
+    "n": 5,
+    "median": 2989.9,
+    "min": 2806.0,
+    "max": 3050.1
+   },
+   "L2_warm_full_reload_ms": {
+    "n": 20,
+    "median": 2784.8,
+    "min": 2598.9,
+    "max": 2996.4
+   },
+   "L4_evict_ms": {
+    "n": 20,
+    "median": 154.2,
+    "min": 120.4,
+    "max": 186.6
+   }
+  },
+  "Qwen2.5-VL-3B": {
+   "warm_peak_mb": 7162.0,
+   "weight_files_mib": 7161.5,
+   "cache_drop": "/bin/sh: 1: cannot create /proc/sys/vm/drop_caches: Permission denied",
+   "L1_cold_full_load_ms": {
+    "n": 5,
+    "median": 2909.1,
+    "min": 2751.5,
+    "max": 3039.5
+   },
+   "L2_warm_full_reload_ms": {
+    "n": 20,
+    "median": 2789.6,
+    "min": 2658.9,
+    "max": 3096.2
+   },
+   "L4_evict_ms": {
+    "n": 20,
+    "median": 195.6,
+    "min": 164.2,
+    "max": 256.5
+   }
+  }
+ },
+ "transfer": {
+  "L3_h2d_pinned_ms": {
+   "n": 20,
+   "median": 164.9,
+   "min": 164.9,
+   "max": 165.2
+  },
+  "L3_d2h_pinned_ms": {
+   "n": 20,
+   "median": 1076.7,
+   "min": 1068.1,
+   "max": 1090.5
+  },
+  "L3_h2d_pinned_gbs": 12.13,
+  "L3_d2h_pinned_gbs": 1.86,
+  "L3_h2d_pageable_ms": {
+   "n": 20,
+   "median": 194.7,
+   "min": 193.0,
+   "max": 244.1
+  },
+  "L3_d2h_pageable_ms": {
+   "n": 20,
+   "median": 1054.4,
+   "min": 1047.2,
+   "max": 1070.5
+  },
+  "L3_h2d_pageable_gbs": 10.27,
+  "L3_d2h_pageable_gbs": 1.9
+ }
+}

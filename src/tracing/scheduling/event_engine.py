@@ -97,6 +97,8 @@ class ReadyNodeView:
     lane: str
     ready_since_ms: float
     resource: ResourceEstimate
+    workload_shape: str = ""
+    dispatchable_gpu_indices: tuple[int, ...] | None = None
 
     def to_scheduler_dict(self) -> dict[str, Any]:
         return {
@@ -109,21 +111,31 @@ class ReadyNodeView:
             "lane": self.lane,
             "ready_since_ms": self.ready_since_ms,
             "resource": self.resource.to_scheduler_dict(),
+            "workload_shape": self.workload_shape or None,
+            "dispatchable_gpu_indices": (
+                list(self.dispatchable_gpu_indices) if self.dispatchable_gpu_indices is not None else None
+            ),
         }
 
 
 @dataclass(frozen=True)
 class GPUStateView:
-    """The GPU facts visible to a policy at a decision point."""
+    """The GPU facts and bounded action capacity visible at a decision point."""
 
     index: int
     capacity_mb: float
     busy: bool
     resident_models: tuple[str, ...]
+    active_task_count: int = 0
+    allowed_concurrency: int = 1
 
     def __post_init__(self) -> None:
         if self.index < 0 or self.capacity_mb < 0.0:
             raise ValueError("GPU index/capacity must be non-negative")
+        if self.active_task_count < 0 or self.allowed_concurrency < 1:
+            raise ValueError("GPU concurrency values are invalid")
+        if self.active_task_count > self.allowed_concurrency:
+            raise ValueError("GPU active_task_count exceeds allowed_concurrency")
 
     def to_scheduler_dict(self) -> dict[str, Any]:
         return {
@@ -131,6 +143,8 @@ class GPUStateView:
             "capacity_mb": self.capacity_mb,
             "busy": self.busy,
             "resident_models": list(self.resident_models),
+            "active_task_count": self.active_task_count,
+            "allowed_concurrency": self.allowed_concurrency,
         }
 
 
@@ -412,6 +426,11 @@ def build_scheduler_state(
                 lane=_clean_text(raw.get("lane")),
                 ready_since_ms=_nonnegative(raw.get("ready_since_ms"), time_ms),
                 resource=resource_predictions[key],
+                workload_shape=str(raw.get("workload_shape") or ""),
+                dispatchable_gpu_indices=(
+                    tuple(int(index) for index in raw["dispatchable_gpu_indices"])
+                    if raw.get("dispatchable_gpu_indices") is not None else None
+                ),
             )
         )
         future[key] = future_provider.reveal(job_id, node_id, horizon)
@@ -422,6 +441,8 @@ def build_scheduler_state(
             capacity_mb=_nonnegative(raw.get("capacity_mb")),
             busy=bool(raw.get("busy", False)),
             resident_models=tuple(str(model) for model in (raw.get("resident_models") or ())),
+            active_task_count=int(raw.get("active_task_count") or 0),
+            allowed_concurrency=int(raw.get("allowed_concurrency") or 1),
         )
         for raw in gpus
     )
@@ -436,4 +457,3 @@ def build_scheduler_state(
     )
     state.to_scheduler_dict()
     return state
-

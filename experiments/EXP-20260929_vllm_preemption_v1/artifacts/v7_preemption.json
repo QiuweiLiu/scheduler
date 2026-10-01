@@ -1,0 +1,86 @@
+{
+ "item": "7_preemption",
+ "model": "/root/autodl-tmp/scheduler/Qwen3-4B",
+ "semantics": "vLLM RECOMPUTE（释放 KV 后重算），不是 freeze/resume",
+ "config": {
+  "ctx": [
+   1024,
+   4096,
+   8192
+  ],
+  "n_concurrent": 16,
+  "reps": 3,
+  "max_model_len": 12288
+ },
+ "arms": {
+  "no_pressure": {
+   "gpu_memory_utilization": 0.85,
+   "ctx": {
+    "1024": {
+     "ctx": 1024,
+     "wall_ms": 1097.3,
+     "per_req_ms": 68.6,
+     "tokens_per_s": 933.2,
+     "metrics": null
+    },
+    "4096": {
+     "ctx": 4096,
+     "wall_ms": 1823.2,
+     "per_req_ms": 113.9,
+     "tokens_per_s": 561.7,
+     "metrics": null
+    },
+    "8192": {
+     "ctx": 8192,
+     "wall_ms": 2757.7,
+     "per_req_ms": 172.4,
+     "tokens_per_s": 371.3,
+     "metrics": null
+    }
+   }
+  },
+  "kv_pressure": {
+   "gpu_memory_utilization": 0.4,
+   "ctx": {
+    "1024": {
+     "ctx": 1024,
+     "wall_ms": 1106.0,
+     "per_req_ms": 69.1,
+     "tokens_per_s": 925.9,
+     "metrics": null
+    },
+    "4096": {
+     "ctx": 4096,
+     "wall_ms": 8459.1,
+     "per_req_ms": 528.7,
+     "tokens_per_s": 121.1,
+     "metrics": null
+    },
+    "8192": {
+     "ctx": 8192,
+     "wall_ms": 18359.0,
+     "per_req_ms": 1147.4,
+     "tokens_per_s": 55.8,
+     "metrics": null
+    }
+   }
+  }
+ },
+ "pressure_penalty": {
+  "1024": {
+   "wall_ms_no_pressure": 1097.3,
+   "wall_ms_kv_pressure": 1106.0,
+   "penalty_x": 1.008
+  },
+  "4096": {
+   "wall_ms_no_pressure": 1823.2,
+   "wall_ms_kv_pressure": 8459.1,
+   "penalty_x": 4.64
+  },
+  "8192": {
+   "wall_ms_no_pressure": 2757.7,
+   "wall_ms_kv_pressure": 18359.0,
+   "penalty_x": 6.657
+  }
+ }
+}

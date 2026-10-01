@@ -322,7 +322,8 @@ class IndependenceTests(unittest.TestCase):
         c_starts = [e for e in events if e.get("event_type") == "node_start"
                     and e.get("job_instance_id") == "C"]
         self.assertTrue(c_starts, "job C must run")
-        self.assertAlmostEqual(min(e["start_ms"] for e in c_starts), 150.0, places=6)
+        self.assertAlmostEqual(min(e["time_ms"] for e in c_starts), 150.0, places=6)
+        self.assertGreaterEqual(min(e["start_ms"] for e in c_starts), 150.0)
 
     def test_end_to_end_run_still_completes_every_job(self):
         tpls = {"t": chain("t", [(100, "m1", "gpu", 10.0)] * 3)}

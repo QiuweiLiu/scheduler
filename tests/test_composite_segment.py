@@ -211,6 +211,44 @@ class CompositeSentinels(unittest.TestCase):
         self.assertEqual(len(fins), 1, "the inner segment must finish exactly once")
         self.assertEqual(len(parents), 1, "the parent must complete exactly once")
 
+    def test_9_preemption_does_not_remove_unfit_victim_for_target(self):
+        """An impossible target must not trigger victim removal."""
+        oversized = Node(
+            node_id="p:n",
+            sequence_index=0,
+            predecessors=(),
+            successors=(),
+            lane="gpu",
+            model_id="too-big",
+            runtime_ms=500.0,
+            load_ms=0.0,
+            workspace_peak_mb=5000.0,
+            resident_model_mb=5000.0,
+            status="success",
+            role="execute",
+            action_family="inference",
+        )
+        tpls = {
+            "n": template("n", [gpu_node("n:n", 0, 4000.0)]),
+            "p": template("p", [oversized]),
+        }
+        ep = episode([job("jn", "n", 0.0), job("jp", "p", 100.0)])
+        ep["gpu_topology_mb"] = [4000.0]
+        ep["jobs"][1]["service_class"] = "priority"
+        summary, ev = simulate_episode(
+            ep,
+            tpls,
+            "myopic_preempt",
+            train_stats=hand_stats(),
+            extension_config={"preemption_enabled": True},
+            collect_events=True,
+        )
+        self.assertEqual(summary["preemptions"], 0)
+        blocked = by_type(ev, "preemption_blocked", "p:n")
+        self.assertTrue(blocked)
+        self.assertEqual(blocked[0]["reason"], "target_not_admitted_after_victim_release")
+        self.assertEqual(by_type(ev, "node_preempt", "n:n"), [])
+
     def test_6_gpu_stays_usable_during_the_preparation_phase(self):
         """A short normal GPU job must fit entirely inside the composite's R_pre."""
         pre, inner, post = 5000.0, 700.0, 200.0

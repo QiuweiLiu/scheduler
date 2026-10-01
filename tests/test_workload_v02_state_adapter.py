@@ -75,6 +75,8 @@ class WorkloadStateAdapterTests(unittest.TestCase):
         state = dispatch["scheduler_state"]
         self.assertEqual(state["schema_version"], "scheduler-state-view-v1")
         self.assertEqual(state["future"]["job-0:node-0"]["scenarios"], [])
+        self.assertEqual(state["gpus"][0]["active_task_count"], 0)
+        self.assertEqual(state["gpus"][0]["allowed_concurrency"], 1)
         self.assertNotIn("runtime_ms", str(state))
         self.assertNotIn("workspace_peak_mb", str(state))
 

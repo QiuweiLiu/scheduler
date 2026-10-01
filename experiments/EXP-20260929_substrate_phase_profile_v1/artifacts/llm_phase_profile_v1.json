@@ -1,0 +1,51 @@
+{
+ "experiment_id": "EXP-20260929_substrate_phase_profile_v1",
+ "schema": "llm-phase-profile-v1",
+ "protocol": {
+  "reps": 5,
+  "decode_tokens": 64,
+  "method": "manual greedy decode, use_cache=True, CUDA events per phase",
+  "min_new_tokens_fixed": true
+ },
+ "note_on_memory": "原始字段 kv_peak_mb 是 'prefill 后 peak_allocated'，**包含 HF 在 prefill 时物化的 logits 张量 [B,L,vocab] ≈ 0.2898 MB/token（vocab=151936）。真实 KV 缓存必须扣除该项（见 kv_mb_per_token_theoretical）。",
+ "logits_buffer_mb_per_token": 0.2898,
+ "models": {
+  "Qwen3-VL-8B": {
+   "prefill_us_per_token": 190.01,
+   "prefill_intercept_ms": 9.8,
+   "tpot_ms": 28.423,
+   "tpot_cv": 0.0026,
+   "peak_growth_mb_per_token": 0.4383,
+   "logits_buffer_mb_per_token": 0.2898,
+   "kv_mb_per_token_measured_corrected": 0.1485,
+   "vision": {
+    "image_tokens_added": 222.0,
+    "prefill_ms_per_image": 53.0,
+    "mem_mb_per_image": 102.8
+   }
+  },
+  "Qwen3-4B": {
+   "prefill_us_per_token": 114.57,
+   "prefill_intercept_ms": 8.1,
+   "tpot_ms": 29.038,
+   "tpot_cv": 0.014,
+   "peak_growth_mb_per_token": 0.4356,
+   "logits_buffer_mb_per_token": 0.2898,
+   "kv_mb_per_token_measured_corrected": 0.1458
+  },
+  "Qwen2.5-VL-3B": {
+   "prefill_us_per_token": 75.29,
+   "prefill_intercept_ms": 10.2,
+   "tpot_ms": 23.295,
+   "tpot_cv": 0.0023,
+   "peak_growth_mb_per_token": 0.3289,
+   "logits_buffer_mb_per_token": 0.2898,
+   "kv_mb_per_token_measured_corrected": 0.0391,
+   "vision": {
+    "image_tokens_added": 301.0,
+    "prefill_ms_per_image": 70.2,
+    "mem_mb_per_image": 104.5
+   }
+  }
+ }
+}

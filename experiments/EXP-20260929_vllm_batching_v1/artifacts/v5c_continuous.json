@@ -1,0 +1,46 @@
+{
+ "item": "5_dynamic_batching_partB_v3",
+ "model": "/root/autodl-tmp/scheduler/Qwen3-4B",
+ "config": {
+  "n_requests": 64,
+  "max_num_seqs": 16,
+  "reps": 2,
+  "output_len": "32..256 异构",
+  "prompt_words": "400..1000"
+ },
+ "note": "三条臂同一引擎，只改提交方式；static_16 模拟静态批（每轮等最慢的）",
+ "arms": {
+  "seq": {
+   "wall_ms": 120315.5,
+   "mean_per_req_ms": 1879.9,
+   "throughput_req_per_s": 0.532,
+   "walls_ms": [
+    122425.9,
+    118205.1
+   ]
+  },
+  "static_16": {
+   "wall_ms": 15795.1,
+   "mean_per_req_ms": 246.8,
+   "throughput_req_per_s": 4.052,
+   "walls_ms": [
+    15795.4,
+    15794.8
+   ]
+  },
+  "cont_16": {
+   "wall_ms": 12031.4,
+   "mean_per_req_ms": 188.0,
+   "throughput_req_per_s": 5.319,
+   "walls_ms": [
+    12007.8,
+    12054.9
+   ]
+  }
+ },
+ "speedup": {
+  "cont_vs_seq_throughput_x": 10.0,
+  "cont_vs_seq_latency_x": 10.0,
+  "cont_vs_static_throughput_x": 1.313
+ }
+}

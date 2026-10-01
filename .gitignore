@@ -1,6 +1,25 @@
-﻿__pycache__/
-*.pyc
-*.pyo
+
+# Local-only project control plane and scratch work
+.project/
+.scratch/
+AGENTS.md
+
+# Local/runtime noise
 .DS_Store
 Thumbs.db
 ._*
+__pycache__/
+*.py[cod]
+
+# Large or externally managed assets; keep only manifests and small metadata in Git.
+*.mp4
+*.avi
+*.mkv
+*.webm
+*.pt
+*.pth
+*.safetensors
+*.bin
+data/raw/videos/
+data/raw/models/
+results/raw/

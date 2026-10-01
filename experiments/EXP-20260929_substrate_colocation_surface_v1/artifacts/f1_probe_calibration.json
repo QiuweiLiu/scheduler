@@ -1,0 +1,92 @@
+{
+ "Qwen3-VL-8B": {
+  "load_s": 9.8,
+  "vision": true,
+  "tiers": {
+   "short": {
+    "median_ms": 1107.0,
+    "min_ms": 996.1,
+    "max_ms": 1125.6,
+    "in_tokens": 72,
+    "out_tokens": 32,
+    "peak_alloc_mb": 16749.5
+   },
+   "medium": {
+    "median_ms": 3821.8,
+    "min_ms": 3816.0,
+    "max_ms": 3851.8,
+    "in_tokens": 776,
+    "out_tokens": 128,
+    "peak_alloc_mb": 16921.4
+   },
+   "long": {
+    "median_ms": 8054.2,
+    "min_ms": 8002.2,
+    "max_ms": 8128.7,
+    "in_tokens": 1920,
+    "out_tokens": 256,
+    "peak_alloc_mb": 17266.0
+   }
+  }
+ },
+ "Qwen3-4B": {
+  "load_s": 3.8,
+  "vision": false,
+  "tiers": {
+   "short": {
+    "median_ms": 961.2,
+    "min_ms": 952.3,
+    "max_ms": 1219.0,
+    "in_tokens": 72,
+    "out_tokens": 32,
+    "peak_alloc_mb": 7701.1
+   },
+   "medium": {
+    "median_ms": 3881.3,
+    "min_ms": 3836.4,
+    "max_ms": 4000.4,
+    "in_tokens": 776,
+    "out_tokens": 128,
+    "peak_alloc_mb": 7873.9
+   },
+   "long": {
+    "median_ms": 7760.3,
+    "min_ms": 7719.5,
+    "max_ms": 7818.9,
+    "in_tokens": 2568,
+    "out_tokens": 256,
+    "peak_alloc_mb": 8249.7
+   }
+  }
+ },
+ "Qwen2.5-VL-3B": {
+  "load_s": 2.7,
+  "vision": true,
+  "tiers": {
+   "short": {
+    "median_ms": 758.3,
+    "min_ms": 746.8,
+    "max_ms": 858.5,
+    "in_tokens": 83,
+    "out_tokens": 32,
+    "peak_alloc_mb": 7179.8
+   },
+   "medium": {
+    "median_ms": 3036.6,
+    "min_ms": 3032.9,
+    "max_ms": 3045.8,
+    "in_tokens": 787,
+    "out_tokens": 128,
+    "peak_alloc_mb": 7260.2
+   },
+   "long": {
+    "median_ms": 6380.8,
+    "min_ms": 6298.6,
+    "max_ms": 6453.1,
+    "in_tokens": 2247,
+    "out_tokens": 256,
+    "peak_alloc_mb": 7459.4
+   }
+  }
+ }
+}
