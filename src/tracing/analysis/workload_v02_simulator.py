@@ -5724,10 +5724,15 @@ def simulate_episode(
              if task.active and task_id not in queued_ids), default=at_ms,
         ))
         for task_id, task in sorted(queued, key=lambda item: item[1].start_ms):
+            old_start, old_finish = task.start_ms, task.finish_ms
             duration = task.finish_ms - task.start_ms
             task.start_ms, task.finish_ms = cursor, cursor + duration
             task.work_start_ms = task.last_update_ms = cursor
             cursor = task.finish_ms
+            if task.start_ms == old_start and task.finish_ms == old_finish:
+                # A second pass over an already-up-to-date reservation must not
+                # emit duplicate reschedule telemetry.
+                continue
             if task.kind == "prefetch":
                 log_prefetch("prefetch_reschedule", gpu, task.model_id,
                              start_ms=round(task.start_ms, 3), finish_ms=round(task.finish_ms, 3))
