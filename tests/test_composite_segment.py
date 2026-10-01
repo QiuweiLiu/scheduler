@@ -14,6 +14,7 @@ The six the review requires:
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 
 from tracing.analysis.workload_v02_simulator import Node, Template, simulate_episode
 
@@ -83,6 +84,37 @@ def by_type(ev, kind, node_id=None):
 
 
 class CompositeSentinels(unittest.TestCase):
+    def test_nested_reserved_peak_is_included_in_admission(self):
+        parent = replace(composite_node("c:n", 0, 0.0, 100.0, 0.0), nested_reserved_mb=1400.0)
+        tpls = {"c": template("c", [parent])}
+        small = episode([job("jc", "c")])
+        small["gpu_topology_mb"] = [1200.0]
+        rejected, events = simulate_episode(small, tpls, "fcfs", train_stats=hand_stats())
+        self.assertEqual(rejected["failed_jobs"], 1)
+        self.assertFalse(by_type(events, "nested_gpu_start"))
+        roomy = {**small, "gpu_topology_mb": [1500.0]}
+        accepted, _events = simulate_episode(roomy, tpls, "fcfs", train_stats=hand_stats())
+        self.assertEqual(accepted["completed_jobs"], 1)
+        self.assertEqual(accepted["gpu_peak_memory_mb"], [1400.0])
+
+    def test_nested_admission_waits_for_normal_workspace_release(self):
+        normal = replace(gpu_node("n:n", 0, 500.0), model_id="normal-model",
+                         resident_model_mb=1000.0, workspace_peak_mb=1600.0)
+        parent = replace(composite_node("c:n", 0, 100.0, 100.0, 0.0),
+                         nested_model_mb=800.0, nested_reserved_mb=1200.0)
+        stats = {**hand_stats(), "normal-model|gpu|0|exact": {
+            "runtime_p50_ms": 500.0, "runtime_p90_ms": 500.0,
+            "load_p50_ms": 0.0, "memory_p95_mb": 1600.0, "count": 100,
+        }}
+        ep = episode([job("jn", "n"), job("jc", "c")])
+        ep["gpu_topology_mb"] = [2500.0]
+        summary, events = simulate_episode(ep, {"n": template("n", [normal]), "c": template("c", [parent])},
+                                           "fcfs", train_stats=stats)
+        self.assertEqual(summary["completed_jobs"], 2)
+        self.assertEqual(by_type(events, "nested_gpu_start")[0]["nested_start_ms"], 500.0)
+        self.assertTrue(by_type(events, "nested_gpu_wait"))
+        self.assertEqual(summary["gpu_peak_memory_mb"], [2200.0])
+
     def test_1_no_contention_parent_finishes_exactly_at_R_total(self):
         pre, inner, post = 100.0, 700.0, 200.0
         tpls = {"t": template("t", [composite_node("c:n", 0, pre, inner, post)])}

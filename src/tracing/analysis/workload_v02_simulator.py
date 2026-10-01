@@ -766,18 +766,18 @@ class GPU:
     def active_workspace_mb(self) -> float:
         return sum(task.workspace_mb for task in self._active_tasks())
 
-    def pending_prefetch_models(self) -> set[str]:
+    def loading_model_ids(self) -> set[str]:
         return {
             task.model_id
             for task in self._active_tasks()
-            if task.kind == "prefetch" and task.model_id
+            if task.allocation_mb > 0.0 and task.model_id and task.model_id not in self.resident
         }
 
-    def pending_prefetch_memory_mb(self) -> float:
+    def pending_load_memory_mb(self) -> float:
         return sum(
             task.allocation_mb
             for task in self._active_tasks()
-            if task.kind == "prefetch"
+            if task.allocation_mb > 0.0 and task.model_id not in self.resident
         )
 
     @property
@@ -1646,8 +1646,9 @@ def plan_gpu_admission(
         gpu.active_workspace_mb() if active_workspace_mb is None else max(0.0, float(active_workspace_mb))
     )
     target_resident = node.model_id in gpu.resident
-    required_model_mb = 0.0 if target_resident else model_mb
-    projected = sum(gpu.resident.values()) + required_model_mb + workspace_mb + active_workspace
+    required_model_mb = 0.0 if target_resident or node.model_id in gpu.loading_model_ids() else model_mb
+    pending_memory = gpu.pending_load_memory_mb()
+    projected = sum(gpu.resident.values()) + pending_memory + required_model_mb + workspace_mb + active_workspace
     if projected <= gpu.capacity_mb + 1e-9:
         return True, (), model_mb, workspace_mb, projected
 
@@ -1663,7 +1664,7 @@ def plan_gpu_admission(
         for model_id, memory in gpu.resident.items()
         if model_id not in evicted
     )
-    projected_after_eviction = remaining + required_model_mb + workspace_mb + active_workspace
+    projected_after_eviction = remaining + pending_memory + required_model_mb + workspace_mb + active_workspace
     if projected_after_eviction <= gpu.capacity_mb + 1e-9:
         return True, evicted, model_mb, workspace_mb, projected_after_eviction
     return False, (), model_mb, workspace_mb, projected_after_eviction
@@ -5429,7 +5430,7 @@ def simulate_episode(
             if gpu_index < 0 or gpu_index >= len(gpus) or not model_id:
                 raise ValueError(f"invalid prefetch plan entry: {raw}")
             gpu = gpus[gpu_index]
-            if model_id in gpu.resident or model_id in gpu.pending_prefetch_models():
+            if model_id in gpu.resident or model_id in gpu.loading_model_ids():
                 log_prefetch("prefetch_skip", gpu, model_id, reason="already_resident")
                 continue
             model_node = find_model_node(model_id)
@@ -5439,7 +5440,7 @@ def simulate_episode(
             memory = model_memory(model_node, estimate_row)
             projected = (
                 sum(gpu.resident.values())
-                + gpu.pending_prefetch_memory_mb()
+                + gpu.pending_load_memory_mb()
                 + memory
                 + gpu.active_workspace_mb()
             )
@@ -5603,7 +5604,7 @@ def simulate_episode(
                 transition_stats["load_hits"] += 1
             gpu.peak_memory_mb = max(
                 gpu.peak_memory_mb,
-                sum(gpu.resident.values()) + gpu.pending_prefetch_memory_mb() + gpu.active_workspace_mb(),
+                sum(gpu.resident.values()) + gpu.pending_load_memory_mb() + gpu.active_workspace_mb(),
             )
             cursors[gpu_index] = finish
             log_prefetch(
@@ -5616,7 +5617,7 @@ def simulate_episode(
                 load_source=load_source,
                 residency_committed=False,
                 resident_memory_mb=round(
-                    sum(gpu.resident.values()) + gpu.pending_prefetch_memory_mb(), 3
+                    sum(gpu.resident.values()) + gpu.pending_load_memory_mb(), 3
                 ),
                 interference_mode=(interference_mode if interference_target else None),
                 interference_slowdown=(round(float(interference_factor), 6) if interference_factor else None),
@@ -5626,11 +5627,15 @@ def simulate_episode(
         if explicit_plan:
             prefetch_plan_consumed = True
 
-    def process_prefetch_finish() -> None:
+    def process_prefetch_finish() -> bool:
+        completed_any = False
         for gpu in gpus:
             remaining: list[tuple[str, str, float, float]] = []
             for task_id, model_id, start, finish in gpu.prefetch_pending:
                 if finish <= now + 1e-9:
+                    if finish < now - 1e-9:
+                        raise RuntimeError("simulation skipped a prefetch completion boundary")
+                    completed_any = True
                     task = gpu.active_tasks[task_id]
                     gpu.remove_active_task(task_id, finish)
                     gpu.resident[model_id] = task.allocation_mb
@@ -5660,8 +5665,10 @@ def simulate_episode(
                         _event_time_ms=finish,
                     )
                 else:
-                    remaining.append((task_id, model_id, start, finish))
+                    pending_task = gpu.active_tasks[task_id]
+                    remaining.append((task_id, model_id, pending_task.start_ms, pending_task.finish_ms))
             gpu.prefetch_pending = remaining
+        return completed_any
 
     if not (extension_config.get("prefetch_overlap") and extension_config.get("prefetch_plan")):
         initialize_prefetch()
@@ -5700,13 +5707,57 @@ def simulate_episode(
         if task.owner is None:
             raise ValueError("normal GPU task has no owner")
         reschedule_node_finish(gpu, task.owner, task.finish_ms)
+        reschedule_serial_reservations(gpu, at_ms)
         return task
+
+    def reschedule_serial_reservations(gpu: GPU, at_ms: float) -> None:
+        queued = [
+            (task_id, task) for task_id, task in gpu.active_tasks.items()
+            if task.active and task.kind in {"prefetch", "composite"} and task.start_ms > at_ms + 1e-9
+            and not task.interference_target
+        ]
+        if not queued:
+            return
+        queued_ids = {task_id for task_id, _task in queued}
+        cursor = max(at_ms, max(
+            (task.finish_ms for task_id, task in gpu.active_tasks.items()
+             if task.active and task_id not in queued_ids), default=at_ms,
+        ))
+        for task_id, task in sorted(queued, key=lambda item: item[1].start_ms):
+            duration = task.finish_ms - task.start_ms
+            task.start_ms, task.finish_ms = cursor, cursor + duration
+            task.work_start_ms = task.last_update_ms = cursor
+            cursor = task.finish_ms
+            if task.kind == "prefetch":
+                log_prefetch("prefetch_reschedule", gpu, task.model_id,
+                             start_ms=round(task.start_ms, 3), finish_ms=round(task.finish_ms, 3))
+            else:
+                reschedule_node_finish(gpu, task.owner, task.finish_ms)
+                job_index, node_id = task.owner
+                log("nested_gpu_reschedule", jobs[job_index], jobs[job_index].template.by_id[node_id],
+                    gpu_index=gpu.index, start_ms=round(task.start_ms, 3), finish_ms=round(task.finish_ms, 3))
+        gpu.prefetch_pending = [
+            (task_id, model_id, gpu.active_tasks[task_id].start_ms, gpu.active_tasks[task_id].finish_ms)
+            for task_id, model_id, _start, _finish in gpu.prefetch_pending
+        ]
 
     def process_finish() -> None:
         nonlocal now, sequence
         while finish_heap and finish_heap[0][0] <= now + 1e-9:
             finish, _order, job_index, lane, gpu_index, node_id = heapq.heappop(finish_heap)
+            if finish < now - 1e-9:
+                raise RuntimeError("simulation consumed an event before the current time")
             job = jobs[job_index]
+
+            if lane == "gpu_transition":
+                gpu = gpus[gpu_index]
+                task = next(task for _task_id, task in gpu.active_node_entries()
+                            if task.owner == (job_index, node_id))
+                if task.allocation_mb > 0.0:
+                    gpu.resident[task.model_id] = task.allocation_mb
+                log("transition_finish", job, job.template.by_id[node_id],
+                    gpu_index=gpu_index, model_ready=True, compute_start_ms=round(finish, 3))
+                continue
 
             if lane == "gpu_nested_ready":
                 # the device is actually needed now, so residency, capacity and placement
@@ -5716,17 +5767,45 @@ def simulate_episode(
                 model = str(getattr(parent, "nested_model_class", "") or "")
                 inner = float(getattr(parent, "nested_inner_ms", 0.0) or 0.0)
 
+                # The template builder maps nested_model_mb to peak_allocated_mb
+                # and nested_reserved_mb to peak_reserved_mb, not to weights.
+                # Preserve that conservative peak proxy; the excess above a
+                # cached model is incremental reservation, never zero by default.
+                nested_peak = max(need_mb, float(parent.nested_reserved_mb or 0.0))
                 target = None
-                for candidate_gpu in gpus:
-                    if model in candidate_gpu.resident:
-                        target = candidate_gpu
+                workspace = allocation = projected = 0.0
+                can_wait_for_memory = False
+                for candidate_gpu in sorted(gpus, key=lambda item: model not in item.resident):
+                    loading = model in candidate_gpu.loading_model_ids()
+                    pending_model_mb = max(
+                        (task.allocation_mb for task in candidate_gpu._active_tasks()
+                         if task.model_id == model), default=0.0,
+                    ) if loading else 0.0
+                    baseline_mb = candidate_gpu.resident.get(model, pending_model_mb or need_mb)
+                    candidate_allocation = 0.0 if model in candidate_gpu.resident or loading else need_mb
+                    candidate_workspace = max(0.0, nested_peak - baseline_mb)
+                    idle_projection = (sum(candidate_gpu.resident.values())
+                                       + candidate_gpu.pending_load_memory_mb()
+                                       + candidate_allocation + candidate_workspace)
+                    candidate_projection = idle_projection + candidate_gpu.active_workspace_mb()
+                    can_wait_for_memory |= idle_projection <= candidate_gpu.capacity_mb + 1e-9
+                    if not loading and candidate_projection <= candidate_gpu.capacity_mb + 1e-9:
+                        target, allocation, workspace, projected = (
+                            candidate_gpu, candidate_allocation, candidate_workspace, candidate_projection
+                        )
                         break
                 if target is None:
-                    for candidate_gpu in gpus:
-                        if sum(candidate_gpu.resident.values()) + need_mb <= candidate_gpu.capacity_mb + 1e-9:
-                            target = candidate_gpu
-                            break
-                if target is None:
+                    retry_time = min([
+                        *(entry[0] for entry in finish_heap if entry[0] > now + 1e-9),
+                        *(end for device in gpus for _tid, _mid, _start, end in device.prefetch_pending
+                          if end > now + 1e-9),
+                    ], default=math.inf)
+                    if can_wait_for_memory and retry_time < math.inf:
+                        sequence += 1
+                        heapq.heappush(finish_heap, (retry_time, int(sequence), job_index,
+                                                  "gpu_nested_ready", None, node_id))
+                        log("nested_gpu_wait", job, parent, reason="capacity_or_model_loading")
+                        continue
                     job.node_state[node_id] = "failed"
                     job.failed.add(node_id)
                     log("node_fail", job, parent, reason="nested_gpu_no_capacity", model_id=model)
@@ -5735,11 +5814,10 @@ def simulate_episode(
 
                 start = max(float(now), float(target.busy_until))
                 inner_finish = start + inner
-                if model and model not in target.resident:
-                    target.resident[model] = need_mb
-                    log("model_load_start", job, parent, gpu_index=target.index, load_ms=0.0,
-                        load_source="nested_composite")
-                target.peak_memory_mb = max(target.peak_memory_mb, sum(target.resident.values()))
+                if allocation > 0.0:
+                    log("model_load_start", job, parent, gpu_index=target.index,
+                        load_ms=parent.nested_load_ms, load_source="included_in_nested_interval")
+                target.peak_memory_mb = max(target.peak_memory_mb, projected)
                 target.add_active_task(
                     f"composite:{job_index}:{node_id}",
                     start,
@@ -5747,6 +5825,8 @@ def simulate_episode(
                     kind="composite",
                     owner=(job_index, node_id),
                     model_id=model,
+                    workspace_mb=workspace,
+                    allocation_mb=allocation,
                 )
                 sequence += 1
                 heapq.heappush(
@@ -5763,6 +5843,10 @@ def simulate_episode(
                 # be released, and another ledger interval must never be shrunk.
                 if gpu_index is not None:
                     gpu = gpus[gpu_index]
+                    task = next(task for task in gpu._active_tasks()
+                                if task.kind == "composite" and task.owner == (job_index, node_id))
+                    if task.allocation_mb > 0.0:
+                        gpu.resident[task.model_id] = task.allocation_mb
                     gpu.remove_active_task_for_owner(
                         (job_index, node_id), finish, kind="composite"
                     )
@@ -5795,6 +5879,7 @@ def simulate_episode(
                 )
                 for survivor_id, survivor in gpu.active_node_entries():
                     set_node_slowdown(gpu, survivor_id, 1.0, finish)
+                reschedule_serial_reservations(gpu, finish)
             for member_id in member_ids:
                 node = job.template.by_id[member_id]
                 job.node_state[member_id] = "complete"
@@ -5869,7 +5954,7 @@ def simulate_episode(
                 block_preemption(
                     gpu,
                     "prefetch_pending_preemption_unsupported",
-                    pending_models=sorted(gpu.pending_prefetch_models()),
+                    pending_models=sorted(gpu.loading_model_ids()),
                 )
                 continue
             if int(getattr(gpu, "composite_queued", 0)) > 0:
@@ -5881,6 +5966,9 @@ def simulate_episode(
                 victim_job_index, victim_node_id = victim_task.owner
                 victim_job = jobs[victim_job_index]
                 victim_node = victim_job.template.by_id[victim_node_id]
+                if float(victim_task.work_start_ms or victim_task.start_ms) > now + 1e-9:
+                    block_preemption(gpu, "victim_transition_in_progress")
+                    continue
                 if any(
                     entry[2] == victim_job_index
                     and entry[4] == gpu.index
@@ -5973,7 +6061,7 @@ def simulate_episode(
         finish = float(victim_task.finish_ms)
         finish_heap.remove(matching[0])
         heapq.heapify(finish_heap)
-        elapsed = max(0.0, now - float(victim_task.start_ms))
+        elapsed = max(0.0, now - float(victim_task.work_start_ms or victim_task.start_ms))
         remaining = max(0.0, finish - now)
         # The node has no checkpoint contract.  Discard progress and pay the
         # full compute time again when it resumes (recompute semantics).
@@ -6024,7 +6112,7 @@ def simulate_episode(
         process_prefetch_finish()
         if not ready and not finish_heap and arrival_heap:
             next_prefetch = min(
-                (gpu.busy_until for gpu in gpus if gpu.prefetch_pending and gpu.busy_until > now + 1e-9),
+                (finish for gpu in gpus for _task_id, _model_id, _start, finish in gpu.prefetch_pending),
                 default=math.inf,
             )
             now = max(now, min(arrival_heap[0][0], next_prefetch))
@@ -6199,8 +6287,8 @@ def simulate_episode(
                         )
                     if node.model_id in gpu.prefetched_models:
                         gpu.used_prefetched_models.add(node.model_id)
-                    if node.model_id not in gpu.resident:
-                        gpu.resident[node.model_id] = memory
+                    model_loading = node.model_id not in gpu.resident
+                    if model_loading:
                         _effective_runtime, effective_load = effective_batch_runtime(node, row, batch_size, extension_config)
                         load, load_source = transition_load_cost(
                             node,
@@ -6219,7 +6307,9 @@ def simulate_episode(
                             load_ms=round(load, 3),
                             load_source=load_source,
                         )
-                    total_memory = sum(gpu.resident.values()) + gpu.active_workspace_mb() + predicted_workspace
+                    total_memory = (sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+                                    + (memory if model_loading else 0.0)
+                                    + gpu.active_workspace_mb() + predicted_workspace)
                     gpu.peak_memory_mb = max(gpu.peak_memory_mb, total_memory)
                     fused_members = list((policy_context or {}).get("_fused_chain") or [])
                     if fused_members and fused_members[0] == node_id:
@@ -6274,10 +6364,17 @@ def simulate_episode(
                         # probe.  Do not make it a co-location candidate.
                         workload_shape="" if fused_members else node.workload_shape,
                         workspace_mb=predicted_workspace,
+                        allocation_mb=memory if model_loading else 0.0,
                         slowdown=candidate_slowdown,
                         work_ms=compute_duration,
                         work_start_ms=work_start_time,
                     )
+                    if transition_duration > 1e-9:
+                        sequence += 1
+                        heapq.heappush(finish_heap, (work_start_time, int(sequence), job_index,
+                                                  "gpu_transition", gpu_index, node_id))
+                    elif model_loading:
+                        gpu.resident[node.model_id] = memory
                     job.assigned_gpus.append(gpu_index)
                     sequence += 1
                     event_key = int(sequence)
@@ -6320,7 +6417,7 @@ def simulate_episode(
                     if jobs[item[2]].node_state.get(item[3]) == "ready"
                     and jobs[item[2]].template.by_id[item[3]].lane == "gpu"
                 ]
-            for item in waiting_items:
+            for item in (() if made_progress else waiting_items):
                 _priority, ready_time, job_index, node_id = item
                 wait_key = (job_index, node_id)
                 if wait_key not in wait_logged:
@@ -6357,6 +6454,8 @@ def simulate_episode(
                     initialize_prefetch()
                     extension_config = {**(extension_config or {}), "prefetch_plan": _la_saved}
 
+        if process_prefetch_finish() and ready:
+            continue
         process_finish()
         next_finish = finish_heap[0][0] if finish_heap else math.inf
         next_arrival = arrival_heap[0][0] if arrival_heap else math.inf
@@ -6364,7 +6463,11 @@ def simulate_episode(
             (gpu.busy_until for gpu in gpus if gpu.active_node is None and gpu.busy_until > now + 1e-9),
             default=math.inf,
         )
-        next_time = min(next_finish, next_arrival, next_gpu_ready)
+        next_prefetch_finish = min(
+            (finish for gpu in gpus for _task_id, _model_id, _start, finish in gpu.prefetch_pending),
+            default=math.inf,
+        )
+        next_time = min(next_finish, next_arrival, next_gpu_ready, next_prefetch_finish)
         if next_time == math.inf:
             if ready:
                 raise RuntimeError("simulation deadlock")
@@ -6409,6 +6512,10 @@ def simulate_episode(
         ),
         "colocation_profile_enabled": _colocation_profile(extension_config) is not None,
         "colocation_profile_status": colocation_profile_status,
+        "colocation_policy_semantics": (
+            "colocation_unaware_control_not_faithful_concurrent_baseline"
+            if colocation_profile is not None else "original_serial_policy"
+        ),
         "colocation_profile_source": (_colocation_profile(extension_config) or {}).get("source_artifact"),
         "wasted_prefetches": sum(gpu.wasted_prefetches for gpu in gpus),
         "transition_profile_enabled": _transition_profile(extension_config) is not None,

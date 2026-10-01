@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+from dataclasses import replace
 import unittest
 
 from tracing.analysis.workload_v02_simulator import (
@@ -159,6 +160,28 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(dispatch[1]["scheduler_state"]["ready_nodes"][0]["dispatchable_gpu_indices"], [0])
         self.assertEqual([event["finish_ms"] for event in finishes], [200.0, 233.333])
         self.assertLessEqual(max(summary["gpu_utilization"]), 1.0)
+        self.assertEqual(summary["colocation_policy_semantics"],
+                         "colocation_unaware_control_not_faithful_concurrent_baseline")
+        self.assertFalse(any(e["event_type"] == "node_wait" and e["time_ms"] == 0.0 for e in events))
+
+        loader = coloc_node("loader:n", "loader-model", 10.0, "short", load=20.0)
+        deferred_stats = {**stats, "loader-model|gpu|0|exact": {
+            "runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0,
+            "load_p50_ms": 20.0, "memory_p95_mb": 100.0, "count": 100,
+        }}
+        deferred_summary, deferred_events = simulate_episode(
+            episode,
+            {"a": simple_template("a", first), "b": simple_template("b", second),
+             "loader": simple_template("loader", loader)},
+            "fcfs", train_stats=deferred_stats,
+            extension_config={"colocation_profile": profile, "prefetch_overlap": True,
+                              "prefetch_plan": [{"gpu_index": 0, "model_id": "loader-model"}]},
+        )
+        last_node_end = max(e["finish_ms"] for e in deferred_events if e["event_type"] == "node_finish")
+        actual_load = next(e for e in deferred_events if e["event_type"] == "prefetch_end")
+        self.assertEqual(actual_load["start_ms"], last_node_end)
+        self.assertTrue(any(e["event_type"] == "prefetch_reschedule" for e in deferred_events))
+        self.assertAlmostEqual(deferred_summary["gpu_utilization"][0], 1.0)
 
     def test_colocation_memory_counts_shared_model_once_and_protects_different_models(self) -> None:
         shared_a = coloc_node("a:n", "model-a", 100.0, "short", workspace=200.0)
@@ -417,6 +440,8 @@ class AdmissionTests(unittest.TestCase):
         }
         summary, events = simulate_episode(episode, templates, "fcfs", train_stats=stats, extension_config=config)
         self.assertEqual([event["finish_ms"] for event in events if event.get("event_type") == "node_finish"], [110.0])
+        self.assertEqual(summary["mean_completion_ms"], 110.0)
+        self.assertEqual([event["time_ms"] for event in events if event.get("event_type") == "node_finish"], [110.0])
         self.assertEqual(summary["prefetch_interference_events"], {"copy": 1})
         self.assertEqual(len([event for event in events if event.get("event_type") == "node_interference_start"]), 1)
 
@@ -612,6 +637,77 @@ class AdmissionTests(unittest.TestCase):
         self.assertLessEqual(gpu.busy_time_ms / gpu.busy_end_ms, 1.0)
         gpu.remove_active_task(survivor, 15.0)
         self.assertEqual(gpu.busy_time_ms, 15.0)
+
+    def test_transition_completion_opens_colocation_without_unrelated_events(self) -> None:
+        cold = coloc_node("a:n", "model-a", 200.0, "short", load=100.0)
+        warm = coloc_node("b:n", "model-b", 100.0, "short")
+        stats = {
+            f"{node.model_id}|gpu|0|exact": {
+                "runtime_p50_ms": node.runtime_ms, "runtime_p90_ms": node.runtime_ms,
+                "load_p50_ms": node.load_ms, "memory_p95_mb": 100.0, "count": 100,
+            } for node in (cold, warm)
+        }
+        episode = {
+            "episode_id": "cold-transition-boundary", "split": "train",
+            "gpu_topology_mb": [1000.0], "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "service_class": "normal"},
+            ],
+        }
+        profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "short", "model_b": "model-b", "shape_b": "short",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        templates = {"a": simple_template("a", cold), "b": simple_template("b", warm)}
+        summary, events = simulate_episode(episode, templates, "fcfs", train_stats=stats,
+                                          extension_config={"colocation_profile": profile})
+        b_dispatch = next(e for e in events if e["event_type"] == "node_dispatch" and e["node_id"] == "b:n")
+        self.assertEqual(b_dispatch["time_ms"], 100.0)
+        first_dispatch = next(e for e in events if e["event_type"] == "node_dispatch")
+        self.assertEqual(first_dispatch["scheduler_state"]["gpus"][0]["resident_models"], ["model-b"])
+        self.assertEqual(summary["mean_completion_ms"], 300.0)
+
+        priority_episode = {**episode, "jobs": [episode["jobs"][0],
+            {**episode["jobs"][1], "arrival_ms": 50.0, "service_class": "priority"}]}
+        priority_summary, priority_events = simulate_episode(
+            priority_episode, templates, "myopic_preempt", train_stats=stats,
+            extension_config={"preemption_enabled": True, "max_preemptions": 1},
+        )
+        preempt = next(e for e in priority_events if e["event_type"] == "node_preempt")
+        self.assertEqual(preempt["time_ms"], 100.0)
+        self.assertIn("victim_transition_in_progress", priority_summary["preemption_blocked_reasons"])
+        self.assertEqual(priority_summary["preempt_recompute_ms"], 0.0)
+
+    def test_prefetch_completion_releases_successor_at_actual_finish(self) -> None:
+        infer = replace(coloc_node("infer:n", "infer-model", 100.0, "short"), successors=("after:n",))
+        after = replace(coloc_node("after:n", "cpu-model", 5.0, "short"),
+                        predecessors=("infer:n",), lane="cpu", sequence_index=1)
+        loader = coloc_node("load:n", "load-model", 10.0, "short", load=20.0)
+        templates = {
+            "infer": Template("infer", "video", "train", "test", (infer, after), {n.node_id: n for n in (infer, after)}),
+            "load": simple_template("load", loader),
+        }
+        stats = {f"{n.model_id}|{n.lane}|{n.sequence_index}|exact": {
+            "runtime_p50_ms": n.runtime_ms, "runtime_p90_ms": n.runtime_ms,
+            "load_p50_ms": n.load_ms, "memory_p95_mb": 100.0, "count": 100,
+        } for n in (infer, after, loader)}
+        episode = {"episode_id": "prefetch-successor", "split": "train", "gpu_topology_mb": [1000.0],
+                   "gpu_identity": "synthetic-gpu", "initial_residency_hint": [["infer-model"]],
+                   "jobs": [{"job_instance_id": "j", "template_id": "infer", "arrival_ms": 0.0, "service_class": "normal"}]}
+        config = {"prefetch_plan": [{"gpu_index": 0, "model_id": "load-model"}], "prefetch_overlap": True,
+                  "prefetch_interference_mode": "full", "prefetch_interference": {
+                      "engine": "hf_substrate", "provenance_kind": "synthetic", "source_artifact": "synthetic",
+                      "source_experiment": "synthetic", "gpu_identity": "synthetic-gpu",
+                      "probe_source_artifact": "synthetic", "probe_metadata": {"probe": "synthetic"},
+                      "supported_workload_shape": "short",
+                      "pairs": [{"infer": "infer-model", "load": "load-model", "full_slowdown": 2.0, "full_dilation": 1.0}],
+                  }}
+        summary, events = simulate_episode(episode, templates, "fcfs", train_stats=stats, extension_config=config)
+        after_start = next(e for e in events if e["event_type"] == "node_start" and e["node_id"] == "after:n")
+        self.assertEqual(after_start["time_ms"], 110.0)
+        self.assertEqual(summary["mean_completion_ms"], 115.0)
 
     def test_transition_time_never_consumes_inference_progress(self) -> None:
         gpu = GPU(index=0, capacity_mb=1000.0)
