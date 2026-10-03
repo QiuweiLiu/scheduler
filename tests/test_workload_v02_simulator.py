@@ -8,6 +8,7 @@ from tracing.analysis.workload_v02_simulator import (
     GPU,
     Job,
     Node,
+    RequestSplit,
     Template,
     choose_action,
     colocation_slowdowns,
@@ -16,6 +17,7 @@ from tracing.analysis.workload_v02_simulator import (
     load_prefetch_interference_profile,
     phase_decomposition,
     plan_gpu_admission,
+    request_split_phase,
     simulate_episode,
     validate_colocation_profile,
     validate_prefetch_interference_profile,
@@ -780,18 +782,20 @@ class AdmissionTests(unittest.TestCase):
         self.assertFalse(serial_summary["batching_engine_enabled"])
 
     def test_batching_engine_serializes_heterogeneous_pair(self) -> None:
-        def batch_node(node_id, model, role, runtime):
+        def batch_node(node_id, model, role, runtime, sequence_index=0):
             return Node(
-                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                node_id=node_id, sequence_index=sequence_index, predecessors=(), successors=(),
                 lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
                 workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
                 workload_shape="medium", role=role,
             )
 
         short = batch_node("a:n", "model-a", "planner", 100.0)
-        long = batch_node("b:n", "model-a", "planner", 200.0)
+        long = batch_node("b:n", "model-a", "planner", 200.0, sequence_index=1)
         stats = {
             "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 200.0,
+                                    "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-a|gpu|1|exact": {"runtime_p50_ms": 200.0, "runtime_p90_ms": 200.0,
                                     "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
         }
         batching = {
@@ -823,10 +827,85 @@ class AdmissionTests(unittest.TestCase):
             extension_config={"batching_engine": batching},
             collect_events=True,
         )
-        # The B2 probe is homogeneous-only; a 100/200 pair (2x ratio) is unmeasured
-        # and must serialize rather than share one throughput factor.
+        # The B2 probe is homogeneous-only; a pair whose scheduler-visible
+        # predictions differ by 2x is unmeasured and must serialize.
         starts = [event["start_ms"] for event in events if event.get("event_type") == "node_start"]
         self.assertEqual(starts, [0.0, 100.0])
+
+    def test_batching_engine_gate_uses_visible_predictions_not_true_runtimes(self) -> None:
+        def batch_node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="medium", role=role,
+            )
+
+        # Identical scheduler-visible predictions, different hidden runtimes:
+        # the admission must depend on the visible side only, otherwise the
+        # dispatchable-GPU view would leak future durations.
+        a = batch_node("a:n", "model-a", "planner", 100.0)
+        b = batch_node("b:n", "model-a", "planner", 200.0)
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0,
+                                    "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        batching = {
+            "enabled": True, "engine": "vllm_batched", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-batch.json", "source_experiment": "synthetic-batch",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-batch-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "same_model_curves": {"model-a|planner": {"2": 1.05}},
+            "homogeneity_tolerance": 1.25,
+            "kv_pools_tokens": {"model-a": 100000},
+            "layers": {"model-a|planner": {"in_tokens": 100, "out_tokens": 10}},
+        }
+        episode = {
+            "episode_id": "batch-visible-gate",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        _summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", a), "b": simple_template("b", b)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"batching_engine": batching},
+            collect_events=True,
+        )
+        starts = [event["start_ms"] for event in events if event.get("event_type") == "node_start"]
+        self.assertEqual(starts, [0.0, 0.0])
+
+    def test_request_phase_does_not_rewind_under_additive_interference(self) -> None:
+        gpu = GPU(index=0, capacity_mb=1000.0)
+        task_id = gpu.add_active_task(
+            "t", 0.0, 200.0,
+            model_id="model-a", role="planner", work_ms=200.0, slowdown=1.0,
+            request_split=RequestSplit(
+                prefill_work_ms=100.0, decode_step_work_ms=2.0,
+                tokens_base=0, tokens_total=50, context_base=1000,
+            ),
+        )
+        phase = request_split_phase(gpu, task_id, 150.0)
+        self.assertEqual(phase["phase"], "decode")
+        self.assertEqual(phase["tokens_done"], 25)
+        # Mirror add_node_work(): additive interference enters the stall budget.
+        task = gpu.active_tasks[task_id]
+        task.remaining_work_ms += 100.0
+        task.stall_remaining_ms = float(task.stall_remaining_ms or 0.0) + 100.0
+        # Mid-stall: intrinsic progress is paused, never rewound to prefill.
+        mid = request_split_phase(gpu, task_id, 160.0)
+        self.assertEqual(mid["phase"], "decode")
+        self.assertEqual(mid["tokens_done"], 25)
+        # After the stall budget is consumed the phase clock resumes.
+        later = request_split_phase(gpu, task_id, 260.0)
+        self.assertEqual(later["tokens_done"], 30)
 
     def test_batching_engine_resets_survivor_after_partner_finishes(self) -> None:
         def batch_node(node_id, model, role, runtime):

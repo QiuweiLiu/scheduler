@@ -56,3 +56,12 @@ vLLM（隔离 venv 0.30.0）microcurve：B∈{1,2,4,8,16}，每档 1 warmup + 3 
 - 消费方：`workload_v02_simulator.py` 的 `vllm_batched` 模式（准入/速率/KV 上限/异质 fail-closed）。
 - 集成冒烟（真实 v2 产物）：4B planner 100/100ms → 完成 [107.67, 107.67] = 100×1.0767 ✓；
   100/300ms（比值 3）→ 串行 [0, 100] ✓。
+
+## 复验修正（2026-10-03 深夜，评审第二轮 P1）
+
+- **homogeneity gate 改用调度器可见预测值**：运行任务在派发时冻结 `predicted_work_ms`
+  （来自估计行 runtime_p50 − load_p50），候选用同一估计行；**不再使用 node.compute_ms /
+  total_work_ms 等真实 trace 时长**——此前会把隐藏真值经 `dispatchable_gpu_indices`
+  泄漏进动作可用性，且与 v2 产物自述的 "scheduler-visible runtime estimates" 不符。
+- 新增测试：可见预测相同、隐藏真值不同的两世界 → 派发行为相同（不泄漏）；
+  预测差异 2× 的对 → 串行。

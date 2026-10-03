@@ -57,7 +57,8 @@ F4 保留纯拷贝与完整框架加载两种实测证据，并提供两代干�
   实测证据仅对应中等档（`medium`）探针，不能推广到任意输入长度、图像或运行引擎。
 - **加性（多进程部署）**：`interference_model=additive_extra_ms`，按实测
   **(infer_model, infer_shape, load_model)** 格给出 `extra_ms`，在重叠开始时**一次性**
-  加入运行任务的剩余工作量；加载时长不缩放（无 dilation），加载结束不复位。
+  加入运行任务的剩余工作量（同时进入 `stall_remaining_ms` 预算，见请求级抢占一节的相位语义）；
+  加载时长不缩放（无 dilation），加载结束不复位。
   支持域 = 产物 `prefetch_interference_additive_v2.json` 的 7 个实测格；同一被加载模型跨推断
   形状跨度可达 35×（3B 载入：4B medium +17.7ms vs 4B long +633.5ms），因此**未覆盖组合明确
   登记 `missing_measured_cell` 并延后串行加载**，不用 load-only 中位数冒充。
@@ -83,9 +84,10 @@ F4 保留纯拷贝与完整框架加载两种实测证据，并提供两代干�
   `load -> prefill（原子，不可抢） -> decode（按 token 边界可抢）`。
   拆分以**内在工作量**表达：`prefill_work_ms = P̂ = intercept + rate×n_in`（n_in 取 token 先验层中位）；
   `decode_step_work_ms = d_r = (compute_ms − P̂)/n_out`；**总服务时间仍钉在 trace 真值**。
-- **相位时钟按已消费内在工作量推进**（`consumed = total_work − remaining_work`，由 GPU 账本维护）：
-  batching 因子、F1 共置减速、伙伴退出复位、加性挡停都会一致地移动 prefill/decode/token 状态，
-  不再用派发时固定的墙钟偏移。
+- **相位时钟按已消费内在工作量推进**（`consumed = total_work − intrinsic_remaining_work`，由 GPU
+  账本维护）：batching 因子、F1 共置减速、伙伴退出复位都会一致地移动 prefill/decode/token 状态，
+  不再用派发时固定的墙钟偏移。**加性干扰**进入独立的 `stall_remaining_ms` 预算：先消耗干扰工作量、
+  期间 request token 进度**暂停**（既不倒退、也不把干扰算成 token 进度），预算耗尽后相位时钟恢复。
 - **token 边界**：合法抢占点 = `prefill_work + m×d_r`（m ≥ 0，含 prefill 结束点）。到达/决策
   落在 token 中间时**推迟到下一合法边界**（`victim_deferred_to_token_boundary`），prefill 期间
   报告 `victim_prefill_in_progress`；两者都会调度一个边界唤醒（`preemption_boundary` 事件）。
@@ -115,8 +117,10 @@ F4 保留纯拷贝与完整框架加载两种实测证据，并提供两代干�
   **不得**把吞吐加速比 `T1/(wall/B)` 当每请求延迟——那会把"两个请求已经并行"再算一次，
   使 B=2 的 aggregate throughput 虚增约一倍（评审 P0）。
 - **准入（engine admission）**：`model|role` 完全相同（mixed-role 未测 → 串行）；KV 池已知且
-  `cap = pool // (in+out) ≥ 2`（缺失即拒绝，fail-closed）；两请求的**实际内在运行时长**
-  比值 ≤ `homogeneity_tolerance`（产物 1.25）。B2 探针只测同质批次，明显异质对未测 → 串行。
+  `cap = pool // (in+out) ≥ 2`（缺失即拒绝，fail-closed）；两请求的**调度器可见预测时长**比值
+  ≤ `homogeneity_tolerance`（产物 1.25）——运行任务在派发时冻结自己的预测值，候选用估计行；
+  **不使用真实 trace 时长**（否则会经 `dispatchable_gpu_indices` 泄漏未来真值）。B2 探针只测
+  同质批次，明显异质对未测 → 串行。
 - **批次内伙伴离开**：先完成者离开时幸存者复位到单任务速度（已消费工作量按因子折算，无重复计时）。
 - **跨模型**：仍走 HF 多进程共置表（`cross_model_policy=mp_table_proxy`）。B3 双引擎对照显示
   8B 侧 vLLM 与 HF 一致（1.29 vs 1.24），小模型侧不对称（3B 0.98 vs 1.27），差异已在产物登记。

@@ -644,6 +644,13 @@ class GPUActiveTask:
     active: bool = True
     remaining_work_ms: float | None = None
     total_work_ms: float | None = None
+    # Request-progress ledger: interference work is consumed by the stall
+    # budget first and never counts as decode-token progress.
+    intrinsic_remaining_work_ms: float | None = None
+    stall_remaining_ms: float = 0.0
+    # Scheduler-visible predicted intrinsic runtime frozen at dispatch; the
+    # batching homogeneity gate compares these predictions, never true runtimes.
+    predicted_work_ms: float | None = None
     slowdown: float = 1.0
     last_update_ms: float | None = None
     work_start_ms: float | None = None
@@ -662,6 +669,8 @@ class GPUActiveTask:
             self.remaining_work_ms = max(0.0, self.finish_ms - self.start_ms)
         if self.total_work_ms is None:
             self.total_work_ms = float(self.remaining_work_ms)
+        if self.intrinsic_remaining_work_ms is None:
+            self.intrinsic_remaining_work_ms = float(self.remaining_work_ms)
         if self.last_update_ms is None:
             self.last_update_ms = self.start_ms
         if self.work_start_ms is None:
@@ -703,6 +712,7 @@ class GPU:
         interference_model: str = "",
         request_split: RequestSplit | None = None,
         work_start_ms: float | None = None,
+        predicted_work_ms: float | None = None,
     ) -> str:
         """Record one device interval; the ledger is the sole occupancy source."""
 
@@ -737,6 +747,9 @@ class GPU:
             request_split=request_split,
             slowdown=float(slowdown),
             work_start_ms=(start if work_start_ms is None else float(work_start_ms)),
+            predicted_work_ms=(
+                None if predicted_work_ms is None else max(0.0, float(predicted_work_ms))
+            ),
         )
         return actual_id
 
@@ -748,9 +761,17 @@ class GPU:
         work_start = float(task.work_start_ms if task.work_start_ms is not None else task.start_ms)
         effective_now = max(now, work_start)
         elapsed = max(0.0, now - max(task.last_update_ms, work_start))
-        task.remaining_work_ms = max(
-            0.0,
-            float(task.remaining_work_ms or 0.0) - elapsed / max(1e-9, task.slowdown),
+        delta = elapsed / max(1e-9, task.slowdown)
+        # Interference (additive) work is consumed by the stall budget before the
+        # request's intrinsic progress resumes, so a stall delays the phase
+        # clock instead of rewinding it.
+        stall = max(0.0, float(task.stall_remaining_ms or 0.0))
+        stall_consumed = min(stall, delta)
+        task.stall_remaining_ms = stall - stall_consumed
+        intrinsic_delta = delta - stall_consumed
+        task.remaining_work_ms = max(0.0, float(task.remaining_work_ms or 0.0) - delta)
+        task.intrinsic_remaining_work_ms = max(
+            0.0, float(task.intrinsic_remaining_work_ms or 0.0) - intrinsic_delta
         )
         task.last_update_ms = now
         task.finish_ms = effective_now + float(task.remaining_work_ms) * task.slowdown
@@ -1704,7 +1725,7 @@ def request_split_phase(
     if split is None:
         return None
     total = float(task.total_work_ms if task.total_work_ms is not None else 0.0)
-    consumed = max(0.0, total - float(task.remaining_work_ms or 0.0))
+    consumed = max(0.0, total - float(task.intrinsic_remaining_work_ms or 0.0))
     slowdown = max(1e-9, float(task.slowdown))
     prefill = max(0.0, float(split.prefill_work_ms))
     if consumed < prefill - 1e-9:
@@ -1843,6 +1864,18 @@ def validate_batching_engine_profile(
         raise ValueError(f"batching engine GPU identity required: expected {expected!r}, got {actual!r}")
 
 
+def predicted_compute_ms(row: Mapping[str, Any] | None) -> float | None:
+    """Scheduler-visible predicted intrinsic runtime from an estimate row."""
+
+    if not row:
+        return None
+    runtime = optional_number(row.get("runtime_p50_ms"))
+    if runtime is None:
+        return None
+    load = optional_number(row.get("load_p50_ms")) or 0.0
+    return max(0.0, float(runtime) - float(load))
+
+
 def batching_latency_factor(
     profile: Mapping[str, Any] | None,
     batch_key: str,
@@ -1888,17 +1921,21 @@ def batching_admission_factor(
     profile: Mapping[str, Any] | None,
     node: Node,
     active_task: GPUActiveTask,
+    candidate_predicted_work_ms: float | None = None,
 ) -> float | None:
     """Per-request latency factor when a same-model pair is admitted as a batch.
 
     ``None`` means the pair is not admissible and the caller falls back to the
     deployment's serialize rule.  This is the engine's own admission: like KV
-    capacity, it sees the actual request sizes, so the pair must match the
-    measured condition exactly (same model *and* role), the KV pool must be
-    known and large enough, and the two requests' actual intrinsic runtimes must
-    be homogeneous within the profile's declared tolerance.  The B2 probe is
-    homogeneous-only; clearly different runtimes are unmeasured and fail closed
-    rather than sharing one factor.
+    capacity, it gates the pair.  The pair must match the measured condition
+    exactly (same model *and* role), the KV pool must be known and large enough,
+    and the two requests' **scheduler-visible predicted** intrinsic runtimes must
+    be homogeneous within the profile's declared tolerance.  The running task's
+    prediction is frozen at its dispatch (``predicted_work_ms``); the candidate's
+    comes from the estimate row passed by the caller.  True trace runtimes are
+    never consulted, so this gate cannot leak execution truth into action
+    availability.  The B2 probe is homogeneous-only; clearly different predicted
+    runtimes are unmeasured and fail closed rather than sharing one factor.
     """
 
     if profile is None or active_task.model_id != node.model_id:
@@ -1914,8 +1951,8 @@ def batching_admission_factor(
     tolerance = optional_number(profile.get("homogeneity_tolerance"))
     if tolerance is None or tolerance < 1.0:
         return None
-    candidate_work = optional_number(getattr(node, "compute_ms", None))
-    active_work = optional_number(active_task.total_work_ms)
+    candidate_work = optional_number(candidate_predicted_work_ms)
+    active_work = optional_number(active_task.predicted_work_ms)
     if candidate_work is None or active_work is None:
         return None
     low = min(float(candidate_work), float(active_work))
@@ -2032,7 +2069,9 @@ def gpu_can_dispatch_node(
         # Same-model pairs serialize under the multi-process deployment unless a
         # measured batching engine admits them as a batch.
         batching_profile = _batching_engine_profile(extension_config)
-        if batching_admission_factor(batching_profile, node, active_task) is None:
+        if batching_admission_factor(
+            batching_profile, node, active_task, predicted_compute_ms(estimate_row)
+        ) is None:
             return False
     if active_task.work_start_ms is None or active_task.work_start_ms > float(now_ms) + 1e-9:
         return False
@@ -6302,7 +6341,9 @@ def simulate_episode(
         """
 
         task = gpu.update_task_progress(task_id, at_ms)
-        task.remaining_work_ms = max(0.0, float(task.remaining_work_ms or 0.0) + max(0.0, float(extra_ms)))
+        extra = max(0.0, float(extra_ms))
+        task.remaining_work_ms = max(0.0, float(task.remaining_work_ms or 0.0) + extra)
+        task.stall_remaining_ms = max(0.0, float(task.stall_remaining_ms or 0.0) + extra)
         effective_now = max(float(at_ms), float(task.work_start_ms or task.start_ms))
         task.finish_ms = effective_now + float(task.remaining_work_ms) * float(task.slowdown)
         if task.owner is None:
@@ -7086,7 +7127,10 @@ def simulate_episode(
                             raise RuntimeError("co-location admission saw more than two normal GPU tasks")
                         active_task_id, active_task = active_nodes[0]
                         batching_factor = batching_admission_factor(
-                            _batching_engine_profile(extension_config), node, active_task
+                            _batching_engine_profile(extension_config),
+                            node,
+                            active_task,
+                            predicted_compute_ms(estimate(node, train_stats)),
                         )
                         if batching_factor is not None:
                             if transition_duration > 1e-9:
@@ -7148,6 +7192,7 @@ def simulate_episode(
                         work_ms=compute_duration,
                         request_split=request_split,
                         work_start_ms=work_start_time,
+                        predicted_work_ms=predicted_compute_ms(estimate(node, train_stats)),
                     )
                     if transition_duration > 1e-9:
                         sequence += 1

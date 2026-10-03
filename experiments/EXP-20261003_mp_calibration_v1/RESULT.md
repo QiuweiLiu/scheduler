@@ -74,3 +74,13 @@
   并延后串行加载（fail-closed），不再声称 `any`。
 - 集成冒烟（真实 v2 产物）：4B medium ← 3B → +17.7ms（117.7）；4B long ← 3B → +633.5ms（733.5）；
   4B short ← 3B（未测）→ 串行、登记 missing_measured_cell ✓。
+
+## 复验修正（2026-10-03 深夜，评审第二轮 P1）
+
+- **加性干扰不再让 request phase 倒退**：`add_node_work` 现在同时把 extra_ms 计入
+  `stall_remaining_ms` 预算；进度更新先消耗 stall 预算、期间 request token 进度暂停
+  （不倒退、也不把干扰算成 token 进度），预算耗尽后恢复。
+  修正前 `consumed = total − (remaining+extra)` 会在收费瞬间回拨 phase
+  （例：25 token → prefill/0 token）。
+- 新增单元测试：t=150 已 25 token → 收费 +100 → 中期（t=160）仍 decode/25 token，
+  预算耗尽后（t=260）恢复为 30 token。
