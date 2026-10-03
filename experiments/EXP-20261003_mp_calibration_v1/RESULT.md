@@ -63,3 +63,14 @@
 - Part B：extra 单格轮间波动较大（如 B2: +276~+635ms）——报告为量级与方法（中位）为准。
 - 单卡共享环境；中位数；Part B 的 dilation<1 为系统性现象（已记录，不影响主结论）。
 - 全部 7 格 × 3 轮已含在 `artifacts/mp_calibration.json`（逐轮原始值）。
+
+## 仿真器集成修正（2026-10-03 晚，评审 P1-4）
+
+- **问题**：派生的 `prefetch_interference_additive_v1.json` 把 (infer_model, infer_shape, load_model)
+  实测格压成 load-only 中位数 + `supported_workload_shape=any`。同一被加载模型跨推断形状跨度可达 35×
+  （3B 载入：4B medium +17.7ms vs 4B long +633.5ms），真实测到的 633.5ms 格会被记成 47.2ms。
+- **修正**：新派生产物 `artifacts/prefetch_interference_additive_v2.json`（schema v2）保留 7 个
+  (infer_model, infer_shape, load_model) 实测格；未覆盖组合明确登记 `missing_measured_cell`
+  并延后串行加载（fail-closed），不再声称 `any`。
+- 集成冒烟（真实 v2 产物）：4B medium ← 3B → +17.7ms（117.7）；4B long ← 3B → +633.5ms（733.5）；
+  4B short ← 3B（未测）→ 串行、登记 missing_measured_cell ✓。

@@ -1,0 +1,71 @@
+{
+  "schema": "prefetch-interference-additive-v2",
+  "interference_model": "additive_extra_ms",
+  "deployment": "multi_process",
+  "experiment_id": "EXP-20261003_mp_calibration_v1",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "probe_source_artifact": "experiments/EXP-20261003_mp_calibration_v1/artifacts/mp_calibration.json",
+  "probe_metadata": {
+    "protocol": "1 warmup + 3 paired rounds (alternating solo / simultaneous), medians",
+    "workers": "two independent HF worker processes (multi-process deployment)"
+  },
+  "note": "Support domain is the measured (infer_model, infer_shape, load_model) cells (Part B). The same loaded model spans up to 35x across infer shapes (3B load: +17.7 ms on 4B medium vs +633.5 ms on 4B long), so uncovered combinations are deferred to serial loading instead of using a load-model median.",
+  "cells": [
+    {
+      "infer_model": "Qwen3-4B",
+      "infer_shape": "medium",
+      "load": "Qwen2.5-VL-3B",
+      "extra_ms": 17.7,
+      "n": 3,
+      "source_cell_id": "B1_infer4B_med<-load3B"
+    },
+    {
+      "infer_model": "Qwen3-4B",
+      "infer_shape": "long",
+      "load": "Qwen2.5-VL-3B",
+      "extra_ms": 633.5,
+      "n": 3,
+      "source_cell_id": "B2_infer4B_long<-load3B"
+    },
+    {
+      "infer_model": "Qwen3-VL-8B",
+      "infer_shape": "medium",
+      "load": "Qwen2.5-VL-3B",
+      "extra_ms": 47.2,
+      "n": 3,
+      "source_cell_id": "B3_infer8B_med<-load3B"
+    },
+    {
+      "infer_model": "Qwen3-4B",
+      "infer_shape": "medium",
+      "load": "Qwen3-4B",
+      "extra_ms": 416.7,
+      "n": 3,
+      "source_cell_id": "B4_infer4B_med<-load4B"
+    },
+    {
+      "infer_model": "Qwen3-4B",
+      "infer_shape": "long",
+      "load": "Qwen3-4B",
+      "extra_ms": 167.2,
+      "n": 3,
+      "source_cell_id": "B5_infer4B_long<-load4B"
+    },
+    {
+      "infer_model": "Qwen3-4B",
+      "infer_shape": "medium",
+      "load": "Qwen3-VL-8B",
+      "extra_ms": 495.8,
+      "n": 3,
+      "source_cell_id": "B6_infer4B_med<-load8B"
+    },
+    {
+      "infer_model": "Qwen3-4B",
+      "infer_shape": "long",
+      "load": "Qwen3-VL-8B",
+      "extra_ms": 372.3,
+      "n": 3,
+      "source_cell_id": "B7_infer4B_long<-load8B"
+    }
+  ]
+}

@@ -34,3 +34,16 @@
 
 - 手动 decode 循环（与 F2 同款）；单卡共享环境；3 reps。
 - 未测多次抢占链、多任务并发下的抢占（留给 DES 仿真验证）。
+
+## 仿真器集成修正（2026-10-03 晚，评审 P1-1/P1-2）
+
+- **P1-1 修正**：RequestSplit 改为以**内在工作量**表达（`prefill_work_ms`/`decode_step_work_ms`），
+  相位/token 状态从 `consumed = total_work − remaining_work` 推导——batching 因子、F1 减速、
+  伙伴退出复位、加性挡停都会一致移动相位时钟（不再用派发时固定的墙钟偏移）。
+  合法抢占点 = `prefill_work + m×d_r`（m≥0）；落在 token 中间时推迟到下一合法边界
+  （`victim_deferred_to_token_boundary` + `preemption_boundary` 唤醒事件）。
+- **P1-2 修正**：受害者先由调度器可见信息唯一选出；执行层只执行或在物理不可执行时报告/推迟，
+  不再用隐藏相位过滤候选或换选 victim。
+- 集成冒烟（真实 profile，4B planner victim + 3B priority target，arrival=150ms）：
+  推迟到首个 token 边界 **150.108ms**、tokens_done=10、R_m=132.065；恢复完成 342.065 ✓。
+- 边界：R_m 验证仍只有 4B/8B 格；3B 来源缺口（评审 P1-5）待决策。

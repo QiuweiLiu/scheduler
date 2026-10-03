@@ -8,7 +8,12 @@
     "token_source_experiment": "EXP-20261002_substrate_token_prior_v1",
     "phase_source_experiment": "EXP-20260929_substrate_phase_profile_v1",
     "estimator": "deterministic layer medians (p50); totals remain pinned to trace runtimes",
-    "resume_model": "R_m = prefill_intercept_ms + prefill_us_per_token/1000 * n_ctx (P1 验证残差 <6%)"
+    "resume_model": "R_m = prefill_intercept_ms + prefill_us_per_token/1000 * n_ctx (P1 round-trip: 4B/8B on RTX 4080 SUPER residual -1.8%~-5.6%; 3B +1.5%/+2.6% and 4B control -1.8% on the clone instance; all pass |res|<=10% gate)",
+    "resume_validation_experiments": [
+      "EXP-20261003_substrate_preemption_resume_v1",
+      "EXP-20261003_substrate_resume_3b_v1"
+    ],
+    "resume_validation_note": "3B cells were measured on the clone instance (reported RTX 4080, not SUPER); the same-protocol 4B control reproduced the SUPER residual within 2.5pp, so the instances are treated as equivalent for this protocol."
   },
   "layers": {
     "Qwen3-VL-8B-Instruct|planner": {

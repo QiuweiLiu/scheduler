@@ -41,10 +41,18 @@ vLLM（隔离 venv 0.30.0）microcurve：B∈{1,2,4,8,16}，每档 1 warmup + 3 
 - 单卡共享环境；固定输出长度；3 reps。
 - 3B answer 的 B=1 仅 45ms（含 vLLM 调度开销），比例受固定开销影响。
 
-## 仿真器集成（2026-10-03）
+## 仿真器集成（2026-10-03；2026-10-03 晚按评审 P0 修正）
 
-- 派生产物 `artifacts/batching_engine_profile_v1.json`（schema `batching-engine-profile-v1`）：
-  5 条同模型曲线（按 `model|role`）+ 3 个 KV 池 + 6 层 token 中位；跨模型 `cross_model_policy=mp_table_proxy`
-  （B3 不对称登记在 `probe_metadata`）。
-- 消费方：`workload_v02_simulator.py` 的 `vllm_batched` 模式（准入/速率/KV 上限，未覆盖层 fail-closed 串行）。
-- 集成冒烟：4B planner 100/200ms → factor 1/1.857 → 完成 [53.85, 153.85] = 理论值 ✓。
+- **语义修正（评审 P0）**：曲线在仿真器中使用的是**每请求延迟因子**
+  `f(B) = wall_ms(B)/wall_ms(1)`（≥1），不是吞吐加速比 `T1/(wall/B)`。
+  用吞吐加速比当每请求延迟会把"两个请求已经并行"重复计算，B=2 的聚合吞吐虚增约一倍。
+  派生产物 `artifacts/batching_engine_profile_v2.json`（schema `batching-engine-profile-v2`）：
+  5 条 f(B) 曲线（8B planner B2 1.0338 / B16 1.1885；3B answer B2 1.2274 / B16 2.2097；…）+
+  3 个 KV 池 + 6 层 token 中位 + `homogeneity_tolerance=1.25`；吞吐值保留在 `probe_metadata` 作上下文。
+  跨模型 `cross_model_policy=mp_table_proxy`（B3 不对称登记）。
+- **准入（engine admission，fail-closed）**：`model|role` 必须相同（mixed-role 未测→串行）；
+  KV 池已知且 cap≥2（缺元数据即拒绝）；两请求实际内在运行时长的比值 ≤ 1.25
+  （B2 只测同质批次，明显异质对未测→串行）。
+- 消费方：`workload_v02_simulator.py` 的 `vllm_batched` 模式（准入/速率/KV 上限/异质 fail-closed）。
+- 集成冒烟（真实 v2 产物）：4B planner 100/100ms → 完成 [107.67, 107.67] = 100×1.0767 ✓；
+  100/300ms（比值 3）→ 串行 [0, 100] ✓。

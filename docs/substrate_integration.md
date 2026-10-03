@@ -55,9 +55,12 @@ F4 保留纯拷贝与完整框架加载两种实测证据，并提供两代干�
 
 - **乘性（legacy）**：`full_slowdown`/`full_dilation`，仅重叠加载期间按系数减速，加载结束复位；
   实测证据仅对应中等档（`medium`）探针，不能推广到任意输入长度、图像或运行引擎。
-- **加性（多进程部署）**：`interference_model=additive_extra_ms`，按**被加载模型**给出
-  `extra_ms`（3B≈47ms / 4B≈292ms / 8B≈434ms 中位；范围 0.02–0.63s），在重叠开始时**一次性**
+- **加性（多进程部署）**：`interference_model=additive_extra_ms`，按实测
+  **(infer_model, infer_shape, load_model)** 格给出 `extra_ms`，在重叠开始时**一次性**
   加入运行任务的剩余工作量；加载时长不缩放（无 dilation），加载结束不复位。
+  支持域 = 产物 `prefetch_interference_additive_v2.json` 的 7 个实测格；同一被加载模型跨推断
+  形状跨度可达 35×（3B 载入：4B medium +17.7ms vs 4B long +633.5ms），因此**未覆盖组合明确
+  登记 `missing_measured_cell` 并延后串行加载**，不用 load-only 中位数冒充。
   依据：F4 与 mp 校准显示干扰是"加性挡停"而非乘性倍数（小任务的 18× 是比值错觉）。
 
 配置构建器对 legacy 证据选择完整加载（`full`）；实测 `copy` 模式暂时拒绝执行，因为纯拷贝证据
@@ -78,14 +81,24 @@ F4 保留纯拷贝与完整框架加载两种实测证据，并提供两代干�
 
 - **时间线拆分（执行真值，从不进入任何调度器可见视图/评分/动作可用性/受害者选择）**：
   `load -> prefill（原子，不可抢） -> decode（按 token 边界可抢）`。
-  `P̂ = prefill_intercept_ms + prefill_us_per_token/1000 × n_in`（n_in 取 token 先验层中位）；
-  decode 步长 `d_r = (compute_ms − P̂)/n_out`；**总服务时间仍钉在 trace 真值**（拆分只定义内部窗口）。
-- **抢占**：仅在 decode 阶段、token 边界；被抢调用记录已生成 token 数 k、释放 KV、回到就绪队列。
+  拆分以**内在工作量**表达：`prefill_work_ms = P̂ = intercept + rate×n_in`（n_in 取 token 先验层中位）；
+  `decode_step_work_ms = d_r = (compute_ms − P̂)/n_out`；**总服务时间仍钉在 trace 真值**。
+- **相位时钟按已消费内在工作量推进**（`consumed = total_work − remaining_work`，由 GPU 账本维护）：
+  batching 因子、F1 共置减速、伙伴退出复位、加性挡停都会一致地移动 prefill/decode/token 状态，
+  不再用派发时固定的墙钟偏移。
+- **token 边界**：合法抢占点 = `prefill_work + m×d_r`（m ≥ 0，含 prefill 结束点）。到达/决策
+  落在 token 中间时**推迟到下一合法边界**（`victim_deferred_to_token_boundary`），prefill 期间
+  报告 `victim_prefill_in_progress`；两者都会调度一个边界唤醒（`preemption_boundary` 事件）。
+  唤醒只是提示：相位在每次决策时从工作量重导，早醒/晚醒都不会在 token 中间抢占。
+- **受害者选择（信息边界）**：先由**调度器可见信息**（service class、队列年龄、deadline slack、
+  结构/显存/驻留检查）选出唯一 victim；执行层只能执行该动作、或在物理不可执行时报告/推迟，
+  **不得读取隐藏相位后换选另一个 victim**。
 - **恢复**：重新派发时工作量 = `R_m(n_ctx) + 剩余 token × d_r`，其中
-  `R_m = prefill_intercept_ms + prefill_us_per_token/1000 × n_ctx`、`n_ctx = n_in + k`。
-  R_m 已由 P1 往返实验验证（残差 −1.8%~−5.6%）；`preempt_recompute_ms` 记 R_m（不是 elapsed）。
-- **阻止条件（显式登记原因）**：`victim_prefill_in_progress`、`victim_no_request_split`、
-  `victim_decode_complete`、`victim_model_not_covered`。
+  `R_m = intercept + rate/1000 × n_ctx`、`n_ctx = n_in + k`。
+  R_m 已由 P1 往返实验验证（4B/8B SUPER 残差 −1.8%~−5.6%；**3B 补测 +1.5%/+2.6%**（克隆实例，
+  4B 对照 −1.8%，`EXP-20261003_substrate_resume_3b_v1`））；`preempt_recompute_ms` 记 R_m。
+- **阻止/推迟条件（显式登记原因）**：`victim_prefill_in_progress`、`victim_no_request_split`、
+  `victim_decode_complete`、`victim_model_not_covered`、`victim_deferred_to_token_boundary`。
 - **不适用范围**：CPU 节点、YOLO、融合链、组合/嵌套节点（无拆分 → 不可请求级抢占）。
 - **配置**：`request_preemption` 需要 `preemption_enabled=true`（构建器 `--request-preemption` 会同时置位）。
   产物 `experiments/EXP-20261003_substrate_preemption_resume_v1/artifacts/request_preemption_profile_v1.json`
@@ -97,16 +110,19 @@ F4 保留纯拷贝与完整框架加载两种实测证据，并提供两代干�
 多进程部署下同模型并发默认串行（共享 worker 排队）。启用 `batching_engine` 后，同模型对按
 **实测批处理曲线**合并为一个批次执行（vLLM 连续批处理是部署升级假设，微基准为证据）：
 
-- **准入**：仅当 `same_model_curves` 覆盖 `model|role` 且 KV 池容量 ≥ 2 请求
-  （`kv_pools_tokens // (in_tokens + out_tokens)`，token 先验层中位）时准入；
-  未覆盖层（如 8B|answer_generation 未测）或池不足时退回串行，不猜测。
-- **速率**：B=2 的每请求加速比取自曲线（8B planner 1.94×、8B spatial 1.95×、3B answer 1.63×、
-  3B spatial 1.88×、4B planner 1.86×），因子 = 1/speedup（<1，故校验放宽为 >0）；
-  批次中先完成者离开时幸存者复位到单任务速度（剩余工作量已按因子折算，无重复计时）。
+- **语义（每请求延迟因子，不是吞吐加速比）**：曲线值 `f(B) = wall_ms(B) / wall_ms(1)`（实测同质批次
+  的墙钟比，≥1）。批内每个请求按速率 `1/f(B)` 运行；聚合吞吐增益 = `B / f(B)`。
+  **不得**把吞吐加速比 `T1/(wall/B)` 当每请求延迟——那会把"两个请求已经并行"再算一次，
+  使 B=2 的 aggregate throughput 虚增约一倍（评审 P0）。
+- **准入（engine admission）**：`model|role` 完全相同（mixed-role 未测 → 串行）；KV 池已知且
+  `cap = pool // (in+out) ≥ 2`（缺失即拒绝，fail-closed）；两请求的**实际内在运行时长**
+  比值 ≤ `homogeneity_tolerance`（产物 1.25）。B2 探针只测同质批次，明显异质对未测 → 串行。
+- **批次内伙伴离开**：先完成者离开时幸存者复位到单任务速度（已消费工作量按因子折算，无重复计时）。
 - **跨模型**：仍走 HF 多进程共置表（`cross_model_policy=mp_table_proxy`）。B3 双引擎对照显示
   8B 侧 vLLM 与 HF 一致（1.29 vs 1.24），小模型侧不对称（3B 0.98 vs 1.27），差异已在产物登记。
+  validator 强制：`vllm_batched` 不得与单进程 F1 表组合（cross-profile 一致性门）。
 - **冷加载/驱逐过渡区间不批处理**（显式报错），与共置同规则。
-- **配置**：构建器 `--batching-engine experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/batching_engine_profile_v1.json`。
+- **配置**：构建器 `--batching-engine experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/batching_engine_profile_v2.json`。
 - **不包含**：前缀缓存（无前缀身份证据）、跨任务混合模型批、vLLM 调度器内部重排。
 
 ## 模型阶段、批处理与缓存的真实边界
@@ -115,8 +131,8 @@ F2 接入仅暴露实测系数。原始节点没有完整请求长度和图像�
 不输出伪造的阶段耗时。嵌套显卡阶段暂不在该观测覆盖范围内。
 
 vLLM 第 5/6/7 项只支持读取来源并明确报告未支持状态：
-- 连续批处理（第 5 项）已作为独立引擎模式 `vllm_batched` 接入（见上节），以实测曲线 + KV 池上限
-  表达；未覆盖层与超池组合 fail-closed 退回串行。
+- 连续批处理（第 5 项）已作为独立引擎模式 `vllm_batched` 接入（见上节），以**每请求延迟因子** +
+  KV 池上限 + 同质容差表达；未覆盖层/超池/异质组合 fail-closed 退回串行。
 - 前缀缓存缺少可核对的公共输入前缀身份——**永久不支持**，不以任意假设替代。
 - 第 7 项是显存压力总代价，缺少实际抢占次数，不能当精确抢占代价。
 
@@ -142,7 +158,7 @@ python scripts/build_substrate_extension_config.py \
 python scripts/build_substrate_extension_config.py \
   --transition-config experiments/EXP-20261001_substrate_transition_integration_v1/transition_config.json \
   --colocation experiments/EXP-20261003_mp_calibration_v1/artifacts/mp_colocation_table_v1.json \
-  --prefetch-interference experiments/EXP-20261003_mp_calibration_v1/artifacts/prefetch_interference_additive_v1.json \
+  --prefetch-interference experiments/EXP-20261003_mp_calibration_v1/artifacts/prefetch_interference_additive_v2.json \
   --output /tmp/substrate-extension-mp.json
 ```
 
@@ -151,10 +167,10 @@ python scripts/build_substrate_extension_config.py \
 ```sh
 python scripts/build_substrate_extension_config.py \
   --colocation experiments/EXP-20261003_mp_calibration_v1/artifacts/mp_colocation_table_v1.json \
-  --prefetch-interference experiments/EXP-20261003_mp_calibration_v1/artifacts/prefetch_interference_additive_v1.json \
+  --prefetch-interference experiments/EXP-20261003_mp_calibration_v1/artifacts/prefetch_interference_additive_v2.json \
   --request-preemption experiments/EXP-20261003_substrate_preemption_resume_v1/artifacts/request_preemption_profile_v1.json \
-  --batching-engine experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/batching_engine_profile_v1.json \
-  --output /tmp/substrate-extension-v3.json
+  --batching-engine experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/batching_engine_profile_v2.json \
+  --output /tmp/substrate-extension-v4.json
 ```
 
 输出通过已有运行器 `scripts/r8_scheduler_extensions_matrix.py --extension-config` 使用。
@@ -172,5 +188,6 @@ PYTHONPATH=src python -m unittest discover -s tests -p test_workload_v02_state_a
 
 测试包含手算双任务非对称减速、反向查表、真实 F1 表加载、正冷加载成本下的驻留任务共置、
 区间去重、显存保护、抢占剩余任务、未知 F4 因子延后、GPU 身份不匹配、加载时间不消耗推理进度、
-请求级断点恢复与泄漏检查、批处理准入与幸存者复位、KV 池上限拒绝以及非法批处理曲线拒绝。
+请求级断点恢复与泄漏检查、token 边界推迟、批处理准入与幸存者复位、异质对串行、mixed-role 串行、
+KV 池上限/缺元数据拒绝、加性支持域 fail-closed 以及非法批处理曲线拒绝。
 真实实测表测试使用人工短任务，只验证接入链路，不构成原始 workload 的真实回放证据。
