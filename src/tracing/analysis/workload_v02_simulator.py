@@ -1703,10 +1703,11 @@ def request_split_phase(
     """Execution-truth phase state of a running call, from consumed intrinsic work.
 
     The GPU ledger consumes intrinsic work at rate ``1/slowdown``, so the phase
-    clock is derived from ``consumed = total_work - remaining_work`` rather than
-    from wall-clock offsets fixed at dispatch time.  Batching factors,
-    co-location slowdowns, survivor resets and additive stalls therefore move
-    the prefill/decode/token state consistently.
+    clock is derived from ``consumed = total_work - intrinsic_remaining_work_ms``
+    rather than from wall-clock offsets fixed at dispatch time.  Additive
+    interference enters a separate stall budget that pauses this clock instead of
+    rewinding it; batching factors, co-location slowdowns and survivor resets
+    move it consistently.
 
     Returns ``None`` when the task carries no request split.  Otherwise:
 
