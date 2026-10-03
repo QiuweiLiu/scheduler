@@ -1,0 +1,211 @@
+{
+ "schema": "token-shape-calibration-prior-v1",
+ "source": "17 video replay, 48 runs",
+ "note": "NOT an empirical population distribution; 3-8 samples per stratum. input_tokens are measured; output_tokens reported but the DES is expected to recover output from hidden runtime.",
+ "groups": {
+  "Qwen3-VL-8B-Instruct|planner": {
+   "input_tokens": {
+    "n": 138,
+    "min": 899,
+    "p25": 1006.0,
+    "p50": 1055.0,
+    "p75": 1143.0,
+    "max": 1243
+   },
+   "output_tokens": {
+    "n": 138,
+    "min": 3,
+    "p25": 27.0,
+    "p50": 47.5,
+    "p75": 101.8,
+    "max": 161
+   },
+   "image_count": {
+    "n": 138,
+    "min": 0,
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.0,
+    "max": 0
+   },
+   "inference_ms": {
+    "n": 138,
+    "min": 255.658,
+    "p25": 1080.2,
+    "p50": 2101.7,
+    "p75": 3065.5,
+    "max": 5486.487
+   }
+  },
+  "Qwen3-VL-8B-Instruct|videotool_spatial": {
+   "input_tokens": {
+    "n": 56,
+    "min": 220,
+    "p25": 263.0,
+    "p50": 264.0,
+    "p75": 267.2,
+    "max": 276
+   },
+   "output_tokens": {
+    "n": 56,
+    "min": 2,
+    "p25": 14.0,
+    "p50": 50.0,
+    "p75": 97.0,
+    "max": 206
+   },
+   "image_count": {
+    "n": 56,
+    "min": 1,
+    "p25": 1.0,
+    "p50": 1.0,
+    "p75": 1.0,
+    "max": 1
+   },
+   "inference_ms": {
+    "n": 56,
+    "min": 122.349,
+    "p25": 720.8,
+    "p50": 1660.9,
+    "p75": 3237.1,
+    "max": 6484.914
+   }
+  },
+  "Qwen3-VL-8B-Instruct|answer_generation": {
+   "input_tokens": {
+    "n": 31,
+    "min": 154,
+    "p25": 424.5,
+    "p50": 574.0,
+    "p75": 738.0,
+    "max": 916
+   },
+   "output_tokens": {
+    "n": 31,
+    "min": 2,
+    "p25": 2.0,
+    "p50": 2.0,
+    "p75": 2.0,
+    "max": 2
+   },
+   "image_count": {
+    "n": 31,
+    "min": 0,
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.0,
+    "max": 0
+   },
+   "inference_ms": {
+    "n": 31,
+    "min": 83.745,
+    "p25": 131.7,
+    "p50": 135.7,
+    "p75": 161.7,
+    "max": 233.049
+   }
+  },
+  "Qwen2.5-VL-3B-Instruct|answer_generation": {
+   "input_tokens": {
+    "n": 26,
+    "min": 72,
+    "p25": 82.0,
+    "p50": 442.5,
+    "p75": 730.8,
+    "max": 1314
+   },
+   "output_tokens": {
+    "n": 26,
+    "min": 2,
+    "p25": 3.0,
+    "p50": 3.0,
+    "p75": 5.0,
+    "max": 6
+   },
+   "image_count": {
+    "n": 26,
+    "min": 0,
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.0,
+    "max": 0
+   },
+   "inference_ms": {
+    "n": 26,
+    "min": 89.993,
+    "p25": 181.4,
+    "p50": 578.4,
+    "p75": 783.1,
+    "max": 1084.093
+   }
+  },
+  "Qwen3-4B|planner": {
+   "input_tokens": {
+    "n": 72,
+    "min": 912,
+    "p25": 951.5,
+    "p50": 1072.5,
+    "p75": 1164.5,
+    "max": 1582
+   },
+   "output_tokens": {
+    "n": 72,
+    "min": 28,
+    "p25": 34.8,
+    "p50": 36.0,
+    "p75": 38.0,
+    "max": 46
+   },
+   "image_count": {
+    "n": 72,
+    "min": 0,
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 0.0,
+    "max": 0
+   },
+   "inference_ms": {
+    "n": 72,
+    "min": 964.154,
+    "p25": 1147.2,
+    "p50": 1367.1,
+    "p75": 1677.4,
+    "max": 2243.054
+   }
+  },
+  "Qwen2.5-VL-3B-Instruct|videotool_spatial": {
+   "input_tokens": {
+    "n": 28,
+    "min": 348,
+    "p25": 351.0,
+    "p50": 353.0,
+    "p75": 354.0,
+    "max": 358
+   },
+   "output_tokens": {
+    "n": 28,
+    "min": 9,
+    "p25": 9.0,
+    "p50": 35.0,
+    "p75": 91.5,
+    "max": 96
+   },
+   "image_count": {
+    "n": 28,
+    "min": 1,
+    "p25": 1.0,
+    "p50": 1.0,
+    "p75": 1.0,
+    "max": 1
+   },
+   "inference_ms": {
+    "n": 28,
+    "min": 381.183,
+    "p25": 484.1,
+    "p50": 1436.7,
+    "p75": 2842.5,
+    "max": 3622.608
+   }
+  }
+ }
+}
