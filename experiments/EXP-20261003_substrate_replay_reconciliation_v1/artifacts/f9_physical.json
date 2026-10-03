@@ -1,0 +1,3683 @@
+{
+ "config": {
+  "reps": 3,
+  "warmup": 1,
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER"
+ },
+ "runs": [
+  {
+   "episode": "E1_warm_light",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 983.2,
+     "t_end_ms": 983.2
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 983.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 987.6,
+     "t_end_ms": 1970.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1970.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3947.7,
+     "t_end_ms": 5951.8
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5951.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 984.9,
+     "t_end_ms": 6936.7
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6936.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 987.5,
+     "t_end_ms": 7924.2
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7924.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3953.4,
+     "t_end_ms": 11877.7
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11877.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 990.1,
+     "t_end_ms": 12867.8
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6936.7,
+    "1": 12867.8
+   },
+   "makespan_ms": 12867.8,
+   "tag": "E1_warm_light|P0_seq|rep0",
+   "rep": 0,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 980.9,
+     "t_end_ms": 980.9
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 980.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 979.1,
+     "t_end_ms": 1960.0
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1960.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3955.3,
+     "t_end_ms": 5948.4
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5948.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 979.3,
+     "t_end_ms": 6927.7
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6927.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 979.5,
+     "t_end_ms": 7907.2
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7907.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3948.5,
+     "t_end_ms": 11855.8
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11855.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 975.3,
+     "t_end_ms": 12831.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6927.7,
+    "1": 12831.1
+   },
+   "makespan_ms": 12831.2,
+   "tag": "E1_warm_light|P1_prefetch|rep0",
+   "rep": 0,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2036.2,
+     "t_end_ms": 2037.3
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2040.8,
+     "t_end_ms": 2047.1
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 2047.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1813.6,
+     "t_end_ms": 3862.9
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 2048.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 5209.7,
+     "t_end_ms": 7314.7
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 7317.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2431.7,
+     "t_end_ms": 9754.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7315.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6285.1,
+     "t_end_ms": 13603.1
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 13603.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1311.8,
+     "t_end_ms": 14915.4
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "1": 9754.9,
+    "0": 14915.4
+   },
+   "makespan_ms": 14915.5,
+   "tag": "E1_warm_light|P2_crev|rep0",
+   "rep": 0,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 983.8,
+     "t_end_ms": 983.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 983.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 982.4,
+     "t_end_ms": 1966.2
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1966.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3949.9,
+     "t_end_ms": 5949.8
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5949.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 988.2,
+     "t_end_ms": 6938.0
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6938.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 980.4,
+     "t_end_ms": 7918.4
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7918.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3967.6,
+     "t_end_ms": 11886.1
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11886.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 990.9,
+     "t_end_ms": 12877.0
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6938.0,
+    "1": 12877.0
+   },
+   "makespan_ms": 12877.0,
+   "tag": "E1_warm_light|P0_seq|rep1",
+   "rep": 1,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 989.2,
+     "t_end_ms": 989.3
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 989.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 990.2,
+     "t_end_ms": 1979.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1979.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3957.9,
+     "t_end_ms": 5971.3
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5971.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 979.1,
+     "t_end_ms": 6950.4
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6950.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 979.0,
+     "t_end_ms": 7929.5
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7929.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3931.9,
+     "t_end_ms": 11861.4
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11861.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 976.2,
+     "t_end_ms": 12837.6
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6950.4,
+    "1": 12837.6
+   },
+   "makespan_ms": 12837.6,
+   "tag": "E1_warm_light|P1_prefetch|rep1",
+   "rep": 1,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2390.6,
+     "t_end_ms": 2397.6
+    },
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2432.7,
+     "t_end_ms": 2433.4
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 2435.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2470.8,
+     "t_end_ms": 4906.7
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 2439.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6390.9,
+     "t_end_ms": 8882.7
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 8885.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2598.8,
+     "t_end_ms": 11492.0
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 8883.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6413.7,
+     "t_end_ms": 15299.8
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 15300.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1343.0,
+     "t_end_ms": 16643.9
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "1": 11492.0,
+    "0": 16643.9
+   },
+   "makespan_ms": 16643.9,
+   "tag": "E1_warm_light|P2_crev|rep1",
+   "rep": 1,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 981.0,
+     "t_end_ms": 981.1
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 981.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 978.3,
+     "t_end_ms": 1959.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1959.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3932.8,
+     "t_end_ms": 5925.4
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5925.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 978.4,
+     "t_end_ms": 6903.8
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6903.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 977.5,
+     "t_end_ms": 7881.3
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7881.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3935.0,
+     "t_end_ms": 11816.2
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11816.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 976.8,
+     "t_end_ms": 12793.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6903.8,
+    "1": 12793.1
+   },
+   "makespan_ms": 12793.1,
+   "tag": "E1_warm_light|P0_seq|rep2",
+   "rep": 2,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 984.9,
+     "t_end_ms": 985.0
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 985.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 984.3,
+     "t_end_ms": 1969.3
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1969.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3964.3,
+     "t_end_ms": 5966.7
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5966.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 987.6,
+     "t_end_ms": 6954.4
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6954.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 982.7,
+     "t_end_ms": 7937.1
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7937.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3946.8,
+     "t_end_ms": 11884.0
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11884.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 984.6,
+     "t_end_ms": 12868.7
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6954.4,
+    "1": 12868.7
+   },
+   "makespan_ms": 12868.7,
+   "tag": "E1_warm_light|P1_prefetch|rep2",
+   "rep": 2,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2516.2,
+     "t_end_ms": 2517.1
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2513.6,
+     "t_end_ms": 2519.7
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 2520.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2401.2,
+     "t_end_ms": 4923.1
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 2521.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 5975.7,
+     "t_end_ms": 8553.9
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 8556.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2447.7,
+     "t_end_ms": 11009.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 8555.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 5947.9,
+     "t_end_ms": 14504.9
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 14505.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1416.9,
+     "t_end_ms": 15923.0
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "1": 11009.9,
+    "0": 15923.0
+   },
+   "makespan_ms": 15923.0,
+   "tag": "E1_warm_light|P2_crev|rep2",
+   "rep": 2,
+   "cold_start": false
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3357.4,
+     "duration_ms": 3497.1,
+     "t_end_ms": 6908.7
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6908.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3083.8,
+     "t_end_ms": 9992.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9992.5,
+     "wait_load_ms": 4097.5,
+     "duration_ms": 3887.0,
+     "t_end_ms": 18042.2
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 18042.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 963.4,
+     "t_end_ms": 19011.0
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3356.8,
+     "mode": "prefetch",
+     "t_wall": 12468194.699
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 4097.0,
+     "mode": "prefetch",
+     "t_wall": 12468204.691
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 19011.0
+   },
+   "makespan_ms": 19011.0,
+   "tag": "E2_cold_churn|P0_seq|rep0",
+   "rep": 0,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 2702.8,
+     "duration_ms": 3105.5,
+     "t_end_ms": 5853.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 5854.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6608.8,
+     "t_end_ms": 12462.8
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 12462.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3899.4,
+     "t_end_ms": 16396.2
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 16396.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 981.8,
+     "t_end_ms": 17383.4
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2702.4,
+     "mode": "prefetch",
+     "t_wall": 12468213.894
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3536.1,
+     "mode": "prefetch",
+     "t_wall": 12468219.747
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 17383.4
+   },
+   "makespan_ms": 17383.4,
+   "tag": "E2_cold_churn|P1_prefetch|rep0",
+   "rep": 0,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 2811.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3113.0,
+     "t_end_ms": 5968.5
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 5968.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7588.4,
+     "t_end_ms": 13557.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13557.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3868.2,
+     "t_end_ms": 17459.8
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17459.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 958.7,
+     "t_end_ms": 18423.8
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2810.8,
+     "mode": "prefetch",
+     "t_wall": 12468231.468
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 4175.6,
+     "mode": "prefetch",
+     "t_wall": 12468237.436
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 18423.8
+   },
+   "makespan_ms": 18423.8,
+   "tag": "E2_cold_churn|P2_crev|rep0",
+   "rep": 0,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3238.2,
+     "duration_ms": 3072.1,
+     "t_end_ms": 6356.0
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6356.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3082.5,
+     "t_end_ms": 9438.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9438.5,
+     "wait_load_ms": 3990.5,
+     "duration_ms": 3893.9,
+     "t_end_ms": 17382.3
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17382.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 963.9,
+     "t_end_ms": 18351.5
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3237.8,
+     "mode": "prefetch",
+     "t_wall": 12468250.097
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3990.1,
+     "mode": "prefetch",
+     "t_wall": 12468259.536
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 18351.5
+   },
+   "makespan_ms": 18351.5,
+   "tag": "E2_cold_churn|P0_seq|rep1",
+   "rep": 1,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 2632.3,
+     "duration_ms": 3081.2,
+     "t_end_ms": 5760.3
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 5760.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7192.0,
+     "t_end_ms": 12952.8
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 12952.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 4013.3,
+     "t_end_ms": 17000.4
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17000.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 981.2,
+     "t_end_ms": 17987.0
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2632.0,
+     "mode": "prefetch",
+     "t_wall": 12468268.633
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3257.0,
+     "mode": "prefetch",
+     "t_wall": 12468274.393
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 17987.0
+   },
+   "makespan_ms": 17987.0,
+   "tag": "E2_cold_churn|P1_prefetch|rep1",
+   "rep": 1,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 2704.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3149.9,
+     "t_end_ms": 5899.3
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 5899.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7087.3,
+     "t_end_ms": 12987.0
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 12987.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3940.6,
+     "t_end_ms": 16961.4
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 16961.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 982.0,
+     "t_end_ms": 17948.8
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2704.5,
+     "mode": "prefetch",
+     "t_wall": 12468286.806
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3976.7,
+     "mode": "prefetch",
+     "t_wall": 12468292.705
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 17948.8
+   },
+   "makespan_ms": 17948.8,
+   "tag": "E2_cold_churn|P2_crev|rep1",
+   "rep": 1,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3388.2,
+     "duration_ms": 3169.8,
+     "t_end_ms": 6604.2
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6604.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3143.3,
+     "t_end_ms": 9747.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9747.5,
+     "wait_load_ms": 4176.5,
+     "duration_ms": 3978.2,
+     "t_end_ms": 17966.3
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17966.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 985.8,
+     "t_end_ms": 18957.6
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3387.5,
+     "mode": "prefetch",
+     "t_wall": 12468304.944
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 4176.1,
+     "mode": "prefetch",
+     "t_wall": 12468314.691
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 18957.6
+   },
+   "makespan_ms": 18957.6,
+   "tag": "E2_cold_churn|P0_seq|rep2",
+   "rep": 2,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 2758.0,
+     "duration_ms": 3143.1,
+     "t_end_ms": 5945.2
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 5945.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6802.8,
+     "t_end_ms": 12748.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 12748.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3886.6,
+     "t_end_ms": 16670.2
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 16670.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 968.4,
+     "t_end_ms": 17644.0
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2757.6,
+     "mode": "prefetch",
+     "t_wall": 12468324.105
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3406.2,
+     "mode": "prefetch",
+     "t_wall": 12468330.05
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 17644.0
+   },
+   "makespan_ms": 17644.0,
+   "tag": "E2_cold_churn|P1_prefetch|rep2",
+   "rep": 2,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 2874.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3088.9,
+     "t_end_ms": 6009.5
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6009.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7320.6,
+     "t_end_ms": 13330.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13330.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3944.9,
+     "t_end_ms": 17309.7
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17309.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 982.0,
+     "t_end_ms": 18297.0
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2874.3,
+     "mode": "prefetch",
+     "t_wall": 12468341.935
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 4219.6,
+     "mode": "prefetch",
+     "t_wall": 12468347.944
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 18297.0
+   },
+   "makespan_ms": 18297.0,
+   "tag": "E2_cold_churn|P2_crev|rep2",
+   "rep": 2,
+   "cold_start": true
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3630.6,
+     "t_end_ms": 3673.2
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3673.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3158.5,
+     "t_end_ms": 6831.7
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6831.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3153.5,
+     "t_end_ms": 9985.2
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9985.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3966.5,
+     "t_end_ms": 13985.0
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13985.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3974.6,
+     "t_end_ms": 17959.7
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9985.2,
+    "1": 17959.7
+   },
+   "makespan_ms": 17959.7,
+   "tag": "E3_colocation|P0_seq|rep0",
+   "rep": 0,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3162.9,
+     "t_end_ms": 3196.9
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3196.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3156.5,
+     "t_end_ms": 6353.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6353.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3157.1,
+     "t_end_ms": 9510.6
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9510.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3968.5,
+     "t_end_ms": 13512.3
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13512.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3969.1,
+     "t_end_ms": 17481.4
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9510.6,
+    "1": 17481.4
+   },
+   "makespan_ms": 17481.4,
+   "tag": "E3_colocation|P1_prefetch|rep0",
+   "rep": 0,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6094.4,
+     "t_end_ms": 6147.7
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 0.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7148.9,
+     "t_end_ms": 7200.3
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 7201.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6408.2,
+     "t_end_ms": 13616.3
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7202.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7335.1,
+     "t_end_ms": 14537.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 14538.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3417.1,
+     "t_end_ms": 17956.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "1": 14538.0,
+    "0": 17956.1
+   },
+   "makespan_ms": 17956.1,
+   "tag": "E3_colocation|P2_crev|rep0",
+   "rep": 0,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3169.6,
+     "t_end_ms": 3203.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3203.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3160.6,
+     "t_end_ms": 6364.2
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6364.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3152.6,
+     "t_end_ms": 9516.8
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9516.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3962.8,
+     "t_end_ms": 13513.0
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13513.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3974.1,
+     "t_end_ms": 17487.2
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9516.8,
+    "1": 17487.2
+   },
+   "makespan_ms": 17487.2,
+   "tag": "E3_colocation|P0_seq|rep1",
+   "rep": 1,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3181.6,
+     "t_end_ms": 3215.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3215.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3154.6,
+     "t_end_ms": 6370.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6370.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3171.7,
+     "t_end_ms": 9542.2
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9542.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 4195.9,
+     "t_end_ms": 13771.7
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13771.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3988.1,
+     "t_end_ms": 17759.8
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9542.2,
+    "1": 17759.8
+   },
+   "makespan_ms": 17759.8,
+   "tag": "E3_colocation|P1_prefetch|rep1",
+   "rep": 1,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7009.5,
+     "t_end_ms": 7055.1
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 0.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8317.8,
+     "t_end_ms": 8382.1
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 8383.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6528.7,
+     "t_end_ms": 14919.4
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 8384.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7564.1,
+     "t_end_ms": 15949.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 15949.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3485.7,
+     "t_end_ms": 19436.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "1": 15949.6,
+    "0": 19436.1
+   },
+   "makespan_ms": 19436.1,
+   "tag": "E3_colocation|P2_crev|rep1",
+   "rep": 1,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3187.2,
+     "t_end_ms": 3221.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3221.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3123.4,
+     "t_end_ms": 6345.2
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6345.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3131.1,
+     "t_end_ms": 9476.4
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9476.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3942.1,
+     "t_end_ms": 13451.8
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13451.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3943.4,
+     "t_end_ms": 17395.2
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9476.4,
+    "1": 17395.2
+   },
+   "makespan_ms": 17395.2,
+   "tag": "E3_colocation|P0_seq|rep2",
+   "rep": 2,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3148.8,
+     "t_end_ms": 3183.1
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3183.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3155.8,
+     "t_end_ms": 6338.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6338.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3143.8,
+     "t_end_ms": 9482.7
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9482.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3965.0,
+     "t_end_ms": 13481.3
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13481.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3995.8,
+     "t_end_ms": 17477.2
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9482.7,
+    "1": 17477.2
+   },
+   "makespan_ms": 17477.2,
+   "tag": "E3_colocation|P1_prefetch|rep2",
+   "rep": 2,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8088.4,
+     "t_end_ms": 8144.2
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 0.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 9208.0,
+     "t_end_ms": 9261.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 9262.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6705.6,
+     "t_end_ms": 15969.0
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9263.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7822.6,
+     "t_end_ms": 17096.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 17096.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3992.6,
+     "t_end_ms": 21090.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "1": 17096.5,
+    "0": 21090.2
+   },
+   "makespan_ms": 21090.2,
+   "tag": "E3_colocation|P2_crev|rep2",
+   "rep": 2,
+   "cold_start": false
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3707.9,
+     "duration_ms": 7875.2,
+     "t_end_ms": 11795.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 11795.8,
+     "wait_load_ms": 3162.2,
+     "duration_ms": 6259.0,
+     "t_end_ms": 21428.2
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21428.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7895.1,
+     "t_end_ms": 29323.3
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3707.4,
+     "mode": "prefetch",
+     "t_wall": 12468771.684
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3161.9,
+     "mode": "prefetch",
+     "t_wall": 12468783.479
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29323.3
+   },
+   "makespan_ms": 29323.3,
+   "tag": "E4_prefetch|P0_seq|rep0",
+   "rep": 0,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.4,
+     "wait_load_ms": 5997.9,
+     "duration_ms": 9085.8,
+     "t_end_ms": 15311.5
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 15311.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6334.1,
+     "t_end_ms": 21848.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21848.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7974.7,
+     "t_end_ms": 29823.7
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 5996.6,
+     "mode": "prefetch",
+     "t_wall": 12468801.22
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 6826.3,
+     "mode": "prefetch",
+     "t_wall": 12468801.219
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29823.7
+   },
+   "makespan_ms": 29823.7,
+   "tag": "E4_prefetch|P1_prefetch|rep0",
+   "rep": 0,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 5958.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 9702.2,
+     "t_end_ms": 15884.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 15884.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6349.2,
+     "t_end_ms": 22440.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 22440.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7938.1,
+     "t_end_ms": 30378.8
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 5954.4,
+     "mode": "prefetch",
+     "t_wall": 12468831.419
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 7105.6,
+     "mode": "prefetch",
+     "t_wall": 12468831.419
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 30378.8
+   },
+   "makespan_ms": 30378.8,
+   "tag": "E4_prefetch|P2_crev|rep0",
+   "rep": 0,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3411.6,
+     "duration_ms": 7941.8,
+     "t_end_ms": 11562.9
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 11562.9,
+     "wait_load_ms": 3202.1,
+     "duration_ms": 6341.2,
+     "t_end_ms": 21321.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21321.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7902.1,
+     "t_end_ms": 29223.5
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3411.1,
+     "mode": "prefetch",
+     "t_wall": 12468862.144
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3200.6,
+     "mode": "prefetch",
+     "t_wall": 12468873.708
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29223.5
+   },
+   "makespan_ms": 29223.6,
+   "tag": "E4_prefetch|P0_seq|rep1",
+   "rep": 1,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.7,
+     "wait_load_ms": 5785.5,
+     "duration_ms": 9023.7,
+     "t_end_ms": 15116.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 15116.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6305.7,
+     "t_end_ms": 21626.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21626.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7893.3,
+     "t_end_ms": 29520.0
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 5783.2,
+     "mode": "prefetch",
+     "t_wall": 12468891.586
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 6912.6,
+     "mode": "prefetch",
+     "t_wall": 12468891.585
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29520.0
+   },
+   "makespan_ms": 29520.0,
+   "tag": "E4_prefetch|P1_prefetch|rep1",
+   "rep": 1,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 6192.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8785.3,
+     "t_end_ms": 15238.3
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 15238.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6240.6,
+     "t_end_ms": 21681.3
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21681.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7797.2,
+     "t_end_ms": 29478.6
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 6191.1,
+     "mode": "prefetch",
+     "t_wall": 12468921.493
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 7029.5,
+     "mode": "prefetch",
+     "t_wall": 12468921.492
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29478.6
+   },
+   "makespan_ms": 29478.6,
+   "tag": "E4_prefetch|P2_crev|rep1",
+   "rep": 1,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3717.0,
+     "duration_ms": 7815.2,
+     "t_end_ms": 11740.4
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 11740.4,
+     "wait_load_ms": 2580.5,
+     "duration_ms": 6288.1,
+     "t_end_ms": 20811.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 20811.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7799.2,
+     "t_end_ms": 28610.8
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3716.6,
+     "mode": "prefetch",
+     "t_wall": 12468951.329
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2579.4,
+     "mode": "prefetch",
+     "t_wall": 12468963.07
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 28610.8
+   },
+   "makespan_ms": 28610.8,
+   "tag": "E4_prefetch|P0_seq|rep2",
+   "rep": 2,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.5,
+     "wait_load_ms": 5640.1,
+     "duration_ms": 9003.2,
+     "t_end_ms": 14864.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 14864.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6167.5,
+     "t_end_ms": 21234.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21234.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7684.5,
+     "t_end_ms": 28919.1
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 5634.4,
+     "mode": "prefetch",
+     "t_wall": 12468980.139
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 6565.7,
+     "mode": "prefetch",
+     "t_wall": 12468980.139
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 28919.1
+   },
+   "makespan_ms": 28919.1,
+   "tag": "E4_prefetch|P1_prefetch|rep2",
+   "rep": 2,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 6169.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8764.6,
+     "t_end_ms": 15203.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 15203.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6203.5,
+     "t_end_ms": 21611.1
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21611.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7708.6,
+     "t_end_ms": 29319.7
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 6168.4,
+     "mode": "prefetch",
+     "t_wall": 12469009.391
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 6990.8,
+     "mode": "prefetch",
+     "t_wall": 12469009.39
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29319.7
+   },
+   "makespan_ms": 29319.7,
+   "tag": "E4_prefetch|P2_crev|rep2",
+   "rep": 2,
+   "cold_start": true
+  }
+ ],
+ "warmups": [
+  {
+   "episode": "E1_warm_light",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 994.0,
+     "t_end_ms": 994.1
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 994.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 991.6,
+     "t_end_ms": 1985.7
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1985.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3962.3,
+     "t_end_ms": 5981.6
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5981.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 985.4,
+     "t_end_ms": 6967.1
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6967.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 976.2,
+     "t_end_ms": 7943.3
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7943.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3940.8,
+     "t_end_ms": 11884.2
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11884.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 982.7,
+     "t_end_ms": 12867.0
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6967.1,
+    "1": 12867.0
+   },
+   "makespan_ms": 12867.0,
+   "tag": "E1_warm_light|P0_seq|rep-1",
+   "rep": -1,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 985.7,
+     "t_end_ms": 985.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 985.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 983.6,
+     "t_end_ms": 1969.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1969.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3964.2,
+     "t_end_ms": 5966.9
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 5966.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 985.3,
+     "t_end_ms": 6952.2
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 6952.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 977.5,
+     "t_end_ms": 7929.7
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7929.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3947.8,
+     "t_end_ms": 11877.6
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 11877.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 977.5,
+     "t_end_ms": 12855.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 6952.2,
+    "1": 12855.1
+   },
+   "makespan_ms": 12855.1,
+   "tag": "E1_warm_light|P1_prefetch|rep-1",
+   "rep": -1,
+   "cold_start": false
+  },
+  {
+   "episode": "E1_warm_light",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 4.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1801.9,
+     "t_end_ms": 1811.6
+    },
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 0.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1828.1,
+     "t_end_ms": 1832.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 1833.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 1972.4,
+     "t_end_ms": 3806.6
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 1833.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 5532.0,
+     "t_end_ms": 7420.9
+    },
+    {
+     "job": 1,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 7423.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 2287.6,
+     "t_end_ms": 9717.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7422.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 5534.5,
+     "t_end_ms": 12958.1
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 12958.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 989.5,
+     "t_end_ms": 13948.3
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    },
+    {
+     "job": 1,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "1": 9717.6,
+    "0": 13948.3
+   },
+   "makespan_ms": 13948.3,
+   "tag": "E1_warm_light|P2_crev|rep-1",
+   "rep": -1,
+   "cold_start": false
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3449.6,
+     "duration_ms": 3468.8,
+     "t_end_ms": 6990.8
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6990.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3140.0,
+     "t_end_ms": 10130.9
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 10130.9,
+     "wait_load_ms": 3299.0,
+     "duration_ms": 3961.6,
+     "t_end_ms": 17459.1
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17459.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 979.5,
+     "t_end_ms": 18444.0
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3449.0,
+     "mode": "prefetch",
+     "t_wall": 12468137.512
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3298.5,
+     "mode": "prefetch",
+     "t_wall": 12468147.643
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 18444.0
+   },
+   "makespan_ms": 18444.0,
+   "tag": "E2_cold_churn|P0_seq|rep-1",
+   "rep": -1,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3229.5,
+     "duration_ms": 3160.1,
+     "t_end_ms": 6435.6
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6435.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8017.4,
+     "t_end_ms": 14453.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 14453.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3864.2,
+     "t_end_ms": 18351.7
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 18351.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 961.5,
+     "t_end_ms": 19318.5
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3229.1,
+     "mode": "prefetch",
+     "t_wall": 12468156.143
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 4467.6,
+     "mode": "prefetch",
+     "t_wall": 12468162.579
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 19318.6
+   },
+   "makespan_ms": 19318.6,
+   "tag": "E2_cold_churn|P1_prefetch|rep-1",
+   "rep": -1,
+   "cold_start": true
+  },
+  {
+   "episode": "E2_cold_churn",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3099.1,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3127.1,
+     "t_end_ms": 6271.1
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6271.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7578.0,
+     "t_end_ms": 13849.7
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13849.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3971.0,
+     "t_end_ms": 17854.6
+    },
+    {
+     "job": 0,
+     "op": 3,
+     "model": "Qwen3-4B",
+     "shape": "small",
+     "t_start_ms": 17854.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 983.7,
+     "t_end_ms": 18843.6
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 3098.6,
+     "mode": "prefetch",
+     "t_wall": 12468175.668
+    },
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3415.4,
+     "mode": "prefetch",
+     "t_wall": 12468181.939
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 4
+    }
+   ],
+   "job_done_ms": {
+    "0": 18843.6
+   },
+   "makespan_ms": 18843.6,
+   "tag": "E2_cold_churn|P2_crev|rep-1",
+   "rep": -1,
+   "cold_start": true
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3162.6,
+     "t_end_ms": 3196.5
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3196.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3139.1,
+     "t_end_ms": 6335.6
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6335.6,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3136.1,
+     "t_end_ms": 9471.7
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9471.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3944.0,
+     "t_end_ms": 13448.9
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13448.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3941.2,
+     "t_end_ms": 17390.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9471.7,
+    "1": 17390.1
+   },
+   "makespan_ms": 17390.1,
+   "tag": "E3_colocation|P0_seq|rep-1",
+   "rep": -1,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3158.8,
+     "t_end_ms": 3193.0
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 3193.0,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3178.3,
+     "t_end_ms": 6371.4
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 6371.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3136.4,
+     "t_end_ms": 9507.8
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 9507.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3964.2,
+     "t_end_ms": 13505.4
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 13505.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3952.4,
+     "t_end_ms": 17457.8
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "0": 9507.8,
+    "1": 17457.8
+   },
+   "makespan_ms": 17457.8,
+   "tag": "E3_colocation|P1_prefetch|rep-1",
+   "rep": -1,
+   "cold_start": false
+  },
+  {
+   "episode": "E3_colocation",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 0.4,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6525.0,
+     "t_end_ms": 6581.0
+    },
+    {
+     "job": 1,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 0.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7592.1,
+     "t_end_ms": 7646.0
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 7646.9,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7390.1,
+     "t_end_ms": 15038.0
+    },
+    {
+     "job": 1,
+     "op": 1,
+     "model": "Qwen3-4B",
+     "shape": "medium",
+     "t_start_ms": 7653.2,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8474.6,
+     "t_end_ms": 16128.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "medium",
+     "t_start_ms": 16128.8,
+     "wait_load_ms": 0.0,
+     "duration_ms": 3941.5,
+     "t_end_ms": 20071.1
+    }
+   ],
+   "loads": [],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    },
+    {
+     "job": 1,
+     "n_ops": 2
+    }
+   ],
+   "job_done_ms": {
+    "1": 16128.5,
+    "0": 20071.1
+   },
+   "makespan_ms": 20071.1,
+   "tag": "E3_colocation|P2_crev|rep-1",
+   "rep": -1,
+   "cold_start": false
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P0_seq",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.0,
+     "wait_load_ms": 3993.8,
+     "duration_ms": 7927.5,
+     "t_end_ms": 12128.0
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 12128.0,
+     "wait_load_ms": 2953.5,
+     "duration_ms": 6338.7,
+     "t_end_ms": 21629.7
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21629.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7935.0,
+     "t_end_ms": 29564.7
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 3993.4,
+     "mode": "prefetch",
+     "t_wall": 12468682.568
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 2952.2,
+     "mode": "prefetch",
+     "t_wall": 12468694.697
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29564.7
+   },
+   "makespan_ms": 29564.7,
+   "tag": "E4_prefetch|P0_seq|rep-1",
+   "rep": -1,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P1_prefetch",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 0.3,
+     "wait_load_ms": 5531.3,
+     "duration_ms": 8657.2,
+     "t_end_ms": 14410.5
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 14410.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6289.0,
+     "t_end_ms": 20899.3
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 20899.3,
+     "wait_load_ms": 0.0,
+     "duration_ms": 8036.2,
+     "t_end_ms": 28935.6
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 5530.5,
+     "mode": "prefetch",
+     "t_wall": 12468712.338
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 6432.0,
+     "mode": "prefetch",
+     "t_wall": 12468712.338
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 28935.6
+   },
+   "makespan_ms": 28935.6,
+   "tag": "E4_prefetch|P1_prefetch|rep-1",
+   "rep": -1,
+   "cold_start": true
+  },
+  {
+   "episode": "E4_prefetch",
+   "policy": "P2_crev",
+   "ops": [
+    {
+     "job": 0,
+     "op": 0,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 6118.7,
+     "wait_load_ms": 0.0,
+     "duration_ms": 9144.4,
+     "t_end_ms": 15493.4
+    },
+    {
+     "job": 0,
+     "op": 1,
+     "model": "Qwen2.5-VL-3B",
+     "shape": "large",
+     "t_start_ms": 15493.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 6198.4,
+     "t_end_ms": 21892.5
+    },
+    {
+     "job": 0,
+     "op": 2,
+     "model": "Qwen3-4B",
+     "shape": "large",
+     "t_start_ms": 21892.5,
+     "wait_load_ms": 0.0,
+     "duration_ms": 7850.7,
+     "t_end_ms": 29743.3
+    }
+   ],
+   "loads": [
+    {
+     "model": "Qwen3-4B",
+     "load_ms": 6116.8,
+     "mode": "prefetch",
+     "t_wall": 12468741.608
+    },
+    {
+     "model": "Qwen2.5-VL-3B",
+     "load_ms": 6926.2,
+     "mode": "prefetch",
+     "t_wall": 12468741.607
+    }
+   ],
+   "jobs": [
+    {
+     "job": 0,
+     "n_ops": 3
+    }
+   ],
+   "job_done_ms": {
+    "0": 29743.3
+   },
+   "makespan_ms": 29743.3,
+   "tag": "E4_prefetch|P2_crev|rep-1",
+   "rep": -1,
+   "cold_start": true
+  }
+ ]
+}

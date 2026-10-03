@@ -1,0 +1,315 @@
+{
+ "meta": {
+  "rounds": 3,
+  "warmup": 2,
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "total_mem_mib": 32230.8
+ },
+ "cells": [
+  {
+   "cell_id": "Qwen3-VL-8B[xl]+Qwen3-VL-8B[xl]",
+   "model_a": "Qwen3-VL-8B",
+   "shape_a": "xl",
+   "in_tokens_a": 4104,
+   "model_b": "Qwen3-VL-8B",
+   "shape_b": "xl",
+   "in_tokens_b": 4104,
+   "rounds": 3,
+   "warmup": 2,
+   "solo_a_ms": {
+    "n": 3,
+    "median": 15940.4,
+    "p20": 15744.1,
+    "p80": 16133.5,
+    "min": 15744.1,
+    "max": 16133.5
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 15718.8,
+    "p20": 15663.6,
+    "p80": 16308.4,
+    "min": 15663.6,
+    "max": 16308.4
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 36661.7,
+    "p20": 31772.2,
+    "p80": 36732.7,
+    "min": 31772.2,
+    "max": 36732.7
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 36714.8,
+    "p20": 31748.3,
+    "p80": 36822.4,
+    "min": 31748.3,
+    "max": 36822.4
+   },
+   "slowdown_a": 2.2999,
+   "slowdown_b": 2.3357,
+   "coloc_makespan_ms": {
+    "n": 3,
+    "median": 36716.9,
+    "p20": 31779.7,
+    "p80": 36824.6,
+    "min": 31779.7,
+    "max": 36824.6
+   },
+   "mem_used_mib": 31120.3,
+   "util_coloc_mean": 77.3,
+   "cell_seconds": 338.4
+  },
+  {
+   "cell_id": "Qwen3-4B[xl]+Qwen3-4B[xl]",
+   "model_a": "Qwen3-4B",
+   "shape_a": "xl",
+   "in_tokens_a": 4104,
+   "model_b": "Qwen3-4B",
+   "shape_b": "xl",
+   "in_tokens_b": 4104,
+   "rounds": 3,
+   "warmup": 2,
+   "solo_a_ms": {
+    "n": 3,
+    "median": 15371.4,
+    "p20": 15081.6,
+    "p80": 15592.3,
+    "min": 15081.6,
+    "max": 15592.3
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 15162.4,
+    "p20": 15109.9,
+    "p80": 15398.2,
+    "min": 15109.9,
+    "max": 15398.2
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 35173.0,
+    "p20": 34526.0,
+    "p80": 36223.5,
+    "min": 34526.0,
+    "max": 36223.5
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 35158.5,
+    "p20": 34489.7,
+    "p80": 36139.0,
+    "min": 34489.7,
+    "max": 36139.0
+   },
+   "slowdown_a": 2.2882,
+   "slowdown_b": 2.3188,
+   "coloc_makespan_ms": {
+    "n": 3,
+    "median": 35180.4,
+    "p20": 34533.8,
+    "p80": 36231.1,
+    "min": 34533.8,
+    "max": 36231.1
+   },
+   "mem_used_mib": 14872.3,
+   "util_coloc_mean": 48.0,
+   "cell_seconds": 331.8
+  },
+  {
+   "cell_id": "Qwen2.5-VL-3B[xl]+Qwen2.5-VL-3B[xl]",
+   "model_a": "Qwen2.5-VL-3B",
+   "shape_a": "xl",
+   "in_tokens_a": 4115,
+   "model_b": "Qwen2.5-VL-3B",
+   "shape_b": "xl",
+   "in_tokens_b": 4115,
+   "rounds": 3,
+   "warmup": 2,
+   "solo_a_ms": {
+    "n": 3,
+    "median": 11920.0,
+    "p20": 11883.2,
+    "p80": 12213.6,
+    "min": 11883.2,
+    "max": 12213.6
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 11905.9,
+    "p20": 11876.9,
+    "p80": 12637.7,
+    "min": 11876.9,
+    "max": 12637.7
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 27922.7,
+    "p20": 26688.6,
+    "p80": 28501.6,
+    "min": 26688.6,
+    "max": 28501.6
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 27896.3,
+    "p20": 26556.9,
+    "p80": 28517.7,
+    "min": 26556.9,
+    "max": 28517.7
+   },
+   "slowdown_a": 2.3425,
+   "slowdown_b": 2.3431,
+   "coloc_makespan_ms": {
+    "n": 3,
+    "median": 27930.3,
+    "p20": 26696.1,
+    "p80": 28520.0,
+    "min": 26696.1,
+    "max": 28520.0
+   },
+   "mem_used_mib": 22392.3,
+   "util_coloc_mean": 41.7,
+   "cell_seconds": 257.7
+  },
+  {
+   "cell_id": "Qwen3-VL-8B[xs]+Qwen2.5-VL-3B[xl]",
+   "model_a": "Qwen3-VL-8B",
+   "shape_a": "xs",
+   "in_tokens_a": 72,
+   "model_b": "Qwen2.5-VL-3B",
+   "shape_b": "xl",
+   "in_tokens_b": 4115,
+   "rounds": 3,
+   "warmup": 2,
+   "solo_a_ms": {
+    "n": 3,
+    "median": 160.5,
+    "p20": 129.4,
+    "p80": 165.7,
+    "min": 129.4,
+    "max": 165.7
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 12359.6,
+    "p20": 12196.3,
+    "p80": 12674.9,
+    "min": 12196.3,
+    "max": 12674.9
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 507.2,
+    "p20": 468.2,
+    "p80": 515.8,
+    "min": 468.2,
+    "max": 515.8
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 12925.8,
+    "p20": 12555.2,
+    "p80": 13202.3,
+    "min": 12555.2,
+    "max": 13202.3
+   },
+   "slowdown_a": 3.1601,
+   "slowdown_b": 1.0458,
+   "coloc_makespan_ms": {
+    "n": 3,
+    "median": 12928.2,
+    "p20": 12557.3,
+    "p80": 13204.6,
+    "min": 12557.3,
+    "max": 13204.6
+   },
+   "mem_used_mib": 29196.3,
+   "util_coloc_mean": 55.3,
+   "cell_seconds": 129.2
+  },
+  {
+   "cell_id": "staggered:Qwen3-VL-8B[xl]-Qwen2.5-VL-3B[xl]@50%",
+   "kind": "staggered",
+   "model_a": "Qwen3-VL-8B",
+   "shape_a": "xl",
+   "in_tokens_a": 4104,
+   "model_b": "Qwen2.5-VL-3B",
+   "shape_b": "xl",
+   "in_tokens_b": 4115,
+   "offset_frac": 0.5,
+   "rounds": 3,
+   "warmup": 2,
+   "solo_a_ms": {
+    "n": 3,
+    "median": 15948.9,
+    "p20": 15936.5,
+    "p80": 16478.9,
+    "min": 15936.5,
+    "max": 16478.9
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 12010.3,
+    "p20": 11991.3,
+    "p80": 12102.0,
+    "min": 11991.3,
+    "max": 12102.0
+   },
+   "staggered": [
+    {
+     "a_ms": 25570.6,
+     "b_ms": 21535.4,
+     "a_end_ms": 25572.0,
+     "b_end_ms": 29786.7,
+     "makespan_ms": 29786.7,
+     "offset_ms": 8239.5
+    },
+    {
+     "a_ms": 26659.1,
+     "b_ms": 22609.5,
+     "a_end_ms": 26659.9,
+     "b_end_ms": 30728.4,
+     "makespan_ms": 30728.4,
+     "offset_ms": 8103.9
+    },
+    {
+     "a_ms": 27451.3,
+     "b_ms": 24295.1,
+     "a_end_ms": 27452.5,
+     "b_end_ms": 32270.8,
+     "makespan_ms": 32270.8,
+     "offset_ms": 7974.5
+    }
+   ],
+   "a_end_ms": {
+    "n": 3,
+    "median": 26659.9,
+    "p20": 25572.0,
+    "p80": 27452.5,
+    "min": 25572.0,
+    "max": 27452.5
+   },
+   "b_end_ms": {
+    "n": 3,
+    "median": 30728.4,
+    "p20": 29786.7,
+    "p80": 32270.8,
+    "min": 29786.7,
+    "max": 32270.8
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 30728.4,
+    "p20": 29786.7,
+    "p80": 32270.8,
+    "min": 29786.7,
+    "max": 32270.8
+   },
+   "mem_used_mib": 30346.3,
+   "cell_seconds": 329.4
+  }
+ ]
+}

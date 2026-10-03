@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from dataclasses import replace
+import json
 import unittest
 
 from tracing.analysis.workload_v02_simulator import (
@@ -18,6 +19,8 @@ from tracing.analysis.workload_v02_simulator import (
     simulate_episode,
     validate_colocation_profile,
     validate_prefetch_interference_profile,
+    validate_batching_engine_profile,
+    validate_request_preemption_profile,
 )
 
 
@@ -498,6 +501,428 @@ class AdmissionTests(unittest.TestCase):
             next(event for event in missing_dilation_events if event.get("event_type") == "prefetch_start")["residency_committed"]
         )
         self.assertTrue(any(event.get("deferred_reason") == "missing_or_invalid_dilation" for event in missing_dilation_events if event.get("event_type") == "prefetch_start"))
+
+    def test_multi_process_profile_rejects_same_model_cells(self) -> None:
+        profile = {
+            "enabled": True,
+            "engine": "hf_substrate",
+            "deployment": "multi_process",
+            "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp.json",
+            "source_experiment": "synthetic-mp",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-probe.json",
+            "probe_metadata": {"probe": "synthetic"},
+            "cells": [{
+                "model_a": "model-a", "shape_a": "medium",
+                "model_b": "model-a", "shape_b": "medium",
+                "slowdown_a": 1.02, "slowdown_b": 1.02, "feasible": True,
+            }],
+        }
+        with self.assertRaisesRegex(ValueError, "same-model"):
+            validate_colocation_profile(
+                {"colocation_profile": profile}, {"gpu_identity": "synthetic-gpu"}
+            )
+
+    def test_multi_process_colocation_serializes_same_model_and_admits_cross_model(self) -> None:
+        node_a = coloc_node("a:n", "model-a", 100.0, "medium")
+        node_b = coloc_node("b:n", "model-b", 100.0, "medium")
+        profile = {
+            "enabled": True,
+            "engine": "hf_substrate",
+            "deployment": "multi_process",
+            "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp.json",
+            "source_experiment": "synthetic-mp",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-probe.json",
+            "probe_metadata": {"probe": "synthetic"},
+            "cells": [{
+                "model_a": "model-a", "shape_a": "medium",
+                "model_b": "model-b", "shape_b": "medium",
+                "slowdown_a": 1.24, "slowdown_b": 1.27, "feasible": True,
+            }],
+        }
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        transitions = {
+            "models": {
+                model: {"cold_load_ms": 999.0, "evict_proxy_ms": 1.0, "checkpoint_supported": False}
+                for model in ("model-a", "model-b")
+            }
+        }
+        # Same-model jobs serialize: the second node waits for a free GPU.
+        same_episode = {
+            "episode_id": "mp-same",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        same_summary, same_events = simulate_episode(
+            same_episode,
+            {"a": simple_template("a", node_a)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"colocation_profile": profile, "transition_profile": transitions},
+            collect_events=True,
+        )
+        same_starts = [event for event in same_events if event.get("event_type") == "node_start"]
+        self.assertEqual([event["start_ms"] for event in same_starts], [0.0, 100.0])
+        self.assertFalse(any(event.get("colocation_active") for event in same_starts))
+
+        # Cross-model jobs co-locate with the measured multi-process slowdowns.
+        cross_episode = {
+            "episode_id": "mp-cross",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        cross_summary, cross_events = simulate_episode(
+            cross_episode,
+            {"a": simple_template("a", node_a), "b": simple_template("b", node_b)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"colocation_profile": profile, "transition_profile": transitions},
+            collect_events=True,
+        )
+        cross_starts = [event for event in cross_events if event.get("event_type") == "node_start"]
+        self.assertEqual([event["start_ms"] for event in cross_starts], [0.0, 0.0])
+        self.assertEqual(cross_starts[1]["colocation_slowdown"], 1.27)
+        finishes = [event["finish_ms"] for event in cross_events if event.get("event_type") == "node_finish"]
+        # 100*1.24 = 124; the 1.27-side survivor speeds up when the first task ends:
+        # 124 + (100 - 124/1.27) = 126.362.
+        self.assertAlmostEqual(finishes[0], 124.0, places=3)
+        self.assertAlmostEqual(finishes[1], 126.362, places=3)
+
+    def test_additive_prefetch_interference_adds_measured_extra_time(self) -> None:
+        infer = coloc_node("infer:n", "infer-model", 100.0, "medium")
+        loader = coloc_node("load:n", "load-model", 10.0, "medium", load=20.0)
+        templates = {
+            "infer": simple_template("infer", infer),
+            "load": simple_template("load", loader),
+        }
+        stats = {
+            "infer-model|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "load-model|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        interference = {
+            "enabled": True,
+            "engine": "hf_substrate",
+            "deployment": "multi_process",
+            "interference_model": "additive_extra_ms",
+            "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp-f4.json",
+            "source_experiment": "synthetic-mp-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-f4-probe.json",
+            "probe_metadata": {"probe": "synthetic"},
+            "supported_workload_shape": "any",
+            "loads": [{"load": "load-model", "extra_ms": 150.0}],
+        }
+        episode = {
+            "episode_id": "prefetch-additive",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [[]],
+            "jobs": [{"job_instance_id": "j", "template_id": "infer", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"}],
+        }
+        config = {
+            "prefetch_plan": [{"gpu_index": 0, "model_id": "load-model"}],
+            "prefetch_overlap": True,
+            "prefetch_interference": interference,
+        }
+        summary, events = simulate_episode(episode, templates, "fcfs", train_stats=stats, extension_config=config)
+        # Additive model: the running task's finish grows by exactly extra_ms.
+        self.assertEqual(
+            [event["finish_ms"] for event in events if event.get("event_type") == "node_finish"],
+            [250.0],
+        )
+        self.assertEqual(summary["mean_completion_ms"], 250.0)
+        self.assertEqual(summary["prefetch_interference_events"], {"additive": 1})
+        start_events = [event for event in events if event.get("event_type") == "node_interference_start"]
+        self.assertEqual(len(start_events), 1)
+        self.assertEqual(start_events[0]["extra_ms"], 150.0)
+        self.assertEqual(start_events[0]["interference_model"], "additive_extra_ms")
+        # Additive interference is a one-shot charge: nothing is reset when the load ends.
+        self.assertFalse(any(event.get("event_type") == "node_interference_end" for event in events))
+        # The load side keeps its measured duration (no dilation).
+        prefetch_end = next(event for event in events if event.get("event_type") == "prefetch_end")
+        self.assertEqual(prefetch_end["load_ms"], 20.0)
+
+    def test_batching_engine_admits_same_model_pair_with_measured_speedup(self) -> None:
+        def batch_node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="medium", role=role,
+            )
+
+        short = batch_node("a:n", "model-a", "planner", 100.0)
+        long = batch_node("b:n", "model-a", "planner", 200.0)
+        stats = {"model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 200.0,
+                                         "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100}}
+        batching = {
+            "enabled": True, "engine": "vllm_batched", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-batch.json", "source_experiment": "synthetic-batch",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-batch-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "same_model_curves": {"model-a|planner": {"2": 2.0}},
+            "kv_pools_tokens": {"model-a": 100000},
+            "layers": {"model-a|planner": {"in_tokens": 100, "out_tokens": 10}},
+            "cross_model_policy": "mp_table_proxy",
+        }
+        episode = {
+            "episode_id": "batch-pair",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", short), "b": simple_template("b", long)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"batching_engine": batching},
+            collect_events=True,
+        )
+        # Batch factor 1/2: both start together; the short call finishes at 50;
+        # the survivor speeds back up (100 remaining work) and finishes at 150.
+        starts = [event["start_ms"] for event in events if event.get("event_type") == "node_start"]
+        finishes = [event["finish_ms"] for event in events if event.get("event_type") == "node_finish"]
+        self.assertEqual(starts, [0.0, 0.0])
+        self.assertEqual(finishes, [50.0, 150.0])
+        self.assertTrue(summary["batching_engine_enabled"])
+
+        # Without the engine the same pair serializes (multi-process rule).
+        serial_summary, serial_events = simulate_episode(
+            episode,
+            {"a": simple_template("a", short), "b": simple_template("b", long)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={},
+            collect_events=True,
+        )
+        serial_starts = [event["start_ms"] for event in serial_events if event.get("event_type") == "node_start"]
+        self.assertEqual(serial_starts, [0.0, 100.0])
+        self.assertFalse(serial_summary["batching_engine_enabled"])
+
+    def test_batching_engine_kv_pool_cap_refuses_oversized_batch(self) -> None:
+        def batch_node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="medium", role=role,
+            )
+
+        node = batch_node("a:n", "model-a", "planner", 100.0)
+        stats = {"model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0,
+                                         "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100}}
+        batching = {
+            "enabled": True, "engine": "vllm_batched", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-batch.json", "source_experiment": "synthetic-batch",
+            "gpu_identity": "synthetic-gpu",
+            "same_model_curves": {"model-a|planner": {"2": 2.0}},
+            # context = 110 tokens per request; a 100-token pool cannot hold two requests.
+            "kv_pools_tokens": {"model-a": 100},
+            "layers": {"model-a|planner": {"in_tokens": 100, "out_tokens": 10}},
+        }
+        episode = {
+            "episode_id": "batch-cap",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        _summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", node)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"batching_engine": batching},
+            collect_events=True,
+        )
+        starts = [event["start_ms"] for event in events if event.get("event_type") == "node_start"]
+        self.assertEqual(starts, [0.0, 100.0])
+
+    def test_batching_engine_validator_rejects_invalid_curves(self) -> None:
+        profile = {
+            "enabled": True, "engine": "vllm_batched", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-batch.json", "source_experiment": "synthetic-batch",
+            "gpu_identity": "synthetic-gpu",
+            "same_model_curves": {"model-a|planner": {"2": 0.5}},
+            "kv_pools_tokens": {"model-a": 1000},
+        }
+        with self.assertRaisesRegex(ValueError, "speedup"):
+            validate_batching_engine_profile({"batching_engine": profile})
+
+    def test_request_preemption_resumes_from_token_breakpoint(self) -> None:
+        def req_node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        victim = req_node("a:n", "model-a", "planner", 200.0)
+        target = req_node("c:n", "model-c", "planner", 10.0)
+        stats = {
+            f"{model}|gpu|0|exact": {"runtime_p50_ms": r, "runtime_p90_ms": r,
+                                     "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100}
+            for model, r in (("model-a", 200.0), ("model-c", 10.0))
+        }
+        request_profile = {
+            "enabled": True,
+            "mode": "REQUEST_RECOMPUTE",
+            "engine": "hf_substrate",
+            "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-rp.json",
+            "source_experiment": "synthetic-rp",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-rp-probe.json",
+            "probe_metadata": {"probe": "synthetic"},
+            "layers": {"model-a|planner": {"in_tokens": 1000, "out_tokens": 50}},
+            "models": {"model-a": {"prefill_us_per_token": 100.0, "prefill_intercept_ms": 0.0, "tpot_ms": 4.0}},
+        }
+        episode = {
+            "episode_id": "request-preempt",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-c"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jc", "template_id": "c", "arrival_ms": 150.0, "deadline_ms": 1000.0, "service_class": "priority"},
+            ],
+        }
+        config = {
+            "preemption_enabled": True,
+            "max_preemptions": 1,
+            "request_preemption": request_profile,
+        }
+        summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", victim), "c": simple_template("c", target)},
+            "myopic_preempt",
+            train_stats=stats,
+            extension_config=config,
+            collect_events=True,
+        )
+        # Prefill = 100ms; decode = 2ms/token; preempted at t=150 → 25 tokens done.
+        preempts = [event for event in events if event.get("event_type") == "node_preempt"]
+        self.assertEqual(summary["preemptions"], 1)
+        self.assertEqual(len(preempts), 1)
+        self.assertTrue(preempts[0]["request_mode"])
+        self.assertEqual(preempts[0]["tokens_done"], 25)
+        self.assertEqual(preempts[0]["n_ctx"], 1025)
+        self.assertAlmostEqual(preempts[0]["rm_ms"], 102.5, places=3)
+        # Resume = R_m (102.5) + 25 remaining tokens * 2ms = 152.5ms from t=160.
+        a_finishes = [
+            event["finish_ms"]
+            for event in events
+            if event.get("event_type") == "node_finish" and event.get("node_id") == "a:n"
+        ]
+        self.assertEqual(len(a_finishes), 1)
+        self.assertAlmostEqual(a_finishes[0], 312.5, places=3)
+        self.assertAlmostEqual(summary["preempt_recompute_ms"], 102.5, places=3)
+        # Leak guard: token/phase truth never reaches the scheduler-visible state.
+        for event in events:
+            if event.get("event_type") == "node_dispatch" and event.get("scheduler_state"):
+                dumped = json.dumps(event["scheduler_state"], ensure_ascii=False)
+                for forbidden in ("tokens_done", "rm_ms", "prefill_end", "n_ctx", "request_split"):
+                    self.assertNotIn(forbidden, dumped)
+
+    def test_request_preemption_blocks_during_prefill(self) -> None:
+        def req_node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        victim = req_node("a:n", "model-a", "planner", 200.0)
+        target = req_node("c:n", "model-c", "planner", 10.0)
+        stats = {
+            f"{model}|gpu|0|exact": {"runtime_p50_ms": r, "runtime_p90_ms": r,
+                                     "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100}
+            for model, r in (("model-a", 200.0), ("model-c", 10.0))
+        }
+        request_profile = {
+            "enabled": True, "mode": "REQUEST_RECOMPUTE", "engine": "hf_substrate",
+            "provenance_kind": "synthetic", "source_artifact": "synthetic-rp.json",
+            "source_experiment": "synthetic-rp", "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-rp-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "layers": {"model-a|planner": {"in_tokens": 1000, "out_tokens": 50}},
+            "models": {"model-a": {"prefill_us_per_token": 100.0, "prefill_intercept_ms": 0.0, "tpot_ms": 4.0}},
+        }
+        episode = {
+            "episode_id": "request-preempt-prefill",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-c"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jc", "template_id": "c", "arrival_ms": 50.0, "deadline_ms": 1000.0, "service_class": "priority"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", victim), "c": simple_template("c", target)},
+            "myopic_preempt",
+            train_stats=stats,
+            extension_config={"preemption_enabled": True, "max_preemptions": 1, "request_preemption": request_profile},
+            collect_events=True,
+        )
+        self.assertEqual(summary["preemptions"], 0)
+        self.assertIn("victim_prefill_in_progress", summary["preemption_blocked_reasons"])
+        c_starts = [
+            event["start_ms"]
+            for event in events
+            if event.get("event_type") == "node_start" and event.get("node_id") == "c:n"
+        ]
+        # The victim is never interrupted mid-prefill: the target waits for the GPU.
+        self.assertEqual(c_starts, [200.0])
+
+    def test_request_preemption_profile_requires_enabled_flag(self) -> None:
+        profile = {
+            "enabled": True, "mode": "REQUEST_RECOMPUTE", "engine": "hf_substrate",
+            "provenance_kind": "synthetic", "source_artifact": "synthetic-rp.json",
+            "source_experiment": "synthetic-rp", "gpu_identity": "synthetic-gpu",
+            "layers": {"model-a|planner": {"in_tokens": 1000, "out_tokens": 50}},
+            "models": {"model-a": {"prefill_us_per_token": 100.0, "prefill_intercept_ms": 0.0, "tpot_ms": 4.0}},
+        }
+        with self.assertRaisesRegex(ValueError, "preemption_enabled"):
+            validate_request_preemption_profile({"request_preemption": profile})
+        validate_request_preemption_profile(
+            {"request_preemption": profile, "preemption_enabled": True},
+            {"gpu_identity": "synthetic-gpu"},
+        )
 
     def test_preemption_removes_one_live_task_and_keeps_survivor_progress(self) -> None:
         nodes = {

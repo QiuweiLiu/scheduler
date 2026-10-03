@@ -49,7 +49,7 @@ def _json_line(payload: dict[str, Any]) -> None:
 
 def _worker(model_path: Path, max_new_tokens: int, constrained_json: bool = False) -> int:
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
 
     load_started = time.perf_counter()
     dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
@@ -133,12 +133,27 @@ def _worker(model_path: Path, max_new_tokens: int, constrained_json: bool = Fals
                 # Older tokenizer revisions do not expose enable_thinking.
                 inputs = tokenizer.apply_chat_template(messages, **template_kwargs)
             inputs = inputs.to(model_device)
+            request_input_tokens = int(
+                (inputs["input_ids"] if isinstance(inputs, dict) else inputs.input_ids).shape[1]
+            )
+            token_times: list[float] = []
+
+            class _TimedStreamer(TextStreamer):  # type: ignore[misc]
+                def on_finalized_text(self, text: str, stream_end: bool = False) -> None:
+                    token_times.append(time.perf_counter())
+                    # Deliberately do NOT call super(): TextStreamer prints to stdout,
+                    # which would interleave generated text with this worker's JSON-line
+                    # protocol and desynchronise every other request (observed on the
+                    # 2026-10-02 replay: alternating failures, lagged responses).
+
             started = time.perf_counter()
+            streamer = _TimedStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
             with torch.inference_mode():
                 generated = model.generate(
                     **inputs,
                     max_new_tokens=max(1, int(max_new_tokens)),
                     do_sample=False,
+                    streamer=streamer,
                     **(
                         {"prefix_allowed_tokens_fn": prefix_allowed_tokens_fn}
                         if prefix_allowed_tokens_fn is not None
@@ -156,6 +171,13 @@ def _worker(model_path: Path, max_new_tokens: int, constrained_json: bool = Fals
                 clean_up_tokenization_spaces=False,
             )
             inference_ms = round((time.perf_counter() - started) * 1000.0, 3)
+            output_tokens = int(len(generated_trimmed[0])) if generated_trimmed else 0
+            checkpoints: dict[str, float] = {}
+            if token_times:
+                for frac in (0.25, 0.5, 0.75, 1.0):
+                    idx = min(len(token_times) - 1, max(0, int(round(frac * len(token_times))) - 1))
+                    checkpoints[f"decode_p{int(frac*100)}_ms"] = round((token_times[idx] - started) * 1000.0, 3)
+                checkpoints["first_token_ms"] = round((token_times[0] - started) * 1000.0, 3)
             payload: dict[str, Any] = {
                 "ok": True,
                 "text": str(text[0] if text else "").strip()[:8000],
@@ -164,6 +186,9 @@ def _worker(model_path: Path, max_new_tokens: int, constrained_json: bool = Fals
                 "model_resident": True,
                 "json_schema_constrained": bool(constrained_json),
                 "constraint_setup_ms": constraint_setup_ms,
+                "input_tokens": request_input_tokens,
+                "output_tokens": output_tokens,
+                "token_timing": checkpoints,
             }
             if torch.cuda.is_available():
                 payload.update(

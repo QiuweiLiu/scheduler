@@ -1,0 +1,81 @@
+{
+  "schema": "batching-engine-profile-v1",
+  "experiment_id": "EXP-20261003_substrate_batching_curves_v1",
+  "engine": "vllm_batched",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "probe_source_artifact": "experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/b2_batch_curves.json",
+  "probe_metadata": {
+    "batching_source_experiment": "EXP-20261003_substrate_batching_curves_v1",
+    "cross_model_source_experiment": "EXP-20261003_substrate_cross_model_vllm_v1",
+    "note": "Same-model curves are per-request speedups measured on vLLM (B in 1..16). Cross-model concurrency keeps the HF multi-process co-location table as a proxy; the vLLM dual-engine check showed the 8B side within 4% (1.29 vs 1.24) while the small side differed (0.98 vs 1.27)."
+  },
+  "same_model_curves": {
+    "Qwen3-VL-8B|planner": {
+      "1": 1.0,
+      "2": 1.935,
+      "4": 3.799,
+      "8": 7.228,
+      "16": 13.457
+    },
+    "Qwen3-VL-8B|videotool_spatial": {
+      "1": 1.0,
+      "2": 1.948,
+      "4": 3.848,
+      "8": 7.594,
+      "16": 14.637
+    },
+    "Qwen2.5-VL-3B|answer_generation": {
+      "1": 1.0,
+      "2": 1.629,
+      "4": 3.082,
+      "8": 4.768,
+      "16": 7.19
+    },
+    "Qwen2.5-VL-3B|videotool_spatial": {
+      "1": 1.0,
+      "2": 1.881,
+      "4": 3.751,
+      "8": 7.407,
+      "16": 13.699
+    },
+    "Qwen3-4B|planner": {
+      "1": 1.0,
+      "2": 1.857,
+      "4": 3.637,
+      "8": 6.666,
+      "16": 11.754
+    }
+  },
+  "kv_pools_tokens": {
+    "Qwen3-VL-8B": 50480,
+    "Qwen2.5-VL-3B": 476160,
+    "Qwen3-4B": 130624
+  },
+  "layers": {
+    "Qwen3-VL-8B-Instruct|planner": {
+      "in_tokens": 1055,
+      "out_tokens": 47
+    },
+    "Qwen3-VL-8B-Instruct|videotool_spatial": {
+      "in_tokens": 264,
+      "out_tokens": 50
+    },
+    "Qwen3-VL-8B-Instruct|answer_generation": {
+      "in_tokens": 574,
+      "out_tokens": 2
+    },
+    "Qwen2.5-VL-3B-Instruct|answer_generation": {
+      "in_tokens": 442,
+      "out_tokens": 3
+    },
+    "Qwen3-4B|planner": {
+      "in_tokens": 1072,
+      "out_tokens": 36
+    },
+    "Qwen2.5-VL-3B-Instruct|videotool_spatial": {
+      "in_tokens": 353,
+      "out_tokens": 35
+    }
+  },
+  "cross_model_policy": "mp_table_proxy"
+}

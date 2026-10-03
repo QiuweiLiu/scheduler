@@ -1,0 +1,501 @@
+{
+ "config": {
+  "rounds": 3,
+  "warmup": 1,
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "mps_control_available": true
+ },
+ "cells": [
+  {
+   "cell_id": "single:Qwen3-4B|Qwen3-4B",
+   "deployment": "single",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen3-4B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 4146.7,
+    "min": 3760.8,
+    "max": 4201.7
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3775.3,
+    "min": 3742.5,
+    "max": 4820.6
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 8220.3,
+    "min": 7618.8,
+    "max": 9613.5
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 8240.8,
+    "min": 7560.3,
+    "max": 9475.5
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 8242.8,
+    "min": 7625.9,
+    "max": 9621.2
+   },
+   "slowdown_a": 1.9824,
+   "slowdown_b": 2.1828
+  },
+  {
+   "cell_id": "mp:Qwen3-4B|Qwen3-4B",
+   "deployment": "mp",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen3-4B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3759.2,
+    "min": 3738.4,
+    "max": 4108.4
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3914.2,
+    "min": 3908.2,
+    "max": 3948.9
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 3850.8,
+    "min": 3844.5,
+    "max": 3856.3
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 4021.8,
+    "min": 4019.1,
+    "max": 4038.9
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 4021.9,
+    "min": 4019.2,
+    "max": 4039.0
+   },
+   "slowdown_a": 1.0244,
+   "slowdown_b": 1.0275
+  },
+  {
+   "cell_id": "mps:Qwen3-4B|Qwen3-4B",
+   "deployment": "mps",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen3-4B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3764.7,
+    "min": 3763.0,
+    "max": 3765.0
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3709.8,
+    "min": 3699.3,
+    "max": 3723.3
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 3863.6,
+    "min": 3843.5,
+    "max": 3876.0
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3827.2,
+    "min": 3805.1,
+    "max": 3849.2
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 3863.6,
+    "min": 3843.6,
+    "max": 3876.1
+   },
+   "slowdown_a": 1.0263,
+   "slowdown_b": 1.0316
+  },
+  {
+   "cell_id": "single:Qwen2.5-VL-3B|Qwen2.5-VL-3B",
+   "deployment": "single",
+   "model_a": "Qwen2.5-VL-3B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3543.5,
+    "min": 3038.0,
+    "max": 3796.1
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3044.4,
+    "min": 3034.7,
+    "max": 3050.6
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 6616.2,
+    "min": 6471.4,
+    "max": 7244.3
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 6628.0,
+    "min": 6518.9,
+    "max": 7215.1
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 6630.2,
+    "min": 6521.0,
+    "max": 7251.5
+   },
+   "slowdown_a": 1.8671,
+   "slowdown_b": 2.1771
+  },
+  {
+   "cell_id": "mp:Qwen2.5-VL-3B|Qwen2.5-VL-3B",
+   "deployment": "mp",
+   "model_a": "Qwen2.5-VL-3B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 2912.7,
+    "min": 2907.7,
+    "max": 2920.3
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 2956.0,
+    "min": 2947.3,
+    "max": 2963.7
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 3018.0,
+    "min": 2994.2,
+    "max": 3034.6
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3035.7,
+    "min": 3031.8,
+    "max": 3044.1
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 3035.9,
+    "min": 3031.9,
+    "max": 3044.1
+   },
+   "slowdown_a": 1.0362,
+   "slowdown_b": 1.027
+  },
+  {
+   "cell_id": "mps:Qwen2.5-VL-3B|Qwen2.5-VL-3B",
+   "deployment": "mps",
+   "model_a": "Qwen2.5-VL-3B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3036.8,
+    "min": 3022.6,
+    "max": 3079.8
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 2968.4,
+    "min": 2949.3,
+    "max": 3118.7
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 3140.7,
+    "min": 3138.3,
+    "max": 3144.1
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3048.3,
+    "min": 3046.6,
+    "max": 3076.9
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 3140.8,
+    "min": 3138.4,
+    "max": 3144.2
+   },
+   "slowdown_a": 1.0342,
+   "slowdown_b": 1.0269
+  },
+  {
+   "cell_id": "single:Qwen3-4B|Qwen2.5-VL-3B",
+   "deployment": "single",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 4404.9,
+    "min": 3815.3,
+    "max": 4577.0
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 2998.3,
+    "min": 2993.9,
+    "max": 3783.8
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 8076.8,
+    "min": 7071.1,
+    "max": 8727.0
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 6751.5,
+    "min": 6090.1,
+    "max": 7493.2
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 8083.7,
+    "min": 7077.7,
+    "max": 8729.0
+   },
+   "slowdown_a": 1.8336,
+   "slowdown_b": 2.2518
+  },
+  {
+   "cell_id": "mp:Qwen3-4B|Qwen2.5-VL-3B",
+   "deployment": "mp",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen2.5-VL-3B",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "cell_id": "mps:Qwen3-4B|Qwen2.5-VL-3B",
+   "deployment": "mps",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen2.5-VL-3B",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "cell_id": "single:Qwen3-VL-8B|Qwen2.5-VL-3B",
+   "deployment": "single",
+   "model_a": "Qwen3-VL-8B",
+   "model_b": "Qwen2.5-VL-3B",
+   "error": "CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 31.48 GiB of which 8.31 MiB is free. Including non-PyTorch memory, this process has 23.40 GiB memory in use. Process 5943 has 30.00 MiB memory in use. Process 6799 has 8.02 GiB memory in use. Of the allocated memory 22.50"
+  },
+  {
+   "cell_id": "mp:Qwen3-VL-8B|Qwen2.5-VL-3B",
+   "deployment": "mp",
+   "model_a": "Qwen3-VL-8B",
+   "model_b": "Qwen2.5-VL-3B",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "cell_id": "mps:Qwen3-VL-8B|Qwen2.5-VL-3B",
+   "deployment": "mps",
+   "model_a": "Qwen3-VL-8B",
+   "model_b": "Qwen2.5-VL-3B",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "cell_id": "mp:Qwen3-4B|Qwen2.5-VL-3B",
+   "deployment": "mp",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3774.8,
+    "min": 3768.9,
+    "max": 3788.1
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3171.3,
+    "min": 3163.0,
+    "max": 3172.5
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 3883.9,
+    "min": 3850.3,
+    "max": 3902.4
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3237.2,
+    "min": 3223.1,
+    "max": 3282.0
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 3884.0,
+    "min": 3850.4,
+    "max": 3902.6
+   },
+   "slowdown_a": 1.0289,
+   "slowdown_b": 1.0208
+  },
+  {
+   "cell_id": "mps:Qwen3-4B|Qwen2.5-VL-3B",
+   "deployment": "mps",
+   "model_a": "Qwen3-4B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3781.1,
+    "min": 3737.0,
+    "max": 3814.3
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3765.6,
+    "min": 3092.6,
+    "max": 3856.6
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 3868.9,
+    "min": 3865.0,
+    "max": 3890.0
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3166.3,
+    "min": 3120.3,
+    "max": 3492.1
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 3869.2,
+    "min": 3865.1,
+    "max": 3890.5
+   },
+   "slowdown_a": 1.0232,
+   "slowdown_b": 0.8408
+  },
+  {
+   "cell_id": "single:Qwen3-VL-8B|Qwen2.5-VL-3B",
+   "deployment": "single",
+   "model_a": "Qwen3-VL-8B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 4157.5,
+    "min": 3889.3,
+    "max": 5009.8
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 2944.3,
+    "min": 2942.4,
+    "max": 4245.1
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 7239.9,
+    "min": 7234.5,
+    "max": 9183.7
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 6213.4,
+    "min": 6074.7,
+    "max": 7865.2
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 7247.5,
+    "min": 7241.5,
+    "max": 9191.6
+   },
+   "slowdown_a": 1.7414,
+   "slowdown_b": 2.1103
+  },
+  {
+   "cell_id": "mp:Qwen3-VL-8B|Qwen2.5-VL-3B",
+   "deployment": "mp",
+   "model_a": "Qwen3-VL-8B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3791.5,
+    "min": 3784.3,
+    "max": 3805.4
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 2920.1,
+    "min": 2914.4,
+    "max": 2925.1
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 4711.9,
+    "min": 4704.8,
+    "max": 4719.2
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3698.4,
+    "min": 3697.0,
+    "max": 3723.0
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 4712.1,
+    "min": 4704.8,
+    "max": 4719.3
+   },
+   "slowdown_a": 1.2428,
+   "slowdown_b": 1.2665
+  },
+  {
+   "cell_id": "mps:Qwen3-VL-8B|Qwen2.5-VL-3B",
+   "deployment": "mps",
+   "model_a": "Qwen3-VL-8B",
+   "model_b": "Qwen2.5-VL-3B",
+   "solo_a_ms": {
+    "n": 3,
+    "median": 3850.4,
+    "min": 3833.0,
+    "max": 3853.5
+   },
+   "solo_b_ms": {
+    "n": 3,
+    "median": 3825.0,
+    "min": 3047.1,
+    "max": 4412.1
+   },
+   "coloc_a_ms": {
+    "n": 3,
+    "median": 4719.1,
+    "min": 4710.1,
+    "max": 4719.7
+   },
+   "coloc_b_ms": {
+    "n": 3,
+    "median": 3746.0,
+    "min": 3737.1,
+    "max": 3784.7
+   },
+   "makespan_ms": {
+    "n": 3,
+    "median": 4719.2,
+    "min": 4710.2,
+    "max": 4719.9
+   },
+   "slowdown_a": 1.2256,
+   "slowdown_b": 0.9793
+  }
+ ]
+}

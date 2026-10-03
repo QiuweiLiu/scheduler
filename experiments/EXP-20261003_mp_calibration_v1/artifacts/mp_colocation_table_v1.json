@@ -1,0 +1,117 @@
+{
+  "schema": "colocation-cost-table-v1",
+  "experiment_id": "EXP-20261003_mp_calibration_v1",
+  "deployment": "multi_process",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "note": "Multi-process deployment surface (per-model worker processes). Same-model pairs are intentionally omitted: concurrent same-model requests serialize on the shared worker and are modelled as waiting for a free GPU. Measured slowdowns < 1.0 are clamped to 1.0 (no speed-up claimed).",
+  "sources": [
+    "EXP-20261003_mp_calibration_v1",
+    "EXP-20261003_mps_comparison_v1"
+  ],
+  "cells": [
+    {
+      "cell_id": "A1_8B_med|4B_med",
+      "model_a": "Qwen3-VL-8B",
+      "shape_a": "medium",
+      "model_b": "Qwen3-4B",
+      "shape_b": "medium",
+      "solo_a_ms": 3938.8,
+      "solo_b_ms": 4090.5,
+      "coloc_a_ms": 6076.8,
+      "coloc_b_ms": 4729.9,
+      "slowdown_a": 1.5428,
+      "slowdown_b": 1.1563,
+      "feasible": true
+    },
+    {
+      "cell_id": "A2_4B_s|3B_s",
+      "model_a": "Qwen3-4B",
+      "shape_a": "short",
+      "model_b": "Qwen2.5-VL-3B",
+      "shape_b": "short",
+      "solo_a_ms": 933.9,
+      "solo_b_ms": 778.8,
+      "coloc_a_ms": 1016.9,
+      "coloc_b_ms": 898.9,
+      "slowdown_a": 1.0889,
+      "slowdown_b": 1.1542,
+      "feasible": true
+    },
+    {
+      "cell_id": "A3_4B_l|3B_l",
+      "model_a": "Qwen3-4B",
+      "shape_a": "long",
+      "model_b": "Qwen2.5-VL-3B",
+      "shape_b": "long",
+      "solo_a_ms": 7716.1,
+      "solo_b_ms": 7216.6,
+      "coloc_a_ms": 9100.2,
+      "coloc_b_ms": 7703.5,
+      "slowdown_a": 1.1794,
+      "slowdown_b": 1.0675,
+      "feasible": true
+    },
+    {
+      "cell_id": "A4_8B_l|3B_l",
+      "model_a": "Qwen3-VL-8B",
+      "shape_a": "long",
+      "model_b": "Qwen2.5-VL-3B",
+      "shape_b": "long",
+      "solo_a_ms": 8121.1,
+      "solo_b_ms": 6284.6,
+      "coloc_a_ms": 11556.5,
+      "coloc_b_ms": 7647.4,
+      "slowdown_a": 1.423,
+      "slowdown_b": 1.2168,
+      "feasible": true
+    },
+    {
+      "cell_id": "A5_8B_xs|3B_xl",
+      "model_a": "Qwen3-VL-8B",
+      "shape_a": "xs",
+      "model_b": "Qwen2.5-VL-3B",
+      "shape_b": "xl",
+      "solo_a_ms": 173.8,
+      "solo_b_ms": 12629.4,
+      "coloc_a_ms": 277.9,
+      "coloc_b_ms": 12246.9,
+      "slowdown_a": 1.599,
+      "slowdown_b": 1.0,
+      "feasible": true
+    },
+    {
+      "cell_id": "mp:Qwen3-4B|Qwen2.5-VL-3B",
+      "model_a": "Qwen3-4B",
+      "shape_a": "medium",
+      "model_b": "Qwen2.5-VL-3B",
+      "shape_b": "medium",
+      "solo_a_ms": 3774.8,
+      "solo_b_ms": 3171.3,
+      "coloc_a_ms": 3883.9,
+      "coloc_b_ms": 3237.2,
+      "slowdown_a": 1.0289,
+      "slowdown_b": 1.0208,
+      "feasible": true
+    },
+    {
+      "cell_id": "mp:Qwen3-VL-8B|Qwen2.5-VL-3B",
+      "model_a": "Qwen3-VL-8B",
+      "shape_a": "medium",
+      "model_b": "Qwen2.5-VL-3B",
+      "shape_b": "medium",
+      "solo_a_ms": 3791.5,
+      "solo_b_ms": 2920.1,
+      "coloc_a_ms": 4711.9,
+      "coloc_b_ms": 3698.4,
+      "slowdown_a": 1.2428,
+      "slowdown_b": 1.2665,
+      "feasible": true
+    }
+  ],
+  "probe_source_artifact": "experiments/EXP-20261003_mp_calibration_v1/artifacts/mp_calibration.json",
+  "probe_metadata": {
+    "protocol": "1 warmup + 3 paired rounds (alternating solo / simultaneous), medians",
+    "workers": "two independent HF worker processes (multi-process deployment)",
+    "gpu": "NVIDIA GeForce RTX 4080 SUPER"
+  }
+}

@@ -1,0 +1,354 @@
+{
+ "config": {
+  "rounds": 3,
+  "warmup": 1,
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER"
+ },
+ "cells": {
+  "A": [
+   {
+    "cell_id": "A1_8B_med|4B_med",
+    "model_a": "Qwen3-VL-8B",
+    "tier_a": "medium",
+    "model_b": "Qwen3-4B",
+    "tier_b": "medium",
+    "solo_a_ms": [
+     3938.8,
+     4299.1,
+     3937.1
+    ],
+    "solo_b_ms": [
+     4067.7,
+     4441.3,
+     4090.5
+    ],
+    "coloc_a_ms": [
+     6076.8,
+     6069.1,
+     6096.6
+    ],
+    "coloc_b_ms": [
+     4725.1,
+     4892.2,
+     4729.9
+    ],
+    "slowdown_a": 1.5428,
+    "slowdown_b": 1.1563
+   },
+   {
+    "cell_id": "A2_4B_s|3B_s",
+    "model_a": "Qwen3-4B",
+    "tier_a": "short",
+    "model_b": "Qwen2.5-VL-3B",
+    "tier_b": "short",
+    "solo_a_ms": [
+     1141.2,
+     933.9,
+     915.9
+    ],
+    "solo_b_ms": [
+     1100.0,
+     761.2,
+     778.8
+    ],
+    "coloc_a_ms": [
+     994.5,
+     1016.9,
+     1028.0
+    ],
+    "coloc_b_ms": [
+     967.2,
+     898.9,
+     888.7
+    ],
+    "slowdown_a": 1.0889,
+    "slowdown_b": 1.1542
+   },
+   {
+    "cell_id": "A3_4B_l|3B_l",
+    "model_a": "Qwen3-4B",
+    "tier_a": "long",
+    "model_b": "Qwen2.5-VL-3B",
+    "tier_b": "long",
+    "solo_a_ms": [
+     7716.1,
+     7776.2,
+     7702.0
+    ],
+    "solo_b_ms": [
+     7760.1,
+     7216.6,
+     6720.8
+    ],
+    "coloc_a_ms": [
+     9225.3,
+     9013.0,
+     9100.2
+    ],
+    "coloc_b_ms": [
+     7563.5,
+     7811.3,
+     7703.5
+    ],
+    "slowdown_a": 1.1794,
+    "slowdown_b": 1.0675
+   },
+   {
+    "cell_id": "A4_8B_l|3B_l",
+    "model_a": "Qwen3-VL-8B",
+    "tier_a": "long",
+    "model_b": "Qwen2.5-VL-3B",
+    "tier_b": "long",
+    "solo_a_ms": [
+     8121.1,
+     8220.9,
+     8041.4
+    ],
+    "solo_b_ms": [
+     6508.2,
+     6177.4,
+     6284.6
+    ],
+    "coloc_a_ms": [
+     11556.5,
+     11545.2,
+     11568.2
+    ],
+    "coloc_b_ms": [
+     7647.4,
+     7805.6,
+     7642.6
+    ],
+    "slowdown_a": 1.423,
+    "slowdown_b": 1.2168
+   },
+   {
+    "cell_id": "A5_8B_xs|3B_xl",
+    "model_a": "Qwen3-VL-8B",
+    "tier_a": "xs",
+    "model_b": "Qwen2.5-VL-3B",
+    "tier_b": "xl",
+    "solo_a_ms": [
+     173.8,
+     190.0,
+     164.9
+    ],
+    "solo_b_ms": [
+     12629.4,
+     12113.6,
+     12770.0
+    ],
+    "coloc_a_ms": [
+     278.1,
+     275.4,
+     277.9
+    ],
+    "coloc_b_ms": [
+     12273.0,
+     12246.9,
+     12058.7
+    ],
+    "slowdown_a": 1.599,
+    "slowdown_b": 0.9697
+   }
+  ],
+  "B": [
+   {
+    "cell_id": "B1_infer4B_med<-load3B",
+    "infer_model": "Qwen3-4B",
+    "infer_tier": "medium",
+    "load_model": "Qwen2.5-VL-3B",
+    "solo_infer_ms": [
+     3789.4,
+     3800.2,
+     3816.9
+    ],
+    "solo_load_ms": [
+     3419.8,
+     3520.1,
+     3252.6
+    ],
+    "overlap_infer_ms": [
+     3827.7,
+     3773.4,
+     3817.9
+    ],
+    "overlap_load_ms": [
+     2848.8,
+     3189.1,
+     3025.4
+    ],
+    "extra_ms": 17.7,
+    "dilation": 0.8847
+   },
+   {
+    "cell_id": "B2_infer4B_long<-load3B",
+    "infer_model": "Qwen3-4B",
+    "infer_tier": "long",
+    "load_model": "Qwen2.5-VL-3B",
+    "solo_infer_ms": [
+     7454.7,
+     7457.3,
+     7465.0
+    ],
+    "solo_load_ms": [
+     3064.0,
+     3582.6,
+     3413.0
+    ],
+    "overlap_infer_ms": [
+     8383.0,
+     8090.8,
+     7740.5
+    ],
+    "overlap_load_ms": [
+     3998.4,
+     3215.0,
+     3053.5
+    ],
+    "extra_ms": 633.5,
+    "dilation": 0.942
+   },
+   {
+    "cell_id": "B3_infer8B_med<-load3B",
+    "infer_model": "Qwen3-VL-8B",
+    "infer_tier": "medium",
+    "load_model": "Qwen2.5-VL-3B",
+    "solo_infer_ms": [
+     4204.4,
+     4180.3,
+     4162.5
+    ],
+    "solo_load_ms": [
+     3695.1,
+     3805.5,
+     3615.3
+    ],
+    "overlap_infer_ms": [
+     4245.6,
+     4227.5,
+     4215.7
+    ],
+    "overlap_load_ms": [
+     2930.8,
+     3096.1,
+     3067.1
+    ],
+    "extra_ms": 47.2,
+    "dilation": 0.83
+   },
+   {
+    "cell_id": "B4_infer4B_med<-load4B",
+    "infer_model": "Qwen3-4B",
+    "infer_tier": "medium",
+    "load_model": "Qwen3-4B",
+    "solo_infer_ms": [
+     3819.8,
+     3819.7,
+     3796.1
+    ],
+    "solo_load_ms": [
+     3403.2,
+     3848.3,
+     3681.0
+    ],
+    "overlap_infer_ms": [
+     3837.5,
+     4426.0,
+     4236.4
+    ],
+    "overlap_load_ms": [
+     3091.9,
+     3199.3,
+     3320.0
+    ],
+    "extra_ms": 416.7,
+    "dilation": 0.8691
+   },
+   {
+    "cell_id": "B5_infer4B_long<-load4B",
+    "infer_model": "Qwen3-4B",
+    "infer_tier": "long",
+    "load_model": "Qwen3-4B",
+    "solo_infer_ms": [
+     7602.8,
+     7603.1,
+     7552.8
+    ],
+    "solo_load_ms": [
+     4104.2,
+     3635.5,
+     3540.2
+    ],
+    "overlap_infer_ms": [
+     7772.3,
+     7770.0,
+     7713.9
+    ],
+    "overlap_load_ms": [
+     3162.4,
+     3184.8,
+     3073.7
+    ],
+    "extra_ms": 167.2,
+    "dilation": 0.8699
+   },
+   {
+    "cell_id": "B6_infer4B_med<-load8B",
+    "infer_model": "Qwen3-4B",
+    "infer_tier": "medium",
+    "load_model": "Qwen3-VL-8B",
+    "solo_infer_ms": [
+     3726.1,
+     3677.1,
+     3754.2
+    ],
+    "solo_load_ms": [
+     7354.0,
+     7107.1,
+     5917.9
+    ],
+    "overlap_infer_ms": [
+     4171.5,
+     4583.0,
+     4221.9
+    ],
+    "overlap_load_ms": [
+     6291.8,
+     6773.9,
+     6542.5
+    ],
+    "extra_ms": 495.8,
+    "dilation": 0.9206
+   },
+   {
+    "cell_id": "B7_infer4B_long<-load8B",
+    "infer_model": "Qwen3-4B",
+    "infer_tier": "long",
+    "load_model": "Qwen3-VL-8B",
+    "solo_infer_ms": [
+     7684.7,
+     7672.8,
+     7674.9
+    ],
+    "solo_load_ms": [
+     6974.5,
+     7305.5,
+     7564.9
+    ],
+    "overlap_infer_ms": [
+     8528.9,
+     8047.2,
+     7694.7
+    ],
+    "overlap_load_ms": [
+     5752.4,
+     6082.7,
+     5761.5
+    ],
+    "extra_ms": 372.3,
+    "dilation": 0.7887
+   }
+  ]
+ }
+}

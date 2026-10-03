@@ -1,0 +1,233 @@
+{
+ "config": {
+  "reps": 3,
+  "warmup": 1,
+  "pairs": [
+   "Qwen3-4B|Qwen2.5-VL-3B",
+   "Qwen2.5-VL-3B|Qwen3-4B"
+  ],
+  "tiers": [
+   "xs",
+   "xl"
+  ],
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER"
+ },
+ "cells": [
+  {
+   "cell_id": "Qwen3-4B[xs]<-load[Qwen2.5-VL-3B]",
+   "infer": "Qwen3-4B",
+   "load": "Qwen2.5-VL-3B",
+   "tier": "xs",
+   "in_tokens": 72,
+   "out_tokens": 4,
+   "infer_solo_ms": {
+    "n": 3,
+    "median": 162.9,
+    "min": 149.9,
+    "max": 166.0
+   },
+   "load_solo_copy_ms": {
+    "n": 3,
+    "median": 288.6,
+    "min": 288.6,
+    "max": 288.6
+   },
+   "copy_overlap_infer_ms": {
+    "n": 3,
+    "median": 427.2,
+    "min": 425.4,
+    "max": 429.9
+   },
+   "copy_overlap_load_ms": {
+    "n": 3,
+    "median": 288.8,
+    "min": 288.8,
+    "max": 288.8
+   },
+   "copy_slowdown": 2.6224,
+   "copy_dilation": 1.0008,
+   "load_solo_full_ms": {
+    "n": 3,
+    "median": 2689.1,
+    "min": 2324.1,
+    "max": 2779.4
+   },
+   "full_overlap_infer_ms": {
+    "n": 3,
+    "median": 3027.0,
+    "min": 2558.5,
+    "max": 3058.7
+   },
+   "full_overlap_load_ms": {
+    "n": 3,
+    "median": 2900.3,
+    "min": 2398.2,
+    "max": 2931.2
+   },
+   "full_slowdown": 18.5817,
+   "full_dilation": 1.0785
+  },
+  {
+   "cell_id": "Qwen3-4B[xl]<-load[Qwen2.5-VL-3B]",
+   "infer": "Qwen3-4B",
+   "load": "Qwen2.5-VL-3B",
+   "tier": "xl",
+   "in_tokens": 4104,
+   "out_tokens": 512,
+   "infer_solo_ms": {
+    "n": 3,
+    "median": 15231.1,
+    "min": 15217.8,
+    "max": 15585.1
+   },
+   "load_solo_copy_ms": {
+    "n": 3,
+    "median": 288.6,
+    "min": 288.6,
+    "max": 288.6
+   },
+   "copy_overlap_infer_ms": {
+    "n": 3,
+    "median": 15718.9,
+    "min": 15655.7,
+    "max": 15744.5
+   },
+   "copy_overlap_load_ms": {
+    "n": 3,
+    "median": 288.9,
+    "min": 288.8,
+    "max": 288.9
+   },
+   "copy_slowdown": 1.032,
+   "copy_dilation": 1.0009,
+   "load_solo_full_ms": {
+    "n": 3,
+    "median": 2358.4,
+    "min": 2328.8,
+    "max": 2416.8
+   },
+   "full_overlap_infer_ms": {
+    "n": 3,
+    "median": 17932.3,
+    "min": 17798.7,
+    "max": 17954.0
+   },
+   "full_overlap_load_ms": {
+    "n": 3,
+    "median": 2573.7,
+    "min": 2564.8,
+    "max": 2798.4
+   },
+   "full_slowdown": 1.1774,
+   "full_dilation": 1.0913
+  },
+  {
+   "cell_id": "Qwen2.5-VL-3B[xs]<-load[Qwen3-4B]",
+   "infer": "Qwen2.5-VL-3B",
+   "load": "Qwen3-4B",
+   "tier": "xs",
+   "in_tokens": 83,
+   "out_tokens": 4,
+   "infer_solo_ms": {
+    "n": 3,
+    "median": 117.3,
+    "min": 117.3,
+    "max": 119.1
+   },
+   "load_solo_copy_ms": {
+    "n": 3,
+    "median": 309.2,
+    "min": 309.1,
+    "max": 309.2
+   },
+   "copy_overlap_infer_ms": {
+    "n": 3,
+    "median": 408.2,
+    "min": 402.8,
+    "max": 423.2
+   },
+   "copy_overlap_load_ms": {
+    "n": 3,
+    "median": 309.4,
+    "min": 309.4,
+    "max": 309.4
+   },
+   "copy_slowdown": 3.4797,
+   "copy_dilation": 1.0007,
+   "load_solo_full_ms": {
+    "n": 3,
+    "median": 2312.7,
+    "min": 2174.0,
+    "max": 2575.4
+   },
+   "full_overlap_infer_ms": {
+    "n": 3,
+    "median": 2531.1,
+    "min": 2304.8,
+    "max": 3014.9
+   },
+   "full_overlap_load_ms": {
+    "n": 3,
+    "median": 2423.6,
+    "min": 2197.8,
+    "max": 2905.6
+   },
+   "full_slowdown": 21.5779,
+   "full_dilation": 1.048
+  },
+  {
+   "cell_id": "Qwen2.5-VL-3B[xl]<-load[Qwen3-4B]",
+   "infer": "Qwen2.5-VL-3B",
+   "load": "Qwen3-4B",
+   "tier": "xl",
+   "in_tokens": 4115,
+   "out_tokens": 512,
+   "infer_solo_ms": {
+    "n": 3,
+    "median": 11864.3,
+    "min": 11850.7,
+    "max": 11868.7
+   },
+   "load_solo_copy_ms": {
+    "n": 3,
+    "median": 309.2,
+    "min": 309.1,
+    "max": 309.2
+   },
+   "copy_overlap_infer_ms": {
+    "n": 3,
+    "median": 12355.5,
+    "min": 12270.4,
+    "max": 12376.6
+   },
+   "copy_overlap_load_ms": {
+    "n": 3,
+    "median": 309.5,
+    "min": 309.5,
+    "max": 309.5
+   },
+   "copy_slowdown": 1.0414,
+   "copy_dilation": 1.001,
+   "load_solo_full_ms": {
+    "n": 3,
+    "median": 2751.1,
+    "min": 2215.8,
+    "max": 2906.6
+   },
+   "full_overlap_infer_ms": {
+    "n": 3,
+    "median": 15395.7,
+    "min": 14907.5,
+    "max": 15794.1
+   },
+   "full_overlap_load_ms": {
+    "n": 3,
+    "median": 2533.2,
+    "min": 2458.1,
+    "max": 2547.0
+   },
+   "full_slowdown": 1.2976,
+   "full_dilation": 0.9208
+  }
+ ]
+}

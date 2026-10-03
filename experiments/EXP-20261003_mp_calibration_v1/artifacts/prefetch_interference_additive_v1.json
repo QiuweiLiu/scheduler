@@ -1,0 +1,43 @@
+{
+  "schema": "prefetch-interference-additive-v1",
+  "interference_model": "additive_extra_ms",
+  "deployment": "multi_process",
+  "experiment_id": "EXP-20261003_mp_calibration_v1",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "probe_source_artifact": "experiments/EXP-20261003_mp_calibration_v1/artifacts",
+  "probe_metadata": {
+    "rounds": 3,
+    "design": "infer 4B (med/long) vs independent loader process"
+  },
+  "supported_workload_shape": "any",
+  "note": "Additive interference: the running task's remaining work grows by extra_ms while a model loads in a separate process. Extra time is calibrated per loaded model (median across cells; measured range retained). No load dilation is applied.",
+  "loads": [
+    {
+      "load": "Qwen2.5-VL-3B",
+      "extra_ms": 47.2,
+      "range_ms": [
+        17.7,
+        633.5
+      ],
+      "cells": 3
+    },
+    {
+      "load": "Qwen3-4B",
+      "extra_ms": 291.9,
+      "range_ms": [
+        167.2,
+        416.7
+      ],
+      "cells": 2
+    },
+    {
+      "load": "Qwen3-VL-8B",
+      "extra_ms": 434.1,
+      "range_ms": [
+        372.3,
+        495.8
+      ],
+      "cells": 2
+    }
+  ]
+}

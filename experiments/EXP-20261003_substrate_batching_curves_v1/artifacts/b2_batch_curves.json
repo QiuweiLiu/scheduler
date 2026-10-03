@@ -1,0 +1,221 @@
+{
+ "config": {
+  "reps": 3,
+  "gmu": 0.85,
+  "max_len": 8192
+ },
+ "models": {
+  "Qwen3-VL-8B": {
+   "path": "/root/autodl-tmp/Qwen3-VL-8B-Instruct",
+   "kv_cache": {
+    "num_gpu_blocks": 3155,
+    "block_size": 16
+   },
+   "conditions": {
+    "planner_text": {
+     "text_tokens": 1055,
+     "images": 0,
+     "out": 48,
+     "curves": [
+      {
+       "batch_size": 1,
+       "wall_ms": 1119.6,
+       "per_req_ms": 1119.6,
+       "speedup_per_req": 1.0
+      },
+      {
+       "batch_size": 2,
+       "wall_ms": 1157.4,
+       "per_req_ms": 578.7,
+       "speedup_per_req": 1.935
+      },
+      {
+       "batch_size": 4,
+       "wall_ms": 1178.6,
+       "per_req_ms": 294.7,
+       "speedup_per_req": 3.799
+      },
+      {
+       "batch_size": 8,
+       "wall_ms": 1238.9,
+       "per_req_ms": 154.9,
+       "speedup_per_req": 7.228
+      },
+      {
+       "batch_size": 16,
+       "wall_ms": 1330.6,
+       "per_req_ms": 83.2,
+       "speedup_per_req": 13.457
+      }
+     ]
+    },
+    "spatial_img": {
+     "text_tokens": 42,
+     "images": 1,
+     "out": 50,
+     "curves": [
+      {
+       "batch_size": 1,
+       "wall_ms": 1149.0,
+       "per_req_ms": 1149.0,
+       "speedup_per_req": 1.0
+      },
+      {
+       "batch_size": 2,
+       "wall_ms": 1179.8,
+       "per_req_ms": 589.9,
+       "speedup_per_req": 1.948
+      },
+      {
+       "batch_size": 4,
+       "wall_ms": 1194.4,
+       "per_req_ms": 298.6,
+       "speedup_per_req": 3.848
+      },
+      {
+       "batch_size": 8,
+       "wall_ms": 1210.8,
+       "per_req_ms": 151.3,
+       "speedup_per_req": 7.594
+      },
+      {
+       "batch_size": 16,
+       "wall_ms": 1255.8,
+       "per_req_ms": 78.5,
+       "speedup_per_req": 14.637
+      }
+     ]
+    }
+   }
+  },
+  "Qwen2.5-VL-3B": {
+   "path": "/root/autodl-tmp/scheduler/Qwen2.5-VL-3B-Instruct",
+   "kv_cache": {
+    "num_gpu_blocks": 29760,
+    "block_size": 16
+   },
+   "conditions": {
+    "answer_text": {
+     "text_tokens": 442,
+     "images": 0,
+     "out": 3,
+     "curves": [
+      {
+       "batch_size": 1,
+       "wall_ms": 45.3,
+       "per_req_ms": 45.3,
+       "speedup_per_req": 1.0
+      },
+      {
+       "batch_size": 2,
+       "wall_ms": 55.6,
+       "per_req_ms": 27.8,
+       "speedup_per_req": 1.629
+      },
+      {
+       "batch_size": 4,
+       "wall_ms": 59.0,
+       "per_req_ms": 14.7,
+       "speedup_per_req": 3.082
+      },
+      {
+       "batch_size": 8,
+       "wall_ms": 76.0,
+       "per_req_ms": 9.5,
+       "speedup_per_req": 4.768
+      },
+      {
+       "batch_size": 16,
+       "wall_ms": 100.1,
+       "per_req_ms": 6.3,
+       "speedup_per_req": 7.19
+      }
+     ]
+    },
+    "spatial_img": {
+     "text_tokens": 52,
+     "images": 1,
+     "out": 35,
+     "curves": [
+      {
+       "batch_size": 1,
+       "wall_ms": 382.2,
+       "per_req_ms": 382.2,
+       "speedup_per_req": 1.0
+      },
+      {
+       "batch_size": 2,
+       "wall_ms": 406.4,
+       "per_req_ms": 203.2,
+       "speedup_per_req": 1.881
+      },
+      {
+       "batch_size": 4,
+       "wall_ms": 407.5,
+       "per_req_ms": 101.9,
+       "speedup_per_req": 3.751
+      },
+      {
+       "batch_size": 8,
+       "wall_ms": 412.5,
+       "per_req_ms": 51.6,
+       "speedup_per_req": 7.407
+      },
+      {
+       "batch_size": 16,
+       "wall_ms": 445.6,
+       "per_req_ms": 27.9,
+       "speedup_per_req": 13.699
+      }
+     ]
+    }
+   }
+  },
+  "Qwen3-4B": {
+   "path": "/root/autodl-tmp/scheduler/Qwen3-4B",
+   "kv_cache": {
+    "num_gpu_blocks": 8164,
+    "block_size": 16
+   },
+   "conditions": {
+    "planner_text": {
+     "text_tokens": 1072,
+     "images": 0,
+     "out": 36,
+     "curves": [
+      {
+       "batch_size": 1,
+       "wall_ms": 486.6,
+       "per_req_ms": 486.6,
+       "speedup_per_req": 1.0
+      },
+      {
+       "batch_size": 2,
+       "wall_ms": 523.9,
+       "per_req_ms": 262.0,
+       "speedup_per_req": 1.857
+      },
+      {
+       "batch_size": 4,
+       "wall_ms": 535.3,
+       "per_req_ms": 133.8,
+       "speedup_per_req": 3.637
+      },
+      {
+       "batch_size": 8,
+       "wall_ms": 584.2,
+       "per_req_ms": 73.0,
+       "speedup_per_req": 6.666
+      },
+      {
+       "batch_size": 16,
+       "wall_ms": 662.3,
+       "per_req_ms": 41.4,
+       "speedup_per_req": 11.754
+      }
+     ]
+    }
+   }
+  }
+ }
+}

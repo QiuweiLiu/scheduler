@@ -604,11 +604,31 @@ class Job:
     assigned_gpus: list[int] = field(default_factory=list)
     preemptions: int = 0
     preempt_recompute_ms: float = 0.0
+    # Request-level preemption resume state per node: the interrupted call keeps
+    # its token progress; on re-dispatch the work is R_m + remaining decode.
+    # Execution truth only, never exposed to the scheduler.
+    request_resume_state: dict[str, dict[str, Any]] = field(default_factory=dict)
     # Intrinsic service durations actually OBSERVED, written at node_finish from the
     # truth provider.  LLMSched evidence reads this and nothing else, so a duration is
     # structurally unavailable before the node finishes rather than merely by
     # convention about when the template is consulted.
     observed_intrinsic_ms: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class RequestSplit:
+    """Execution-truth request timeline for one dispatched call.
+
+    ``load -> prefill (atomic) -> decode (token boundaries)``.  Token counts and
+    phase boundaries are execution truth only and are never exposed through any
+    scheduler-visible view, score, action availability, or victim selection.
+    """
+
+    prefill_end_ms: float
+    decode_step_ms: float
+    tokens_base: int
+    tokens_total: int
+    context_base: int
 
 
 @dataclass
@@ -628,6 +648,8 @@ class GPUActiveTask:
     allocation_mb: float = 0.0
     interference_target: str | None = None
     interference_mode: str = ""
+    interference_model: str = ""
+    request_split: RequestSplit | None = None
 
     def __post_init__(self) -> None:
         if self.remaining_work_ms is None:
@@ -669,6 +691,8 @@ class GPU:
         slowdown: float = 1.0,
         work_ms: float | None = None,
         interference_mode: str = "",
+        interference_model: str = "",
+        request_split: RequestSplit | None = None,
         work_start_ms: float | None = None,
     ) -> str:
         """Record one device interval; the ledger is the sole occupancy source."""
@@ -677,8 +701,8 @@ class GPU:
         finish = float(finish_ms)
         if not math.isfinite(start) or not math.isfinite(finish) or start < 0.0 or finish < start:
             raise ValueError("GPU task interval must be finite, non-negative, and ordered")
-        if not math.isfinite(float(slowdown)) or float(slowdown) < 1.0:
-            raise ValueError("GPU slowdown must be finite and >= 1")
+        if not math.isfinite(float(slowdown)) or float(slowdown) <= 0.0:
+            raise ValueError("GPU task rate multiplier must be finite and > 0")
         if work_ms is not None and (not math.isfinite(float(work_ms)) or float(work_ms) < 0.0):
             raise ValueError("GPU task work must be finite and non-negative")
         base_id = str(task_id)
@@ -699,6 +723,8 @@ class GPU:
             allocation_mb=max(0.0, float(allocation_mb)),
             interference_target=interference_target,
             interference_mode=str(interference_mode),
+            interference_model=str(interference_model),
+            request_split=request_split,
             slowdown=float(slowdown),
             work_start_ms=(start if work_start_ms is None else float(work_start_ms)),
         )
@@ -721,8 +747,8 @@ class GPU:
         return task
 
     def set_task_slowdown(self, task_id: str, slowdown: float, now_ms: float) -> GPUActiveTask:
-        if not math.isfinite(float(slowdown)) or float(slowdown) < 1.0:
-            raise ValueError("GPU slowdown must be finite and >= 1")
+        if not math.isfinite(float(slowdown)) or float(slowdown) <= 0.0:
+            raise ValueError("GPU task rate multiplier must be finite and > 0")
         task = self.update_task_progress(task_id, now_ms)
         task.slowdown = float(slowdown)
         effective_now = max(float(now_ms), float(task.work_start_ms or task.start_ms))
@@ -1195,16 +1221,24 @@ def load_colocation_profile(path: Path) -> dict[str, Any]:
         normalized.append(entry)
     probe_path = path.with_name("f1_probe_calibration.json")
     probe_metadata = None
+    probe_source = None
     if probe_path.is_file():
         probe_metadata = json.loads(probe_path.read_text(encoding="utf-8"))
+        probe_source = str(probe_path)
+    if probe_metadata is None:
+        embedded = raw.get("probe_metadata")
+        if isinstance(embedded, Mapping):
+            probe_metadata = dict(embedded)
+            probe_source = raw.get("probe_source_artifact", str(path))
     return {
         "enabled": True,
         "engine": "hf_substrate",
+        "deployment": raw.get("deployment", "single_process"),
         "provenance_kind": "measured",
         "source_artifact": str(path),
         "source_experiment": raw.get("experiment_id"),
         "gpu_identity": raw.get("gpu"),
-        "probe_source_artifact": str(probe_path) if probe_metadata is not None else None,
+        "probe_source_artifact": probe_source,
         "probe_metadata": probe_metadata,
         "feasible_limit_mib": raw.get("feasible_limit_mib"),
         "cells": normalized,
@@ -1234,6 +1268,9 @@ def validate_colocation_profile(
         return
     if profile.get("engine") != "hf_substrate":
         raise ValueError("co-location profile engine must be hf_substrate")
+    deployment = str(profile.get("deployment") or "single_process")
+    if deployment not in {"single_process", "multi_process"}:
+        raise ValueError("co-location deployment must be single_process or multi_process")
     if profile.get("provenance_kind") not in {"measured", "synthetic"}:
         raise ValueError("co-location profile requires measured or synthetic provenance_kind")
     if not profile.get("source_artifact") or not profile.get("source_experiment"):
@@ -1270,6 +1307,11 @@ def validate_colocation_profile(
             raise ValueError("co-location profile cell must be an object")
         if not bool(cell.get("feasible")):
             continue
+        if deployment == "multi_process" and cell.get("model_a") == cell.get("model_b"):
+            raise ValueError(
+                "multi-process co-location profile must not contain same-model cells: "
+                "same-model requests serialize on the shared per-model worker"
+            )
         for field_name in ("model_a", "shape_a", "model_b", "shape_b"):
             if not str(cell.get(field_name) or "").strip():
                 raise ValueError(f"co-location cell missing {field_name}")
@@ -1287,6 +1329,14 @@ def colocation_slowdowns(
     """Return measured (active, candidate) slowdown factors, if covered."""
 
     if profile is None or not active_task.model_id or not active_task.workload_shape or not node.workload_shape:
+        return None
+    if (
+        str(profile.get("deployment") or "single_process") == "multi_process"
+        and active_task.model_id == node.model_id
+    ):
+        # Multi-process deployment keeps one worker per model: concurrent same-model
+        # requests serialize in that worker, so same-model co-location is never
+        # admissible (it is modelled as waiting for a free GPU, not as overlap).
         return None
     for cell in profile.get("cells") or []:
         if (
@@ -1309,9 +1359,38 @@ def colocation_slowdowns(
 
 
 def load_prefetch_interference_profile(path: Path) -> dict[str, Any]:
-    """Load measured F4 copy/full interference with explicit HF provenance."""
+    """Load measured F4 interference with explicit HF provenance.
+
+    Two artifact families are supported:
+
+    * legacy multiplicative slowdown/dilation pairs (single-process harness);
+    * additive ``extra_ms`` per loaded model (multi-process deployment), which is
+      the deployment of record for the simulator.
+    """
 
     raw = json.loads(path.read_text(encoding="utf-8"))
+    if raw.get("interference_model") == "additive_extra_ms" or raw.get("loads"):
+        loads = []
+        for entry in raw.get("loads") or []:
+            if not isinstance(entry, Mapping):
+                raise ValueError("additive interference load entry must be an object")
+            load = COLOCATION_MODEL_ALIASES.get(entry.get("load"), entry.get("load"))
+            loads.append({**dict(entry), "load": load})
+        return {
+            "enabled": True,
+            "engine": "hf_substrate",
+            "deployment": raw.get("deployment", "multi_process"),
+            "interference_model": "additive_extra_ms",
+            "provenance_kind": "measured",
+            "source_artifact": str(path),
+            "source_experiment": raw.get("experiment_id"),
+            "gpu_identity": raw.get("gpu"),
+            "probe_source_artifact": raw.get("probe_source_artifact", str(path)),
+            "probe_metadata": dict(raw.get("probe_metadata") or raw.get("config") or {}),
+            "supported_workload_shape": raw.get("supported_workload_shape", "any"),
+            "loads": loads,
+            "model_aliases": dict(COLOCATION_MODEL_ALIASES),
+        }
     pairs = raw.get("pairs")
     if not isinstance(pairs, list) or not pairs:
         raise ValueError("interference artifact has no pairs")
@@ -1334,6 +1413,7 @@ def load_prefetch_interference_profile(path: Path) -> dict[str, Any]:
     return {
         "enabled": True,
         "engine": "hf_substrate",
+        "deployment": raw.get("deployment", "single_process"),
         "provenance_kind": "measured",
         "source_artifact": str(path),
         "source_experiment": "EXP-20260929_substrate_overlap_matrix_v1",
@@ -1366,6 +1446,12 @@ def _prefetch_interference_profile(
         raise ValueError("prefetch interference profile requires source provenance")
     if not raw.get("gpu_identity") or not raw.get("probe_metadata") or not raw.get("probe_source_artifact"):
         raise ValueError("prefetch interference profile requires GPU and probe metadata")
+    if str(raw.get("interference_model") or "") == "additive_extra_ms":
+        if raw.get("deployment") != "multi_process":
+            raise ValueError("additive interference is calibrated for the multi-process deployment")
+        if not isinstance(raw.get("loads"), list) or not raw.get("loads"):
+            raise ValueError("additive prefetch interference profile.loads must be non-empty")
+        return raw
     if not isinstance(raw.get("pairs"), list) or not raw.get("pairs"):
         raise ValueError("prefetch interference profile.pairs must be non-empty")
     if not str(raw.get("supported_workload_shape") or "").strip():
@@ -1382,7 +1468,12 @@ def validate_prefetch_interference_profile(
     profile = _prefetch_interference_profile(extension_config)
     if profile is None:
         return
-    if profile.get("provenance_kind") == "measured" and extension_config.get("prefetch_interference_mode") == "copy":
+    if str(profile.get("interference_model") or "") == "additive_extra_ms":
+        for entry in profile.get("loads") or []:
+            value = optional_number(entry.get("extra_ms"))
+            if value is None or value < 0.0:
+                raise ValueError("additive interference load entry has invalid extra_ms")
+    elif profile.get("provenance_kind") == "measured" and extension_config.get("prefetch_interference_mode") == "copy":
         raise ValueError(
             "measured pure-copy evidence does not establish executable model residency; "
             "use full loading until host-ready model materialization is specified"
@@ -1427,6 +1518,300 @@ def prefetch_interference_dilation(
         if pair.get("infer") == infer_model and pair.get("load") == load_model:
             return optional_number(pair.get(key))
     return None
+
+
+def prefetch_interference_extra_ms(
+    profile: Mapping[str, Any] | None,
+    load_model: str,
+) -> float | None:
+    """Additive interference: measured extra milliseconds added to the running task.
+
+    The additive model is calibrated per loaded model; the running task's side is
+    covered by the measurement design and does not change the extra time.
+    """
+
+    if profile is None or str(profile.get("interference_model") or "") != "additive_extra_ms":
+        return None
+    for entry in profile.get("loads") or []:
+        if entry.get("load") == load_model:
+            value = optional_number(entry.get("extra_ms"))
+            return value if value is not None and value >= 0.0 else None
+    return None
+
+
+def _request_preemption_profile(
+    extension_config: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not extension_config:
+        return None
+    raw = extension_config.get("request_preemption")
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        raise ValueError("request_preemption must be an object")
+    if raw.get("enabled", True) is False:
+        return None
+    if raw.get("mode") != "REQUEST_RECOMPUTE":
+        raise ValueError("request_preemption.mode must be REQUEST_RECOMPUTE")
+    if raw.get("engine") != "hf_substrate":
+        raise ValueError("request preemption engine must be hf_substrate")
+    if raw.get("provenance_kind") not in {"measured", "synthetic"}:
+        raise ValueError("request preemption requires measured or synthetic provenance_kind")
+    if not raw.get("source_artifact") or not raw.get("source_experiment"):
+        raise ValueError("request preemption profile requires source provenance")
+    if not raw.get("gpu_identity"):
+        raise ValueError("request preemption profile requires explicit gpu_identity")
+    layers = raw.get("layers")
+    if not isinstance(layers, Mapping) or not layers:
+        raise ValueError("request preemption profile.layers must be non-empty")
+    models = raw.get("models")
+    if not isinstance(models, Mapping) or not models:
+        raise ValueError("request preemption profile.models must be non-empty")
+    return raw
+
+
+def validate_request_preemption_profile(
+    extension_config: Mapping[str, Any] | None,
+    episode: Mapping[str, Any] | None = None,
+) -> None:
+    profile = _request_preemption_profile(extension_config)
+    if profile is None:
+        return
+    if not extension_config.get("preemption_enabled"):
+        raise ValueError("request preemption requires preemption_enabled=true")
+    for key, entry in profile["layers"].items():
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"request preemption layer must be an object: {key}")
+        for field_name in ("in_tokens", "out_tokens"):
+            value = optional_number(entry.get(field_name))
+            if value is None or value < 0:
+                raise ValueError(f"request preemption layer {key} has invalid {field_name}")
+    for model, rates in profile["models"].items():
+        if not isinstance(rates, Mapping):
+            raise ValueError(f"request preemption rates must be an object: {model}")
+        for field_name in ("prefill_us_per_token", "prefill_intercept_ms", "tpot_ms"):
+            value = optional_number(rates.get(field_name))
+            if value is None or value < 0:
+                raise ValueError(f"request preemption model {model} has invalid {field_name}")
+    expected = str(profile.get("gpu_identity") or "").strip()
+    actual = (episode or {}).get("gpu_identity") or (episode or {}).get("gpu_model")
+    if isinstance(actual, Mapping):
+        actual = actual.get("model") or actual.get("name")
+    if isinstance(actual, (list, tuple)):
+        if {str(value).strip() for value in actual} != {expected}:
+            raise ValueError(f"request preemption GPU mismatch: expected {expected!r}, got {actual!r}")
+    elif str(actual or "").strip() != expected:
+        raise ValueError(f"request preemption GPU identity required: expected {expected!r}, got {actual!r}")
+
+
+def request_layer_for_node(
+    profile: Mapping[str, Any] | None,
+    node: Node,
+) -> Mapping[str, Any] | None:
+    if profile is None:
+        return None
+    entry = (profile.get("layers") or {}).get(f"{node.model_id}|{node.role}")
+    return entry if isinstance(entry, Mapping) else None
+
+
+def request_phase_rates(
+    profile: Mapping[str, Any] | None,
+    model_id: str,
+) -> Mapping[str, Any] | None:
+    if profile is None:
+        return None
+    entry = (profile.get("models") or {}).get(model_id)
+    return entry if isinstance(entry, Mapping) else None
+
+
+def request_recompute_ms(
+    profile: Mapping[str, Any] | None,
+    model_id: str,
+    context_tokens: int,
+) -> float | None:
+    rates = request_phase_rates(profile, model_id)
+    if rates is None:
+        return None
+    intercept = optional_number(rates.get("prefill_intercept_ms"))
+    rate = optional_number(rates.get("prefill_us_per_token"))
+    if intercept is None or rate is None:
+        return None
+    return max(0.0, intercept + rate / 1000.0 * max(0, int(context_tokens)))
+
+
+def load_request_preemption_profile(path: Path) -> dict[str, Any]:
+    """Load the request-preemption profile (token prior + phase rates)."""
+
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if raw.get("schema") != "request-preemption-profile-v1":
+        raise ValueError(f"unsupported request preemption artifact schema: {raw.get('schema')!r}")
+    layers: dict[str, Any] = {}
+    for key, entry in (raw.get("layers") or {}).items():
+        model, _, role = str(key).partition("|")
+        model = COLOCATION_MODEL_ALIASES.get(model, model)
+        layers[f"{model}|{role}"] = dict(entry)
+    models: dict[str, Any] = {}
+    for model, rates in (raw.get("models") or {}).items():
+        models[COLOCATION_MODEL_ALIASES.get(model, model)] = dict(rates)
+    return {
+        "enabled": True,
+        "mode": "REQUEST_RECOMPUTE",
+        "engine": "hf_substrate",
+        "provenance_kind": "measured",
+        "source_artifact": str(path),
+        "source_experiment": raw.get("experiment_id"),
+        "gpu_identity": raw.get("gpu"),
+        "probe_source_artifact": raw.get("probe_source_artifact", str(path)),
+        "probe_metadata": dict(raw.get("probe_metadata") or {}),
+        "layers": layers,
+        "models": models,
+    }
+
+
+def _batching_engine_profile(
+    extension_config: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not extension_config:
+        return None
+    raw = extension_config.get("batching_engine")
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        raise ValueError("batching_engine must be an object")
+    if raw.get("enabled", True) is False:
+        return None
+    if raw.get("engine") != "vllm_batched":
+        raise ValueError("batching_engine.engine must be vllm_batched")
+    if raw.get("provenance_kind") not in {"measured", "synthetic"}:
+        raise ValueError("batching engine requires measured or synthetic provenance_kind")
+    if not raw.get("source_artifact") or not raw.get("source_experiment"):
+        raise ValueError("batching engine profile requires source provenance")
+    if not raw.get("gpu_identity"):
+        raise ValueError("batching engine profile requires explicit gpu_identity")
+    curves = raw.get("same_model_curves")
+    if not isinstance(curves, Mapping) or not curves:
+        raise ValueError("batching engine profile.same_model_curves must be non-empty")
+    return raw
+
+
+def validate_batching_engine_profile(
+    extension_config: Mapping[str, Any] | None,
+    episode: Mapping[str, Any] | None = None,
+) -> None:
+    profile = _batching_engine_profile(extension_config)
+    if profile is None:
+        return
+    for key, curve in profile["same_model_curves"].items():
+        if not isinstance(curve, Mapping) or not curve:
+            raise ValueError(f"batching curve must be a non-empty object: {key}")
+        for batch, speedup in curve.items():
+            value = optional_number(speedup)
+            if value is None or value < 1.0:
+                raise ValueError(f"batching curve {key} batch {batch} has invalid speedup")
+    for model, pool in (profile.get("kv_pools_tokens") or {}).items():
+        value = optional_number(pool)
+        if value is None or value <= 0:
+            raise ValueError(f"batching KV pool for {model} must be positive")
+    expected = str(profile.get("gpu_identity") or "").strip()
+    actual = (episode or {}).get("gpu_identity") or (episode or {}).get("gpu_model")
+    if isinstance(actual, Mapping):
+        actual = actual.get("model") or actual.get("name")
+    if isinstance(actual, (list, tuple)):
+        if {str(value).strip() for value in actual} != {expected}:
+            raise ValueError(f"batching engine GPU mismatch: expected {expected!r}, got {actual!r}")
+    elif str(actual or "").strip() != expected:
+        raise ValueError(f"batching engine GPU identity required: expected {expected!r}, got {actual!r}")
+
+
+def batching_speedup(
+    profile: Mapping[str, Any] | None,
+    node: Node,
+    batch_size: int,
+) -> float | None:
+    if profile is None:
+        return None
+    curve = (profile.get("same_model_curves") or {}).get(f"{node.model_id}|{node.role}")
+    if not isinstance(curve, Mapping):
+        return None
+    value = optional_number(curve.get(str(int(batch_size))))
+    return value if value is not None and value >= 1.0 else None
+
+
+def batching_kv_cap(
+    profile: Mapping[str, Any] | None,
+    node: Node,
+) -> int | None:
+    """Maximum concurrent same-model requests for this layer (measured KV pool cap)."""
+
+    if profile is None:
+        return None
+    pool = optional_number((profile.get("kv_pools_tokens") or {}).get(node.model_id))
+    layer = (profile.get("layers") or {}).get(f"{node.model_id}|{node.role}")
+    if pool is None or not isinstance(layer, Mapping):
+        return None
+    context = max(0.0, optional_number(layer.get("in_tokens")) or 0.0)
+    context += max(0.0, optional_number(layer.get("out_tokens")) or 0.0)
+    if context <= 0:
+        return None
+    return int(pool // context)
+
+
+def batching_admission_factor(
+    profile: Mapping[str, Any] | None,
+    node: Node,
+    active_task: GPUActiveTask,
+) -> float | None:
+    """Rate multiplier (< 1) when a same-model pair is admitted as a measured batch.
+
+    ``None`` means the pair is not admissible as a batch (uncovered layer, KV pool
+    too small, or no batching engine); callers then fall back to the deployment's
+    serialize rule.
+    """
+
+    if profile is None or active_task.model_id != node.model_id:
+        return None
+    speedup = batching_speedup(profile, node, 2)
+    if speedup is None:
+        return None
+    cap = batching_kv_cap(profile, node)
+    if cap is not None and cap < 2:
+        return None
+    return 1.0 / speedup
+
+
+def load_batching_engine_profile(path: Path) -> dict[str, Any]:
+    """Load the measured vLLM batching engine profile (curves + KV pools)."""
+
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if raw.get("schema") != "batching-engine-profile-v1":
+        raise ValueError(f"unsupported batching engine artifact schema: {raw.get('schema')!r}")
+    curves: dict[str, Any] = {}
+    for key, curve in (raw.get("same_model_curves") or {}).items():
+        model, _, role = str(key).partition("|")
+        model = COLOCATION_MODEL_ALIASES.get(model, model)
+        curves[f"{model}|{role}"] = dict(curve)
+    layers: dict[str, Any] = {}
+    for key, entry in (raw.get("layers") or {}).items():
+        model, _, role = str(key).partition("|")
+        model = COLOCATION_MODEL_ALIASES.get(model, model)
+        layers[f"{model}|{role}"] = dict(entry)
+    pools: dict[str, Any] = {}
+    for model, pool in (raw.get("kv_pools_tokens") or {}).items():
+        pools[COLOCATION_MODEL_ALIASES.get(model, model)] = pool
+    return {
+        "enabled": True,
+        "engine": "vllm_batched",
+        "provenance_kind": "measured",
+        "source_artifact": str(path),
+        "source_experiment": raw.get("experiment_id"),
+        "gpu_identity": raw.get("gpu"),
+        "probe_source_artifact": raw.get("probe_source_artifact", str(path)),
+        "probe_metadata": dict(raw.get("probe_metadata") or {}),
+        "same_model_curves": curves,
+        "kv_pools_tokens": pools,
+        "layers": layers,
+        "cross_model_policy": raw.get("cross_model_policy", "mp_table_proxy"),
+    }
 
 
 def load_measured_engine_profile(path: Path, declared_engine: str) -> dict[str, Any]:
@@ -1497,7 +1882,11 @@ def gpu_can_dispatch_node(
         return False
     profile = _colocation_profile(extension_config)
     if colocation_slowdowns(profile, active_task, node) is None:
-        return False
+        # Same-model pairs serialize under the multi-process deployment unless a
+        # measured batching engine admits them as a batch.
+        batching_profile = _batching_engine_profile(extension_config)
+        if batching_admission_factor(batching_profile, node, active_task) is None:
+            return False
     if active_task.work_start_ms is None or active_task.work_start_ms > float(now_ms) + 1e-9:
         return False
     admitted, evicted, _model_mb, _workspace_mb, _projected = plan_gpu_admission(
@@ -5212,13 +5601,19 @@ def simulate_episode(
     validate_colocation_profile(extension_config, episode)
     _prefetch_interference_profile(extension_config)
     validate_prefetch_interference_profile(extension_config, episode)
-    if _prefetch_interference_profile(extension_config) is not None and (
+    validate_request_preemption_profile(extension_config, episode)
+    validate_batching_engine_profile(extension_config, episode)
+    _prefetch_interference = _prefetch_interference_profile(extension_config)
+    if _prefetch_interference is not None and (
+        str(_prefetch_interference.get("interference_model") or "") != "additive_extra_ms"
+    ) and (
         str(extension_config.get("prefetch_interference_mode") or "") not in {"copy", "full"}
     ):
         raise ValueError("prefetch_interference_mode must be copy or full")
     engine_profile = validate_engine_profile(extension_config)
     validate_phase_profile(extension_config)
     colocation_profile = _colocation_profile(extension_config)
+    request_preemption_profile = _request_preemption_profile(extension_config)
     colocation_profile_status = "disabled"
     if colocation_profile is not None:
         covered_models = {
@@ -5465,12 +5860,18 @@ def simulate_episode(
             # event cannot schedule itself backwards
             interference_target = None
             interference_factor = None
+            interference_extra_ms = None
             interference_dilation = 1.0
             interference_deferred_reason = None
+            additive_interference = (
+                str(interference_profile.get("interference_model") or "") == "additive_extra_ms"
+                if interference_profile is not None
+                else False
+            )
             active_nodes = gpu.active_node_entries()
             if (
                 interference_profile is not None
-                and interference_mode in {"copy", "full"}
+                and (interference_mode in {"copy", "full"} or additive_interference)
                 and len(active_nodes) == 1
                 and not gpu.prefetch_pending
             ):
@@ -5485,6 +5886,18 @@ def simulate_episode(
                     )
                     interference_factor = None
                     interference_deferred_reason = "transition_in_progress"
+                elif additive_interference:
+                    interference_extra_ms = prefetch_interference_extra_ms(interference_profile, model_id)
+                    if interference_extra_ms is None:
+                        reason = "missing_measured_load"
+                        prefetch_interference_unsupported[reason] += 1
+                        log_prefetch(
+                            "prefetch_interference_unsupported",
+                            gpu,
+                            model_id,
+                            reason=reason,
+                        )
+                        interference_deferred_reason = reason
                 else:
                     interference_factor = prefetch_interference_factor(
                         interference_profile,
@@ -5552,7 +5965,24 @@ def simulate_episode(
                         interference_deferred_reason = reason
                     else:
                         interference_dilation = measured_dilation
-                if interference_factor is not None:
+                if interference_extra_ms is not None:
+                    start = float(now)
+                    add_node_work(gpu, active_task_id, interference_extra_ms, now)
+                    interference_target = active_task_id
+                    prefetch_interference_events["additive"] += 1
+                    if active_task.owner is not None:
+                        owner_job_index, owner_node_id = active_task.owner
+                        log(
+                            "node_interference_start",
+                            jobs[owner_job_index],
+                            jobs[owner_job_index].template.by_id[owner_node_id],
+                            gpu_index=gpu.index,
+                            source="prefetch",
+                            prefetch_model_id=model_id,
+                            interference_model="additive_extra_ms",
+                            extra_ms=round(float(interference_extra_ms), 3),
+                        )
+                elif interference_factor is not None:
                     start = float(now)
                     set_node_slowdown(gpu, active_task_id, interference_factor, now)
                     interference_target = active_task_id
@@ -5578,7 +6008,7 @@ def simulate_episode(
                         model_id,
                         reason=interference_deferred_reason,
                     )
-            if interference_factor is None:
+            if interference_target is None:
                 # Earlier plan entries may have changed the running task's
                 # finish time.  Never use a stale pre-interference cursor to
                 # schedule an unsupported second overlap.
@@ -5594,6 +6024,7 @@ def simulate_episode(
                 allocation_mb=memory,
                 interference_target=interference_target,
                 interference_mode=interference_mode if interference_target else "",
+                interference_model=("additive_extra_ms" if interference_extra_ms is not None else ""),
             )
             gpu.prefetch_pending.append((task_id, model_id, start, finish))
             gpu.prefetched_models.add(model_id)
@@ -5639,7 +6070,7 @@ def simulate_episode(
                     task = gpu.active_tasks[task_id]
                     gpu.remove_active_task(task_id, finish)
                     gpu.resident[model_id] = task.allocation_mb
-                    if task.interference_target:
+                    if task.interference_target and task.interference_model != "additive_extra_ms":
                         target = gpu.active_tasks.get(task.interference_target)
                         if target is not None and target.active:
                             set_node_slowdown(gpu, task.interference_target, 1.0, finish)
@@ -5704,6 +6135,24 @@ def simulate_episode(
 
     def set_node_slowdown(gpu: GPU, task_id: str, slowdown: float, at_ms: float) -> GPUActiveTask:
         task = gpu.set_task_slowdown(task_id, slowdown, at_ms)
+        if task.owner is None:
+            raise ValueError("normal GPU task has no owner")
+        reschedule_node_finish(gpu, task.owner, task.finish_ms)
+        reschedule_serial_reservations(gpu, at_ms)
+        return task
+
+    def add_node_work(gpu: GPU, task_id: str, extra_ms: float, at_ms: float) -> GPUActiveTask:
+        """Additive interference: extend a running task by measured extra work.
+
+        Unlike ``set_node_slowdown`` this is a one-shot additive charge: the task's
+        remaining work grows by ``extra_ms`` and its finish event is rescheduled.
+        Nothing is reset when the interfering load ends.
+        """
+
+        task = gpu.update_task_progress(task_id, at_ms)
+        task.remaining_work_ms = max(0.0, float(task.remaining_work_ms or 0.0) + max(0.0, float(extra_ms)))
+        effective_now = max(float(at_ms), float(task.work_start_ms or task.start_ms))
+        task.finish_ms = effective_now + float(task.remaining_work_ms) * float(task.slowdown)
         if task.owner is None:
             raise ValueError("normal GPU task has no owner")
         reschedule_node_finish(gpu, task.owner, task.finish_ms)
@@ -5992,6 +6441,37 @@ def simulate_episode(
                 )
                 if not should_preempt:
                     continue
+                request_victim_info = None
+                if request_preemption_profile is not None:
+                    split = victim_task.request_split
+                    if split is None:
+                        block_preemption(gpu, "victim_no_request_split")
+                        continue
+                    if now < split.prefill_end_ms - 1e-9:
+                        block_preemption(gpu, "victim_prefill_in_progress")
+                        continue
+                    k_elapsed = int(
+                        max(0.0, now - split.prefill_end_ms) // max(1e-9, split.decode_step_ms)
+                    )
+                    tokens_done = min(split.tokens_base + k_elapsed, split.tokens_total)
+                    remaining_tokens = split.tokens_total - tokens_done
+                    if remaining_tokens <= 0:
+                        block_preemption(gpu, "victim_decode_complete")
+                        continue
+                    n_ctx = split.context_base + tokens_done
+                    rm_ms = request_recompute_ms(
+                        request_preemption_profile, victim_node.model_id, n_ctx
+                    )
+                    if rm_ms is None:
+                        block_preemption(gpu, "victim_model_not_covered")
+                        continue
+                    request_victim_info = {
+                        "tokens_done": tokens_done,
+                        "remaining_tokens": remaining_tokens,
+                        "n_ctx": n_ctx,
+                        "rm_ms": rm_ms,
+                        "split": split,
+                    }
                 remaining_tasks = [
                     task
                     for task_id, task in gpu.active_tasks.items()
@@ -6034,6 +6514,7 @@ def simulate_episode(
                         victim_job,
                         victim_node,
                         victim_task,
+                        request_victim_info,
                     )
                 )
         if not victim_rows:
@@ -6046,6 +6527,7 @@ def simulate_episode(
             victim_job,
             victim_node,
             victim_task,
+            request_victim_info,
         ) = min(victim_rows, key=lambda row: (row[0], row[1]))
         victim_job_index, victim_node_id = victim_task.owner
         matching = [
@@ -6076,7 +6558,18 @@ def simulate_episode(
         for survivor_id, survivor in gpu.active_node_entries():
             set_node_slowdown(gpu, survivor_id, 1.0, now)
         victim_job.preemptions += 1
-        victim_job.preempt_recompute_ms += elapsed
+        if request_victim_info is not None:
+            victim_job.request_resume_state[node_id] = {
+                "rm_ms": float(request_victim_info["rm_ms"]),
+                "remaining_tokens": int(request_victim_info["remaining_tokens"]),
+                "decode_step_ms": float(request_victim_info["split"].decode_step_ms),
+                "tokens_done": int(request_victim_info["tokens_done"]),
+                "tokens_total": int(request_victim_info["split"].tokens_total),
+                "context_base": int(request_victim_info["split"].context_base),
+            }
+            victim_job.preempt_recompute_ms += float(request_victim_info["rm_ms"])
+        else:
+            victim_job.preempt_recompute_ms += elapsed
         victim_job.node_state[node_id] = "ready"
         victim_job.ready_since[node_id] = now
         victim_priority = 0 if victim_job.service_class == "priority" else 1
@@ -6092,6 +6585,14 @@ def simulate_episode(
             elapsed_ms=round(elapsed, 3),
             remaining_ms=round(remaining, 3),
             recompute=True,
+            request_mode=(request_victim_info is not None),
+            tokens_done=(
+                int(request_victim_info["tokens_done"]) if request_victim_info else None
+            ),
+            n_ctx=(int(request_victim_info["n_ctx"]) if request_victim_info else None),
+            rm_ms=(
+                round(float(request_victim_info["rm_ms"]), 3) if request_victim_info else None
+            ),
         )
         return True
 
@@ -6337,6 +6838,32 @@ def simulate_episode(
                         compute_duration = node.compute_ms
                     else:
                         compute_duration = max(0.1, effective_runtime - effective_load)
+                    # Request-level preemption (execution truth): split the call into
+                    # load -> prefill (atomic) -> decode (token boundaries).  A resumed
+                    # call pays R_m (recompute) plus its remaining decode tokens.
+                    request_split = None
+                    request_layer = None
+                    request_rates = None
+                    resume_request = None
+                    if (
+                        request_preemption_profile is not None
+                        and not fused_members
+                        and node.lane == "gpu"
+                    ):
+                        request_layer = request_layer_for_node(request_preemption_profile, node)
+                        request_rates = request_phase_rates(request_preemption_profile, node.model_id)
+                        if request_layer is not None and request_rates is not None:
+                            resume_request = job.request_resume_state.pop(node_id, None)
+                            if resume_request is not None:
+                                compute_duration = max(
+                                    0.1,
+                                    float(resume_request["rm_ms"])
+                                    + int(resume_request["remaining_tokens"])
+                                    * float(resume_request["decode_step_ms"]),
+                                )
+                        else:
+                            request_layer = None
+                            request_rates = None
                     transition_duration = eviction_cost + load
                     start_time = now
                     active_nodes = gpu.active_node_entries()
@@ -6346,18 +6873,52 @@ def simulate_episode(
                         if len(active_nodes) != 1:
                             raise RuntimeError("co-location admission saw more than two normal GPU tasks")
                         active_task_id, active_task = active_nodes[0]
-                        slowdowns = colocation_slowdowns(
-                            _colocation_profile(extension_config), active_task, node
+                        batching_factor = batching_admission_factor(
+                            _batching_engine_profile(extension_config), node, active_task
                         )
-                        if slowdowns is None:
-                            raise RuntimeError("co-location admission lost its measured coverage")
-                        if transition_duration > 1e-9:
-                            raise RuntimeError(
-                                "co-location is unsupported for cold-load or eviction transition intervals"
+                        if batching_factor is not None:
+                            if transition_duration > 1e-9:
+                                raise RuntimeError(
+                                    "batching is unsupported for cold-load or eviction transition intervals"
+                                )
+                            active_slowdown = candidate_slowdown = batching_factor
+                            set_node_slowdown(gpu, active_task_id, active_slowdown, start_time)
+                        else:
+                            slowdowns = colocation_slowdowns(
+                                _colocation_profile(extension_config), active_task, node
                             )
-                        active_slowdown, candidate_slowdown = slowdowns
-                        set_node_slowdown(gpu, active_task_id, active_slowdown, start_time)
+                            if slowdowns is None:
+                                raise RuntimeError("co-location admission lost its measured coverage")
+                            if transition_duration > 1e-9:
+                                raise RuntimeError(
+                                    "co-location is unsupported for cold-load or eviction transition intervals"
+                                )
+                            active_slowdown, candidate_slowdown = slowdowns
+                            set_node_slowdown(gpu, active_task_id, active_slowdown, start_time)
                     work_start_time = start_time + transition_duration
+                    if request_layer is not None and request_rates is not None:
+                        if resume_request is not None:
+                            request_split = RequestSplit(
+                                prefill_end_ms=work_start_time + float(resume_request["rm_ms"]),
+                                decode_step_ms=float(resume_request["decode_step_ms"]),
+                                tokens_base=int(resume_request["tokens_done"]),
+                                tokens_total=int(resume_request["tokens_total"]),
+                                context_base=int(resume_request["context_base"]),
+                            )
+                        else:
+                            n_in = int(request_layer["in_tokens"])
+                            n_out = int(request_layer["out_tokens"])
+                            p_hat = float(request_rates["prefill_intercept_ms"]) + (
+                                float(request_rates["prefill_us_per_token"]) / 1000.0
+                            ) * n_in
+                            if n_out > 0 and compute_duration > p_hat + 1e-9:
+                                request_split = RequestSplit(
+                                    prefill_end_ms=work_start_time + p_hat,
+                                    decode_step_ms=(compute_duration - p_hat) / n_out,
+                                    tokens_base=0,
+                                    tokens_total=n_out,
+                                    context_base=n_in,
+                                )
                     finish = work_start_time + compute_duration * candidate_slowdown
                     gpu.add_active_task(
                         f"node:{job_index}:{node_id}",
@@ -6372,6 +6933,7 @@ def simulate_episode(
                         allocation_mb=memory if model_loading else 0.0,
                         slowdown=candidate_slowdown,
                         work_ms=compute_duration,
+                        request_split=request_split,
                         work_start_ms=work_start_time,
                     )
                     if transition_duration > 1e-9:
@@ -6522,6 +7084,11 @@ def simulate_episode(
             if colocation_profile is not None else "original_serial_policy"
         ),
         "colocation_profile_source": (_colocation_profile(extension_config) or {}).get("source_artifact"),
+        "batching_engine_enabled": _batching_engine_profile(extension_config) is not None,
+        "batching_engine_source": (_batching_engine_profile(extension_config) or {}).get("source_artifact"),
+        "batching_engine_cross_model_policy": (
+            (_batching_engine_profile(extension_config) or {}).get("cross_model_policy")
+        ),
         "wasted_prefetches": sum(gpu.wasted_prefetches for gpu in gpus),
         "transition_profile_enabled": _transition_profile(extension_config) is not None,
         "transition_profile_load_ms": round(transition_stats["load_ms"], 3),

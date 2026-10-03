@@ -1,0 +1,56 @@
+{
+  "schema": "request-preemption-profile-v1",
+  "experiment_id": "EXP-20261003_substrate_preemption_resume_v1",
+  "mode": "REQUEST_RECOMPUTE",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "probe_source_artifact": "experiments/EXP-20261002_substrate_token_prior_v1/artifacts/token_prior_v1.json",
+  "probe_metadata": {
+    "token_source_experiment": "EXP-20261002_substrate_token_prior_v1",
+    "phase_source_experiment": "EXP-20260929_substrate_phase_profile_v1",
+    "estimator": "deterministic layer medians (p50); totals remain pinned to trace runtimes",
+    "resume_model": "R_m = prefill_intercept_ms + prefill_us_per_token/1000 * n_ctx (P1 验证残差 <6%)"
+  },
+  "layers": {
+    "Qwen3-VL-8B-Instruct|planner": {
+      "in_tokens": 1055,
+      "out_tokens": 47
+    },
+    "Qwen3-VL-8B-Instruct|videotool_spatial": {
+      "in_tokens": 264,
+      "out_tokens": 50
+    },
+    "Qwen3-VL-8B-Instruct|answer_generation": {
+      "in_tokens": 574,
+      "out_tokens": 2
+    },
+    "Qwen2.5-VL-3B-Instruct|answer_generation": {
+      "in_tokens": 442,
+      "out_tokens": 3
+    },
+    "Qwen3-4B|planner": {
+      "in_tokens": 1072,
+      "out_tokens": 36
+    },
+    "Qwen2.5-VL-3B-Instruct|videotool_spatial": {
+      "in_tokens": 353,
+      "out_tokens": 35
+    }
+  },
+  "models": {
+    "Qwen3-VL-8B": {
+      "prefill_us_per_token": 190.01,
+      "prefill_intercept_ms": 9.8,
+      "tpot_ms": 28.423
+    },
+    "Qwen3-4B": {
+      "prefill_us_per_token": 114.57,
+      "prefill_intercept_ms": 8.1,
+      "tpot_ms": 29.038
+    },
+    "Qwen2.5-VL-3B": {
+      "prefill_us_per_token": 75.29,
+      "prefill_intercept_ms": 10.2,
+      "tpot_ms": 23.295
+    }
+  }
+}

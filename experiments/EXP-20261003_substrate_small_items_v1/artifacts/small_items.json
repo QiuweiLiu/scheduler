@@ -1,0 +1,63 @@
+{
+ "memory_caliber": {
+  "rows": [
+   {
+    "prompt_tokens": 1032,
+    "peak_generate_mb": 16980.66,
+    "peak_manual_forward_mb": 17183.37,
+    "delta_mb": 202.71,
+    "delta_per_token_mb": 0.1964
+   },
+   {
+    "prompt_tokens": 4104,
+    "peak_generate_mb": 17727.84,
+    "peak_manual_forward_mb": 18529.49,
+    "delta_mb": 801.65,
+    "delta_per_token_mb": 0.1953
+   }
+  ],
+  "f2_reference_peak_growth_mb_per_tok": 0.4383,
+  "logits_theoretical_mb_per_token": 0.2898
+ },
+ "yolo_attribution": {
+  "rows": [
+   {
+    "wall_ms": 5274.2,
+    "import_ms": 1405.6,
+    "load_ms": 434.9,
+    "infer_ms": 2627.3,
+    "serialize_ms": 0.0,
+    "inner_total_ms": 4600.1,
+    "startup_gap_ms": 674.1
+   },
+   {
+    "wall_ms": 6394.6,
+    "import_ms": 1573.5,
+    "load_ms": 483.0,
+    "infer_ms": 3216.4,
+    "serialize_ms": 0.0,
+    "inner_total_ms": 5424.3,
+    "startup_gap_ms": 970.3
+   },
+   {
+    "wall_ms": 5834.0,
+    "import_ms": 1531.1,
+    "load_ms": 746.8,
+    "infer_ms": 2762.2,
+    "serialize_ms": 0.0,
+    "inner_total_ms": 5170.2,
+    "startup_gap_ms": 663.8
+   }
+  ],
+  "median": {
+   "wall_ms": 5834.0,
+   "import_ms": 1531.1,
+   "load_ms": 483.0,
+   "infer_ms": 2762.2,
+   "serialize_ms": 0.0,
+   "inner_total_ms": 5170.2,
+   "startup_gap_ms": 674.1
+  },
+  "n_frames": 8
+ }
+}
