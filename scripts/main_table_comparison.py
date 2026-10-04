@@ -62,6 +62,7 @@ FROZEN_PROJECTION_SHA = (
     "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b")
 EXTENSION_CONFIG = (ROOT / "experiments/EXP-20261004_real_strata_calibration_v1"
                     / "artifacts/substrate_extension_v7.json")
+REFERENCE_MANIFEST = ROOT / "data/manifests/f0_reference_artifacts_manifest_v1.json"
 ART = ROOT / "experiments/EXP-20261004_main_table_comparison_v1/artifacts"
 BASE_ARTIFACTS = ROOT / "outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts"
 F0_ARTIFACTS = ROOT / "outputs/resource_v2_artifacts/f0_seed11"
@@ -121,6 +122,74 @@ def git_head() -> str:
     return "unknown"
 
 
+def verify_reference_artifacts(manifest_path: Path) -> Dict[str, Any]:
+    """Fail closed unless the reference packs match the committed manifest."""
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    summary: Dict[str, Any] = {"manifest": str(manifest_path.relative_to(ROOT)).replace("\\", "/"),
+                               "manifest_sha256": sha256_file(manifest_path),
+                               "packs": {}}
+    for key in ("base_pack", "overlay_pack"):
+        pack = manifest[key]
+        root = ROOT / pack["pack"]
+        tree = hashlib.sha256()
+        for entry in pack["files"]:
+            path = root / entry["path"]
+            if not path.is_file():
+                raise AssertionError(f"reference pack file missing: {path}")
+            if path.stat().st_size != entry["size_bytes"] or sha256_file(path) != entry["sha256"]:
+                raise AssertionError(f"reference pack file changed: {path}")
+            tree.update(f"{entry['path']}\0{entry['sha256']}\0{entry['size_bytes']}\n".encode())
+        if tree.hexdigest() != pack["tree_sha256"]:
+            raise AssertionError(f"reference pack tree hash mismatch: {pack['pack']}")
+        summary["packs"][key] = {"pack": pack["pack"], "tree_sha256": pack["tree_sha256"],
+                                 "file_count": pack["file_count"]}
+    summary["overlay_provenance"] = manifest["overlay_provenance"]
+    return summary
+
+
+def install_mechanism_counters() -> Dict[str, int]:
+    """Count the substrate mechanisms the run actually exercises.
+
+    The frozen design names four capabilities.  This makes the executed subset
+    self-evidencing in the artifact instead of leaving it to prose:
+
+    * co-location / engine-level batching are environment admissions (counted here);
+    * request-level preemption is a POLICY capability (the simulator gates it to
+      preempting policies; no main-table arm is one) and is counted from events;
+    * the policy-side batch dispatcher (``batch_enabled``) is off by design -- it
+      replaces each arm's ordering objective with a myopic cost, which would
+      break the frozen adaptations.
+    """
+
+    from tracing.analysis import workload_v02_simulator as sim
+
+    counts: Dict[str, int] = {"colocation_admissions": 0, "colocation_rejections": 0,
+                              "batching_admissions": 0, "batching_rejections": 0}
+
+    original_colocation = sim.colocation_slowdowns
+
+    def counted_colocation(profile, active_task, node):
+        result = original_colocation(profile, active_task, node)
+        if profile is not None:
+            key = "colocation_admissions" if result is not None else "colocation_rejections"
+            counts[key] += 1
+        return result
+
+    sim.colocation_slowdowns = counted_colocation
+    original_batching = sim.batching_admission_factor
+
+    def counted_batching(profile, node, active_task, predicted_compute_ms):
+        result = original_batching(profile, node, active_task, predicted_compute_ms)
+        if profile is not None:
+            key = "batching_admissions" if result is not None else "batching_rejections"
+            counts[key] += 1
+        return result
+
+    sim.batching_admission_factor = counted_batching
+    return counts
+
+
 def build_context(arm: str, templates: Dict[str, Any]) -> Dict[str, Any]:
     """Each arm's own frozen front end.  No arm may borrow another's artifact."""
 
@@ -152,14 +221,19 @@ def run_arm(arm: str, context: Dict[str, Any], episodes: Sequence[Dict[str, Any]
 
     values: List[float] = []
     activation_totals: Counter[str] = Counter()
+    preemption_events = 0
     for index, episode in enumerate(episodes):
         policy_context = dict(context)
         policy_context["activation"] = {}
-        summary, _ = simulate_episode(episode, templates, arm, train_stats=stats,
-                                      policy_context=policy_context,
-                                      future_artifacts=future_artifacts,
-                                      future_horizon=future_horizon,
-                                      extension_config=extension_config)
+        summary, events = simulate_episode(episode, templates, arm, train_stats=stats,
+                                           policy_context=policy_context,
+                                           future_artifacts=future_artifacts,
+                                           future_horizon=future_horizon,
+                                           extension_config=extension_config,
+                                           collect_events=True)
+        preemption_events += sum(
+            1 for event in events if "preempt" in str(event.get("event_type") or "")
+        )
         expected_jobs = len(episode.get("jobs") or [])
         completed = int(summary.get("completed_jobs") or 0)
         failed = int(summary.get("failed_jobs") or 0)
@@ -174,6 +248,7 @@ def run_arm(arm: str, context: Dict[str, Any], episodes: Sequence[Dict[str, Any]
                                  % (arm, episode.get("episode_id", index), METRIC))
         values.append(value)
         activation_totals.update(policy_context["activation"])
+    activation_totals["preemption_events"] = preemption_events
     return values, dict(sorted(activation_totals.items()))
 
 
@@ -191,14 +266,20 @@ def paired_bootstrap_ci(deltas: Sequence[float], *, n_boot: int = BOOTSTRAP,
     return lo, hi
 
 
-def classify(point: float, ci_upper: float) -> str:
-    if ci_upper >= NI_MARGIN_MS:
-        return "inferior"
-    if ci_upper < 0.0 and point <= -NI_MARGIN_MS:
-        return "substantively_better"
-    if ci_upper < 0.0:
-        return "statistically_better"
-    return "non_inferior"
+def classify(ci_lower: float, ci_upper: float) -> Dict[str, bool]:
+    """Three SEPARATE statements -- never conflate "not proven non-inferior" with
+    "proven inferior".  With Delta = candidate - F0 (positive = worse):
+
+    * statistically_worse  : CI_lower > 0            (F0 is better beyond noise)
+    * non_inferior         : CI_upper < margin       (candidate within the margin)
+    * margin_inferior      : CI_lower > margin       (candidate worse than the margin)
+    """
+
+    return {
+        "statistically_worse": ci_lower > 0.0,
+        "non_inferior": ci_upper < NI_MARGIN_MS,
+        "margin_inferior": ci_lower > NI_MARGIN_MS,
+    }
 
 
 def main() -> int:
@@ -224,6 +305,8 @@ def main() -> int:
 
     assert sha256_file(PROJECTION) == FROZEN_PROJECTION_SHA, (
         "the projection hash does not match the frozen SchedulerTopologyContractGate value")
+    reference_verification = verify_reference_artifacts(REFERENCE_MANIFEST)
+    mechanism_counts = install_mechanism_counters()
 
     extension_config = json.loads(EXTENSION_CONFIG.read_text(encoding="utf-8"))
     templates = load_templates(PROJECTION, topology_view="causal_v3")
@@ -271,6 +354,19 @@ def main() -> int:
         "extension_config": str(EXTENSION_CONFIG.relative_to(ROOT)).replace("\\", "/"),
         "extension_config_sha256": sha256_file(EXTENSION_CONFIG),
         "profile_contract": "shape = node role evidence; episode identity = uniform node gpu_model evidence",
+        "reference_artifacts_verification": reference_verification,
+        "substrate_mechanisms": {
+            "active_environment": [
+                "mp co-location (measured cells)",
+                "additive load interference",
+                "engine-level same-model batching (measured per-request latency factors)",
+            ],
+            "policy_gated": {
+                "request_preemption": "simulator gates preemption to preempting policies; no main-table arm preempts",
+                "policy_batch_dispatcher": "batch_enabled is off by design: it replaces each arm ordering objective with a myopic cost",
+            },
+            "counted_at_runtime": mechanism_counts,
+        },
         "reference_base_artifacts": str(BASE_ARTIFACTS.relative_to(ROOT)).replace(chr(92), "/"),
         "reference_overlay_artifacts": str(F0_ARTIFACTS.relative_to(ROOT)).replace(chr(92), "/"),
         "future_horizon": FUTURE_HORIZON,
@@ -299,7 +395,7 @@ def main() -> int:
         deltas = [a - b for a, b in zip(values, reference_values)]
         point = statistics.fmean(deltas)
         lo, hi = paired_bootstrap_ci(deltas)
-        verdict = classify(point, hi)
+        verdict = classify(lo, hi)
         results[arm] = {
             "mean": statistics.fmean(values),
             "delta_point": point,
@@ -314,7 +410,8 @@ def main() -> int:
         print("\n== %s ==" % arm)
         print("   mean %s = %.1f" % (METRIC, statistics.fmean(values)))
         print("   Delta vs %s: point %+.1f ms  CI95 [%+.1f, %+.1f]  %d/%d worse  -> %s"
-              % (REFERENCE, point, lo, hi, results[arm]["n_worse"], len(deltas), verdict))
+              % (REFERENCE, point, lo, hi, results[arm]["n_worse"], len(deltas),
+                 json.dumps(verdict, sort_keys=True)))
         print("   activation: %s" % json.dumps(activation, sort_keys=True)[:200])
 
     elapsed = time.time() - started
