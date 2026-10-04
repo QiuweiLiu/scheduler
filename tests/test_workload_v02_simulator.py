@@ -412,6 +412,28 @@ class AdmissionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_colocation_profile({"colocation_profile": profile}, {"gpu_model": "other-gpu"})
 
+    def test_gpu_identity_gate_compares_the_device_class_not_the_suffix(self) -> None:
+        """The measurement campaign spans two same-class 32 GB RTX 4080 cards.
+
+        The original instance reports "NVIDIA GeForce RTX 4080 SUPER" and the
+        clone reports "NVIDIA GeForce RTX 4080"; a profile from either card must
+        apply to the other, while a genuinely different class still fails closed.
+        """
+        profile = coloc_profile([{
+            "model_a": "model-a", "shape_a": "medium",
+            "model_b": "model-b", "shape_b": "medium",
+            "slowdown_a": 2.0, "slowdown_b": 2.0, "feasible": True,
+        }])
+        profile["provenance_kind"] = "measured"
+        profile["gpu_identity"] = "NVIDIA GeForce RTX 4080 SUPER"
+        profile["probe_metadata"] = {"probe": "measured"}
+        profile["probe_source_artifact"] = "probe.json"
+        validate_colocation_profile({"colocation_profile": profile},
+                                    {"gpu_identity": "NVIDIA GeForce RTX 4080"})
+        with self.assertRaises(ValueError):
+            validate_colocation_profile({"colocation_profile": profile},
+                                        {"gpu_identity": "NVIDIA GeForce RTX 4090"})
+
     def test_f4_loader_preserves_copy_and_full_modes(self) -> None:
         profile = load_prefetch_interference_profile(
             Path("experiments/EXP-20260929_substrate_overlap_matrix_v1/artifacts/f4_overlap_matrix.json")

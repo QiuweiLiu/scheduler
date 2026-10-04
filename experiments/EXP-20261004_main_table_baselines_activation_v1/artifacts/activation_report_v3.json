@@ -1,0 +1,175 @@
+{
+  "schema": "main-table-activation-audit-v3",
+  "seed": 20261004,
+  "templates": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+  "templates_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+  "episodes": "results/processed/r7_workload_v03_no_run_container/episodes/workload_validation_r7_v03.jsonl",
+  "episode_count": 30,
+  "split_manifest": "data/manifests/validation_split_dev700_confirm300.json",
+  "split_usage": "development subset only (confirm300 untouched)",
+  "workflow_type_distribution": {
+    "counts": {
+      "videomme.langgraph_react": 320,
+      "videomme.star": 320
+    },
+    "note": "reviewer reproducibility: the Hermes PDGraph conditioning needs more than one real workflow family; this distribution plus the templates sha pins it"
+  },
+  "task_group_size_disclosure": {
+    "successor_count_distribution": {
+      "0": 640,
+      "1": 7486
+    },
+    "max_successors": 1,
+    "note": "serial-chain projection: task_group_size == 1 for every node, so Parrot's parallel task-group scheduling has no room and is disclosed as omitted"
+  },
+  "profile_contract": {
+    "applied": true,
+    "extension_config": "/tmp/substrate-extension-v7.json",
+    "covered_strata": {
+      "Qwen2.5-VL-3B-Instruct": [
+        "answer_generation",
+        "videotool_spatial"
+      ],
+      "Qwen3-4B": [
+        "planner"
+      ],
+      "Qwen3-VL-8B-Instruct": [
+        "answer_generation",
+        "planner",
+        "videotool_spatial"
+      ]
+    },
+    "note": "node.workload_shape := node_type evidence; episode.gpu_identity := uniform node-level gpu_model evidence (profile_contract.py)"
+  },
+  "phase_a": {
+    "parrot_appfifo": {
+      "decisions": 3997,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 0,
+      "counters": {
+        "app_fifo_action_flip_count": 271,
+        "decisions": 3997
+      },
+      "eviction_events": 309,
+      "fail_closed_reasons": {},
+      "profile_attached": true,
+      "rates_per_decision": {
+        "app_fifo_action_flip_count": 0.0678
+      }
+    },
+    "qlm_queue": {
+      "decisions": 3997,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 0,
+      "counters": {
+        "decisions": 3997,
+        "load_present_count": 653,
+        "stochastic_reorder_count": 692,
+        "swap_cost_affected_count": 67
+      },
+      "eviction_events": 253,
+      "fail_closed_reasons": {},
+      "profile_attached": true,
+      "rates_per_decision": {
+        "load_present_count": 0.1634,
+        "stochastic_reorder_count": 0.1731,
+        "swap_cost_affected_count": 0.0168
+      }
+    },
+    "hermes_gittins": {
+      "decisions": 3997,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 0,
+      "counters": {
+        "decisions": 3997,
+        "gittins_vs_mean_flip": 5,
+        "pdgraph_conditional_used": 3517,
+        "pdgraph_refined": 493,
+        "prewarm_trigger": 1
+      },
+      "eviction_events": 281,
+      "fail_closed_reasons": {},
+      "profile_attached": true,
+      "rates_per_decision": {
+        "gittins_vs_mean_flip": 0.0013,
+        "pdgraph_conditional_used": 0.8799,
+        "pdgraph_refined": 0.1233,
+        "prewarm_trigger": 0.0003
+      }
+    },
+    "torpor_lifecycle": {
+      "decisions": 3997,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 0,
+      "counters": {
+        "cold_swap": 414,
+        "covered_load_choice": 414,
+        "decisions": 3997,
+        "resident_hit": 3583
+      },
+      "eviction_events": 290,
+      "fail_closed_reasons": {},
+      "profile_attached": true,
+      "rates_per_decision": {
+        "cold_swap": 0.1036,
+        "covered_load_choice": 0.1036,
+        "resident_hit": 0.8964
+      }
+    }
+  },
+  "phase_b": {
+    "declared": "synthetic smoke; real models/shapes/identity and the real extension artifacts; no performance claims",
+    "episode": "synthetic-prewarm-smoke",
+    "arms": {
+      "parrot_appfifo": {
+        "counters": {
+          "decisions": 14
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [],
+        "interference_events": [],
+        "fail_closed_reasons": {}
+      },
+      "qlm_queue": {
+        "counters": {
+          "decisions": 14,
+          "load_present_count": 2
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [],
+        "interference_events": [],
+        "fail_closed_reasons": {}
+      },
+      "hermes_gittins": {
+        "counters": {
+          "decisions": 14,
+          "pdgraph_conditional_used": 13,
+          "prewarm_trigger": 1
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [
+          {
+            "model_id": "Qwen2.5-VL-3B-Instruct",
+            "time_ms": 5329.698
+          }
+        ],
+        "interference_events": [],
+        "fail_closed_reasons": {
+          "missing_measured_cell": 1
+        }
+      },
+      "torpor_lifecycle": {
+        "counters": {
+          "cold_swap": 2,
+          "covered_load_choice": 2,
+          "decisions": 14,
+          "resident_hit": 12
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [],
+        "interference_events": [],
+        "fail_closed_reasons": {}
+      }
+    }
+  }
+}

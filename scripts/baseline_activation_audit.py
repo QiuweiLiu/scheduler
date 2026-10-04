@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Main-table baseline activation audit v2 (pre-run evidence; local, no GPU).
+"""Main-table baseline activation audit v3 (pre-run evidence; local, no GPU).
 
 Two phases:
 
-* **Phase A** — the real development subset (30 episodes, causal_v3, NO
-  extension config): the ordering mechanisms of all four arms with corrected
-  counters.  The profile-dependent mechanisms cannot be configured here because
-  the frozen episodes/templates do not yet carry workload_shape / GPU identity;
-  that gap is reported, not papered over.
-* **Phase B** — a DECLARED synthetic smoke set carrying the same real models,
-  shapes, GPU identity and the real extension profile artifacts, used only to
-  exercise the profile-dependent mechanisms (Hermes online prewarm under a
-  covered F4 cell, Torpor covered-load ranking, QLM load counterfactual).  No
-  performance claims come from phase B.
+* **Phase A** — the real development subset (30 episodes, causal_v3) WITH the
+  full extension config and the evidence-based profile contract: node shapes are
+  derived from the frozen role evidence (``workload_shape = node_type``) and the
+  episode GPU identity from the uniform node-level ``gpu_model`` evidence
+  (``profile_contract.py``).  All four arms run with the profile-dependent
+  mechanisms live (co-location, additive interference, prewarm, batching,
+  request preemption) and corrected activation counters.
+* **Phase B** — a DECLARED synthetic smoke set used to exercise the
+  profile-dependent mechanisms in isolation under the real profile artifacts.
+  No performance claims come from phase B.
 
 The acceptance question is only whether each mechanism genuinely entered the
 decision path; real activation rates are reported as-is (no ratio threshold).
@@ -31,6 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from tracing.analysis.hermes_methods import build_pdgraph  # noqa: E402
+from tracing.analysis.profile_contract import (  # noqa: E402
+    apply_real_workload_profile_contract,
+    covered_strata,
+)
 from tracing.analysis.qlm_methods import build_duration_bank  # noqa: E402
 from tracing.analysis.workload_v02_simulator import (  # noqa: E402
     Node,
@@ -114,6 +118,12 @@ def main() -> int:
     episodes = [by_id[eid] for eid in development if eid in by_id][: args.limit]
     if not episodes:
         raise SystemExit("no development episodes found")
+    extension_config = None
+    if args.extension_config:
+        extension_config = json.loads(args.extension_config.read_text(encoding="utf-8"))
+        templates, episodes = apply_real_workload_profile_contract(
+            templates, episodes, extension_config
+        )
     train_stats = train_resource_stats(templates)
     if not train_stats:
         raise SystemExit("train_resource_stats is empty; templates lack the train split")
@@ -134,7 +144,7 @@ def main() -> int:
     }
 
     report = {
-        "schema": "main-table-activation-audit-v2",
+        "schema": "main-table-activation-audit-v3",
         "seed": args.seed,
         "templates": str(args.templates),
         "templates_sha256": sha256(args.templates),
@@ -153,6 +163,14 @@ def main() -> int:
             "note": "serial-chain projection: task_group_size == 1 for every node, so Parrot's "
                     "parallel task-group scheduling has no room and is disclosed as omitted",
         },
+        "profile_contract": {
+            "applied": extension_config is not None,
+            "extension_config": str(args.extension_config) if args.extension_config else None,
+            "covered_strata": {model: sorted(shapes) for model, shapes in sorted(
+                (covered_strata(extension_config) if extension_config else {}).items())},
+            "note": "node.workload_shape := node_type evidence; episode.gpu_identity := uniform "
+                    "node-level gpu_model evidence (profile_contract.py)",
+        },
         "phase_a": {},
         "phase_b": None,
     }
@@ -168,6 +186,7 @@ def main() -> int:
             summary, events = simulate_episode(
                 episode, templates, arm, train_stats=train_stats,
                 policy_context=context, collect_events=True,
+                extension_config=extension_config,
             )
             counters.update(context["activation"])
             if int(summary.get("failed_jobs") or 0):
@@ -182,7 +201,7 @@ def main() -> int:
             "counters": dict(sorted(counters.items())),
             "eviction_events": evictions,
             "fail_closed_reasons": dict(sorted(unsupported.items())),
-            "profile_attached": False,
+            "profile_attached": extension_config is not None,
         }
         if decisions:
             entry["rates_per_decision"] = {
@@ -229,7 +248,7 @@ def main() -> int:
         }
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    out = args.output_dir / "activation_report_v2.json"
+    out = args.output_dir / "activation_report_v3.json"
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print("WROTE", out)
     for arm, entry in report["phase_a"].items():

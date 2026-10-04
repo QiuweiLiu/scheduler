@@ -16,6 +16,7 @@ import hashlib
 import heapq
 import json
 import math
+import re
 import random
 import statistics
 import time
@@ -568,6 +569,8 @@ class Node:
     nested_post_ms: float | None = None
     nested_inner_ms: float | None = None
     workload_shape: str = ""
+    # source-trace GPU model of the node (evidence for the profile contract)
+    gpu_model: str = ""
 
     @property
     def workspace_incremental_mb(self) -> float:
@@ -985,6 +988,7 @@ def load_templates(
                 nested_inner_ms=optional_number(raw.get("nested_inner_ms")),
                 batch_size=max(1, int(raw.get("batch_size") or raw.get("yolo_batch") or 1)),
                 workload_shape=str(raw.get("workload_shape") or "").strip(),
+                gpu_model=text(raw.get("gpu_model"), ""),
             )
         successors: dict[str, list[str]] = defaultdict(list)
         for node in nodes_by_id.values():
@@ -1248,6 +1252,22 @@ COLOCATION_MODEL_ALIASES = {
 }
 
 
+def gpu_identity_class(identity: str) -> str:
+    """Comparison class of a device name for the profile GPU gates.
+
+    The substrate measurement campaign spans two same-class 32 GB RTX 4080
+    cards whose driver strings differ only by the marketing suffix ("NVIDIA
+    GeForce RTX 4080 SUPER" on the original instance, "NVIDIA GeForce RTX
+    4080" on the clone).  The gates compare this class so one same-class
+    measurement family can be applied across the campaign; the exact strings
+    stay in the artifacts and in the event logs.  Anything else (a different
+    model token) still fails closed.
+    """
+
+    text = re.sub(r"\s+", " ", str(identity or "")).strip().upper()
+    return re.sub(r"\s+SUPER$", "", text)
+
+
 def load_colocation_profile(path: Path) -> dict[str, Any]:
     """Load the measured HF F1 surface without changing its source artifact."""
 
@@ -1338,11 +1358,11 @@ def validate_colocation_profile(
             actual_gpu = actual_gpu.get("model") or actual_gpu.get("name")
         if isinstance(actual_gpu, (list, tuple)):
             identities = {str(value).strip() for value in actual_gpu}
-            if identities != {expected_gpu}:
+            if {gpu_identity_class(value) for value in identities} != {gpu_identity_class(expected_gpu)}:
                 raise ValueError(
                     f"co-location GPU mismatch: expected {expected_gpu!r}, got {sorted(identities)}"
                 )
-        elif str(actual_gpu or "").strip() != expected_gpu:
+        elif gpu_identity_class(str(actual_gpu or "")) != gpu_identity_class(expected_gpu):
             raise ValueError(
                 f"co-location GPU identity required: expected {expected_gpu!r}, got {actual_gpu!r}"
             )
@@ -1546,9 +1566,9 @@ def validate_prefetch_interference_profile(
     if isinstance(actual, Mapping):
         actual = actual.get("model") or actual.get("name")
     if isinstance(actual, (list, tuple)):
-        if {str(value).strip() for value in actual} != {expected}:
+        if {gpu_identity_class(str(value)) for value in actual} != {gpu_identity_class(expected)}:
             raise ValueError(f"prefetch interference GPU mismatch: expected {expected!r}, got {actual!r}")
-    elif str(actual or "").strip() != expected:
+    elif gpu_identity_class(str(actual or "")) != gpu_identity_class(expected):
         raise ValueError(f"prefetch interference GPU identity required: expected {expected!r}, got {actual!r}")
 
 
@@ -1670,9 +1690,9 @@ def validate_request_preemption_profile(
     if isinstance(actual, Mapping):
         actual = actual.get("model") or actual.get("name")
     if isinstance(actual, (list, tuple)):
-        if {str(value).strip() for value in actual} != {expected}:
+        if {gpu_identity_class(str(value)) for value in actual} != {gpu_identity_class(expected)}:
             raise ValueError(f"request preemption GPU mismatch: expected {expected!r}, got {actual!r}")
-    elif str(actual or "").strip() != expected:
+    elif gpu_identity_class(str(actual or "")) != gpu_identity_class(expected):
         raise ValueError(f"request preemption GPU identity required: expected {expected!r}, got {actual!r}")
 
 
@@ -1875,9 +1895,9 @@ def validate_batching_engine_profile(
     if isinstance(actual, Mapping):
         actual = actual.get("model") or actual.get("name")
     if isinstance(actual, (list, tuple)):
-        if {str(value).strip() for value in actual} != {expected}:
+        if {gpu_identity_class(str(value)) for value in actual} != {gpu_identity_class(expected)}:
             raise ValueError(f"batching engine GPU mismatch: expected {expected!r}, got {actual!r}")
-    elif str(actual or "").strip() != expected:
+    elif gpu_identity_class(str(actual or "")) != gpu_identity_class(expected):
         raise ValueError(f"batching engine GPU identity required: expected {expected!r}, got {actual!r}")
 
 

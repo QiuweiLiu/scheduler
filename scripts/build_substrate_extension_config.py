@@ -21,6 +21,9 @@ def main() -> int:
     parser.add_argument("--prefetch-interference", type=Path)
     parser.add_argument("--request-preemption", type=Path)
     parser.add_argument("--batching-engine", type=Path)
+    parser.add_argument("--prefetch-overlap", action="store_true",
+                        help="enable the prefetch machinery: explicit plans AND the online "
+                             "prewarm of prefetch-capable policies (Hermes, Latency-Aware)")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if not any((args.transition_config, args.colocation, args.prefetch_interference,
@@ -44,6 +47,8 @@ def main() -> int:
         config["preemption_enabled"] = True
     if args.batching_engine:
         config["batching_engine"] = load_batching_engine_profile(args.batching_engine)
+    if args.prefetch_overlap:
+        config["prefetch_overlap"] = True
     # No overwrite: this is a configuration builder, not a formal-result updater.
     with args.output.open("x", encoding="utf-8") as stream:
         json.dump(config, stream, ensure_ascii=False, indent=2)
