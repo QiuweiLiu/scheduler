@@ -166,6 +166,7 @@ def main() -> int:
         "profile_contract": {
             "applied": extension_config is not None,
             "extension_config": str(args.extension_config) if args.extension_config else None,
+            "extension_config_sha256": sha256(args.extension_config) if args.extension_config else None,
             "covered_strata": {model: sorted(shapes) for model, shapes in sorted(
                 (covered_strata(extension_config) if extension_config else {}).items())},
             "note": "node.workload_shape := node_type evidence; episode.gpu_identity := uniform "

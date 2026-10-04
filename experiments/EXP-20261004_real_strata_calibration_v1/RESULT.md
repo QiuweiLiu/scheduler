@@ -1,8 +1,9 @@
 # RESULT — EXP-20261004_real_strata_calibration_v1（真实档位全表校准）
 
-**状态**：完成（2026-10-04）。远端脚本 `.scratch/real_strata_calibration.py`（克隆实例 `:19351`，
-RTX 4080 32GB，设备名 `NVIDIA GeForce RTX 4080`）；原始产物
-`artifacts/real_strata_calibration.json`（逐轮原始值 + 每格耗时）。实例已关机。
+**状态**：完成（2026-10-04）。测量 runner 原样入库：`scripts/real_strata_calibration.py`
+（SHA256 `1c5c806ee8fdf1f6c5df053738b0ef88b2604817e5cade6767fed0d710210c50`，
+与克隆实例 `:19351` 上实际执行的字节一致；该实例 RTX 4080 32GB，设备名 `NVIDIA GeForce RTX 4080`，
+已关机）。原始产物 `artifacts/real_strata_calibration.json`（逐轮原始值 + 每格耗时）。
 
 ## 背景与目的
 

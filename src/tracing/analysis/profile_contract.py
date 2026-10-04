@@ -62,12 +62,21 @@ def apply_real_workload_profile_contract(
     if not covered:
         raise ValueError("profile contract requires covered strata in the extension config")
 
-    evidence = {
-        str(node.gpu_model).strip()
+    gpu_nodes = [
+        node
         for template in templates.values()
         for node in template.nodes
-        if node.lane == "gpu" and node.gpu_model
-    }
+        if node.lane == "gpu"
+    ]
+    missing = sorted(node.node_id for node in gpu_nodes if not str(node.gpu_model or "").strip())
+    if missing:
+        # A partially identified GPU population cannot be projected onto one
+        # episode identity: the missing nodes are evidence gaps, not silence.
+        raise ValueError(
+            "profile contract: GPU nodes without gpu_model evidence: "
+            f"{missing[:5]}{'...' if len(missing) > 5 else ''}"
+        )
+    evidence = {str(node.gpu_model).strip() for node in gpu_nodes}
     if len(evidence) != 1:
         raise ValueError(
             "profile contract requires one uniform node gpu_model evidence, got "

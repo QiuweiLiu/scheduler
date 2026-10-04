@@ -62,6 +62,13 @@ class ProfileContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "has no measured cell"):
             apply_real_workload_profile_contract({"t": tpl}, [{"episode_id": "e1"}], config())
 
+    def test_partially_missing_gpu_evidence_fails_closed(self) -> None:
+        """One identified GPU node must not silently cover a missing one."""
+        tpl = template("t", [node("n1", "m8", "planner"),
+                             node("n2", "m4", "planner", gpu_model="")])
+        with self.assertRaisesRegex(ValueError, "without gpu_model evidence"):
+            apply_real_workload_profile_contract({"t": tpl}, [{"episode_id": "e1"}], config())
+
     def test_mixed_gpu_evidence_fails_closed(self) -> None:
         tpl = template("t", [node("n1", "m8", "planner"),
                              node("n2", "m4", "planner", gpu_model="NVIDIA GeForce RTX 4090")])
