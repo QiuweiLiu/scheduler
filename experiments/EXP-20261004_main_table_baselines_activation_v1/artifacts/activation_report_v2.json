@@ -7,6 +7,14 @@
   "episode_count": 30,
   "split_manifest": "data/manifests/validation_split_dev700_confirm300.json",
   "split_usage": "development subset only (confirm300 untouched)",
+  "task_group_size_disclosure": {
+    "successor_count_distribution": {
+      "0": 640,
+      "1": 7486
+    },
+    "max_successors": 1,
+    "note": "serial-chain projection: task_group_size == 1 for every node, so Parrot's parallel task-group scheduling has no room and is disclosed as omitted"
+  },
   "phase_a": {
     "parrot_appfifo": {
       "decisions": 3984,

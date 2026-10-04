@@ -117,6 +117,9 @@ def main() -> int:
     train_stats = train_resource_stats(templates)
     if not train_stats:
         raise SystemExit("train_resource_stats is empty; templates lack the train split")
+    # Parrot disclosure: the serial-chain projection has no task-group parallelism.
+    successor_counts = Counter(len(node.successors) for template in templates.values() for node in template.nodes)
+    max_successors = max(successor_counts) if successor_counts else 0
 
     bank = build_duration_bank(templates)
     graph = build_pdgraph(templates)
@@ -136,6 +139,12 @@ def main() -> int:
         "episode_count": len(episodes),
         "split_manifest": str(args.split_manifest),
         "split_usage": "development subset only (confirm300 untouched)",
+        "task_group_size_disclosure": {
+            "successor_count_distribution": {str(k): v for k, v in sorted(successor_counts.items())},
+            "max_successors": max_successors,
+            "note": "serial-chain projection: task_group_size == 1 for every node, so Parrot's "
+                    "parallel task-group scheduling has no room and is disclosed as omitted",
+        },
         "phase_a": {},
         "phase_b": None,
     }

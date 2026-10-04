@@ -927,19 +927,20 @@ def load_templates(
     for row in read_jsonl(path):
         raw_nodes = row.get("nodes") or []
         nodes_by_id: dict[str, Node] = {}
+        # fail closed at ROW level: never let a causal template be consumed as
+        # legacy (checked before the node loop so empty-node causal rows count too)
+        declared = str(row.get("topology_contract") or "")
+        if topology_view == "legacy" and CAUSAL_TOPOLOGY_CONTRACT_MARKER in declared:
+            raise ValueError(
+                "template %s declares topology_contract=%s but was loaded with "
+                "topology_view='legacy'; pass topology_view='causal_v3' so the "
+                "executor cannot silently run the step-expansion edges"
+                % (row.get("template_id"), declared)
+            )
         for raw in raw_nodes:
             node_id = text(raw.get("node_id"), "")
             if not node_id or node_id in nodes_by_id:
                 raise ValueError(f"duplicate/empty node_id in template {row.get('template_id')}")
-            # fail closed: never let a causal template be consumed as legacy
-            declared = str(row.get("topology_contract") or "")
-            if topology_view == "legacy" and CAUSAL_TOPOLOGY_CONTRACT_MARKER in declared:
-                raise ValueError(
-                    "template %s declares topology_contract=%s but was loaded with "
-                    "topology_view='legacy'; pass topology_view='causal_v3' so the "
-                    "executor cannot silently run the step-expansion edges"
-                    % (row.get("template_id"), declared)
-                )
             if topology_view == "causal_v3":
                 if "resource_applicable" not in raw:
                     raise ValueError(
