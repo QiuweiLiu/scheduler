@@ -1,0 +1,552 @@
+{
+  "schema_version": "scheduler-substrate-extension-v1",
+  "colocation_profile": {
+    "enabled": true,
+    "engine": "hf_substrate",
+    "deployment": "multi_process",
+    "provenance_kind": "measured",
+    "source_artifact": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_colocation_table_v1.json",
+    "source_experiment": "EXP-20261004_real_strata_calibration_v1",
+    "gpu_identity": "NVIDIA GeForce RTX 4080",
+    "probe_source_artifact": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_calibration.json",
+    "probe_metadata": {
+      "rounds": 3,
+      "warmup": 1,
+      "worker_reuse": "one worker per model per part; probe rebuilt per tier",
+      "source": "mirrors mp_calibration.py (1 warmup + 3 rounds, alternating order, medians)"
+    },
+    "feasible_limit_mib": null,
+    "cells": [
+      {
+        "cell_id": "A_8B[answer_generation]|4B[planner]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "answer_generation",
+        "model_b": "Qwen3-4B",
+        "shape_b": "planner",
+        "in_a": 574,
+        "out_a": 2,
+        "images_a": 0,
+        "in_b": 1072,
+        "out_b": 36,
+        "images_b": 0,
+        "solo_a_ms": 179.1,
+        "solo_b_ms": 1501.1,
+        "coloc_a_ms": 319.9,
+        "coloc_b_ms": 1629.3,
+        "slowdown_a": 1.7862,
+        "slowdown_b": 1.0854,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[planner]|4B[planner]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "planner",
+        "model_b": "Qwen3-4B",
+        "shape_b": "planner",
+        "in_a": 1055,
+        "out_a": 47,
+        "images_a": 0,
+        "in_b": 1072,
+        "out_b": 36,
+        "images_b": 0,
+        "solo_a_ms": 2180.6,
+        "solo_b_ms": 1507.1,
+        "coloc_a_ms": 2537.3,
+        "coloc_b_ms": 1733.5,
+        "slowdown_a": 1.1636,
+        "slowdown_b": 1.1502,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[videotool_spatial]|4B[planner]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "videotool_spatial",
+        "model_b": "Qwen3-4B",
+        "shape_b": "planner",
+        "in_a": 264,
+        "out_a": 50,
+        "images_a": 1,
+        "in_b": 1072,
+        "out_b": 36,
+        "images_b": 0,
+        "solo_a_ms": 2224.0,
+        "solo_b_ms": 1551.3,
+        "coloc_a_ms": 2525.0,
+        "coloc_b_ms": 1690.9,
+        "slowdown_a": 1.1353,
+        "slowdown_b": 1.09,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[answer_generation]|3B[answer_generation]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "answer_generation",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "answer_generation",
+        "in_a": 574,
+        "out_a": 2,
+        "images_a": 0,
+        "in_b": 442,
+        "out_b": 3,
+        "images_b": 0,
+        "solo_a_ms": 176.1,
+        "solo_b_ms": 115.8,
+        "coloc_a_ms": 247.1,
+        "coloc_b_ms": 171.5,
+        "slowdown_a": 1.4032,
+        "slowdown_b": 1.481,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[answer_generation]|3B[videotool_spatial]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "answer_generation",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "videotool_spatial",
+        "in_a": 574,
+        "out_a": 2,
+        "images_a": 0,
+        "in_b": 353,
+        "out_b": 35,
+        "images_b": 1,
+        "solo_a_ms": 174.5,
+        "solo_b_ms": 1270.0,
+        "coloc_a_ms": 242.1,
+        "coloc_b_ms": 1362.0,
+        "slowdown_a": 1.3874,
+        "slowdown_b": 1.0724,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[planner]|3B[answer_generation]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "planner",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "answer_generation",
+        "in_a": 1055,
+        "out_a": 47,
+        "images_a": 0,
+        "in_b": 442,
+        "out_b": 3,
+        "images_b": 0,
+        "solo_a_ms": 2157.2,
+        "solo_b_ms": 115.6,
+        "coloc_a_ms": 2217.3,
+        "coloc_b_ms": 168.0,
+        "slowdown_a": 1.0279,
+        "slowdown_b": 1.4533,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[planner]|3B[videotool_spatial]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "planner",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "videotool_spatial",
+        "in_a": 1055,
+        "out_a": 47,
+        "images_a": 0,
+        "in_b": 353,
+        "out_b": 35,
+        "images_b": 1,
+        "solo_a_ms": 2153.1,
+        "solo_b_ms": 1266.9,
+        "coloc_a_ms": 2343.1,
+        "coloc_b_ms": 1467.1,
+        "slowdown_a": 1.0882,
+        "slowdown_b": 1.158,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[videotool_spatial]|3B[answer_generation]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "videotool_spatial",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "answer_generation",
+        "in_a": 264,
+        "out_a": 50,
+        "images_a": 1,
+        "in_b": 442,
+        "out_b": 3,
+        "images_b": 0,
+        "solo_a_ms": 2158.9,
+        "solo_b_ms": 115.8,
+        "coloc_a_ms": 2242.2,
+        "coloc_b_ms": 133.7,
+        "slowdown_a": 1.0386,
+        "slowdown_b": 1.1546,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_8B[videotool_spatial]|3B[videotool_spatial]",
+        "model_a": "Qwen3-VL-8B-Instruct",
+        "shape_a": "videotool_spatial",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "videotool_spatial",
+        "in_a": 264,
+        "out_a": 50,
+        "images_a": 1,
+        "in_b": 353,
+        "out_b": 35,
+        "images_b": 1,
+        "solo_a_ms": 2189.7,
+        "solo_b_ms": 1290.9,
+        "coloc_a_ms": 2328.2,
+        "coloc_b_ms": 1432.6,
+        "slowdown_a": 1.0633,
+        "slowdown_b": 1.1098,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_4B[planner]|3B[answer_generation]",
+        "model_a": "Qwen3-4B",
+        "shape_a": "planner",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "answer_generation",
+        "in_a": 1072,
+        "out_a": 36,
+        "images_a": 0,
+        "in_b": 442,
+        "out_b": 3,
+        "images_b": 0,
+        "solo_a_ms": 1540.9,
+        "solo_b_ms": 113.6,
+        "coloc_a_ms": 1611.1,
+        "coloc_b_ms": 176.3,
+        "slowdown_a": 1.0456,
+        "slowdown_b": 1.5519,
+        "feasible": true
+      },
+      {
+        "cell_id": "A_4B[planner]|3B[videotool_spatial]",
+        "model_a": "Qwen3-4B",
+        "shape_a": "planner",
+        "model_b": "Qwen2.5-VL-3B-Instruct",
+        "shape_b": "videotool_spatial",
+        "in_a": 1072,
+        "out_a": 36,
+        "images_a": 0,
+        "in_b": 353,
+        "out_b": 35,
+        "images_b": 1,
+        "solo_a_ms": 1540.2,
+        "solo_b_ms": 1259.3,
+        "coloc_a_ms": 1599.0,
+        "coloc_b_ms": 1361.3,
+        "slowdown_a": 1.0382,
+        "slowdown_b": 1.081,
+        "feasible": true
+      }
+    ],
+    "model_aliases": {
+      "Qwen3-VL-8B": "Qwen3-VL-8B-Instruct",
+      "Qwen2.5-VL-3B": "Qwen2.5-VL-3B-Instruct"
+    }
+  },
+  "prefetch_interference": {
+    "enabled": true,
+    "engine": "hf_substrate",
+    "deployment": "multi_process",
+    "interference_model": "additive_extra_ms",
+    "provenance_kind": "measured",
+    "source_artifact": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_interference_additive_v1.json",
+    "source_experiment": "EXP-20261004_real_strata_calibration_v1",
+    "gpu_identity": "NVIDIA GeForce RTX 4080",
+    "probe_source_artifact": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_calibration.json",
+    "probe_metadata": {
+      "rounds": 3,
+      "warmup": 1,
+      "worker_reuse": "one worker per model per part; probe rebuilt per tier",
+      "source": "mirrors mp_calibration.py (1 warmup + 3 rounds, alternating order, medians)"
+    },
+    "cells": [
+      {
+        "infer_model": "Qwen3-VL-8B-Instruct",
+        "infer_shape": "answer_generation",
+        "load": "Qwen3-4B",
+        "extra_ms": 10.7,
+        "n": 3,
+        "source_cell_id": "B_8B[answer_generation]<-4B"
+      },
+      {
+        "infer_model": "Qwen3-VL-8B-Instruct",
+        "infer_shape": "answer_generation",
+        "load": "Qwen2.5-VL-3B-Instruct",
+        "extra_ms": 13.1,
+        "n": 3,
+        "source_cell_id": "B_8B[answer_generation]<-3B"
+      },
+      {
+        "infer_model": "Qwen3-VL-8B-Instruct",
+        "infer_shape": "planner",
+        "load": "Qwen3-4B",
+        "extra_ms": 3.6,
+        "n": 3,
+        "source_cell_id": "B_8B[planner]<-4B"
+      },
+      {
+        "infer_model": "Qwen3-VL-8B-Instruct",
+        "infer_shape": "planner",
+        "load": "Qwen2.5-VL-3B-Instruct",
+        "extra_ms": 29.0,
+        "n": 3,
+        "source_cell_id": "B_8B[planner]<-3B"
+      },
+      {
+        "infer_model": "Qwen3-VL-8B-Instruct",
+        "infer_shape": "videotool_spatial",
+        "load": "Qwen3-4B",
+        "extra_ms": 0.0,
+        "n": 3,
+        "source_cell_id": "B_8B[videotool_spatial]<-4B"
+      },
+      {
+        "infer_model": "Qwen3-VL-8B-Instruct",
+        "infer_shape": "videotool_spatial",
+        "load": "Qwen2.5-VL-3B-Instruct",
+        "extra_ms": 33.8,
+        "n": 3,
+        "source_cell_id": "B_8B[videotool_spatial]<-3B"
+      },
+      {
+        "infer_model": "Qwen2.5-VL-3B-Instruct",
+        "infer_shape": "answer_generation",
+        "load": "Qwen3-VL-8B-Instruct",
+        "extra_ms": 5.5,
+        "n": 3,
+        "source_cell_id": "B_3B[answer_generation]<-8B"
+      },
+      {
+        "infer_model": "Qwen2.5-VL-3B-Instruct",
+        "infer_shape": "answer_generation",
+        "load": "Qwen3-4B",
+        "extra_ms": 4.0,
+        "n": 3,
+        "source_cell_id": "B_3B[answer_generation]<-4B"
+      },
+      {
+        "infer_model": "Qwen2.5-VL-3B-Instruct",
+        "infer_shape": "videotool_spatial",
+        "load": "Qwen3-VL-8B-Instruct",
+        "extra_ms": 7.1,
+        "n": 3,
+        "source_cell_id": "B_3B[videotool_spatial]<-8B"
+      },
+      {
+        "infer_model": "Qwen2.5-VL-3B-Instruct",
+        "infer_shape": "videotool_spatial",
+        "load": "Qwen3-4B",
+        "extra_ms": 24.8,
+        "n": 3,
+        "source_cell_id": "B_3B[videotool_spatial]<-4B"
+      },
+      {
+        "infer_model": "Qwen3-4B",
+        "infer_shape": "planner",
+        "load": "Qwen3-VL-8B-Instruct",
+        "extra_ms": 33.1,
+        "n": 3,
+        "source_cell_id": "B_4B[planner]<-8B"
+      },
+      {
+        "infer_model": "Qwen3-4B",
+        "infer_shape": "planner",
+        "load": "Qwen2.5-VL-3B-Instruct",
+        "extra_ms": 8.4,
+        "n": 3,
+        "source_cell_id": "B_4B[planner]<-3B"
+      }
+    ],
+    "model_aliases": {
+      "Qwen3-VL-8B": "Qwen3-VL-8B-Instruct",
+      "Qwen2.5-VL-3B": "Qwen2.5-VL-3B-Instruct"
+    }
+  },
+  "request_preemption": {
+    "enabled": true,
+    "mode": "REQUEST_RECOMPUTE",
+    "engine": "hf_substrate",
+    "provenance_kind": "measured",
+    "source_artifact": "experiments/EXP-20261003_substrate_preemption_resume_v1/artifacts/request_preemption_profile_v1.json",
+    "source_experiment": "EXP-20261003_substrate_preemption_resume_v1",
+    "gpu_identity": "NVIDIA GeForce RTX 4080 SUPER",
+    "probe_source_artifact": "experiments/EXP-20261002_substrate_token_prior_v1/artifacts/token_prior_v1.json",
+    "probe_metadata": {
+      "token_source_experiment": "EXP-20261002_substrate_token_prior_v1",
+      "phase_source_experiment": "EXP-20260929_substrate_phase_profile_v1",
+      "estimator": "deterministic layer medians (p50); totals remain pinned to trace runtimes",
+      "resume_model": "R_m = prefill_intercept_ms + prefill_us_per_token/1000 * n_ctx (P1 round-trip: 4B/8B on RTX 4080 SUPER residual -1.8%~-5.6%; 3B +1.5%/+2.6% and 4B control -1.8% on the clone instance; all pass |res|<=10% gate)",
+      "resume_validation_experiments": [
+        "EXP-20261003_substrate_preemption_resume_v1",
+        "EXP-20261003_substrate_resume_3b_v1"
+      ],
+      "resume_validation_note": "3B cells were measured on the clone instance (reported RTX 4080, not SUPER); the same-protocol 4B control reproduced the SUPER residual within 2.5pp, so the instances are treated as equivalent for this protocol."
+    },
+    "layers": {
+      "Qwen3-VL-8B-Instruct|planner": {
+        "in_tokens": 1055,
+        "out_tokens": 47
+      },
+      "Qwen3-VL-8B-Instruct|videotool_spatial": {
+        "in_tokens": 264,
+        "out_tokens": 50
+      },
+      "Qwen3-VL-8B-Instruct|answer_generation": {
+        "in_tokens": 574,
+        "out_tokens": 2
+      },
+      "Qwen2.5-VL-3B-Instruct|answer_generation": {
+        "in_tokens": 442,
+        "out_tokens": 3
+      },
+      "Qwen3-4B|planner": {
+        "in_tokens": 1072,
+        "out_tokens": 36
+      },
+      "Qwen2.5-VL-3B-Instruct|videotool_spatial": {
+        "in_tokens": 353,
+        "out_tokens": 35
+      }
+    },
+    "models": {
+      "Qwen3-VL-8B-Instruct": {
+        "prefill_us_per_token": 190.01,
+        "prefill_intercept_ms": 9.8,
+        "tpot_ms": 28.423
+      },
+      "Qwen3-4B": {
+        "prefill_us_per_token": 114.57,
+        "prefill_intercept_ms": 8.1,
+        "tpot_ms": 29.038
+      },
+      "Qwen2.5-VL-3B-Instruct": {
+        "prefill_us_per_token": 75.29,
+        "prefill_intercept_ms": 10.2,
+        "tpot_ms": 23.295
+      }
+    }
+  },
+  "preemption_enabled": true,
+  "batching_engine": {
+    "enabled": true,
+    "engine": "vllm_batched",
+    "provenance_kind": "measured",
+    "source_artifact": "experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/batching_engine_profile_v2.json",
+    "source_experiment": "EXP-20261003_substrate_batching_curves_v1",
+    "gpu_identity": "NVIDIA GeForce RTX 4080 SUPER",
+    "probe_source_artifact": "experiments/EXP-20261003_substrate_batching_curves_v1/artifacts/b2_batch_curves.json",
+    "probe_metadata": {
+      "batching_source_experiment": "EXP-20261003_substrate_batching_curves_v1",
+      "cross_model_source_experiment": "EXP-20261003_substrate_cross_model_vllm_v1",
+      "throughput_speedup_context": {
+        "Qwen3-VL-8B|planner": {
+          "1": 1.0,
+          "2": 1.935,
+          "4": 3.799,
+          "8": 7.228,
+          "16": 13.457
+        },
+        "Qwen3-VL-8B|videotool_spatial": {
+          "1": 1.0,
+          "2": 1.948,
+          "4": 3.848,
+          "8": 7.594,
+          "16": 14.637
+        },
+        "Qwen2.5-VL-3B|answer_generation": {
+          "1": 1.0,
+          "2": 1.629,
+          "4": 3.082,
+          "8": 4.768,
+          "16": 7.19
+        },
+        "Qwen2.5-VL-3B|videotool_spatial": {
+          "1": 1.0,
+          "2": 1.881,
+          "4": 3.751,
+          "8": 7.407,
+          "16": 13.699
+        },
+        "Qwen3-4B|planner": {
+          "1": 1.0,
+          "2": 1.857,
+          "4": 3.637,
+          "8": 6.666,
+          "16": 11.754
+        }
+      },
+      "note": "Cross-model concurrency keeps the HF multi-process co-location table as a proxy; the vLLM dual-engine check showed the 8B side within 4% (1.29 vs 1.24) while the small side differed (0.98 vs 1.27)."
+    },
+    "same_model_curves": {
+      "Qwen3-VL-8B-Instruct|planner": {
+        "1": 1.0,
+        "2": 1.0338,
+        "4": 1.0527,
+        "8": 1.1066,
+        "16": 1.1885
+      },
+      "Qwen3-VL-8B-Instruct|videotool_spatial": {
+        "1": 1.0,
+        "2": 1.0268,
+        "4": 1.0395,
+        "8": 1.0538,
+        "16": 1.093
+      },
+      "Qwen2.5-VL-3B-Instruct|answer_generation": {
+        "1": 1.0,
+        "2": 1.2274,
+        "4": 1.3024,
+        "8": 1.6777,
+        "16": 2.2097
+      },
+      "Qwen2.5-VL-3B-Instruct|videotool_spatial": {
+        "1": 1.0,
+        "2": 1.0633,
+        "4": 1.0662,
+        "8": 1.0793,
+        "16": 1.1659
+      },
+      "Qwen3-4B|planner": {
+        "1": 1.0,
+        "2": 1.0767,
+        "4": 1.1001,
+        "8": 1.2006,
+        "16": 1.3611
+      }
+    },
+    "kv_pools_tokens": {
+      "Qwen3-VL-8B-Instruct": 50480,
+      "Qwen2.5-VL-3B-Instruct": 476160,
+      "Qwen3-4B": 130624
+    },
+    "layers": {
+      "Qwen3-VL-8B-Instruct|planner": {
+        "in_tokens": 1055,
+        "out_tokens": 47
+      },
+      "Qwen3-VL-8B-Instruct|videotool_spatial": {
+        "in_tokens": 264,
+        "out_tokens": 50
+      },
+      "Qwen3-VL-8B-Instruct|answer_generation": {
+        "in_tokens": 574,
+        "out_tokens": 2
+      },
+      "Qwen2.5-VL-3B-Instruct|answer_generation": {
+        "in_tokens": 442,
+        "out_tokens": 3
+      },
+      "Qwen3-4B|planner": {
+        "in_tokens": 1072,
+        "out_tokens": 36
+      },
+      "Qwen2.5-VL-3B-Instruct|videotool_spatial": {
+        "in_tokens": 353,
+        "out_tokens": 35
+      }
+    },
+    "homogeneity_tolerance": 1.25,
+    "cross_model_policy": "mp_table_proxy"
+  },
+  "prefetch_overlap": true
+}
