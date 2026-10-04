@@ -62,23 +62,28 @@ def _node(node_id, model, role, runtime, shape, predecessors=()):
         lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
         workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
         workload_shape=shape, role=role,
+        gpu_model="NVIDIA GeForce RTX 4080 SUPER",
     )
 
 
 def synthetic_profile_smoke(extension_config, train_stats):
     """One declared synthetic episode exercising Hermes prewarm under the real
-    F4 cell (8B|medium <- 3B) with the real PDGraph state (13, videotool_spatial).
+    F4 cell (8B|videotool_spatial <- 3B) with the real PDGraph state.
+    The workload-shape vocabulary is the REAL one (shape == node role), so the
+    interference lookup consumes a measured v7 cell instead of failing closed.
     Filler nodes use only models that are resident or already loaded so the 3B
     target stays cold until the prewarm fires."""
 
     nodes = []
     previous = ()
     for index in range(12):
-        node = _node(f"pre:n{index}", "Qwen3-4B", "videotool_temporal", 120.0, "medium", previous)
+        node = _node(f"pre:n{index}", "Qwen3-4B", "planner", 120.0, "planner", previous)
         nodes.append(node)
         previous = (node.node_id,)
-    runner = _node("pre:n12", "Qwen3-VL-8B-Instruct", "videotool_spatial", 4200.0, "medium", previous)
-    answer = _node("pre:n13", "Qwen2.5-VL-3B-Instruct", "answer_generation", 500.0, "short", (runner.node_id,))
+    runner = _node("pre:n12", "Qwen3-VL-8B-Instruct", "videotool_spatial", 4200.0,
+                   "videotool_spatial", previous)
+    answer = _node("pre:n13", "Qwen2.5-VL-3B-Instruct", "answer_generation", 500.0,
+                   "answer_generation", (runner.node_id,))
     nodes.extend([runner, answer])
     template = Template(
         "pre_smoke", "v", "validation", "b", tuple(nodes), {n.node_id: n for n in nodes},
@@ -218,6 +223,11 @@ def main() -> int:
         # profile builder does not emit it, so the runner (and this audit) must.
         extension_config = {**extension_config, "prefetch_overlap": True}
         episode, smoke_templates = synthetic_profile_smoke(extension_config, train_stats)
+        # The synthetic episode declares its own identity; keep the same gate the
+        # real path uses so a class mismatch cannot pass silently here either.
+        smoke_templates, (episode,) = apply_real_workload_profile_contract(
+            smoke_templates, [episode], extension_config
+        )
         phase_b = {}
         for arm in ARMS:
             context = dict(contexts[arm])
