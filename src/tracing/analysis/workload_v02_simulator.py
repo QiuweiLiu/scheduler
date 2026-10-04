@@ -590,6 +590,10 @@ class Template:
     baseline: str
     nodes: tuple[Node, ...]
     by_id: Mapping[str, Node]
+    # Workflow/application type from the raw projection (e.g. "videomme.star").
+    # Used by the Hermes PDGraph to condition on the application family; the
+    # loader defaults it to "" for older files that do not carry the field.
+    workflow_type_id: str = ""
 
 
 @dataclass
@@ -1001,6 +1005,7 @@ def load_templates(
             baseline=text(row.get("baseline")),
             nodes=tuple(sorted(final_nodes.values(), key=lambda node: node.sequence_index)),
             by_id=final_nodes,
+            workflow_type_id=text(row.get("workflow_type_id")),
         )
     if not result:
         raise ValueError(f"no templates in {path}")
@@ -4811,29 +4816,56 @@ def choose_action(
         """
 
         from tracing.analysis.torpor_methods import (
-            model_interference_cost_ms,
             model_load_estimate_ms,
             torpor_placement_rank,
         )
 
         interference_profile = _prefetch_interference_profile(extension_config)
-        covered_models = {
-            str(cell.get("load"))
-            for cell in ((interference_profile or {}).get("cells") or [])
-            if cell.get("load")
-        }
+
+        def candidate_interference(gpu: GPU, load_model: str) -> tuple[bool, float]:
+            """Canonical F4 coverage for this (device, load) at this decision.
+
+            An idle device has no overlap interference.  A running task uses the
+            authoritative ``(infer_model, infer_shape, load_model)`` matcher; an
+            uncovered triple fails closed to the serial path instead of borrowing
+            another cell's cost (the substrate's measured-domain contract).
+            """
+
+            active = gpu.active_node_entries()
+            if len(active) != 1:
+                return True, 0.0
+            active_task = active[0][1]
+            if (
+                active_task.work_start_ms is not None
+                and active_task.work_start_ms > float(decision_time_ms) + 1e-9
+            ):
+                return True, 0.0
+            extra = prefetch_interference_extra_ms(
+                interference_profile,
+                active_task.model_id,
+                active_task.workload_shape,
+                load_model,
+            )
+            if extra is None:
+                return False, 0.0
+            return True, float(extra)
+
+        def torpor_rank_for(candidate: tuple) -> tuple[int, float]:
+            _item, _job_index, _node_id, model_id, gpu, _row, _fit = candidate
+            covered, extra = candidate_interference(gpu, model_id)
+            return torpor_placement_rank(
+                model_id,
+                gpu,
+                model_load_estimate_ms(train_stats, model_id),
+                covered,
+                extra,
+            )
 
         def torpor_score(
             candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
         ) -> tuple[Any, ...]:
             item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
-            rank, placement_cost = torpor_placement_rank(
-                model_id,
-                gpu,
-                model_load_estimate_ms(train_stats, model_id),
-                model_id in covered_models,
-                model_interference_cost_ms(interference_profile, model_id),
-            )
+            rank, placement_cost = torpor_rank_for(candidate)
             return (
                 float(item[0]),   # hard service priority stays first
                 float(item[1]),   # FCFS: longest-waiting request first
@@ -4854,15 +4886,14 @@ def choose_action(
                 activation["resident_hit"] = int(activation.get("resident_hit", 0)) + 1
             else:
                 activation["cold_swap"] = int(activation.get("cold_swap", 0)) + 1
-            _rank, _cost = torpor_placement_rank(
-                chosen_model,
-                chosen_gpu,
-                model_load_estimate_ms(train_stats, chosen_model),
-                chosen_model in covered_models,
-                model_interference_cost_ms(interference_profile, chosen_model),
-            )
+            _rank, _cost = torpor_rank_for(chosen)
             if _rank == 1:
                 activation["covered_load_choice"] = int(activation.get("covered_load_choice", 0)) + 1
+                _covered, _extra = candidate_interference(chosen[4], chosen[3])
+                if _covered and float(_extra) > 0.0:
+                    activation["interference_aware_choice"] = (
+                        int(activation.get("interference_aware_choice", 0)) + 1
+                    )
             elif _rank == 2:
                 activation["uncovered_load_choice"] = int(activation.get("uncovered_load_choice", 0)) + 1
 
@@ -4886,18 +4917,25 @@ def choose_action(
         model/model-class mapping is disclosed in the paper's table footnote.
         """
 
-        from tracing.analysis.hermes_methods import gittins_index, remaining_samples
+        from tracing.analysis.hermes_methods import (
+            conditional_tuples,
+            gittins_index,
+            remaining_samples,
+        )
 
         ctx = policy_context if policy_context is not None else {}
         graph = ctx.get("hermes_pdgraph")
         if graph is None:
             raise ValueError("hermes_gittins requires policy_context['hermes_pdgraph']")
 
-        def hermes_score(
-            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
-        ) -> tuple[Any, ...]:
-            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
-            job = jobs[job_index]
+        def _job_state(job: Any) -> tuple[str, int, str, float | None]:
+            """Workflow, revealed count, last completed role, observed prefix demand.
+
+            The prefix demand is the sum of COMPLETED nodes' observed intrinsic
+            durations (None before anything completed, so no refinement is
+            applied at the very first decision).
+            """
+
             revealed = len(job.completed)
             last_role = ""
             for node in job.template.nodes:
@@ -4905,7 +4943,23 @@ def choose_action(
                     last_role = node.role
                 else:
                     break
-            index = gittins_index(remaining_samples(graph, revealed, last_role))
+            observed = None
+            if revealed > 0:
+                observed = sum(
+                    float(job.observed_intrinsic_ms.get(node_id, 0.0))
+                    for node_id in job.completed
+                )
+            return str(job.template.workflow_type_id or ""), revealed, last_role, observed
+
+        def hermes_samples(job: Any) -> list[float]:
+            workflow, revealed, last_role, observed = _job_state(job)
+            return remaining_samples(graph, workflow, revealed, last_role, observed)
+
+        def hermes_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            index = gittins_index(hermes_samples(jobs[job_index]))
             if index is None:
                 index = math.inf
             return (
@@ -4923,37 +4977,37 @@ def choose_action(
         if activation is not None:
             activation["decisions"] = int(activation.get("decisions", 0)) + 1
 
-            def _mean_remaining(candidate: tuple) -> float:
-                job = jobs[candidate[1]]
-                revealed = len(job.completed)
-                last_role = ""
-                for node in job.template.nodes:
-                    if node.node_id in job.completed:
-                        last_role = node.role
-                    else:
-                        break
-                samples = remaining_samples(graph, revealed, last_role)
+            def _mean_remaining(job: Any) -> float:
+                samples = hermes_samples(job)
                 return (sum(samples) / len(samples)) if samples else math.inf
 
-            mean_pick = min(pool, key=lambda candidate: (candidate[0][0], _mean_remaining(candidate)))
+            # Fair counterfactual: identical tuple shape, only the primary key
+            # differs (mean instead of the Gittins index).
+            mean_pick = min(
+                pool,
+                key=lambda candidate: (
+                    candidate[0][0],
+                    _mean_remaining(jobs[candidate[1]]),
+                    candidate[0][1],
+                    candidate[1],
+                    candidate[2],
+                    candidate[3],
+                    candidate[4].index,
+                ),
+            )
             if (mean_pick[1], mean_pick[2]) != (chosen[1], chosen[2]):
                 activation["gittins_vs_mean_flip"] = int(activation.get("gittins_vs_mean_flip", 0)) + 1
             chosen_job = jobs[chosen[1]]
-            revealed = len(chosen_job.completed)
+            workflow, revealed, last_role, observed = _job_state(chosen_job)
             if revealed > 0:
                 activation["pdgraph_conditional_used"] = (
                     int(activation.get("pdgraph_conditional_used", 0)) + 1
                 )
-                last_role = ""
-                for node in chosen_job.template.nodes:
-                    if node.node_id in chosen_job.completed:
-                        last_role = node.role
-                    else:
-                        break
-                if (revealed, last_role) in (graph.get("remaining") or {}):
-                    activation["pdgraph_conditional_hit"] = (
-                        int(activation.get("pdgraph_conditional_hit", 0)) + 1
-                    )
+                _selected, refined = conditional_tuples(
+                    graph, workflow, revealed, last_role, observed
+                )
+                if refined:
+                    activation["pdgraph_refined"] = int(activation.get("pdgraph_refined", 0)) + 1
 
     elif policy == "qlm_queue":
         """QLM-queue-adapted: SLO-oriented stochastic queue assignment (SAA).
@@ -5005,7 +5059,9 @@ def choose_action(
             deadlines[key] = jobs[job_index].deadline_ms
             loads[key] = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
 
-        first = keys[qlm_saa_choice(keys, samples, deadlines, loads, delta=delta)]
+        first = keys[
+            qlm_saa_choice(keys, samples, deadlines, loads, delta=delta, now_ms=float(decision_time_ms))
+        ]
         chosen = next(candidate for candidate in pool if (candidate[1], candidate[2]) == first)
 
         activation = ctx.get("activation")
@@ -5016,9 +5072,25 @@ def choose_action(
                     int(activation.get("stochastic_reorder_count", 0)) + 1
                 )
             if any(loads[key] > 0.0 for key in keys):
-                activation["swap_cost_affected_count"] = (
-                    int(activation.get("swap_cost_affected_count", 0)) + 1
-                )
+                activation["load_present_count"] = int(activation.get("load_present_count", 0)) + 1
+                # Counterfactual: zero every load term and see whether the chosen
+                # first slot changes; "a cold candidate existed" alone is not
+                # evidence that the load cost affected the decision.
+                zeroed_loads = {key: 0.0 for key in loads}
+                first_without_load = keys[
+                    qlm_saa_choice(
+                        keys,
+                        samples,
+                        deadlines,
+                        zeroed_loads,
+                        delta=delta,
+                        now_ms=float(decision_time_ms),
+                    )
+                ]
+                if first_without_load != first:
+                    activation["swap_cost_affected_count"] = (
+                        int(activation.get("swap_cost_affected_count", 0)) + 1
+                    )
 
     elif policy == "pythia_completion":
         """Pythia-adapted: the FULL Algorithm 3 priority, not just its completion half.
@@ -6257,9 +6329,19 @@ def simulate_episode(
             # conditioned on the state AFTER it: (revealed + 1, its role).  On a
             # serial chain this is exact.
             running_node = job.template.by_id[node_id]
+            workflow = str(job.template.workflow_type_id or "")
             revealed = len(job.completed) + 1
             last_role = running_node.role
-            p_s, model_id = downstream_demand(graph, revealed, last_role)
+            # Observed prefix demand = completed nodes' observations plus the
+            # running node's scheduler-visible prediction (never its true runtime).
+            observed_prefix = sum(
+                float(job.observed_intrinsic_ms.get(completed_id, 0.0))
+                for completed_id in job.completed
+            )
+            observed_prefix += float(optional_number(task.predicted_work_ms) or 0.0)
+            p_s, model_id = downstream_demand(
+                graph, workflow, revealed, last_role, observed_prefix
+            )
             if not model_id or p_s < K:
                 continue
             if model_id in gpu.resident or model_id in gpu.loading_model_ids():
@@ -6267,7 +6349,14 @@ def simulate_episode(
             t_p = model_load_estimate_ms(train_stats, model_id)
             if t_p <= 0.0:
                 continue
-            t_c = float(task.finish_ms)
+            # Completion time comes from the scheduler-visible prediction frozen at
+            # dispatch (predicted_work_ms), never from the true runtime: the engine's
+            # finish_ms is execution truth and must not steer a policy action.
+            predicted_work = optional_number(task.predicted_work_ms)
+            if predicted_work is None or predicted_work <= 0.0:
+                continue
+            t_c = float(task.work_start_ms if task.work_start_ms is not None else task.start_ms)
+            t_c += float(predicted_work) * max(1e-9, float(task.slowdown))
             if float(now) + t_p > t_c + 1e-9:
                 continue
             activation = (policy_context or {}).get("activation")

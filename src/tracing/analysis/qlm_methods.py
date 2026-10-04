@@ -74,6 +74,7 @@ def qlm_saa_choice(
     loads: Mapping[tuple[int, str], float],
     *,
     delta: float = 0.90,
+    now_ms: float = 0.0,
 ) -> int:
     """Return the index (into ``keys``) of the request to run first.
 
@@ -106,7 +107,9 @@ def qlm_saa_choice(
         order = trial_order(first_index)
         completions: dict[tuple[int, str], list[float]] = {key: [] for key in order}
         for scenario in range(scenario_count):
-            clock = 0.0
+            # Deadlines are absolute timeline deadlines, so the scenario clock
+            # starts at the decision time: waiting time must enter C_i.
+            clock = float(now_ms)
             for key in order:
                 clock += float(samples[key][scenario]) + float(loads.get(key, 0.0))
                 completions[key].append(clock)

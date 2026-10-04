@@ -1,44 +1,59 @@
-"""Hermes-PDGraph-adapted helpers (frozen 2026-10-04).
+"""Hermes-PDGraph-adapted helpers (frozen 2026-10-04; revised after review 2424f67).
 
-Adaptation of Hermes (ACM TACO 2026) to the single-GPU node-level substrate:
-a train-only probabilistic demand graph over revealed prefixes, the paper's
-exact Gittins rank, and the analytical online prewarm trigger.
+Adaptation of Hermes (ACM TACO 2026) to the single-GPU node-level substrate.
 
-Review constraints (see docs/research/2026-10-03_main_table_baselines_manifest.md):
+Review-driven design (see the round-2 review of 2424f67):
 
-* use the paper's Gittins formula with LOWER index = HIGHER priority;
-* evaluate it on 10-bucket support boundaries (paper default), not an invented
-  horizon;
-* condition on the remaining-demand distribution (a = 0 form), which is exact
-  and node-boundary friendly;
-* prewarm uses ``p_e = p_s * P(t_c > t_s + t_p)`` with K = 0.5 and may fire
-  while the current node is still executing (never only on idle);
-* never mix deadline terms into the Gittins rank (Hermes-DDL is a separate
-  variant and is not part of the main table).
+* the PDGraph is conditioned on the **workflow/application type** (the raw
+  ``workflow_type_id``), not on a global mixture of all applications;
+* historical tuples are kept **aligned**: for each (workflow, revealed_count,
+  last_role) state we store ``(prefix_demand, suffix_demand, next_role,
+  next_model)`` so a completed node's *observed* demand can filter the tuples;
+* refinement is **gated by the Pearson correlation** between prefix and suffix
+  demand (only rho > 0.5 lets completed observations enter the conditioning);
+  below the gate the unconditional state distribution is used;
+* the downstream unit for prewarm comes from the **conditional joint**
+  (next_role, next_model) distribution of the selected tuples, not from a
+  global role->model majority;
+* the Gittins index is the paper's exact empirical ``G(D, 0)`` (lower = higher
+  priority); the earlier equal-mass 10-point grid is kept only as an appendix
+  sensitivity.
 """
 
 from __future__ import annotations
 
+import math
 import statistics
 from collections import Counter, defaultdict
 from typing import Any, Mapping, Sequence
 
+PEARSON_GATE = 0.5
+REFINEMENT_TOLERANCE = 0.25
+MIN_REFINED_TUPLES = 3
+
+
+def _pearson(pairs: Sequence[tuple[float, float]]) -> float | None:
+    if len(pairs) < 5:
+        return None
+    xs = [pair[0] for pair in pairs]
+    ys = [pair[1] for pair in pairs]
+    mx = statistics.fmean(xs)
+    my = statistics.fmean(ys)
+    covariance = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    variance_x = sum((x - mx) ** 2 for x in xs)
+    variance_y = sum((y - my) ** 2 for y in ys)
+    if variance_x <= 0.0 or variance_y <= 0.0:
+        return None
+    return covariance / math.sqrt(variance_x * variance_y)
+
 
 def build_pdgraph(templates: Mapping[str, Any]) -> dict[str, Any]:
-    """Train-only probabilistic demand graph over (revealed_count, last_role).
+    """Workflow-conditioned PDGraph over aligned historical demand tuples."""
 
-    For every train template, after each node i the state is
-    ``(i + 1 revealed nodes, role of node i)``; the graph records the next role
-    distribution and an empirical sample of the remaining intrinsic work
-    (sum of the unexecuted suffix durations).  Coarser fallbacks aggregate over
-    roles (per count) and over everything (global) so an unseen state still has
-    a distribution instead of a guess.
-    """
-
-    next_role: dict[tuple[int, str], Counter[str]] = defaultdict(Counter)
-    remaining: dict[tuple[int, str], list[float]] = defaultdict(list)
-    remaining_by_count: dict[int, list[float]] = defaultdict(list)
-    global_remaining: list[float] = []
+    states: dict[tuple[str, int, str], list[tuple[float, float, str, str]]] = defaultdict(list)
+    by_workflow_count: dict[tuple[str, int], list[tuple[float, float, str, str]]] = defaultdict(list)
+    by_count: dict[int, list[tuple[float, float, str, str]]] = defaultdict(list)
+    global_tuples: list[tuple[float, float, str, str]] = []
     role_models: dict[str, Counter[str]] = defaultdict(Counter)
     for template in templates.values():
         if str(getattr(template, "split", "")) != "train":
@@ -46,57 +61,179 @@ def build_pdgraph(templates: Mapping[str, Any]) -> dict[str, Any]:
         nodes = list(template.nodes)
         if not nodes:
             continue
-        # Initial state: nothing revealed yet -> the first role and the full
-        # remaining work are the train-only priors for a freshly ready job.
-        next_role[(0, "")][str(nodes[0].role)] += 1
-        total = sum(float(node.runtime_ms) for node in nodes)
-        remaining_by_count[0].append(total)
-        global_remaining.append(total)
+        workflow = str(getattr(template, "workflow_type_id", "") or "")
+        durations = [float(node.runtime_ms) for node in nodes]
+        # State with nothing revealed yet: the remaining demand is the FULL
+        # template and the next unit is the first node.
+        total = sum(durations)
+        first = nodes[0]
+        zero_entry = (0.0, total, str(first.role), str(first.model_id))
+        states[(workflow, 0, "")].append(zero_entry)
+        by_workflow_count[(workflow, 0)].append(zero_entry)
+        by_count[0].append(zero_entry)
+        global_tuples.append(zero_entry)
         for index, node in enumerate(nodes):
-            state = (index + 1, str(node.role))
+            prefix = sum(durations[: index + 1])
+            suffix = sum(durations[index + 1:])
             if index + 1 < len(nodes):
-                next_role[state][str(nodes[index + 1].role)] += 1
-            tail = sum(float(other.runtime_ms) for other in nodes[index + 1:])
-            remaining[state].append(tail)
-            remaining_by_count[index + 1].append(tail)
-            global_remaining.append(tail)
+                next_node = nodes[index + 1]
+                entry = (prefix, suffix, str(next_node.role), str(next_node.model_id))
+            else:
+                entry = (prefix, suffix, "", "")
+            state = (workflow, index + 1, str(node.role))
+            states[state].append(entry)
+            by_workflow_count[(workflow, index + 1)].append(entry)
+            by_count[index + 1].append(entry)
+            global_tuples.append(entry)
             role_models[str(node.role)][str(node.model_id)] += 1
+    rho: dict[tuple, float | None] = {}
+    for key, entries in states.items():
+        rho[("state",) + key] = _pearson([(e[0], e[1]) for e in entries])
+    for key, entries in by_workflow_count.items():
+        rho[("wf",) + key] = _pearson([(e[0], e[1]) for e in entries])
+    for key, entries in by_count.items():
+        rho[("count", key)] = _pearson([(e[0], e[1]) for e in entries])
+    rho[("global",)] = _pearson([(e[0], e[1]) for e in global_tuples])
     return {
-        "next_role": {key: dict(counter) for key, counter in next_role.items()},
-        "remaining": {key: list(values) for key, values in remaining.items()},
-        "remaining_by_count": {key: list(values) for key, values in remaining_by_count.items()},
-        "global_remaining": global_remaining,
+        "states": {key: list(entries) for key, entries in states.items()},
+        "by_workflow_count": {key: list(entries) for key, entries in by_workflow_count.items()},
+        "by_count": {key: list(entries) for key, entries in by_count.items()},
+        "global": global_tuples,
         "role_models": {key: dict(counter) for key, counter in role_models.items()},
+        "rho": rho,
     }
 
 
-def state_for_job(graph: Mapping[str, Any], revealed_count: int, last_role: str) -> tuple[int, str]:
-    return (int(revealed_count), str(last_role))
+def _lookup(
+    graph: Mapping[str, Any],
+    workflow: str,
+    revealed_count: int,
+    last_role: str,
+) -> tuple[list[tuple[float, float, str, str]], tuple | None]:
+    """Return (tuples, rho_key) with the fallback chain exact -> workflow+count
+    -> count -> global."""
+
+    states = graph.get("states") or {}
+    key = (str(workflow), int(revealed_count), str(last_role))
+    if states.get(key):
+        return list(states[key]), ("state",) + key
+    wf = (graph.get("by_workflow_count") or {}).get((str(workflow), int(revealed_count)))
+    if wf:
+        return list(wf), ("wf", str(workflow), int(revealed_count))
+    by_count = (graph.get("by_count") or {}).get(int(revealed_count))
+    if by_count:
+        return list(by_count), ("count", int(revealed_count))
+    return list(graph.get("global") or []), ("global",)
+
+
+def _select(
+    entries: list[tuple[float, float, str, str]],
+    rho: float | None,
+    observed_prefix_ms: float | None,
+) -> list[tuple[float, float, str, str]]:
+    """Apply the Pearson gate and the observed-demand tuple filter."""
+
+    if observed_prefix_ms is None or rho is None or rho <= PEARSON_GATE:
+        return entries
+    tolerance = max(1.0, REFINEMENT_TOLERANCE * float(observed_prefix_ms))
+    refined = [e for e in entries if abs(e[0] - float(observed_prefix_ms)) <= tolerance]
+    if len(refined) < MIN_REFINED_TUPLES:
+        return entries
+    return refined
+
+
+def conditional_tuples(
+    graph: Mapping[str, Any],
+    workflow: str,
+    revealed_count: int,
+    last_role: str,
+    observed_prefix_ms: float | None = None,
+) -> tuple[list[tuple[float, float, str, str]], bool]:
+    """Return (selected tuples, refined?) for the state and observed prefix."""
+
+    entries, rho_key = _lookup(graph, workflow, revealed_count, last_role)
+    rho = (graph.get("rho") or {}).get(rho_key) if rho_key is not None else None
+    selected = _select(entries, rho, observed_prefix_ms)
+    return selected, len(selected) != len(entries)
 
 
 def remaining_samples(
     graph: Mapping[str, Any],
+    workflow: str,
     revealed_count: int,
     last_role: str,
+    observed_prefix_ms: float | None = None,
 ) -> list[float]:
-    """Conditional remaining-demand samples with coarse fallbacks."""
+    """Conditional remaining-demand samples (suffix sums of the selected tuples)."""
 
-    state = state_for_job(graph, revealed_count, last_role)
-    samples = list((graph.get("remaining") or {}).get(state) or [])
-    if samples:
-        return samples
-    samples = list((graph.get("remaining_by_count") or {}).get(int(revealed_count)) or [])
-    if samples:
-        return samples
-    return list(graph.get("global_remaining") or [])
+    selected, _refined = conditional_tuples(
+        graph, workflow, revealed_count, last_role, observed_prefix_ms
+    )
+    return [entry[1] for entry in selected]
 
 
-def gittins_index(samples: Sequence[float], *, buckets: int = 10) -> float | None:
-    """The paper's Gittins index ``G(D, 0)`` (LOWER means HIGHER priority).
+def downstream_demand(
+    graph: Mapping[str, Any],
+    workflow: str,
+    revealed_count: int,
+    last_role: str,
+    observed_prefix_ms: float | None = None,
+) -> tuple[float, str | None]:
+    """``(p_s, model_id)`` from the conditional JOINT next-unit distribution.
 
-    ``G = inf_delta E[min(X, delta)] / P(X <= delta)`` evaluated on the
-    ``buckets`` support boundaries of the empirical distribution.
+    The unit is the most probable (next_role, next_model) pair among the
+    selected tuples; ``p_s`` is its share.  An empty or single-unit state
+    returns ``(0.0, None)`` rather than a guess.
     """
+
+    selected, _refined = conditional_tuples(
+        graph, workflow, revealed_count, last_role, observed_prefix_ms
+    )
+    joint: Counter[tuple[str, str]] = Counter()
+    for entry in selected:
+        if entry[2]:
+            joint[(entry[2], entry[3])] += 1
+    total = sum(joint.values())
+    if total <= 0:
+        return (0.0, None)
+    (next_role, model_id), count = max(joint.items(), key=lambda item: (item[1], item[0]))
+    return (count / total, str(model_id))
+
+
+def gittins_index(samples: Sequence[float]) -> float | None:
+    """The paper's exact empirical Gittins index ``G(D, 0)`` (lower = higher priority).
+
+    ``G = inf_{delta>0} E[min(X, delta)] / P(X <= delta)`` over the empirical
+    distribution.  The infimum can only be attained at a support value: between
+    two support points the denominator is constant while the numerator grows, so
+    every distinct sample value is checked.  Prefix sums make this O(n) after
+    sorting.
+    """
+
+    xs = sorted(float(value) for value in samples)
+    n = len(xs)
+    if n == 0:
+        return None
+    prefix = [0.0] * (n + 1)
+    for index, value in enumerate(xs):
+        prefix[index + 1] = prefix[index] + value
+    best: float | None = None
+    index = 0
+    while index < n:
+        value = xs[index]
+        end = index + 1
+        while end < n and xs[end] == value:
+            end += 1
+        count = end
+        candidate = (prefix[end] + (n - end) * value) / count
+        if best is None or candidate < best:
+            best = candidate
+        index = end
+    return best
+
+
+def gittins_index_bucketed(samples: Sequence[float], *, buckets: int = 10) -> float | None:
+    """Appendix sensitivity only: the earlier equal-mass 10-point grid."""
 
     xs = sorted(float(value) for value in samples)
     n = len(xs)
@@ -118,33 +255,6 @@ def gittins_index(samples: Sequence[float], *, buckets: int = 10) -> float | Non
         if best is None or index < best:
             best = index
     return best
-
-
-def downstream_demand(
-    graph: Mapping[str, Any],
-    revealed_count: int,
-    last_role: str,
-) -> tuple[float, str | None]:
-    """``(p_s, model_id)`` for the most probable next downstream unit.
-
-    ``p_s`` is the conditional probability of the most likely next role from the
-    current state; the model is the train-only majority model of that role.  An
-    unseen state returns ``(0.0, None)`` rather than a guess.
-    """
-
-    state = state_for_job(graph, revealed_count, last_role)
-    counter = (graph.get("next_role") or {}).get(state)
-    if not counter:
-        return (0.0, None)
-    total = sum(counter.values())
-    if total <= 0:
-        return (0.0, None)
-    next_role, count = max(counter.items(), key=lambda item: (item[1], item[0]))
-    model_counter = (graph.get("role_models") or {}).get(next_role) or {}
-    if not model_counter:
-        return (count / total, None)
-    model_id = max(model_counter.items(), key=lambda item: (item[1], item[0]))[0]
-    return (count / total, str(model_id))
 
 
 def model_load_estimate_ms(

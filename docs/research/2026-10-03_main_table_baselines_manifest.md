@@ -55,7 +55,9 @@ completion time；目标 = **SLO attainment**（chance 约束 + expected SLO pen
 - duration 分布：train-only 经验分布，key = `(model_id, role)`；样本不足 fallback `model_id → global`；
   不细分 seq position，不把 service priority 放进分布。
 - 场景：固定 **S=64 common-random-number scenarios**（固定 seed）。
-- completion：`C_i = waiting_i + runtime_i + load/swap_i`（F3 load 直接进入）。
+- completion：`C_i = waiting_i + runtime_i + load/swap_i`（F3 load 直接进入）；
+  **scenario 时钟从决策时刻起算**（deadline 是时间轴绝对 deadline，等待时间必须进入 C_i——
+  review 2424f67 P1-2 修正）。
 - 目标（lexicographic）：① 最大化满足 chance-SLO 的 request 数（`P(C_i ≤ d_i) > Δ`）；
   ② 最小化 expected SLO penalty `ΣE[(C_i − d_i)_+]`；③ 最小化 `ΣE[C_i]`。
 - **Δ = 0.90**（adaptation hyperparameter，非论文原参数；appendix 做 {0.8, 0.9, 0.95} 敏感性）。
@@ -78,14 +80,17 @@ token-level batching, request eviction, KV state swapping, and autoscaling are u
 **省略**：原系统多 backend 部署细节；backend→model/model-class 映射必须披露。
 
 **冻结规则**：
-- PDGraph：train-only，按 workflow_type/role 状态；node 完成后更新 conditional 分布；
-  用 **conditional remaining-demand 分布 `D_j^remain`**，取 `G(D_j^remain, 0)`（审核推荐，node-boundary 友好）。
-- Gittins 原式（**G 越小优先级越高**）：
-  `G(D,a) = inf_{Δ>0} E[min(X_D − a, Δ) | X_D > a] / P(X_D − a ≤ Δ | X_D > a)`；
-  Δ 枚举 = 10-bucket support boundaries（论文默认 10 buckets）；Pearson 相关阈值 0.5。
+- PDGraph：train-only、**按 workflow/application type 条件化**（`workflow_type_id`），保存 aligned
+  历史 tuple（prefix demand、suffix demand、next role、next model）；已完成节点的**实际观测需求**
+  （`observed_intrinsic_ms` 之和）在 **Pearson ρ > 0.5** 时筛选历史 tuple（±25%，少于 3 条回退全量）；
+  backend/model 取条件**联合** (next_role, next_model) 分布（非全局 role-majority）——review 2424f67 P1-4 修正。
+- Gittins 原式（**G 越小优先级越高**）：`G(D,a) = inf_{Δ>0} E[min(X_D − a, Δ) | X_D > a] / P(X_D − a ≤ Δ | X_D > a)`；
+  主实现为**精确经验 Gittins**（在 distinct support 值上取 inf，前缀和 O(n)）。
+  **更正**：论文的 "10 buckets" 属于 cross-unit demand correlation/Pearson 分析，**不是** Δ 枚举
+  （上一轮冻结的错误绑定）；旧等质量 10 点网格仅作 appendix 敏感性——review 2424f67 P1-3 修正。
 - prewarm（**在线，非仅 idle**）：`p_e = p_s · P(t_c > t_s + t_p)`；`p_s < K=0.5` 不预热；
-  否则选 `t_s` 使 `p_e = K`。允许在 active node 执行窗口内预热（F3 load + F4 干扰；
-  F4 未覆盖 → serial fallback 并计数）。
+  `t_c` 必须来自**调度器可见预测**（派发时冻结的 `predicted_work_ms`），**不得读真实 finish/runtime**
+  （review 2424f67 P1-1 修正）；F4 未覆盖 → serial fallback 并计数。
 - 不把 deadline 项混进 Gittins（Hermes-DDL/worst-case LSTF 仅未来 appendix 备选）。
 
 **表脚注**：PDGraph → online refinement → Gittins → analytical prewarm 保留；backend 映射为
@@ -109,9 +114,12 @@ swap-cost-aware eviction。
 - job selection：硬 service priority 第一键，同 priority 内 **FCFS**（无 runtime 项）。
 - GPU/placement（lexicographic）：
   `resident+available ≻ covered low-interference load ≻ covered higher-interference load ≻ uncovered serial fallback`；
-  即当前 model 已在可派发 GPU 驻留 → 优先；否则按 F3 measured load cost + F4 measured interference
-  选加载路径；F4 未覆盖 → 沿用现有 fail-closed，不估假 penalty。
-- eviction：从 `swap_burden(m) = load_time(m) + interference_cost(m)` 最低开始；同成本 LRU。
+  coverage 必须用**canonical `(infer_model, infer_shape, load_model)` 三元组**判定（复用 substrate 的
+  `prefetch_interference_extra_ms`），**不得**用 model-level 集合或跨格 max——review 2424f67 P1-5 修正。
+  （当前 admission 拓扑下冷加载只进空闲设备 → 忙卡干扰分支结构上不可达；已在审计登记。）
+- eviction：从 `swap_burden(m) = load_time(m) + interference_cost(m)` 最低开始
+  （model-level conservative aggregate 仅作 eviction burden estimator）；
+  同成本 → **确定性 model_id tie-break**（引擎无驻留时间戳，LRU 不可表示，不假装实现）。
 
 **表脚注**：Retains Torpor's late binding, residency-aware model swapping, interference-aware loading,
 and swap-cost-aware eviction. RRC tail-SLO queueing and NVLink GPU-to-GPU swapping are unavailable in
@@ -123,9 +131,16 @@ our substrate.
 
 ## 激活审计计数器（formal run 前产出）
 
-- Parrot：`app_fifo_action_flip_count`
-- QLM：`stochastic_reorder_count`、`swap_cost_affected_count`
-- Hermes：`gittins_vs_mean_flip`、`pdgraph_update`、`prewarm_trigger`、`prewarm_effective`
-- Torpor：`resident_hit`、`cold_swap`、`interference_aware_choice`、`eviction_choice`、`uncovered_fallback`
+（v2，review 2424f67 P1-6 修正后）
+- Parrot：`app_fifo_action_flip_count`（真实 top-1 对比）
+- QLM：`stochastic_reorder_count`、`load_present_count`、`swap_cost_affected_count`
+  （**反事实**：load 归零后选择改变）
+- Hermes：`gittins_vs_mean_flip`（同一 tie-break、仅主键不同）、`pdgraph_conditional_used`、
+  `pdgraph_refined`、`prewarm_trigger`
+- Torpor：`resident_hit`、`cold_swap`、`covered_load_choice`、`uncovered_load_choice`、
+  `interference_aware_choice`、eviction 事件
+- 审计分两相：A = 真实 dev 子集（无 profile；排序机制）；B = **声明式合成冒烟**（真实模型/形状/身份 +
+  真实 extension artifacts；profile 依赖机制）。真实 dev 集缺 shape/identity → 全 profile 审计在契约补齐前
+  标 **PARTIAL**。
 
 要求：机制真实进入决策路径；真实激活率原样报告，不调 workload 凑比例。

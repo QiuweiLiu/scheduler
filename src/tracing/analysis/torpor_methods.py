@@ -48,10 +48,12 @@ def model_interference_cost_ms(
     interference_profile: Mapping[str, Any] | None,
     model_id: str,
 ) -> float:
-    """Measured F4 interference cost when this model is the loaded side.
+    """Model-level conservative interference aggregate for EVICTION BURDEN ONLY.
 
-    Uses the maximum covered additive cell for this load model; uncovered
-    combinations contribute nothing rather than an invented penalty.
+    This deliberately ignores the (infer_model, infer_shape) side and must never
+    be used to decide whether a concrete (node, device) F4 overlap is covered:
+    that decision belongs to the canonical triple matcher in the simulator.
+    Uncovered combinations contribute nothing rather than an invented penalty.
     """
 
     if not interference_profile:

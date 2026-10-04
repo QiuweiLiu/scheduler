@@ -1,0 +1,141 @@
+{
+  "schema": "main-table-activation-audit-v2",
+  "seed": 20261004,
+  "templates": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+  "templates_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+  "episodes": "results/processed/r7_workload_v03_no_run_container/episodes/workload_validation_r7_v03.jsonl",
+  "episode_count": 30,
+  "split_manifest": "data/manifests/validation_split_dev700_confirm300.json",
+  "split_usage": "development subset only (confirm300 untouched)",
+  "phase_a": {
+    "parrot_appfifo": {
+      "decisions": 3984,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 5,
+      "counters": {
+        "app_fifo_action_flip_count": 1067,
+        "decisions": 3984
+      },
+      "eviction_events": 679,
+      "fail_closed_reasons": {},
+      "profile_attached": false,
+      "rates_per_decision": {
+        "app_fifo_action_flip_count": 0.2678
+      }
+    },
+    "qlm_queue": {
+      "decisions": 3989,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 4,
+      "counters": {
+        "decisions": 3989,
+        "load_present_count": 1587,
+        "stochastic_reorder_count": 1683,
+        "swap_cost_affected_count": 256
+      },
+      "eviction_events": 454,
+      "fail_closed_reasons": {},
+      "profile_attached": false,
+      "rates_per_decision": {
+        "load_present_count": 0.3978,
+        "stochastic_reorder_count": 0.4219,
+        "swap_cost_affected_count": 0.0642
+      }
+    },
+    "hermes_gittins": {
+      "decisions": 3991,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 4,
+      "counters": {
+        "decisions": 3991,
+        "gittins_vs_mean_flip": 7,
+        "pdgraph_conditional_used": 3511,
+        "pdgraph_refined": 493
+      },
+      "eviction_events": 523,
+      "fail_closed_reasons": {},
+      "profile_attached": false,
+      "rates_per_decision": {
+        "gittins_vs_mean_flip": 0.0018,
+        "pdgraph_conditional_used": 0.8797,
+        "pdgraph_refined": 0.1235
+      }
+    },
+    "torpor_lifecycle": {
+      "decisions": 3992,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 5,
+      "counters": {
+        "cold_swap": 880,
+        "covered_load_choice": 880,
+        "decisions": 3992,
+        "resident_hit": 3112
+      },
+      "eviction_events": 730,
+      "fail_closed_reasons": {},
+      "profile_attached": false,
+      "rates_per_decision": {
+        "cold_swap": 0.2204,
+        "covered_load_choice": 0.2204,
+        "resident_hit": 0.7796
+      }
+    }
+  },
+  "phase_b": {
+    "declared": "synthetic smoke; real models/shapes/identity and the real extension artifacts; no performance claims",
+    "episode": "synthetic-prewarm-smoke",
+    "arms": {
+      "parrot_appfifo": {
+        "counters": {
+          "decisions": 14
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [],
+        "interference_events": [],
+        "fail_closed_reasons": {}
+      },
+      "qlm_queue": {
+        "counters": {
+          "decisions": 14,
+          "load_present_count": 2
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [],
+        "interference_events": [],
+        "fail_closed_reasons": {}
+      },
+      "hermes_gittins": {
+        "counters": {
+          "decisions": 14,
+          "pdgraph_conditional_used": 13,
+          "prewarm_trigger": 1
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [
+          {
+            "model_id": "Qwen2.5-VL-3B-Instruct",
+            "time_ms": 5329.698
+          }
+        ],
+        "interference_events": [
+          {
+            "extra_ms": 17.7
+          }
+        ],
+        "fail_closed_reasons": {}
+      },
+      "torpor_lifecycle": {
+        "counters": {
+          "cold_swap": 2,
+          "covered_load_choice": 2,
+          "decisions": 14,
+          "resident_hit": 12
+        },
+        "failed_jobs": 0,
+        "prefetch_starts": [],
+        "interference_events": [],
+        "fail_closed_reasons": {}
+      }
+    }
+  }
+}

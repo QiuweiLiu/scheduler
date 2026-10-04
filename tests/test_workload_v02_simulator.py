@@ -1347,12 +1347,12 @@ class AdmissionTests(unittest.TestCase):
         graph = build_pdgraph({"t": template})
 
         # Before anything is revealed: full remaining work and the first role.
-        self.assertEqual(remaining_samples(graph, 0, ""), [60.0])
-        p_s, model_id = downstream_demand(graph, 0, "")
+        self.assertEqual(remaining_samples(graph, "", 0, ""), [60.0])
+        p_s, model_id = downstream_demand(graph, "", 0, "")
         self.assertEqual((p_s, model_id), (1.0, "model-a"))
         # After planner completes: the conditional demand changes to the suffix.
-        self.assertEqual(remaining_samples(graph, 1, "planner"), [50.0])
-        p_s2, model_id2 = downstream_demand(graph, 1, "planner")
+        self.assertEqual(remaining_samples(graph, "", 1, "planner"), [50.0])
+        p_s2, model_id2 = downstream_demand(graph, "", 1, "planner")
         self.assertEqual((p_s2, model_id2), (1.0, "model-b"))
 
     def test_hermes_prewarm_triggers_online_with_covered_interference(self) -> None:
@@ -1643,6 +1643,252 @@ class AdmissionTests(unittest.TestCase):
             before = first_choice(policy, context, False)
             after = first_choice(policy, context, True)
             self.assertEqual(before, after, msg=f"{policy} moved on an invisible suffix change")
+
+    def test_hermes_prewarm_does_not_read_the_true_runtime(self) -> None:
+        """P1-1 regression: the prewarm trigger must use the frozen prediction,
+        not the engine's true finish time."""
+
+        from tracing.analysis.hermes_methods import build_pdgraph
+
+        def node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="medium", role=role,
+            )
+
+        a2 = node("a2", "model-b", "videotool_spatial", 50.0)
+        graph = build_pdgraph({
+            "chain": Template("chain", "video", "train", "test", (), {}),
+        }) if False else None
+        # Build the graph from a real chain so the (1, planner) state exists.
+        template = Template(
+            "chain", "video", "train", "test",
+            (node("a1", "model-a", "planner", 200.0), a2),
+            {"a1": node("a1", "model-a", "planner", 200.0), "a2": a2},
+        )
+        graph = build_pdgraph({"chain": template})
+        stats = {
+            # The scheduler-visible prediction is 500 ms regardless of the truth.
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 500.0, "runtime_p90_ms": 500.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 50.0, "runtime_p90_ms": 50.0, "load_p50_ms": 40.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        interference = {
+            "enabled": True, "engine": "hf_substrate", "deployment": "multi_process",
+            "interference_model": "additive_extra_ms", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp-f4.json", "source_experiment": "synthetic-mp-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-f4-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "cells": [{"infer_model": "model-a", "infer_shape": "medium", "load": "model-b", "extra_ms": 30.0}],
+        }
+
+        def prewarm_count(true_runtime: float) -> int:
+            a1 = node("a1", "model-a", "planner", true_runtime)
+            chain = Template("chain", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2})
+            episode = {
+                "episode_id": "hermes-truth",
+                "split": "train",
+                "gpu_topology_mb": [1000.0],
+                "gpu_identity": "synthetic-gpu",
+                "initial_residency_hint": [["model-a"]],
+                "jobs": [
+                    {"job_instance_id": "j", "template_id": "chain", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+                ],
+            }
+            _summary, events = simulate_episode(
+                episode, {"chain": chain}, "hermes_gittins", train_stats=stats,
+                policy_context={"hermes_pdgraph": graph},
+                extension_config={"prefetch_overlap": True, "prefetch_interference": interference},
+                collect_events=True,
+            )
+            return sum(
+                1 for event in events
+                if event.get("event_type") == "prefetch_start" and event.get("model_id") == "model-b"
+            )
+
+        # Same visible prediction, wildly different true runtimes: same action.
+        self.assertEqual(prewarm_count(30.0), 1)
+        self.assertEqual(prewarm_count(1000.0), 1)
+
+    def test_qlm_saa_clock_starts_at_the_decision_time(self) -> None:
+        """P1-2 regression: waiting time must enter C_i; an absolute deadline of
+        1000 at now=900 with a 200 ms sample is already violated."""
+
+        from tracing.analysis.qlm_methods import qlm_saa_choice
+
+        keys = [(0, "a"), (1, "b")]
+        # a: 500 ms, deadline 1150 ; b: 600 ms, deadline 300.
+        samples = {(0, "a"): [500.0], (1, "b"): [600.0]}
+        deadlines = {(0, "a"): 1150.0, (1, "b"): 300.0}
+        loads = {(0, "a"): 0.0, (1, "b"): 0.0}
+        # now=0: b is already late either way, and serving b first is cheaper, so
+        # the SAA picks b.
+        self.assertEqual(qlm_saa_choice(keys, samples, deadlines, loads, now_ms=0.0), 1)
+        # now=600: serving a first leaves only b violating (1); serving b first
+        # pushes BOTH past their deadlines (2) -> the waiting time flips the slot.
+        self.assertEqual(qlm_saa_choice(keys, samples, deadlines, loads, now_ms=600.0), 0)
+
+    def test_gittins_index_is_exact_over_the_empirical_support(self) -> None:
+        """P1-3 regression: the exact infimum, not the 10-point quantile grid."""
+
+        from tracing.analysis.hermes_methods import gittins_index, gittins_index_bucketed
+
+        # At delta=10: E[min(X,10)]/P(X<=10) = 10/0.5 = 20.
+        self.assertAlmostEqual(gittins_index([10.0, 190.0]), 20.0, places=6)
+        # The old grid misses it (first candidate delta ~28).
+        self.assertNotAlmostEqual(gittins_index_bucketed([10.0, 190.0]), 20.0, places=3)
+        self.assertLessEqual(gittins_index([10.0, 190.0]), gittins_index_bucketed([10.0, 190.0]))
+
+    def test_hermes_pdgraph_is_workflow_conditioned_and_refines_on_observation(self) -> None:
+        """P1-4 regression: same (count, role) state in two workflows must not
+        share a mixture; a correlated state must filter tuples by observation."""
+
+        from tracing.analysis.hermes_methods import (
+            build_pdgraph,
+            conditional_tuples,
+            remaining_samples,
+        )
+
+        def node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        def chain(tid, workflow, durations):
+            first = node(f"{tid}:n0", "m", "planner", durations[0])
+            second = node(f"{tid}:n1", "m", "tool", durations[1])
+            return Template(
+                tid, "v", "train", "b", (first, second),
+                {first.node_id: first, second.node_id: second},
+                workflow_type_id=workflow,
+            )
+
+        templates = {
+            # Workflow A: planner 10 -> tool 100 ; Workflow B: planner 10 -> tool 1000.
+            "a1": chain("a1", "wf.A", (10.0, 100.0)),
+            "a2": chain("a2", "wf.A", (12.0, 120.0)),
+            "b1": chain("b1", "wf.B", (10.0, 1000.0)),
+            "b2": chain("b2", "wf.B", (12.0, 1200.0)),
+        }
+        graph = build_pdgraph(templates)
+        a_samples = remaining_samples(graph, "wf.A", 1, "planner")
+        b_samples = remaining_samples(graph, "wf.B", 1, "planner")
+        self.assertEqual(sorted(a_samples), [100.0, 120.0])
+        self.assertEqual(sorted(b_samples), [1000.0, 1200.0])
+
+        # Correlated state (suffix = 2x prefix): an observed prefix filters tuples.
+        correlated = {}
+        for index in range(6):
+            prefix = 10.0 * (index + 1)
+            tid = f"c{index}"
+            correlated[tid] = chain(tid, "wf.C", (prefix, prefix * 2.0))
+        graph_c = build_pdgraph(correlated)
+        all_samples = remaining_samples(graph_c, "wf.C", 1, "planner")
+        self.assertEqual(len(all_samples), 6)
+        refined_samples = remaining_samples(graph_c, "wf.C", 1, "planner", observed_prefix_ms=40.0)
+        self.assertEqual(len(refined_samples), 3)  # prefixes 30/40/50 within +/-25%
+        selected, refined = conditional_tuples(graph_c, "wf.C", 1, "planner", 40.0)
+        self.assertTrue(refined)
+
+        # Uncorrelated state: the Pearson gate blocks refinement.
+        uncorrelated = {}
+        for index in range(6):
+            tid = f"u{index}"
+            uncorrelated[tid] = chain(tid, "wf.U", (10.0 * (index + 1), 100.0 if index % 2 == 0 else 10.0))
+        graph_u = build_pdgraph(uncorrelated)
+        _selected_u, refined_u = conditional_tuples(graph_u, "wf.U", 1, "planner", 40.0)
+        self.assertFalse(refined_u)
+
+    def test_torpor_uses_the_canonical_f4_triple_for_coverage(self) -> None:
+        """P1-5 regression: coverage is decided by the canonical
+        (infer_model, infer_shape, load_model) matcher, never by a model-level
+        set.  The busy-device interference branch is structurally unreachable in
+        the current admission topology (cold loads are only admitted on idle
+        devices), so the composition is pinned directly."""
+
+        from tracing.analysis.torpor_methods import torpor_placement_rank
+        from tracing.analysis.workload_v02_simulator import prefetch_interference_extra_ms
+
+        profile = {
+            "enabled": True, "engine": "hf_substrate", "deployment": "multi_process",
+            "interference_model": "additive_extra_ms", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp-f4.json", "source_experiment": "synthetic-mp-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-f4-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "cells": [{"infer_model": "model-a", "infer_shape": "medium", "load": "model-b", "extra_ms": 50.0}],
+        }
+
+        class _Gpu:
+            resident: dict = {}
+
+        # A model seen in ANOTHER (infer, shape) cell must not count as covered.
+        uncovered_extra = prefetch_interference_extra_ms(profile, "model-c", "short", "model-b")
+        self.assertIsNone(uncovered_extra)
+        rank, cost = torpor_placement_rank(
+            "model-b", _Gpu(), 40.0, uncovered_extra is not None, uncovered_extra
+        )
+        self.assertEqual(rank, 2)
+
+        # The exact measured triple is covered and its cost enters the ranking.
+        covered_extra = prefetch_interference_extra_ms(profile, "model-a", "medium", "model-b")
+        self.assertEqual(covered_extra, 50.0)
+        rank2, cost2 = torpor_placement_rank(
+            "model-b", _Gpu(), 40.0, covered_extra is not None, covered_extra
+        )
+        self.assertEqual(rank2, 1)
+        self.assertAlmostEqual(cost2, 90.0, places=6)
+
+    def test_torpor_counts_cold_loads_on_idle_devices_as_covered(self) -> None:
+        """A cold load on an idle device has no overlap interference: it is a
+        covered rank-1 placement with zero interference cost."""
+
+        def node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        stats = {
+            "model-c|gpu|0|exact": {"runtime_p50_ms": 200.0, "runtime_p90_ms": 200.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 40.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        interference = {
+            "enabled": True, "engine": "hf_substrate", "deployment": "multi_process",
+            "interference_model": "additive_extra_ms", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp-f4.json", "source_experiment": "synthetic-mp-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-f4-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "cells": [{"infer_model": "model-c", "infer_shape": "short", "load": "model-b", "extra_ms": 50.0}],
+        }
+        episode = {
+            "episode_id": "torpor-idle-load",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [[]],
+            "jobs": [
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+            ],
+        }
+        activation: dict = {}
+        simulate_episode(
+            episode,
+            {"b": simple_template("b", node("b:n", "model-b", "planner", 100.0))},
+            "torpor_lifecycle",
+            train_stats=stats,
+            policy_context={"activation": activation},
+            extension_config={"prefetch_interference": interference},
+            collect_events=True,
+        )
+        self.assertEqual(activation.get("covered_load_choice"), 1)
+        self.assertIsNone(activation.get("uncovered_load_choice"))
+        self.assertIsNone(activation.get("interference_aware_choice"))
 
     def test_request_preemption_resumes_from_token_breakpoint(self) -> None:
         def req_node(node_id, model, role, runtime):

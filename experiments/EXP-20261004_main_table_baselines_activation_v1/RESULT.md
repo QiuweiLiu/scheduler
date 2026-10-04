@@ -47,3 +47,29 @@
 
 - `artifacts/activation_report_v1.json`（逐臂计数器、比率、fail-closed 原因、失败集统计）
 - 脚本：`scripts/baseline_activation_audit.py`（`--topology-view` 显式，默认 causal_v3）
+
+## v2 重跑（2026-10-04 晚，review 2424f67 P1-6 修正后）
+
+**裁定**：本审计在真实 dev 集上仍标 **PARTIAL / NOT PASSED**（真实 workload 缺 shape/identity，
+profile 依赖机制无法在全量集上配置；见下）。计数器已按 review 修正为"反事实"口径。
+
+### Phase A（真实 dev 30 集，causal_v3，无 profile；`activation_report_v2.json`）
+
+| 基线 | 修正后计数器 |
+|---|---|
+| Parrot | `app_fifo_action_flip_count` = 1067 / 3984（26.8%） |
+| QLM | `stochastic_reorder_count` = 1683（42.2%）；`load_present_count` = 1587；**`swap_cost_affected_count` = 256（load 归零后选择改变；旧口径 1636 是"存在冷候选"的自欺计数）** |
+| Hermes | `gittins_vs_mean_flip` = **7**（同一 tie-break、仅主键不同）；`pdgraph_conditional_used` = 3511（88%）；**`pdgraph_refined` = 493（12.3%，观测精化真实生效）** |
+| Torpor | `resident_hit` = 3112（77.9%）；`cold_swap` = 880；**`covered_load_choice` = 880（canonical 判定把空闲设备冷加载正确归为 covered；旧代码误标 uncovered）** |
+
+### Phase B（声明式合成冒烟，真实模型/形状/身份 + 真实 extension artifacts）
+
+- **Hermes 在线 prewarm 真实触发**：`prewarm_trigger` = 1；对 `Qwen2.5-VL-3B-Instruct` 的
+  `prefetch_start` 发生在运行节点执行窗口内（t≈5329.7ms），干扰计费 **17.7ms = 实测 (4B, medium, 3B) 格**
+  （与当时运行节点 `Qwen3-4B|medium` 的 canonical 三元组一致）。
+- Torpor 空闲设备冷加载 → covered rank-1；`interference_aware_choice` 为 0 且**结构上不可达**：
+  admission 拓扑只允许冷加载进空闲设备（忙卡要求候选模型已驻留），已登记。
+
+### 仍需（契约补齐后）
+
+- 真实 dev/正式集上带完整 profile 的审计（需 `workload_shape` / GPU identity 契约）；之后本 gate 才可转 PASS。
