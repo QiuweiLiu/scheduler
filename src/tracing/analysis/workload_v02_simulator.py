@@ -6931,12 +6931,23 @@ def simulate_episode(
                     # Waiting is enough when the active tasks will finish: their models
                     # become evictable then.  The target model is never evicted -- it is
                     # the model this call is about to use, so its allocation stays.
+                    # Non-target models that are still cold-loading or prefetching hold
+                    # pending memory (active but not yet resident); their work finishes
+                    # too, after which they are resident and then evictable, so the wait
+                    # check projects them out exactly like active resident models.
                     active_resident_mb = sum(
                         candidate_gpu.resident.get(model_id, 0.0)
                         for model_id in protected if model_id != model
                     )
+                    pending_non_target_mb = sum(
+                        task.allocation_mb
+                        for task in candidate_gpu._active_tasks()
+                        if task.allocation_mb > 0.0
+                        and task.model_id != model
+                        and task.model_id not in candidate_gpu.resident
+                    )
                     can_wait_for_memory |= (
-                        idle_after_evict - active_resident_mb
+                        idle_after_evict - active_resident_mb - pending_non_target_mb
                     ) <= candidate_gpu.capacity_mb + 1e-9
                     if not loading and candidate_projection <= candidate_gpu.capacity_mb + 1e-9:
                         # A free projection that already fits keeps every cached model.

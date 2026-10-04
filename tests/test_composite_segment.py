@@ -170,6 +170,39 @@ class CompositeSentinels(unittest.TestCase):
         self.assertTrue(evictions)
         self.assertEqual(evictions[0]["models"], ["active-model"])
 
+    def test_nested_admission_waits_through_a_cold_load_transition(self):
+        """A non-target model inside its cold-load window is pending, not resident.
+
+        Review counterexample: at nested-ready the only other model was still
+        loading (allocation in pending memory, active, not yet in resident), so
+        subtracting only active RESIDENTS made the wait check fail and declared a
+        permanent OOM.  The load finishes, the model becomes resident and then
+        evictable, so the call must wait instead.
+        """
+        loading = replace(gpu_node("n:n", 0, 500.0), model_id="active-model",
+                          load_ms=100.0, resident_model_mb=600.0, workspace_peak_mb=1200.0)
+        parent = replace(composite_node("c:n", 0, 10.0, 100.0, 0.0),
+                         nested_model_mb=1000.0, nested_reserved_mb=1400.0)
+        stats = {**hand_stats(), "active-model|gpu|0|exact": {
+            "runtime_p50_ms": 500.0, "runtime_p90_ms": 500.0,
+            "load_p50_ms": 100.0, "memory_p95_mb": 1200.0, "count": 100,
+        }}
+        ep = episode([job("jn", "n"), job("jc", "c")])
+        ep["gpu_topology_mb"] = [1500.0]
+        summary, events = simulate_episode(
+            ep, {"n": template("n", [loading]), "c": template("c", [parent])},
+            "fcfs", train_stats=stats)
+        self.assertEqual(summary["failed_jobs"], 0)
+        self.assertEqual(summary["completed_jobs"], 2)
+        self.assertTrue(by_type(events, "nested_gpu_wait"))
+        # The 100 ms load lands first (work starts at 100) and the 400 ms of compute
+        # inside the 500 ms runtime finishes the device at 500.
+        start = by_type(events, "nested_gpu_start")[0]
+        self.assertEqual(start["nested_start_ms"], 500.0)
+        evictions = by_type(events, "model_evict")
+        self.assertTrue(evictions)
+        self.assertEqual(evictions[0]["models"], ["active-model"])
+
     def test_1_no_contention_parent_finishes_exactly_at_R_total(self):
         pre, inner, post = 100.0, 700.0, 200.0
         tpls = {"t": template("t", [composite_node("c:n", 0, pre, inner, post)])}
