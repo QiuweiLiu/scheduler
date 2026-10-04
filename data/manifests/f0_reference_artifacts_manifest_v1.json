@@ -1,0 +1,72 @@
+{
+ "schema": "f0-reference-artifacts-manifest-v1",
+ "note": "byte-level pin of the F0 reference packs used by the main-table formal runs; the runner verifies these hashes and fails closed on any mismatch",
+ "base_pack": {
+  "pack": "outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts",
+  "tree_sha256": "3f3507058844e788f088a22694548b58e789e466336c5eec14de01f50b5ccab6",
+  "file_count": 6,
+  "files": [
+   {
+    "path": "b05_artifact_manifest.json",
+    "sha256": "b7fed3c1fc2d54abca71da05f4c10158c0042dd84672aed5dcf08b9a2d221ca0",
+    "size_bytes": 1034
+   },
+   {
+    "path": "b05_future_h1.jsonl.gz",
+    "sha256": "70a73b742c2ee9e5f680de672ab14f1abeb203200fe7147dee2ee8ca41337f3f",
+    "size_bytes": 2301492
+   },
+   {
+    "path": "b05_future_h3.jsonl.gz",
+    "sha256": "3ad43f514dffb010ab7e63af2bc5512db71625dabc7e33b2ea52943f235d8079",
+    "size_bytes": 4453640
+   },
+   {
+    "path": "b05_future_h5.jsonl.gz",
+    "sha256": "37163d3ba59c3e6489ffcd2d24870ea49efab4bbb18300fe70724b199702a528",
+    "size_bytes": 6219145
+   },
+   {
+    "path": "b05_future_h5_layers.jsonl.gz",
+    "sha256": "5b5041158129651e74cf149928edd81eb437d937dafe13de5d0907168041cfd1",
+    "size_bytes": 5162339
+   },
+   {
+    "path": "b05_node_h1.jsonl.gz",
+    "sha256": "842a59001457e0e34e20bc9323f96abe1523d250bce5aa3a46e07b3c181b9696",
+    "size_bytes": 1454781
+   }
+  ]
+ },
+ "overlay_pack": {
+  "pack": "outputs/resource_v2_artifacts/f0_seed11",
+  "tree_sha256": "944fb8b8dc8e481831d2f9bc855958b2836333b2a185b2876177f4a382d9c4b6",
+  "file_count": 2,
+  "files": [
+   {
+    "path": "b05_future_h5.jsonl.gz",
+    "sha256": "586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+    "size_bytes": 12259846
+   },
+   {
+    "path": "resource_v2_manifest.json",
+    "sha256": "9b068fedf0572b0709ae80b05375eb704dd1df1249732797baada40697f04fa2",
+    "size_bytes": 2086
+   }
+  ]
+ },
+ "overlay_provenance": {
+  "schema_version": "resource-v2-artifact-manifest-v2",
+  "artifact_id": "resource_v2_f0_seed11",
+  "arm": "F0",
+  "seed": 11,
+  "artifact_sha256": "586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+  "producer": "scripts/pack_f0_artifacts.py",
+  "producer_checkpoint_sha256": "060002388f1a5f024938ad7a983633bd10de02dcea539c72666ba16ea242c87d",
+  "producer_checkpoint": "outputs/j_series_histres_f0f1_v1/runs/F0/seed11/checkpoint.pt",
+  "frozen_j3_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+  "base_pack_sha256": "37163d3ba59c3e6489ffcd2d24870ea49efab4bbb18300fe70724b199702a528",
+  "bin_spec_sha256": "f781a7f3aa5caa261e28bf7bdf3602fcc34b3d82300d5b857e8f98ddd1b14b4a",
+  "bin_schema_id": "mass_balanced_16"
+ }
+}
