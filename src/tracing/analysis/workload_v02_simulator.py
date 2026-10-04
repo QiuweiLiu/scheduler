@@ -6296,13 +6296,15 @@ def simulate_episode(
     def _hermes_prefetch_plan() -> list[dict[str, Any]]:
         """Online Hermes prewarm trigger: p_e = p_s * P(t_c > t_s + t_p), K = 0.5.
 
-        The trigger may fire while the current node is still executing.  With the
-        engine's scheduled finish as the (deterministic) completion time the
-        probability term is 1 whenever the load completes before t_c, so the rule
-        reduces to: prewarm iff p_s >= K and now + t_p <= t_c.  The engine starts
-        the load at the decision instant (no later than the analytical t_s), which
-        keeps p_e >= K.  Uncovered F4 combinations fall back to the engine's
-        existing serial path and are counted there.
+        The trigger may fire while the current node is still executing.  ``t_c``
+        is built from the scheduler-visible prediction frozen at dispatch
+        (``predicted_work_ms`` x current slowdown) -- never from the engine's true
+        finish time.  With a deterministic predicted completion the probability
+        term is 1 whenever the load completes before t_c, so the rule reduces to:
+        prewarm iff p_s >= K and now + t_p <= t_c; the engine starts the load at
+        the decision instant (no later than the analytical t_s), which keeps
+        p_e >= K.  Uncovered F4 combinations fall back to the engine's existing
+        serial path and are counted there.
         """
 
         from tracing.analysis.hermes_methods import (

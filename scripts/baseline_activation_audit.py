@@ -120,6 +120,9 @@ def main() -> int:
     # Parrot disclosure: the serial-chain projection has no task-group parallelism.
     successor_counts = Counter(len(node.successors) for template in templates.values() for node in template.nodes)
     max_successors = max(successor_counts) if successor_counts else 0
+    workflow_distribution = Counter(
+        str(template.workflow_type_id or "") for template in templates.values()
+    )
 
     bank = build_duration_bank(templates)
     graph = build_pdgraph(templates)
@@ -139,6 +142,11 @@ def main() -> int:
         "episode_count": len(episodes),
         "split_manifest": str(args.split_manifest),
         "split_usage": "development subset only (confirm300 untouched)",
+        "workflow_type_distribution": {
+            "counts": {key: value for key, value in sorted(workflow_distribution.items())},
+            "note": "reviewer reproducibility: the Hermes PDGraph conditioning needs more than one "
+                    "real workflow family; this distribution plus the templates sha pins it",
+        },
         "task_group_size_disclosure": {
             "successor_count_distribution": {str(k): v for k, v in sorted(successor_counts.items())},
             "max_successors": max_successors,

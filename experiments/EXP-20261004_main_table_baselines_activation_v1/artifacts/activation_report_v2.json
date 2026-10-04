@@ -7,6 +7,13 @@
   "episode_count": 30,
   "split_manifest": "data/manifests/validation_split_dev700_confirm300.json",
   "split_usage": "development subset only (confirm300 untouched)",
+  "workflow_type_distribution": {
+    "counts": {
+      "videomme.langgraph_react": 320,
+      "videomme.star": 320
+    },
+    "note": "reviewer reproducibility: the Hermes PDGraph conditioning needs more than one real workflow family; this distribution plus the templates sha pins it"
+  },
   "task_group_size_disclosure": {
     "successor_count_distribution": {
       "0": 640,
