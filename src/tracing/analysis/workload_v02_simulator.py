@@ -123,6 +123,12 @@ POLICIES = (
     "bc_h1",
     "bc_h3",
     "bc_h5",
+    # Main-table external baselines (adaptations frozen 2026-10-04; see
+    # docs/research/2026-10-03_main_table_baselines_manifest.md).
+    "parrot_appfifo",
+    "qlm_queue",
+    "hermes_gittins",
+    "torpor_lifecycle",
 )
 ALIGNED_H5_POLICIES = (
     "aligned_predopt_h5",
@@ -882,6 +888,10 @@ TOPOLOGY_VIEWS = ("legacy", "causal_v3")
 # back to itself and every pre-existing policy is unaffected.
 FUSED_ID_SEPARATOR = "\x1f"
 CAUSAL_TOPOLOGY_CONTRACT = "verified_serial_control_flow_v3_1"
+# The v041 ontology projection prefixes the same marker; any declared contract that
+# CONTAINS the causal marker must never be loaded as legacy, otherwise the loader
+# silently produces an edgeless (fully parallel) graph.
+CAUSAL_TOPOLOGY_CONTRACT_MARKER = "verified_serial_control_flow_v3_1"
 
 
 def load_templates(
@@ -918,8 +928,8 @@ def load_templates(
             if not node_id or node_id in nodes_by_id:
                 raise ValueError(f"duplicate/empty node_id in template {row.get('template_id')}")
             # fail closed: never let a causal template be consumed as legacy
-            declared = row.get("topology_contract")
-            if topology_view == "legacy" and declared == CAUSAL_TOPOLOGY_CONTRACT:
+            declared = str(row.get("topology_contract") or "")
+            if topology_view == "legacy" and CAUSAL_TOPOLOGY_CONTRACT_MARKER in declared:
                 raise ValueError(
                     "template %s declares topology_contract=%s but was loaded with "
                     "topology_view='legacy'; pass topology_view='causal_v3' so the "
@@ -2209,12 +2219,19 @@ def plan_gpu_admission(
     *,
     protected_models: set[str] | None = None,
     active_workspace_mb: float | None = None,
+    eviction_preference: Sequence[str] | None = None,
 ) -> tuple[bool, tuple[str, ...], float, float, float]:
     """Plan cache eviction and verify the full resident+workspace ledger.
 
     The plan is side-effect free.  Callers apply the returned evictions only
     after the admission succeeds, so an OOM decision cannot corrupt the cache.
+
+    ``eviction_preference`` is an opt-in, policy-scoped ordering (used by the
+    Torpor arm): evict the MINIMAL prefix of the preferred order that makes the
+    projection fit, instead of the default all-evictable behaviour.  ``None``
+    keeps the substrate's original all-or-nothing eviction for every other arm.
     """
+
     model_mb = model_memory(node, estimate_row)
     workspace_mb = max(0.0, float(estimate_row["memory_p95_mb"]) - model_mb)
     protected = gpu.active_model_ids() if protected_models is None else set(protected_models)
@@ -2228,13 +2245,28 @@ def plan_gpu_admission(
     if projected <= gpu.capacity_mb + 1e-9:
         return True, (), model_mb, workspace_mb, projected
 
-    evicted = tuple(
-        sorted(
-            model_id
-            for model_id in gpu.resident
-            if model_id != node.model_id and model_id not in protected
-        )
-    )
+    evictable = [
+        model_id
+        for model_id in gpu.resident
+        if model_id != node.model_id and model_id not in protected
+    ]
+    if eviction_preference is None:
+        evicted = tuple(sorted(evictable))
+    else:
+        order = {str(model_id): index for index, model_id in enumerate(eviction_preference)}
+        ordered = sorted(evictable, key=lambda model_id: (order.get(str(model_id), len(order)), str(model_id)))
+        chosen: list[str] = []
+        for model_id in ordered:
+            chosen.append(model_id)
+            remaining_prefix = sum(
+                memory for other, memory in gpu.resident.items() if other not in chosen
+            )
+            if (
+                remaining_prefix + pending_memory + required_model_mb + workspace_mb + active_workspace
+                <= gpu.capacity_mb + 1e-9
+            ):
+                break
+        evicted = tuple(chosen)
     remaining = sum(
         memory
         for model_id, memory in gpu.resident.items()
@@ -4705,6 +4737,289 @@ def choose_action(
 
         chosen = min(pool, key=tie_score)
 
+    elif policy == "parrot_appfifo":
+        """Parrot-adapted (App-FIFO projection): application-centric FIFO.
+
+        Parrot (OSDI'24) exposes the application DAG via Semantic Variables and sorts
+        the queue in topological order, then keeps one application's task group
+        contiguous; the official scheduler documentation describes the serial-workload
+        behaviour as application-level FIFO / depth-first.  This projection keeps
+        exactly that: within a service class the OLDEST application goes first, and
+        because a job's later nodes inherit its arrival key, the application keeps the
+        device across consecutive stages.
+
+        Forbidden by review: canonical remaining-work / critical-path scoring.  The
+        original algorithm has no ``remaining_work`` or critical-path-length priority;
+        inventing one would be a workflow-aware LJF under Parrot's name.
+
+        Omitted: Semantic Variable API, prefix/context sharing, batching, and parallel
+        task-group scheduling (the serial chains have no task-group parallelism; the
+        activation report counts task_group_size == 1 explicitly).
+        """
+
+        def parrot_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            job = jobs[job_index]
+            return (
+                float(item[0]),            # the hard service priority stays first
+                float(job.arrival_ms),     # oldest application first
+                float(item[1]),            # node ready time
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=parrot_score)
+
+        activation = (policy_context or {}).get("activation")
+        if activation is not None:
+            activation["decisions"] = int(activation.get("decisions", 0)) + 1
+            fcfs_pick = min(
+                pool,
+                key=lambda candidate: (
+                    candidate[0][0],
+                    candidate[0][1],
+                    candidate[0][2],
+                    candidate[0][3],
+                    candidate[4].index,
+                ),
+            )
+            if (fcfs_pick[1], fcfs_pick[2]) != (chosen[1], chosen[2]):
+                activation["app_fifo_action_flip_count"] = (
+                    int(activation.get("app_fifo_action_flip_count", 0)) + 1
+                )
+
+    elif policy == "torpor_lifecycle":
+        """Torpor-lifecycle-projection: late binding + residency-aware placement.
+
+        Torpor (ATC'25) is a lifecycle system, not a weighted-cost scheduler.  The
+        projection keeps: late binding (the engine loads a model only when a node is
+        actually dispatched), residency-aware placement, interference-aware loading,
+        and swap-cost-aware eviction.  Omitted with disclosure: RRC tail-SLO queue
+        priority (our deadlines are workflow deadlines, not function P98 SLOs) and
+        NVLink GPU-to-GPU swapping (single GPU).
+
+        Frozen rules (reviewed 2026-10-04):
+        * job selection stays FCFS inside a service class -- no runtime term, because
+          Torpor has no runtime-SJF mechanism;
+        * placement is lexicographic: resident+available, then covered load ordered by
+          measured F3 load + F4 interference cost, then the engine's uncovered
+          fail-closed path (no invented penalty);
+        * eviction order is applied at dispatch through ``swap_burden_order``.
+        """
+
+        from tracing.analysis.torpor_methods import (
+            model_interference_cost_ms,
+            model_load_estimate_ms,
+            torpor_placement_rank,
+        )
+
+        interference_profile = _prefetch_interference_profile(extension_config)
+        covered_models = {
+            str(cell.get("load"))
+            for cell in ((interference_profile or {}).get("cells") or [])
+            if cell.get("load")
+        }
+
+        def torpor_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            rank, placement_cost = torpor_placement_rank(
+                model_id,
+                gpu,
+                model_load_estimate_ms(train_stats, model_id),
+                model_id in covered_models,
+                model_interference_cost_ms(interference_profile, model_id),
+            )
+            return (
+                float(item[0]),   # hard service priority stays first
+                float(item[1]),   # FCFS: longest-waiting request first
+                item[2],
+                item[3],
+                rank,             # resident > covered load > uncovered
+                placement_cost,
+                gpu.index,
+            )
+
+        chosen = min(pool, key=torpor_score)
+
+        activation = (policy_context or {}).get("activation")
+        if activation is not None:
+            activation["decisions"] = int(activation.get("decisions", 0)) + 1
+            _item, _job_index, _node_id, chosen_model, chosen_gpu, _row, _fit = chosen
+            if chosen_model in chosen_gpu.resident:
+                activation["resident_hit"] = int(activation.get("resident_hit", 0)) + 1
+            else:
+                activation["cold_swap"] = int(activation.get("cold_swap", 0)) + 1
+            _rank, _cost = torpor_placement_rank(
+                chosen_model,
+                chosen_gpu,
+                model_load_estimate_ms(train_stats, chosen_model),
+                chosen_model in covered_models,
+                model_interference_cost_ms(interference_profile, chosen_model),
+            )
+            if _rank == 1:
+                activation["covered_load_choice"] = int(activation.get("covered_load_choice", 0)) + 1
+            elif _rank == 2:
+                activation["uncovered_load_choice"] = int(activation.get("uncovered_load_choice", 0)) + 1
+
+    elif policy == "hermes_gittins":
+        """Hermes-PDGraph-adapted: conditional PDGraph + the paper's Gittins rank.
+
+        Hermes (TACO'26) models an application's future backend demand as a
+        Probabilistic Demand Graph, refines it online as the prefix is observed, and
+        orders applications by a Gittins index; it also prewarms the most probable
+        downstream backend while the current unit is still executing.
+
+        Frozen rules (reviewed 2026-10-04):
+        * index is the paper's exact ``G(D, a)`` with LOWER value = HIGHER priority,
+          evaluated on 10-bucket support boundaries of the conditional
+          remaining-demand distribution ``D_j^remain`` (the ``a = 0`` form);
+        * no invented horizon and no deadline term mixed into the rank;
+        * the online prewarm trigger lives in ``_hermes_prefetch_plan``
+          (``p_e = p_s * P(t_c > t_s + t_p)``, K = 0.5).
+
+        Omitted: the original multi-backend deployment details; the backend ->
+        model/model-class mapping is disclosed in the paper's table footnote.
+        """
+
+        from tracing.analysis.hermes_methods import gittins_index, remaining_samples
+
+        ctx = policy_context if policy_context is not None else {}
+        graph = ctx.get("hermes_pdgraph")
+        if graph is None:
+            raise ValueError("hermes_gittins requires policy_context['hermes_pdgraph']")
+
+        def hermes_score(
+            candidate: tuple[tuple[float, int, int, str], int, str, str, GPU, dict[str, Any], bool],
+        ) -> tuple[Any, ...]:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            job = jobs[job_index]
+            revealed = len(job.completed)
+            last_role = ""
+            for node in job.template.nodes:
+                if node.node_id in job.completed:
+                    last_role = node.role
+                else:
+                    break
+            index = gittins_index(remaining_samples(graph, revealed, last_role))
+            if index is None:
+                index = math.inf
+            return (
+                float(item[0]),   # hard service priority stays first
+                float(index),     # lower Gittins index = higher priority
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=hermes_score)
+
+        activation = ctx.get("activation")
+        if activation is not None:
+            activation["decisions"] = int(activation.get("decisions", 0)) + 1
+
+            def _mean_remaining(candidate: tuple) -> float:
+                job = jobs[candidate[1]]
+                revealed = len(job.completed)
+                last_role = ""
+                for node in job.template.nodes:
+                    if node.node_id in job.completed:
+                        last_role = node.role
+                    else:
+                        break
+                samples = remaining_samples(graph, revealed, last_role)
+                return (sum(samples) / len(samples)) if samples else math.inf
+
+            mean_pick = min(pool, key=lambda candidate: (candidate[0][0], _mean_remaining(candidate)))
+            if (mean_pick[1], mean_pick[2]) != (chosen[1], chosen[2]):
+                activation["gittins_vs_mean_flip"] = int(activation.get("gittins_vs_mean_flip", 0)) + 1
+            chosen_job = jobs[chosen[1]]
+            revealed = len(chosen_job.completed)
+            if revealed > 0:
+                activation["pdgraph_conditional_used"] = (
+                    int(activation.get("pdgraph_conditional_used", 0)) + 1
+                )
+                last_role = ""
+                for node in chosen_job.template.nodes:
+                    if node.node_id in chosen_job.completed:
+                        last_role = node.role
+                    else:
+                        break
+                if (revealed, last_role) in (graph.get("remaining") or {}):
+                    activation["pdgraph_conditional_hit"] = (
+                        int(activation.get("pdgraph_conditional_hit", 0)) + 1
+                    )
+
+    elif policy == "qlm_queue":
+        """QLM-queue-adapted: SLO-oriented stochastic queue assignment (SAA).
+
+        QLM (SoCC'24) estimates request durations from offline workload/hardware
+        profiles and reorders the waiting queue with a stochastic program whose
+        objective is SLO attainment, not mean JCT.
+
+        Frozen rules (reviewed 2026-10-04):
+        * train-only empirical duration distribution keyed by ``(model_id, role)``
+          with ``model_id -> global`` fallback; NO online same-key posterior;
+        * S = 64 common-random-number scenarios (seeded once per episode);
+        * ``C_i = waiting + runtime + load/swap``; model transition enters the
+          completion time directly, so there is no separate warm-start weight;
+        * lexicographic objective: chance-SLO violations, then expected SLO
+          penalty, then expected total completion (legal action even when every
+          chance constraint is infeasible -- no autoscaling here);
+        * ``delta = 0.90`` is an adaptation hyperparameter; the appendix varies
+          {0.8, 0.9, 0.95}.
+
+        Omitted: token-level batching, request eviction, KV state swapping,
+        autoscaling.
+        """
+
+        from tracing.analysis.qlm_methods import qlm_saa_choice, samples_for
+
+        ctx = policy_context if policy_context is not None else {}
+        bank = ctx.get("qlm_duration_bank")
+        if bank is None:
+            raise ValueError("qlm_queue requires policy_context['qlm_duration_bank']")
+        rng = ctx.get("qlm_rng")
+        if rng is None:
+            raise ValueError("qlm_queue requires policy_context['qlm_rng']")
+        scenarios = int(ctx.get("qlm_scenarios", 64))
+        delta = float(ctx.get("qlm_delta", 0.90))
+
+        keys: list[tuple[int, str]] = []
+        samples: dict[tuple[int, str], list[float]] = {}
+        deadlines: dict[tuple[int, str], float | None] = {}
+        loads: dict[tuple[int, str], float] = {}
+        for candidate in pool:
+            item, job_index, node_id, model_id, gpu, estimate_row, _predicted_fit = candidate
+            key = (int(job_index), str(node_id))
+            if key in samples:
+                continue
+            node = jobs[job_index].template.by_id[node_id]
+            keys.append(key)
+            samples[key] = samples_for(bank, model_id, node.role, rng, scenarios)
+            deadlines[key] = jobs[job_index].deadline_ms
+            loads[key] = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+
+        first = keys[qlm_saa_choice(keys, samples, deadlines, loads, delta=delta)]
+        chosen = next(candidate for candidate in pool if (candidate[1], candidate[2]) == first)
+
+        activation = ctx.get("activation")
+        if activation is not None:
+            activation["decisions"] = int(activation.get("decisions", 0)) + 1
+            if first != keys[0]:
+                activation["stochastic_reorder_count"] = (
+                    int(activation.get("stochastic_reorder_count", 0)) + 1
+                )
+            if any(loads[key] > 0.0 for key in keys):
+                activation["swap_cost_affected_count"] = (
+                    int(activation.get("swap_cost_affected_count", 0)) + 1
+                )
+
     elif policy == "pythia_completion":
         """Pythia-adapted: the FULL Algorithm 3 priority, not just its completion half.
 
@@ -5905,6 +6220,62 @@ def simulate_episode(
                     return candidate
         return None
 
+    def _hermes_prefetch_plan() -> list[dict[str, Any]]:
+        """Online Hermes prewarm trigger: p_e = p_s * P(t_c > t_s + t_p), K = 0.5.
+
+        The trigger may fire while the current node is still executing.  With the
+        engine's scheduled finish as the (deterministic) completion time the
+        probability term is 1 whenever the load completes before t_c, so the rule
+        reduces to: prewarm iff p_s >= K and now + t_p <= t_c.  The engine starts
+        the load at the decision instant (no later than the analytical t_s), which
+        keeps p_e >= K.  Uncovered F4 combinations fall back to the engine's
+        existing serial path and are counted there.
+        """
+
+        from tracing.analysis.hermes_methods import (
+            downstream_demand,
+            model_load_estimate_ms,
+        )
+
+        ctx = policy_context or {}
+        graph = ctx.get("hermes_pdgraph")
+        if graph is None:
+            return []
+        K = float(ctx.get("hermes_prewarm_k", 0.5))
+        for gpu in gpus:
+            entries = gpu.active_node_entries()
+            if len(entries) != 1 or gpu.prefetch_pending:
+                continue
+            _task_id, task = entries[0]
+            if task.owner is None:
+                continue
+            if task.work_start_ms is not None and task.work_start_ms > now + 1e-9:
+                continue
+            job_index, node_id = task.owner
+            job = jobs[job_index]
+            # The running node is about to complete, so the downstream demand is
+            # conditioned on the state AFTER it: (revealed + 1, its role).  On a
+            # serial chain this is exact.
+            running_node = job.template.by_id[node_id]
+            revealed = len(job.completed) + 1
+            last_role = running_node.role
+            p_s, model_id = downstream_demand(graph, revealed, last_role)
+            if not model_id or p_s < K:
+                continue
+            if model_id in gpu.resident or model_id in gpu.loading_model_ids():
+                continue
+            t_p = model_load_estimate_ms(train_stats, model_id)
+            if t_p <= 0.0:
+                continue
+            t_c = float(task.finish_ms)
+            if float(now) + t_p > t_c + 1e-9:
+                continue
+            activation = (policy_context or {}).get("activation")
+            if activation is not None:
+                activation["prewarm_trigger"] = int(activation.get("prewarm_trigger", 0)) + 1
+            return [{"gpu_index": gpu.index, "model_id": model_id}]
+        return []
+
     def _latency_aware_prefetch_plan() -> list[dict[str, Any]]:
         """Eq (5) alpha_N = Prefetch, derived from the live pool state.
 
@@ -5999,6 +6370,8 @@ def simulate_episode(
         plan = extension_config.get("prefetch_plan") or []
         if not plan and policy == "latency_aware":
             plan = _latency_aware_prefetch_plan()
+        if not plan and policy == "hermes_gittins":
+            plan = _hermes_prefetch_plan()
         if not plan:
             return
         # A prefetch cannot start in the past.  The cursor was seeded from busy_until
@@ -7003,7 +7376,16 @@ def simulate_episode(
                         batch_size=batch_size,
                         scheduler_state=scheduler_state,
                     )
-                    admitted, evicted_plan, memory, predicted_workspace, total_memory = plan_gpu_admission(gpu, node, row)
+                    eviction_preference = None
+                    if policy == "torpor_lifecycle":
+                        from tracing.analysis.torpor_methods import swap_burden_order
+
+                        eviction_preference = swap_burden_order(
+                            gpu, train_stats, _prefetch_interference_profile(extension_config)
+                        )
+                    admitted, evicted_plan, memory, predicted_workspace, total_memory = plan_gpu_admission(
+                        gpu, node, row, eviction_preference=eviction_preference
+                    )
                     if not admitted:
                         job.node_state[node_id] = "failed"
                         job.failed.add(node_id)
@@ -7256,7 +7638,9 @@ def simulate_episode(
                     )
                     wait_logged.add(wait_key)
 
-        if extension_config.get("prefetch_overlap") and extension_config.get("prefetch_plan"):
+        if extension_config.get("prefetch_overlap") and (
+            extension_config.get("prefetch_plan") or policy == "hermes_gittins"
+        ):
             initialize_prefetch()
 
         if policy == "latency_aware":

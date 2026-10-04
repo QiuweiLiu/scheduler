@@ -1,0 +1,85 @@
+{
+  "schema": "main-table-activation-audit-v1",
+  "seed": 20261004,
+  "templates": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+  "templates_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+  "episodes": "results/processed/r7_workload_v03_no_run_container/episodes/workload_validation_r7_v03.jsonl",
+  "episode_count": 30,
+  "split_manifest": "data/manifests/validation_split_dev700_confirm300.json",
+  "split_usage": "development subset only (confirm300 untouched)",
+  "arms": {
+    "parrot_appfifo": {
+      "decisions": 3984,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 5,
+      "counters": {
+        "app_fifo_action_flip_count": 1067,
+        "decisions": 3984
+      },
+      "eviction_events": 679,
+      "fail_closed_reasons": {},
+      "rates_per_decision": {
+        "app_fifo_action_flip_count": 0.2678
+      }
+    },
+    "qlm_queue": {
+      "decisions": 3984,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 8,
+      "counters": {
+        "decisions": 3984,
+        "stochastic_reorder_count": 1700,
+        "swap_cost_affected_count": 1636
+      },
+      "eviction_events": 463,
+      "fail_closed_reasons": {},
+      "rates_per_decision": {
+        "stochastic_reorder_count": 0.4267,
+        "swap_cost_affected_count": 0.4106
+      }
+    },
+    "hermes_gittins": {
+      "decisions": 3988,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 5,
+      "counters": {
+        "decisions": 3988,
+        "gittins_vs_mean_flip": 1,
+        "pdgraph_conditional_hit": 3508,
+        "pdgraph_conditional_used": 3508
+      },
+      "eviction_events": 602,
+      "fail_closed_reasons": {},
+      "rates_per_decision": {
+        "gittins_vs_mean_flip": 0.0003,
+        "pdgraph_conditional_hit": 0.8796,
+        "pdgraph_conditional_used": 0.8796
+      }
+    },
+    "torpor_lifecycle": {
+      "decisions": 3992,
+      "episodes": 30,
+      "episodes_with_failed_jobs": 5,
+      "counters": {
+        "cold_swap": 880,
+        "decisions": 3992,
+        "resident_hit": 3112,
+        "uncovered_load_choice": 880
+      },
+      "eviction_events": 730,
+      "fail_closed_reasons": {},
+      "rates_per_decision": {
+        "cold_swap": 0.2204,
+        "resident_hit": 0.7796,
+        "uncovered_load_choice": 0.2204
+      }
+    }
+  },
+  "findings": {
+    "gittins_discretization": "10-bucket boundary enumeration (frozen spec) makes G == mean on dense conditional distributions (e.g. state (0,'') n=480: G=mean=53280.9); the exact inf is lower (state (5,'planner'): exact 14351.5 = 0.6x mean vs 23930 = mean at boundaries), so gittins_vs_mean_flip is ~0 on this workload. Implementation kept as frozen; sensitivity (exact inf / more buckets) flagged for review.",
+    "profile_dependent_mechanisms": "Hermes online prewarm and Torpor covered-load ranking need the workload workload_shape / GPU-identity contract (absent in current templates/episodes) and fail closed; their activation evidence is the per-mechanism fidelity tests.",
+    "nested_gpu_no_capacity": "5-8 of 30 episodes carry nested-GPU capacity failures for EVERY arm (fcfs 6/30, myopic 5/30) -> pre-existing workload behaviour without extension configs, not a baseline effect.",
+    "loader_fail_closed_fix": "v041's prefixed causal topology_contract previously escaped the exact-match fail-closed check and loaded as an edgeless legacy graph; fixed to marker-containment plus regression test."
+  },
+  "topology_view": "causal_v3"
+}

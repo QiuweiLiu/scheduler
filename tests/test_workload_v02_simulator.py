@@ -1096,6 +1096,554 @@ class AdmissionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "multi-process"):
             validate_batching_engine_profile(single_process)
 
+    def test_parrot_appfifo_keeps_the_oldest_application_running(self) -> None:
+        def chain_node(node_id, model, runtime, predecessors=()):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=predecessors, successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role="planner",
+            )
+
+        a1 = chain_node("a1", "model-a", 50.0)
+        a2 = chain_node("a2", "model-a", 10.0, ("a1",))
+        b1 = chain_node("b1", "model-b", 10.0)
+        templates = {
+            "a": Template("a", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2}),
+            "b": simple_template("b", b1),
+        }
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 50.0, "runtime_p90_ms": 50.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        episode = {
+            "episode_id": "parrot-appfifo",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 10.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+
+        def starts(policy):
+            _summary, events = simulate_episode(
+                episode, templates, policy, train_stats=stats, collect_events=True
+            )
+            return [event["node_id"] for event in events if event.get("event_type") == "node_start"]
+
+        # Request-order FCFS serves the longest-waiting node (b1, ready at 10) at
+        # t=50; Parrot keeps the OLDEST application (arrival 0) running: a2 first.
+        self.assertEqual(starts("fcfs"), ["a1", "b1", "a2"])
+        self.assertEqual(starts("parrot_appfifo"), ["a1", "a2", "b1"])
+
+    def test_parrot_ignores_invisible_suffix_runtime(self) -> None:
+        def chain_node(node_id, model, runtime, predecessors=()):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=predecessors, successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role="planner",
+            )
+
+        def run(a2_runtime):
+            a1 = chain_node("a1", "model-a", 50.0)
+            a2 = chain_node("a2", "model-a", a2_runtime, ("a1",))
+            b1 = chain_node("b1", "model-b", 10.0)
+            templates = {
+                "a": Template("a", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2}),
+                "b": simple_template("b", b1),
+            }
+            stats = {
+                "model-a|gpu|0|exact": {"runtime_p50_ms": 50.0, "runtime_p90_ms": 50.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+                "model-b|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            }
+            episode = {
+                "episode_id": "parrot-suffix",
+                "split": "train",
+                "gpu_topology_mb": [1000.0],
+                "gpu_identity": "synthetic-gpu",
+                "initial_residency_hint": [["model-a", "model-b"]],
+                "jobs": [
+                    {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+                    {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 10.0, "deadline_ms": 5000.0, "service_class": "normal"},
+                ],
+            }
+            _summary, events = simulate_episode(
+                episode, templates, "parrot_appfifo", train_stats=stats, collect_events=True
+            )
+            return [event["node_id"] for event in events if event.get("event_type") == "node_start"]
+
+        # The unexecuted suffix runtime must not change the decision.
+        self.assertEqual(run(10.0), ["a1", "a2", "b1"])
+        self.assertEqual(run(500.0), ["a1", "a2", "b1"])
+
+    def test_torpor_lifecycle_is_fcfs_without_runtime_sjf(self) -> None:
+        a = Node(node_id="a:n", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="model-a", runtime_ms=100.0, load_ms=0.0,
+                 workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                 workload_shape="short", role="planner")
+        b = Node(node_id="b:n", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="model-b", runtime_ms=10.0, load_ms=0.0,
+                 workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                 workload_shape="short", role="planner")
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        episode = {
+            "episode_id": "torpor-fcfs",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+
+        def starts(policy):
+            _summary, events = simulate_episode(
+                episode,
+                {"a": simple_template("a", a), "b": simple_template("b", b)},
+                policy,
+                train_stats=stats,
+                collect_events=True,
+            )
+            return [event["node_id"] for event in events if event.get("event_type") == "node_start"]
+
+        # Torpor has no runtime-SJF: the older request runs first even though b is
+        # 10x shorter.  myopic is the runtime-ordering contrast that reorders them.
+        self.assertEqual(starts("torpor_lifecycle"), ["a:n", "b:n"])
+        self.assertEqual(starts("myopic"), ["b:n", "a:n"])
+
+    def test_torpor_eviction_prefers_lowest_swap_burden(self) -> None:
+        a = Node(node_id="a:n", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="model-a", runtime_ms=10.0, load_ms=0.0,
+                 workspace_peak_mb=500.0, resident_model_mb=500.0, status="success",
+                 workload_shape="short", role="planner")
+        b = Node(node_id="b:n", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="model-b", runtime_ms=10.0, load_ms=0.0,
+                 workspace_peak_mb=300.0, resident_model_mb=300.0, status="success",
+                 workload_shape="short", role="planner")
+        c = Node(node_id="c:n", sequence_index=0, predecessors=(), successors=(),
+                 lane="gpu", model_id="model-c", runtime_ms=10.0, load_ms=0.0,
+                 workspace_peak_mb=300.0, resident_model_mb=300.0, status="success",
+                 workload_shape="short", role="planner")
+        # a is expensive to bring back (load 400), b is cheap (load 50).
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 400.0, "memory_p95_mb": 500.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 50.0, "memory_p95_mb": 300.0, "count": 100},
+            "model-c|gpu|0|exact": {"runtime_p50_ms": 10.0, "runtime_p90_ms": 10.0, "load_p50_ms": 60.0, "memory_p95_mb": 300.0, "count": 100},
+        }
+        episode = {
+            "episode_id": "torpor-evict",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "jc", "template_id": "c", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+
+        def evicted(policy):
+            _summary, events = simulate_episode(
+                episode,
+                {"a": simple_template("a", a), "b": simple_template("b", b), "c": simple_template("c", c)},
+                policy,
+                train_stats=stats,
+                collect_events=True,
+            )
+            rows = [event for event in events if event.get("event_type") == "model_evict"]
+            return [tuple(event.get("models") or ()) for event in rows]
+
+        # Default engine evicts everything evictable; Torpor evicts only the
+        # cheapest-to-restore resident (model-b) that makes the plan fit.
+        self.assertEqual(evicted("fcfs"), [("model-a", "model-b")])
+        self.assertEqual(evicted("torpor_lifecycle"), [("model-b",)])
+
+    def test_hermes_gittins_prefers_the_lower_index_application(self) -> None:
+        from tracing.analysis.hermes_methods import build_pdgraph
+
+        def train_node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        # Train-only bank: model-a/planner = {10, 190} (mean 100, Gittins 20),
+        # model-b/planner = {95} (mean 95, Gittins 95).
+        train_templates = {
+            "ta1": simple_template("ta1", train_node("ta1:n", "model-a", "planner", 10.0)),
+            "ta2": simple_template("ta2", train_node("ta2:n", "model-a", "planner", 190.0)),
+            "tb1": simple_template("tb1", train_node("tb1:n", "model-b", "planner", 95.0)),
+        }
+        graph = build_pdgraph(train_templates)
+
+        def eval_node(node_id, model, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role="planner",
+            )
+
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 95.0, "runtime_p90_ms": 95.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        episode = {
+            "episode_id": "hermes-gittins",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 1000.0, "service_class": "normal"},
+            ],
+        }
+        templates = {
+            "a": simple_template("a", eval_node("a:n", "model-a", 100.0)),
+            "b": simple_template("b", eval_node("b:n", "model-b", 95.0)),
+        }
+
+        def starts(policy, context=None):
+            _summary, events = simulate_episode(
+                episode, templates, policy, train_stats=stats,
+                policy_context=context, collect_events=True,
+            )
+            return [event["node_id"] for event in events if event.get("event_type") == "node_start"]
+
+        # Gittins (lower is better) picks the riskier-but-valuable a; the mean-based
+        # myopic ordering picks the shorter b.
+        self.assertEqual(starts("hermes_gittins", {"hermes_pdgraph": graph}), ["a:n", "b:n"])
+        self.assertEqual(starts("myopic"), ["b:n", "a:n"])
+
+    def test_hermes_pdgraph_conditions_on_the_revealed_prefix(self) -> None:
+        from tracing.analysis.hermes_methods import (
+            build_pdgraph,
+            downstream_demand,
+            remaining_samples,
+        )
+
+        def node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        a1 = node("a1", "model-a", "planner", 10.0)
+        a2 = node("a2", "model-b", "videotool_spatial", 50.0)
+        template = Template("t", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2})
+        graph = build_pdgraph({"t": template})
+
+        # Before anything is revealed: full remaining work and the first role.
+        self.assertEqual(remaining_samples(graph, 0, ""), [60.0])
+        p_s, model_id = downstream_demand(graph, 0, "")
+        self.assertEqual((p_s, model_id), (1.0, "model-a"))
+        # After planner completes: the conditional demand changes to the suffix.
+        self.assertEqual(remaining_samples(graph, 1, "planner"), [50.0])
+        p_s2, model_id2 = downstream_demand(graph, 1, "planner")
+        self.assertEqual((p_s2, model_id2), (1.0, "model-b"))
+
+    def test_hermes_prewarm_triggers_online_with_covered_interference(self) -> None:
+        from tracing.analysis.hermes_methods import build_pdgraph
+
+        def node(node_id, model, role, runtime, shape="medium"):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape=shape, role=role,
+            )
+
+        a1 = node("a1", "model-a", "planner", 200.0)
+        a2 = node("a2", "model-b", "videotool_spatial", 50.0)
+        chain = Template("chain", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2})
+        graph = build_pdgraph({"chain": chain})
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 200.0, "runtime_p90_ms": 200.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 50.0, "runtime_p90_ms": 50.0, "load_p50_ms": 40.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        interference = {
+            "enabled": True, "engine": "hf_substrate", "deployment": "multi_process",
+            "interference_model": "additive_extra_ms", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp-f4.json", "source_experiment": "synthetic-mp-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-f4-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "cells": [
+                {"infer_model": "model-a", "infer_shape": "medium", "load": "model-b", "extra_ms": 30.0}
+            ],
+        }
+        episode = {
+            "episode_id": "hermes-prewarm",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "j", "template_id": "chain", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+            ],
+        }
+        config = {"prefetch_overlap": True, "prefetch_interference": interference}
+        summary, events = simulate_episode(
+            episode, {"chain": chain}, "hermes_gittins", train_stats=stats,
+            policy_context={"hermes_pdgraph": graph}, extension_config=config, collect_events=True,
+        )
+        prewarm = [
+            event for event in events
+            if event.get("event_type") == "prefetch_start" and event.get("model_id") == "model-b"
+        ]
+        self.assertEqual(len(prewarm), 1)
+        # The prewarm fires while the current node is still executing and its
+        # measured overlap charge lands on that node.
+        self.assertEqual(prewarm[0]["time_ms"], 0.0)
+        interference_events = [event for event in events if event.get("event_type") == "node_interference_start"]
+        self.assertEqual(len(interference_events), 1)
+        self.assertEqual(interference_events[0]["extra_ms"], 30.0)
+        finishes = [event["finish_ms"] for event in events if event.get("event_type") == "node_finish"]
+        self.assertEqual(finishes[0], 230.0)
+
+    def test_hermes_prewarm_requires_k_threshold(self) -> None:
+        from tracing.analysis.hermes_methods import build_pdgraph
+
+        def node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="medium", role=role,
+            )
+
+        # Three equally likely next roles from (1, planner): top p_s = 1/3 < 0.5.
+        train = {}
+        for index, role in enumerate(("videotool_spatial", "answer_generation", "other")):
+            n1 = node(f"t{index}a", "model-a", "planner", 100.0)
+            n2 = node(f"t{index}b", f"model-{role}", role, 50.0)
+            train[f"t{index}"] = Template(f"t{index}", "video", "train", "test", (n1, n2), {n1.node_id: n1, n2.node_id: n2})
+        graph = build_pdgraph(train)
+
+        a1 = node("a1", "model-a", "planner", 200.0)
+        a2 = node("a2", "model-videotool_spatial", "videotool_spatial", 50.0)
+        chain = Template("chain", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2})
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 200.0, "runtime_p90_ms": 200.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-videotool_spatial|gpu|0|exact": {"runtime_p50_ms": 50.0, "runtime_p90_ms": 50.0, "load_p50_ms": 40.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        interference = {
+            "enabled": True, "engine": "hf_substrate", "deployment": "multi_process",
+            "interference_model": "additive_extra_ms", "provenance_kind": "synthetic",
+            "source_artifact": "synthetic-mp-f4.json", "source_experiment": "synthetic-mp-f4",
+            "gpu_identity": "synthetic-gpu",
+            "probe_source_artifact": "synthetic-mp-f4-probe.json", "probe_metadata": {"probe": "synthetic"},
+            "cells": [
+                {"infer_model": "model-a", "infer_shape": "medium", "load": "model-videotool_spatial", "extra_ms": 30.0}
+            ],
+        }
+        episode = {
+            "episode_id": "hermes-prewarm-k",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a"]],
+            "jobs": [
+                {"job_instance_id": "j", "template_id": "chain", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+            ],
+        }
+        _summary, events = simulate_episode(
+            episode, {"chain": chain}, "hermes_gittins", train_stats=stats,
+            policy_context={"hermes_pdgraph": graph},
+            extension_config={"prefetch_overlap": True, "prefetch_interference": interference},
+            collect_events=True,
+        )
+        # p_s = 1/3 < K = 0.5 -> no prewarm, no interference charge.
+        self.assertFalse(any(event.get("event_type") == "prefetch_start" for event in events))
+        finishes = [event["finish_ms"] for event in events if event.get("event_type") == "node_finish"]
+        self.assertEqual(finishes[0], 200.0)
+
+    def test_qlm_saa_prefers_the_lower_variance_first_slot(self) -> None:
+        import random as _random
+
+        from tracing.analysis.qlm_methods import build_duration_bank
+
+        def node(node_id, model, role, runtime):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=(), successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        # Same means (100), different variances: a = {10, 190}, b = {100, 100}.
+        train = {
+            "ta1": simple_template("ta1", node("ta1:n", "model-a", "planner", 10.0)),
+            "ta2": simple_template("ta2", node("ta2:n", "model-a", "planner", 190.0)),
+            "tb1": simple_template("tb1", node("tb1:n", "model-b", "planner", 100.0)),
+            "tb2": simple_template("tb2", node("tb2:n", "model-b", "planner", 100.0)),
+        }
+        bank = build_duration_bank(train)
+
+        stats = {
+            "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 190.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            "model-b|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+        }
+        episode = {
+            "episode_id": "qlm-variance",
+            "split": "train",
+            "gpu_topology_mb": [1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [["model-a", "model-b"]],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 150.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 150.0, "service_class": "normal"},
+            ],
+        }
+        templates = {
+            "a": simple_template("a", node("a:n", "model-a", "planner", 100.0)),
+            "b": simple_template("b", node("b:n", "model-b", "planner", 100.0)),
+        }
+
+        def starts(policy, context=None):
+            _summary, events = simulate_episode(
+                episode, templates, policy, train_stats=stats,
+                policy_context=context, collect_events=True,
+            )
+            return [event["node_id"] for event in events if event.get("event_type") == "node_start"]
+
+        context = {"qlm_duration_bank": bank, "qlm_rng": _random.Random(7)}
+        # The chance-SLO objective prefers serving the low-variance b first (its own
+        # completion is safe, and a still has a chance after it); the equal-mean
+        # deterministic ordering (myopic) keeps the queue order.
+        self.assertEqual(starts("qlm_queue", context), ["b:n", "a:n"])
+        self.assertEqual(starts("myopic"), ["a:n", "b:n"])
+
+    def test_causal_contract_marker_blocks_legacy_load(self) -> None:
+        """A causal projection (even with a prefixed contract string) must never
+        load as legacy: the v041 hole silently produced an edgeless graph."""
+
+        import json as _json
+        import tempfile
+
+        from tracing.analysis.workload_v02_simulator import load_templates
+
+        row = {
+            "template_id": "t",
+            "video_id": "v",
+            "split": "train",
+            "baseline": "b",
+            "topology_contract": "scheduler_projection_of_verified_serial_control_flow_v3_1",
+            "nodes": [
+                {
+                    "node_id": "t:n0", "sequence_index": 0, "execution_lane": "gpu",
+                    "model_id": "m", "runtime_ms": 10.0, "resource_applicable": True,
+                    "causal_predecessor_node_ids": [],
+                },
+                {
+                    "node_id": "t:n1", "sequence_index": 1, "execution_lane": "gpu",
+                    "model_id": "m", "runtime_ms": 10.0, "resource_applicable": True,
+                    "causal_predecessor_node_ids": ["t:n0"],
+                },
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as handle:
+            handle.write(_json.dumps(row) + "\n")
+            path = Path(handle.name)
+        try:
+            with self.assertRaisesRegex(ValueError, "causal_v3"):
+                load_templates(path)
+            loaded = load_templates(path, topology_view="causal_v3")
+            self.assertEqual(len(loaded["t"].by_id["t:n1"].predecessors), 1)
+        finally:
+            path.unlink()
+
+    def test_main_table_baselines_ignore_the_invisible_suffix(self) -> None:
+        """Leakage gate: the first decision must not move when the unexecuted
+        suffix changes (runtime + role + model of the pending second nodes)."""
+
+        import random as _random
+
+        from tracing.analysis.hermes_methods import build_pdgraph
+        from tracing.analysis.qlm_methods import build_duration_bank
+
+        def chain_node(node_id, model, role, runtime, predecessors=()):
+            return Node(
+                node_id=node_id, sequence_index=0, predecessors=predecessors, successors=(),
+                lane="gpu", model_id=model, runtime_ms=runtime, load_ms=0.0,
+                workspace_peak_mb=100.0, resident_model_mb=100.0, status="success",
+                workload_shape="short", role=role,
+            )
+
+        def world(mutate: bool):
+            a1 = chain_node("a1", "model-a", "planner", 100.0)
+            b1 = chain_node("b1", "model-b", "planner", 100.0)
+            if mutate:
+                a2 = chain_node("a2", "model-c", "answer_generation", 900.0, ("a1",))
+                b2 = chain_node("b2", "model-c", "answer_generation", 700.0, ("b1",))
+            else:
+                a2 = chain_node("a2", "model-a", "videotool_spatial", 50.0, ("a1",))
+                b2 = chain_node("b2", "model-b", "videotool_spatial", 50.0, ("b1",))
+            templates = {
+                "a": Template("a", "video", "train", "test", (a1, a2), {"a1": a1, "a2": a2}),
+                "b": Template("b", "video", "train", "test", (b1, b2), {"b1": b1, "b2": b2}),
+            }
+            stats = {
+                "model-a|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+                "model-b|gpu|0|exact": {"runtime_p50_ms": 100.0, "runtime_p90_ms": 100.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+                "model-c|gpu|0|exact": {"runtime_p50_ms": 900.0, "runtime_p90_ms": 900.0, "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100},
+            }
+            episode = {
+                "episode_id": "leak-suffix",
+                "split": "train",
+                "gpu_topology_mb": [1000.0],
+                "gpu_identity": "synthetic-gpu",
+                "initial_residency_hint": [["model-a", "model-b"]],
+                "jobs": [
+                    {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+                    {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0, "deadline_ms": 5000.0, "service_class": "normal"},
+                ],
+            }
+            return episode, templates, stats
+
+        bank = build_duration_bank({
+            "ta": simple_template("ta", chain_node("ta:n", "model-a", "planner", 100.0)),
+            "tb": simple_template("tb", chain_node("tb:n", "model-b", "planner", 100.0)),
+        })
+        graph = build_pdgraph({
+            "ga": Template("ga", "video", "train", "test", (), {}),
+        }) if False else build_pdgraph({
+            "ta": simple_template("ta", chain_node("ta:n", "model-a", "planner", 100.0)),
+            "tb": simple_template("tb", chain_node("tb:n", "model-b", "planner", 100.0)),
+        })
+        contexts = {
+            "parrot_appfifo": None,
+            "qlm_queue": {"qlm_duration_bank": bank, "qlm_rng": _random.Random(7)},
+            "hermes_gittins": {"hermes_pdgraph": graph},
+            "torpor_lifecycle": None,
+        }
+
+        def first_choice(policy, context, mutate):
+            episode, templates, stats = world(mutate)
+            _summary, events = simulate_episode(
+                episode, templates, policy, train_stats=stats,
+                policy_context=dict(context) if context else None, collect_events=True,
+            )
+            starts = [event["node_id"] for event in events if event.get("event_type") == "node_start"]
+            return starts[0]
+
+        for policy, context in contexts.items():
+            before = first_choice(policy, context, False)
+            after = first_choice(policy, context, True)
+            self.assertEqual(before, after, msg=f"{policy} moved on an invisible suffix change")
+
     def test_request_preemption_resumes_from_token_breakpoint(self) -> None:
         def req_node(node_id, model, role, runtime):
             return Node(
