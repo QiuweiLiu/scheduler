@@ -188,6 +188,70 @@ class AdmissionTests(unittest.TestCase):
         self.assertTrue(any(e["event_type"] == "prefetch_reschedule" for e in deferred_events))
         self.assertAlmostEqual(deferred_summary["gpu_utilization"][0], 1.0)
 
+    def test_stale_dispatchable_set_waits_instead_of_crashing_when_coverage_moved(self) -> None:
+        """A busy GPU is dispatchable only for items with measured coverage.
+
+        When the item that made the GPU dispatchable is dispatched to ANOTHER
+        device, the surviving items must not be offered the stale busy GPU: the
+        dispatch loop has to recompute the set and let them wait.  Before the
+        fix this raised "choose_action called without a ready GPU node".
+        """
+        ta = coloc_node("a:n", "model-a", 1000.0, "short")
+        tb = coloc_node("b:n", "model-b", 1000.0, "short")
+        tz = coloc_node("z:n", "model-z", 100.0, "short")
+        ty = coloc_node("y:n", "model-y", 100.0, "short")
+        stats = {
+            f"{model}|gpu|0|exact": {
+                "runtime_p50_ms": runtime, "runtime_p90_ms": runtime,
+                "load_p50_ms": 0.0, "memory_p95_mb": 100.0, "count": 100,
+            }
+            for model, runtime in (("model-a", 1000.0), ("model-b", 1000.0),
+                                   ("model-z", 100.0), ("model-y", 100.0))
+        }
+        # model-z is covered against BOTH busy models; model-y against neither.
+        profile = coloc_profile([
+            {"model_a": "model-a", "shape_a": "short", "model_b": "model-z",
+             "shape_b": "short", "slowdown_a": 1.5, "slowdown_b": 1.5, "feasible": True},
+            {"model_a": "model-b", "shape_a": "short", "model_b": "model-z",
+             "shape_b": "short", "slowdown_a": 1.5, "slowdown_b": 1.5, "feasible": True},
+        ])
+        episode = {
+            "episode_id": "stale-dispatchable",
+            "split": "train",
+            "gpu_topology_mb": [1000.0, 1000.0],
+            "gpu_identity": "synthetic-gpu",
+            "initial_residency_hint": [
+                ["model-a", "model-z", "model-y"],
+                ["model-b", "model-z", "model-y"],
+            ],
+            "jobs": [
+                {"job_instance_id": "ja", "template_id": "a", "arrival_ms": 0.0,
+                 "deadline_ms": 10000.0, "service_class": "normal"},
+                {"job_instance_id": "jb", "template_id": "b", "arrival_ms": 0.0,
+                 "deadline_ms": 10000.0, "service_class": "normal"},
+                {"job_instance_id": "jz", "template_id": "z", "arrival_ms": 10.0,
+                 "deadline_ms": 10000.0, "service_class": "normal"},
+                {"job_instance_id": "jy", "template_id": "y", "arrival_ms": 10.0,
+                 "deadline_ms": 10000.0, "service_class": "normal"},
+            ],
+        }
+        summary, events = simulate_episode(
+            episode,
+            {"a": simple_template("a", ta), "b": simple_template("b", tb),
+             "z": simple_template("z", tz), "y": simple_template("y", ty)},
+            "fcfs",
+            train_stats=stats,
+            extension_config={"colocation_profile": profile},
+            collect_events=True,
+        )
+        starts = {event["node_id"]: event for event in events if event.get("event_type") == "node_start"}
+        # z took the lowest-index busy GPU and co-located; y had no covered busy GPU
+        # left and had to wait for a free device instead of crashing.
+        self.assertTrue(starts["z:n"]["colocation_active"])
+        self.assertEqual(starts["z:n"]["start_ms"], 10.0)
+        self.assertGreater(starts["y:n"]["start_ms"], 10.0)
+        self.assertEqual(summary["completed_jobs"], 4)
+
     def test_colocation_memory_counts_shared_model_once_and_protects_different_models(self) -> None:
         shared_a = coloc_node("a:n", "model-a", 100.0, "short", workspace=200.0)
         shared_b = coloc_node("b:n", "model-a", 100.0, "short", workspace=200.0)

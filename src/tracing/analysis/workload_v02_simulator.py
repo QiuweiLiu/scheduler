@@ -6900,6 +6900,7 @@ def simulate_episode(
                 nested_peak = max(need_mb, float(parent.nested_reserved_mb or 0.0))
                 target = None
                 workspace = allocation = projected = 0.0
+                evicted_models: tuple[str, ...] = ()
                 can_wait_for_memory = False
                 for candidate_gpu in sorted(gpus, key=lambda item: model not in item.resident):
                     loading = model in candidate_gpu.loading_model_ids()
@@ -6914,11 +6915,43 @@ def simulate_episode(
                                        + candidate_gpu.pending_load_memory_mb()
                                        + candidate_allocation + candidate_workspace)
                     candidate_projection = idle_projection + candidate_gpu.active_workspace_mb()
-                    can_wait_for_memory |= idle_projection <= candidate_gpu.capacity_mb + 1e-9
+                    # Cached models that no running task uses are evictable, exactly as in
+                    # plan_gpu_admission; only active models are protected.  Without this the
+                    # composite call could declare a permanent OOM while an idle cached model
+                    # was holding the room it needed, or while waiting for the busy task to
+                    # finish would have made eviction possible.
+                    protected = candidate_gpu.active_model_ids()
+                    evictable = tuple(sorted(
+                        model_id for model_id in candidate_gpu.resident
+                        if model_id != model and model_id not in protected
+                    ))
+                    evictable_mb = sum(candidate_gpu.resident[model_id] for model_id in evictable)
+                    idle_after_evict = idle_projection - evictable_mb
+                    projection_after_evict = candidate_projection - evictable_mb
+                    # Waiting is enough when the active tasks will finish: their models
+                    # become evictable then.  The target model is never evicted -- it is
+                    # the model this call is about to use, so its allocation stays.
+                    active_resident_mb = sum(
+                        candidate_gpu.resident.get(model_id, 0.0)
+                        for model_id in protected if model_id != model
+                    )
+                    can_wait_for_memory |= (
+                        idle_after_evict - active_resident_mb
+                    ) <= candidate_gpu.capacity_mb + 1e-9
                     if not loading and candidate_projection <= candidate_gpu.capacity_mb + 1e-9:
+                        # A free projection that already fits keeps every cached model.
                         target, allocation, workspace, projected = (
                             candidate_gpu, candidate_allocation, candidate_workspace, candidate_projection
                         )
+                        break
+                    if not loading and projection_after_evict <= candidate_gpu.capacity_mb + 1e-9:
+                        # Only when the room is not there without help: evict idle cached
+                        # models, never an active one.
+                        target, allocation, workspace, projected = (
+                            candidate_gpu, candidate_allocation, candidate_workspace,
+                            projection_after_evict,
+                        )
+                        evicted_models = evictable if evictable_mb > 0.0 else ()
                         break
                 if target is None:
                     retry_time = min([
@@ -6938,7 +6971,21 @@ def simulate_episode(
                     complete_job_if_done(job)
                     continue
 
-                start = max(float(now), float(target.busy_until))
+                eviction_cost = 0.0
+                for model_id in evicted_models:
+                    target.resident.pop(model_id, None)
+                    if model_id in target.prefetched_models and model_id not in target.used_prefetched_models:
+                        target.wasted_prefetches += 1
+                        log_prefetch("prefetch_wasted", target, model_id, reason="evicted_before_first_use")
+                    evict_cost, _source = transition_eviction_cost(model_id, extension_config)
+                    eviction_cost += evict_cost
+                if evicted_models:
+                    target.evictions += len(evicted_models)
+                    log("model_evict", job, parent, gpu_index=target.index,
+                        models=list(evicted_models), evict_cost_ms=round(eviction_cost, 3),
+                        reason="nested_gpu_capacity")
+
+                start = max(float(now), float(target.busy_until)) + eviction_cost
                 inner_finish = start + inner
                 if allocation > 0.0:
                     log("model_load_start", job, parent, gpu_index=target.index,
@@ -7407,6 +7454,15 @@ def simulate_episode(
                     heapq.heappush(ready, item)
 
                 while gpu_ready_items and free_gpu:
+                    # The dispatchable set depends on WHICH items remain: a busy GPU is
+                    # only free for pairs with measured coverage, and an idle GPU stops
+                    # being free once used.  Dispatching one item can therefore
+                    # invalidate another GPU's eligibility for the remaining items, so
+                    # the set is recomputed from the surviving items every iteration
+                    # instead of carrying a stale list into choose_action.
+                    free_gpu = dispatchable_gpus(gpu_ready_items)
+                    if not free_gpu:
+                        break
                     scheduler_state = scheduler_state_at_decision(
                         episode,
                         jobs,

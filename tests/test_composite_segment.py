@@ -115,6 +115,61 @@ class CompositeSentinels(unittest.TestCase):
         self.assertTrue(by_type(events, "nested_gpu_wait"))
         self.assertEqual(summary["gpu_peak_memory_mb"], [2200.0])
 
+    def test_nested_admission_evicts_idle_cached_model_instead_of_failing(self):
+        """An idle cached model must not turn a composite call into a permanent OOM.
+
+        Real failure mode (validation_000007): a 24 GB device held a cached 4B while
+        the composite call needed 8B; the old scan had no eviction and no wait, so it
+        failed the whole job even though the cached model was not in use.
+        """
+        idle = replace(gpu_node("i:n", 0, 100.0), model_id="idle-model",
+                       resident_model_mb=600.0, workspace_peak_mb=600.0)
+        parent = replace(composite_node("c:n", 0, 100.0, 100.0, 0.0),
+                         nested_model_mb=1000.0, nested_reserved_mb=1400.0)
+        ep = episode([job("jc", "c")])
+        ep["gpu_topology_mb"] = [1500.0]
+        ep["initial_residency_hint"] = [["idle-model"]]
+        summary, events = simulate_episode(
+            ep, {"c": template("c", [parent]), "i": template("i", [idle])},
+            "fcfs", train_stats=hand_stats())
+        self.assertEqual(summary["failed_jobs"], 0)
+        self.assertEqual(summary["completed_jobs"], 1)
+        self.assertTrue(by_type(events, "nested_gpu_start"))
+        evictions = by_type(events, "model_evict")
+        self.assertTrue(evictions)
+        self.assertEqual(evictions[0]["models"], ["idle-model"])
+        # 1000 (model) + 400 (workspace peak above the model) fits once the 600 is freed.
+        self.assertEqual(summary["gpu_peak_memory_mb"], [1400.0])
+
+    def test_nested_admission_waits_for_active_task_then_evicts_it(self):
+        """A running task's model is protected NOW but becomes evictable when it ends.
+
+        Real failure mode (validation_000022): both 24 GB devices ran a 4B while the
+        composite call needed 8B; the call had to wait for a 4B to finish and then
+        evict the freed model instead of declaring a permanent OOM.
+        """
+        active = replace(gpu_node("n:n", 0, 500.0), model_id="active-model",
+                         resident_model_mb=600.0, workspace_peak_mb=1200.0)
+        parent = replace(composite_node("c:n", 0, 100.0, 100.0, 0.0),
+                         nested_model_mb=1000.0, nested_reserved_mb=1400.0)
+        stats = {**hand_stats(), "active-model|gpu|0|exact": {
+            "runtime_p50_ms": 500.0, "runtime_p90_ms": 500.0,
+            "load_p50_ms": 0.0, "memory_p95_mb": 1200.0, "count": 100,
+        }}
+        ep = episode([job("jn", "n"), job("jc", "c")])
+        ep["gpu_topology_mb"] = [1500.0]
+        summary, events = simulate_episode(
+            ep, {"n": template("n", [active]), "c": template("c", [parent])},
+            "fcfs", train_stats=stats)
+        self.assertEqual(summary["failed_jobs"], 0)
+        self.assertEqual(summary["completed_jobs"], 2)
+        self.assertTrue(by_type(events, "nested_gpu_wait"))
+        start = by_type(events, "nested_gpu_start")[0]
+        self.assertEqual(start["nested_start_ms"], 500.0)
+        evictions = by_type(events, "model_evict")
+        self.assertTrue(evictions)
+        self.assertEqual(evictions[0]["models"], ["active-model"])
+
     def test_1_no_contention_parent_finishes_exactly_at_R_total(self):
         pre, inner, post = 100.0, 700.0, 200.0
         tpls = {"t": template("t", [composite_node("c:n", 0, pre, inner, post)])}
