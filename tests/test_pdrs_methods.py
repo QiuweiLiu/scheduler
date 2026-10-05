@@ -4,6 +4,8 @@ from __future__ import annotations
 import unittest
 
 from tracing.analysis.pdrs_methods import (
+    build_prior_artifacts,
+    build_shuffled_artifacts,
     next_model_distribution,
     placement_affinity,
     suffix_expected_cost,
@@ -75,6 +77,29 @@ class PdrsConsumerTests(unittest.TestCase):
         r = {"future_h5": [{"steps": [step()]}]}
         with self.assertRaisesRegex(ValueError, "length_probabilities"):
             suffix_expected_cost({"n": r}, "n")
+
+
+class PdrsControlBuilderTests(unittest.TestCase):
+    def test_prior_artifacts_pool_model_and_length_marginals(self) -> None:
+        artifacts = {
+            "a": row((0.0, 1.0, 0.0, 0.0, 0.0, 0.0), steps=[step(models={"m1": 1.0})]),
+            "b": row((0.0, 0.0, 1.0, 0.0, 0.0, 0.0), steps=[step(models={"m2": 1.0})]),
+        }
+        prior = build_prior_artifacts(artifacts)
+        self.assertEqual(next_model_distribution(prior, "a"), {"m1": 0.5, "m2": 0.5})
+        self.assertEqual(prior["a"]["length_probabilities"], [0.0, 0.5, 0.5, 0.0, 0.0, 0.0])
+        # per-step runtime fields are untouched
+        self.assertEqual(prior["a"]["future_h5"][0]["steps"][0]["resource"]["runtime_mean_ms"],
+                         1000.0)
+
+    def test_shuffled_artifacts_are_a_deterministic_permutation(self) -> None:
+        artifacts = {f"n{i}": row(steps=[step(models={f"m{i}": 1.0})]) for i in range(6)}
+        shuffled = build_shuffled_artifacts(artifacts, seed=11)
+        self.assertEqual(set(shuffled), set(artifacts))
+        self.assertEqual({id(v) for v in shuffled.values()}, {id(v) for v in artifacts.values()})
+        moved = [k for k in artifacts if shuffled[k] is not artifacts[k]]
+        self.assertTrue(moved, "the permutation must move at least one row")
+        self.assertEqual(shuffled, build_shuffled_artifacts(artifacts, seed=11))
 
 
 if __name__ == "__main__":

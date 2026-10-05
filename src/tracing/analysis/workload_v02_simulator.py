@@ -89,6 +89,7 @@ POLICIES = (
     "pdrs_o",
     "pdrs_place",
     "pdrs_p",
+    "pdrs_oracle",
     "tie_current",
     "pythia_completion",
     "llmsched",
@@ -4801,6 +4802,55 @@ def choose_action(
                 )
 
             chosen = min(pool, key=pdrs_score)
+
+    elif policy == "pdrs_oracle":
+        """PDRS ceiling: true next-model identity + true limited-horizon cost."""
+        if future_artifacts is None:
+            raise ValueError("pdrs_oracle requires finite-horizon artifacts")
+        from tracing.analysis.pdrs_methods import placement_affinity_for_distribution
+
+        def true_next_distribution(job, node_id):
+            node = job.template.by_id[node_id]
+            models = [job.template.by_id[succ].model_id for succ in node.successors
+                      if succ in job.template.by_id]
+            models = [str(model) for model in models if model]
+            if not models:
+                return {}
+            weight = 1.0 / len(models)
+            distribution: dict[str, float] = {}
+            for model in models:
+                distribution[model] = distribution.get(model, 0.0) + weight
+            return distribution
+
+        def pdrs_oracle_score(candidate):
+            item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+            job = jobs[job_index]
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            future = limited_future_truth_cost(job, node_id, gpu, train_stats, 5)
+            resident_after = set(gpu.resident)
+            resident_after.add(str(model_id))
+            distribution = true_next_distribution(job, node_id)
+            affinity = (
+                placement_affinity_for_distribution(
+                    future_artifacts, node_id, distribution, resident_after, 5
+                )
+                if distribution
+                else 0.0
+            )
+            return (
+                float(item[0]),
+                current + future + affinity,
+                affinity,
+                future,
+                float(item[1]),
+                item[2],
+                0,
+                item[3],
+                gpu.index,
+            )
+
+        chosen = min(pool, key=pdrs_oracle_score)
 
     elif policy == "tie_current":
         """Empirical-TIE-adapted: E[X] + beta * CVaR_0.9[X] over a current-node-only

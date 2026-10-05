@@ -116,6 +116,30 @@ def next_model_distribution(
     return {str(model): float(prob) for model, prob in raw.items()}
 
 
+def placement_affinity_for_distribution(
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    node_id: str,
+    distribution: Mapping[str, float],
+    resident_after: Iterable[str],
+    horizon: int = HORIZON,
+) -> float:
+    """A(i,g) for an explicit next-model distribution (used by the oracle arm)."""
+
+    row = _row(future_artifacts, node_id)
+    steps = _steps(row, horizon)
+    if not steps or not distribution:
+        return 0.0
+    weights = survival_weights(row, horizon)
+    step = steps[0]
+    load_prob = _required_number(step, "load_occurrence_probability")
+    load_cost = _load_p95(step)
+    if load_prob <= 0.0 or load_cost <= 0.0:
+        return 0.0
+    residents = {str(model) for model in resident_after}
+    hit = sum(float(prob) for model, prob in distribution.items() if str(model) in residents)
+    return weights[0] * load_prob * load_cost * (1.0 - hit)
+
+
 def placement_affinity(
     future_artifacts: Mapping[str, Mapping[str, Any]],
     node_id: str,
@@ -124,17 +148,75 @@ def placement_affinity(
 ) -> float:
     """H=1 expected avoidable next-step loading cost A(i,g) (placement term)."""
 
-    row = _row(future_artifacts, node_id)
-    steps = _steps(row, horizon)
-    if not steps:
-        return 0.0
-    weights = survival_weights(row, horizon)
-    step = steps[0]
-    load_prob = _required_number(step, "load_occurrence_probability")
-    load_cost = _load_p95(step)
-    if load_prob <= 0.0 or load_cost <= 0.0:
-        return 0.0
     distribution = next_model_distribution(future_artifacts, node_id, horizon)
-    residents = {str(model) for model in resident_after}
-    hit = sum(prob for model, prob in distribution.items() if model in residents)
-    return weights[0] * load_prob * load_cost * (1.0 - hit)
+    return placement_affinity_for_distribution(
+        future_artifacts, node_id, distribution, resident_after, horizon
+    )
+
+def build_prior_artifacts(
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    horizon: int = HORIZON,
+) -> dict[str, dict[str, Any]]:
+    """Unconditional-prior control: pooled marginals replace instance beliefs.
+
+    Keeps every per-step runtime/load field untouched; replaces only the
+    instance-specific ``model_probabilities`` of the first future step and the
+    chain ``length_probabilities`` with pooled averages over all frozen rows.
+    This is the matched control for "instance-conditioned vs prior" (the
+    SAGA/LLMSched-style historical/aggregate alternative).
+    """
+
+    model_acc: dict[str, float] = {}
+    model_n = 0
+    length_acc: list[float] | None = None
+    length_n = 0
+    for row in future_artifacts.values():
+        steps = _steps(row, horizon)
+        if steps:
+            distribution = steps[0].get("model_probabilities") or {}
+            if distribution:
+                for model, probability in distribution.items():
+                    model_acc[str(model)] = model_acc.get(str(model), 0.0) + float(probability)
+                model_n += 1
+        probs = row.get("length_probabilities") or []
+        if probs:
+            if length_acc is None:
+                length_acc = [0.0] * len(probs)
+            for index, probability in enumerate(probs):
+                length_acc[index] += float(probability)
+            length_n += 1
+    prior_model = {model: value / model_n for model, value in model_acc.items()} if model_n else {}
+    prior_length = [value / length_n for value in length_acc] if (length_acc and length_n) else None
+
+    result: dict[str, dict[str, Any]] = {}
+    for node_id, row in future_artifacts.items():
+        new_row = dict(row)
+        scenarios = row.get(f"future_h{horizon}") or []
+        if scenarios and prior_model:
+            steps = [dict(step) for step in (scenarios[0].get("steps") or [])]
+            if steps:
+                steps[0] = {**steps[0], "model_probabilities": dict(prior_model)}
+                new_row[f"future_h{horizon}"] = [{**scenarios[0], "steps": steps}]
+        if prior_length is not None:
+            new_row["length_probabilities"] = list(prior_length)
+        result[str(node_id)] = new_row
+    return result
+
+
+def build_shuffled_artifacts(
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    seed: int = 11,
+) -> dict[str, dict[str, Any]]:
+    """Shuffled-belief control: same rows, wrong instance.
+
+    Every node receives another node's row (deterministic permutation), which
+    preserves the pooled distribution shape while destroying prefix-specific
+    information.
+    """
+
+    import random
+
+    node_ids = sorted(str(node_id) for node_id in future_artifacts)
+    permutation = list(node_ids)
+    random.Random(seed).shuffle(permutation)
+    return {target: future_artifacts[source] for target, source in zip(node_ids, permutation)}
