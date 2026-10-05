@@ -90,6 +90,12 @@ POLICIES = (
     "pdrs_place",
     "pdrs_p",
     "pdrs_oracle",
+    "f0point_evict",
+    "pdrs_evict",
+    "f0point_resident",
+    "pdrs_resident",
+    "pdrs_resident_shuffle",
+    "pdrs_resident_oracle",
     "tie_current",
     "pythia_completion",
     "llmsched",
@@ -708,6 +714,9 @@ class GPU:
     prefetch_count: int = 0
     prefetch_load_ms: float = 0.0
     wasted_prefetches: int = 0
+    evicted_models_seen: set[str] = field(default_factory=set)
+    evicted_then_reloaded: int = 0
+    cold_loads_on_demand: int = 0
 
     def add_active_task(
         self,
@@ -2250,6 +2259,7 @@ def plan_gpu_admission(
     protected_models: set[str] | None = None,
     active_workspace_mb: float | None = None,
     eviction_preference: Sequence[str] | None = None,
+    eviction_values: Mapping[str, float] | None = None,
 ) -> tuple[bool, tuple[str, ...], float, float, float]:
     """Plan cache eviction and verify the full resident+workspace ledger.
 
@@ -2260,6 +2270,11 @@ def plan_gpu_admission(
     Torpor arm): evict the MINIMAL prefix of the preferred order that makes the
     projection fit, instead of the default all-evictable behaviour.  ``None``
     keeps the substrate's original all-or-nothing eviction for every other arm.
+
+    ``eviction_values`` is the round-6 residency hook: model-id -> future
+    residency value V(m).  When provided (and no explicit preference is given),
+    the evicted set is the exact subset minimizing total V subject to freeing
+    enough memory (ties: min excess freed, then lexicographic tuple).
     """
 
     model_mb = model_memory(node, estimate_row)
@@ -2280,7 +2295,15 @@ def plan_gpu_admission(
         for model_id in gpu.resident
         if model_id != node.model_id and model_id not in protected
     ]
-    if eviction_preference is None:
+    if eviction_preference is None and eviction_values is not None:
+        from tracing.analysis.residency_methods import choose_eviction_subset
+
+        evicted = choose_eviction_subset(
+            {model_id: float(gpu.resident[model_id]) for model_id in evictable},
+            eviction_values,
+            projected - gpu.capacity_mb,
+        )
+    elif eviction_preference is None:
         evicted = tuple(sorted(evictable))
     else:
         order = {str(model_id): index for index, model_id in enumerate(eviction_preference)}
@@ -2306,6 +2329,103 @@ def plan_gpu_admission(
     if projected_after_eviction <= gpu.capacity_mb + 1e-9:
         return True, evicted, model_mb, workspace_mb, projected_after_eviction
     return False, (), model_mb, workspace_mb, projected_after_eviction
+
+
+def residency_mode_for_policy(policy: str) -> str:
+    """Belief consumption of a residency arm: point / distribution / oracle."""
+
+    if policy.startswith("f0point"):
+        return "f0point"
+    if policy.endswith("oracle"):
+        return "oracle"
+    return "pdrs"
+
+
+def residency_artifacts_for_policy(
+    policy: str,
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    policy_context: dict[str, Any] | None,
+) -> Mapping[str, Mapping[str, Any]]:
+    """Belief pack for a residency arm.
+
+    Every residency arm orders by the REAL frozen artifacts; only the residency
+    belief changes.  The shuffle arm swaps the belief pack per instance (cached
+    once per episode in ``policy_context``) so the ordering stays untouched.
+    """
+
+    if policy != "pdrs_resident_shuffle":
+        return future_artifacts
+    if policy_context is None:
+        return future_artifacts
+    cached = policy_context.get("_residency_shuffled_pack")
+    if cached is None:
+        from tracing.analysis.pdrs_methods import build_shuffled_artifacts
+
+        cached = build_shuffled_artifacts(future_artifacts, seed=11)
+        policy_context["_residency_shuffled_pack"] = cached
+    return cached
+
+
+def true_step_distributions(job: Any, node_id: str, horizon: int = 5) -> list[dict[str, float]]:
+    """Realized future model distributions along the serial successor chain."""
+
+    steps: list[dict[str, float]] = []
+    current = str(node_id)
+    for _ in range(int(horizon)):
+        node = job.template.by_id.get(current)
+        if node is None:
+            break
+        successors = [succ for succ in node.successors if succ in job.template.by_id]
+        if not successors:
+            break
+        models = [job.template.by_id[succ].model_id for succ in successors]
+        models = [str(model) for model in models if model]
+        if not models:
+            break
+        weight = 1.0 / len(models)
+        distribution: dict[str, float] = {}
+        for model in models:
+            distribution[model] = distribution.get(model, 0.0) + weight
+        steps.append(distribution)
+        current = str(successors[0])
+    return steps
+
+
+def residency_demand_totals(
+    jobs: Sequence[Any],
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    mode: str,
+    horizon: int = 5,
+) -> tuple[dict[str, float], dict[str, float]]:
+    """(V totals, U totals) over every active frontier node (ready + running)."""
+
+    from tracing.analysis.residency_methods import (
+        demand_quality,
+        oracle_demand,
+        totals_from_demand,
+    )
+
+    values: dict[str, float] = {}
+    nexts: dict[str, float] = {}
+    for job in jobs:
+        for node_id, state in job.node_state.items():
+            if state not in ("ready", "running"):
+                continue
+            if mode == "oracle":
+                demand = oracle_demand(
+                    future_artifacts,
+                    node_id,
+                    true_step_distributions(job, node_id, horizon),
+                    horizon,
+                )
+            else:
+                demand = demand_quality(future_artifacts, node_id, mode, horizon)
+            node_values, node_nexts = totals_from_demand(demand)
+            for model, value in node_values.items():
+                values[model] = values.get(model, 0.0) + value
+            for model, value in node_nexts.items():
+                nexts[model] = nexts.get(model, 0.0) + value
+    return values, nexts
 
 
 def roots(template: Template) -> list[str]:
@@ -2715,6 +2835,25 @@ SAMESHAPE_POLICIES: tuple[str, ...] = (
     "sameshape_h5_stepcvar95",
 )
 _SAMESHAPE_PREDICTED_STATS = ("p50", "p95", "condmean", "stepcvar95")
+
+# Round-6 residency experiment: frozen-F0 ordering for every arm; the belief
+# only feeds the residency actions (prefetch demand + eviction subset).
+RESIDENCY_POLICIES: tuple[str, ...] = (
+    "f0point_evict",
+    "pdrs_evict",
+    "f0point_resident",
+    "pdrs_resident",
+    "pdrs_resident_shuffle",
+    "pdrs_resident_oracle",
+)
+# Prefetch is the second residency action and is enabled only for the full
+# residency package; the eviction-only diagnostic arms must never prefetch.
+RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
+    "f0point_resident",
+    "pdrs_resident",
+    "pdrs_resident_shuffle",
+    "pdrs_resident_oracle",
+)
 
 
 def sameshape_future_cost(
@@ -4852,6 +4991,66 @@ def choose_action(
 
         chosen = min(pool, key=pdrs_oracle_score)
 
+    elif policy in RESIDENCY_POLICIES:
+        """Round-6 residency arms: frozen-F0 ordering for every arm; the belief
+        only feeds residency actions (eviction subset at dispatch + prefetch).
+
+        The GPU choice among candidates of the chosen node minimizes the total
+        residency value V of the models that would be evicted to admit the
+        placement (0 when no eviction is needed); ties fall back to the frozen
+        F0 placement key.  Ordering is byte-identical to ``sameshape_h5_p95``.
+        """
+        if future_artifacts is None:
+            raise ValueError(f"{policy} requires finite-horizon artifacts")
+        horizon = 5
+        from tracing.analysis.residency_methods import eviction_penalty
+
+        residency_pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        values, _next_demand = residency_demand_totals(
+            jobs, residency_pack, residency_mode_for_policy(policy), horizon
+        )
+
+        def residency_f0_key(candidate):
+            item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            future = sameshape_future_cost(
+                node_id, future_artifacts, train_stats, horizon, "p95"
+            )
+            return (
+                float(item[0]),
+                current + future,
+                future,
+                float(item[1]),
+                item[2],
+                0,
+                item[3],
+                gpu.index,
+            )
+
+        f0_choice = min(pool, key=residency_f0_key)
+        chosen_node_id = f0_choice[2]
+        node_pool = [candidate for candidate in pool if candidate[2] == chosen_node_id]
+        if len(node_pool) > 1:
+            def residency_placement_key(candidate):
+                item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+                node = jobs[job_index].template.by_id[node_id]
+                _admitted, evicted, _memory, _workspace, _projected = plan_gpu_admission(
+                    gpu, node, estimate_row, eviction_values=values
+                )
+                return (eviction_penalty(evicted, values), residency_f0_key(candidate))
+
+            chosen = min(node_pool, key=residency_placement_key)
+            if policy_context is not None:
+                f0_gpu_index = f0_choice[4].index
+                if f0_gpu_index != chosen[4].index:
+                    activation = policy_context.setdefault("activation", {})
+                    activation["residency_placement_flips"] = int(
+                        activation.get("residency_placement_flips", 0)
+                    ) + 1
+        else:
+            chosen = f0_choice
+
     elif policy == "tie_current":
         """Empirical-TIE-adapted: E[X] + beta * CVaR_0.9[X] over a current-node-only
         empirical distribution.
@@ -6531,6 +6730,69 @@ def simulate_episode(
             return [{"gpu_index": gpu.index, "model_id": model_id}]
         return []
 
+    def _residency_prefetch_plan() -> list[dict[str, Any]]:
+        """Conservative belief-driven prefetch (round-6 residency arms).
+
+        Fires only after real ready work has been dispatched (call site), on the
+        model with the largest next-step demand U(m) = sum_j D(j,1,m); no
+        eviction is ever triggered by a prefetch, and a model already resident
+        or loading anywhere is skipped.  The device is the no-eviction fit with
+        the most free memory (tie: gpu id).  The environment charges load time
+        and measured interference; the policy reads no machine table.
+        """
+
+        from tracing.analysis.residency_methods import choose_prefetch_gpu
+
+        if future_artifacts is None:
+            return []
+        pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        _values, nexts = residency_demand_totals(
+            jobs, pack, residency_mode_for_policy(policy),
+            int(future_horizon) if future_horizon else 5,
+        )
+        # The belief may assign demand to CPU-lane pseudo-models; a prefetch can
+        # only act on measured GPU deployments, so the target is the largest
+        # demand among GPU-actionable models (the consumption itself is unchanged).
+        gpu_models = {
+            str(node.model_id)
+            for template in templates.values()
+            for node in template.nodes
+            if node.lane == "gpu" and node.model_id
+        }
+        actionable = {
+            model: value for model, value in nexts.items()
+            if model in gpu_models and value > 0.0
+        }
+        if not actionable:
+            return []
+        target = max(sorted(actionable), key=lambda model: (actionable[model], model))
+        if any(
+            target in gpu.resident or target in gpu.loading_model_ids() for gpu in gpus
+        ):
+            return []
+        model_node = find_model_node(target)
+        if model_node is None or model_node.resident_model_mb is None:
+            return []
+        model_row = estimate(model_node, train_stats)
+        memory = model_memory(model_node, model_row)
+        free: dict[int, float] = {}
+        for gpu in gpus:
+            if gpu.prefetch_pending:
+                continue
+            resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+            projected = resident_mb + memory + gpu.active_workspace_mb()
+            if projected <= gpu.capacity_mb + 1e-9:
+                free[gpu.index] = gpu.capacity_mb - resident_mb - gpu.active_workspace_mb()
+        gpu_index = choose_prefetch_gpu(free, memory)
+        if gpu_index is None:
+            return []
+        activation = (policy_context or {}).get("activation")
+        if activation is not None:
+            activation["residency_prefetch_proposed"] = int(
+                activation.get("residency_prefetch_proposed", 0)
+            ) + 1
+        return [{"gpu_index": gpu_index, "model_id": target}]
+
     def _latency_aware_prefetch_plan() -> list[dict[str, Any]]:
         """Eq (5) alpha_N = Prefetch, derived from the live pool state.
 
@@ -6627,6 +6889,8 @@ def simulate_episode(
             plan = _latency_aware_prefetch_plan()
         if not plan and policy == "hermes_gittins":
             plan = _hermes_prefetch_plan()
+        if not plan and policy in RESIDENCY_PREFETCH_POLICIES:
+            plan = _residency_prefetch_plan()
         if not plan:
             return
         # A prefetch cannot start in the past.  The cursor was seeded from busy_until
@@ -7699,15 +7963,41 @@ def simulate_episode(
                         scheduler_state=scheduler_state,
                     )
                     eviction_preference = None
+                    eviction_values = None
                     if policy == "torpor_lifecycle":
                         from tracing.analysis.torpor_methods import swap_burden_order
 
                         eviction_preference = swap_burden_order(
                             gpu, train_stats, _prefetch_interference_profile(extension_config)
                         )
+                    elif policy in RESIDENCY_POLICIES:
+                        _residency_pack = residency_artifacts_for_policy(
+                            policy, future_artifacts, policy_context
+                        )
+                        eviction_values, _residency_next = residency_demand_totals(
+                            jobs,
+                            _residency_pack,
+                            residency_mode_for_policy(policy),
+                            int(future_horizon) if future_horizon else 5,
+                        )
                     admitted, evicted_plan, memory, predicted_workspace, total_memory = plan_gpu_admission(
-                        gpu, node, row, eviction_preference=eviction_preference
+                        gpu, node, row, eviction_preference=eviction_preference,
+                        eviction_values=eviction_values
                     )
+                    if policy in RESIDENCY_POLICIES and policy_context is not None:
+                        default_evicted = tuple(
+                            sorted(
+                                model_id
+                                for model_id in gpu.resident
+                                if model_id != node.model_id
+                                and model_id not in gpu.active_model_ids()
+                            )
+                        )
+                        if evicted_plan and tuple(evicted_plan) != default_evicted:
+                            activation = policy_context.setdefault("activation", {})
+                            activation["residency_eviction_flips"] = int(
+                                activation.get("residency_eviction_flips", 0)
+                            ) + 1
                     if not admitted:
                         job.node_state[node_id] = "failed"
                         job.failed.add(node_id)
@@ -7722,6 +8012,7 @@ def simulate_episode(
                     evicted = list(evicted_plan)
                     for model_id in evicted:
                         gpu.resident.pop(model_id, None)
+                        gpu.evicted_models_seen.add(model_id)
                         if model_id in gpu.prefetched_models and model_id not in gpu.used_prefetched_models:
                             gpu.wasted_prefetches += 1
                             log_prefetch("prefetch_wasted", gpu, model_id, reason="evicted_before_first_use")
@@ -7752,6 +8043,10 @@ def simulate_episode(
                     if node.model_id in gpu.prefetched_models:
                         gpu.used_prefetched_models.add(node.model_id)
                     model_loading = node.model_id not in gpu.resident
+                    if model_loading:
+                        gpu.cold_loads_on_demand += 1
+                        if node.model_id in gpu.evicted_models_seen:
+                            gpu.evicted_then_reloaded += 1
                     if model_loading:
                         _effective_runtime, effective_load = effective_batch_runtime(node, row, batch_size, extension_config)
                         load, load_source = transition_load_cost(
@@ -7961,7 +8256,9 @@ def simulate_episode(
                     wait_logged.add(wait_key)
 
         if extension_config.get("prefetch_overlap") and (
-            extension_config.get("prefetch_plan") or policy == "hermes_gittins"
+            extension_config.get("prefetch_plan")
+            or policy == "hermes_gittins"
+            or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()
 
@@ -8055,6 +8352,9 @@ def simulate_episode(
             (_batching_engine_profile(extension_config) or {}).get("cross_model_policy")
         ),
         "wasted_prefetches": sum(gpu.wasted_prefetches for gpu in gpus),
+        "used_prefetches": sum(len(gpu.used_prefetched_models) for gpu in gpus),
+        "cold_loads_on_demand": sum(gpu.cold_loads_on_demand for gpu in gpus),
+        "evicted_then_reloaded": sum(gpu.evicted_then_reloaded for gpu in gpus),
         "transition_profile_enabled": _transition_profile(extension_config) is not None,
         "transition_profile_load_ms": round(transition_stats["load_ms"], 3),
         "transition_profile_evict_ms": round(transition_stats["evict_ms"], 3),
