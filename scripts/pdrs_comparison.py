@@ -112,11 +112,14 @@ def git_head() -> str:
     return "unknown"
 
 
+METRICS = ("mean_completion_ms", "p95_completion_ms", "deadline_miss_rate", "makespan_ms")
+
+
 def run_arm(policy: str, label: str, episodes: Sequence[Dict[str, Any]],
             templates: Dict[str, Any], stats: Dict[str, Any],
             extension_config: Dict[str, Any],
-            future_artifacts: Dict[str, Any]) -> Tuple[List[float], Dict[str, Any]]:
-    values: List[float] = []
+            future_artifacts: Dict[str, Any]) -> Tuple[Dict[str, List[float]], Dict[str, Any]]:
+    values: Dict[str, List[float]] = {metric: [] for metric in METRICS}
     activation: Counter[str] = Counter()
     mechanism: Counter[str] = Counter()
     for index, episode in enumerate(episodes):
@@ -134,14 +137,14 @@ def run_arm(policy: str, label: str, episodes: Sequence[Dict[str, Any]],
             raise AssertionError(
                 "%s episode %s: completed %d/%d with %d failed"
                 % (label, episode.get("episode_id", index), completed, expected_jobs, failed))
-        value = float(summary["mean_completion_ms"])
-        if not math.isfinite(value):
-            raise AssertionError(f"{label} episode {index}: non-finite metric")
-        values.append(value)
+        for metric in METRICS:
+            value = float(summary[metric])
+            if not math.isfinite(value):
+                raise AssertionError(f"{label} episode {index}: non-finite {metric}")
+            values[metric].append(value)
         activation.update(policy_context["activation"])
         mechanism["gpu_evictions"] += int(summary.get("gpu_evictions") or 0)
         mechanism["prefetch_load_ms"] += int(round(float(summary.get("prefetch_load_ms") or 0.0)))
-        mechanism["deadline_miss_rate_sum"] += float(summary.get("deadline_miss_rate") or 0.0)
     mechanism["episodes"] = len(episodes)
     return values, {"activation": dict(sorted(activation.items())),
                     "mechanism": dict(sorted(mechanism.items()))}
@@ -219,7 +222,8 @@ def main() -> int:
     reference_values, reference_info = run_arm(
         REFERENCE, REFERENCE, episodes, templates, stats, extension_config, future_artifacts)
     print("\n== %s (reference) ==" % REFERENCE)
-    print("   mean = %.1f" % statistics.fmean(reference_values))
+    for metric in METRICS:
+        print("   %-20s %.4f" % (metric, statistics.fmean(reference_values[metric])))
 
     results: Dict[str, Any] = {}
     for label in ARM_LABELS:
@@ -231,22 +235,30 @@ def main() -> int:
             policy, artifacts = label, future_artifacts
         values, info = run_arm(policy, label, episodes, templates, stats,
                                extension_config, artifacts)
-        deltas = [a - b for a, b in zip(values, reference_values)]
-        point = statistics.fmean(deltas)
-        lo, hi = paired_bootstrap_ci(deltas)
+        per_metric: Dict[str, Any] = {}
+        for metric in METRICS:
+            deltas = [a - b for a, b in zip(values[metric], reference_values[metric])]
+            point = statistics.fmean(deltas)
+            lo, hi = paired_bootstrap_ci(deltas)
+            per_metric[metric] = {
+                "mean": statistics.fmean(values[metric]),
+                "delta_point": point,
+                "delta_ci95": [lo, hi],
+                "n_worse": sum(1 for d in deltas if d > 0),
+                "n_episodes": len(deltas),
+            }
         results[label] = {
             "policy": policy,
-            "mean": statistics.fmean(values),
-            "delta_point": point,
-            "delta_ci95": [lo, hi],
-            "n_worse": sum(1 for d in deltas if d > 0),
-            "n_episodes": len(deltas),
+            "metrics": per_metric,
             **info,
         }
         print("\n== %s ==" % label)
-        print("   mean = %.1f" % statistics.fmean(values))
-        print("   Delta vs %s: point %+.1f ms  CI95 [%+.1f, %+.1f]  %d/%d worse"
-              % (REFERENCE, point, lo, hi, results[label]["n_worse"], len(deltas)))
+        for metric in METRICS:
+            entry = per_metric[metric]
+            print("   %-20s mean %12.4f  delta %+9.4f  CI95 [%+.4f, %+.4f]  %d/%d worse"
+                  % (metric, entry["mean"], entry["delta_point"],
+                     entry["delta_ci95"][0], entry["delta_ci95"][1],
+                     entry["n_worse"], entry["n_episodes"]))
         print("   activation: %s" % json.dumps(info["activation"])[:160])
 
     elapsed = time.time() - started
@@ -256,14 +268,17 @@ def main() -> int:
         "mode": "smoke" if args.smoke else "formal",
         "config": config,
         "reference_summary": {
-            "mean": statistics.fmean(reference_values),
-            "n_episodes": len(reference_values),
-            "episode_values": reference_values,
+            "metrics": {metric: statistics.fmean(reference_values[metric]) for metric in METRICS},
+            "n_episodes": len(reference_values[METRICS[0]]),
+            "episode_values": {metric: reference_values[metric] for metric in METRICS},
             "info": reference_info,
         },
         "results": results,
         "criteria": {
             "delta": "candidate - %s (negative = better)" % REFERENCE,
+            "metrics": "mean_completion_ms (main-table metric) + p95_completion_ms / "
+                       "deadline_miss_rate / makespan_ms (tail set, declared before the run: "
+                       "distributional information is tail-oriented)",
             "placement_value": "pdrs_p - pdrs_o",
             "instance_information": "pdrs_p vs pdrs_prior / pdrs_shuffle",
             "ceiling": "pdrs_oracle - pdrs_p",
