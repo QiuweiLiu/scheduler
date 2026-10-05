@@ -1,0 +1,26 @@
+{
+ "schema": "fcfs-reference-v1",
+ "note": "SUPPLEMENTARY (post-freeze; NOT part of the frozen main table). FCFS is the most basic no-information baseline (pure arrival order); Myopic is the greedy current-cost no-future-information baseline. Neither is a main-table arm.",
+ "inputs": {
+  "episodes": "confirm300 (same frozen split and order as main_table_formal_v2.json)",
+  "extension_config": "substrate_extension_v7.json",
+  "profile_contract": "applied",
+  "pairing": "paired vs the F0 episode_values recorded in main_table_formal_v2.json"
+ },
+ "result": {
+  "fcfs_mean_ms": 74112.7,
+  "f0_mean_ms": 69788.9,
+  "delta_point_ms": 4323.9,
+  "delta_ci95": [
+   3619.1,
+   5109.8
+  ],
+  "n_worse": 258,
+  "n_episodes": 300,
+  "verdict": {
+   "statistically_worse": true,
+   "non_inferior": false,
+   "margin_inferior": true
+  }
+ }
+}
