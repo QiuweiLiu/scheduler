@@ -86,6 +86,9 @@ POLICIES = (
     "sameshape_h5_condmean",
     "sameshape_h5_stepcvar95",
     "sameshape_h5_p95_aging",
+    "pdrs_o",
+    "pdrs_place",
+    "pdrs_p",
     "tie_current",
     "pythia_completion",
     "llmsched",
@@ -4708,6 +4711,96 @@ def choose_action(
             )
 
         chosen = min(pool, key=sameshape_aging_score)
+
+    elif policy in {"pdrs_o", "pdrs_place", "pdrs_p"}:
+        """PDRS — prefix-conditioned distributional receding-horizon scheduling.
+
+        Consumes the frozen per-instance future belief WITHOUT any machine-response
+        table (see ``tracing.analysis.pdrs_methods``):
+
+        * ``pdrs_o``     — ordering only: survival-weighted expected remaining work W.
+        * ``pdrs_place`` — ordering identical to F0; only the GPU is re-chosen with
+                           the H=1 next-model residency affinity A.
+        * ``pdrs_p``     — both: ordering on W and placement on A.
+        """
+        if future_artifacts is None:
+            raise ValueError(f"{policy} requires finite-horizon artifacts")
+        from tracing.analysis.pdrs_methods import (
+            placement_affinity,
+            suffix_expected_cost,
+        )
+
+        horizon = 5
+
+        def pdrs_placement(candidate) -> float:
+            _item, _job_index, node_id, model_id, gpu, _row, _fit = candidate
+            resident_after = set(gpu.resident)
+            resident_after.add(str(model_id))
+            return placement_affinity(future_artifacts, node_id, resident_after, horizon)
+
+        if policy == "pdrs_place":
+            # Ordering identical to the frozen F0 consumer; only the GPU changes.
+            def f0_ordering_key(candidate):
+                item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+                load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+                current = float(estimate_row["runtime_p50_ms"]) + load
+                future = sameshape_future_cost(node_id, future_artifacts, train_stats,
+                                               horizon, "p95")
+                return (
+                    float(item[0]),
+                    current + future,
+                    future,
+                    float(item[1]),
+                    item[2],
+                    0,
+                    item[3],
+                    gpu.index,
+                )
+
+            f0_choice = min(pool, key=f0_ordering_key)
+            chosen_node_id = f0_choice[2]
+            node_pool = [candidate for candidate in pool if candidate[2] == chosen_node_id]
+
+            def current_only_key(candidate):
+                item, _job_index, _node_id, model_id, gpu, estimate_row, _fit = candidate
+                load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+                return (float(estimate_row["runtime_p50_ms"]) + load, gpu.index)
+
+            def placement_key(candidate):
+                item, _job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+                load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+                current = float(estimate_row["runtime_p50_ms"]) + load
+                affinity = pdrs_placement(candidate)
+                return (current + affinity, affinity, gpu.index)
+
+            chosen = min(node_pool, key=placement_key)
+            if policy_context is not None and len(node_pool) > 1:
+                current_choice = min(node_pool, key=current_only_key)
+                if current_choice[4].index != chosen[4].index:
+                    activation = policy_context.setdefault("activation", {})
+                    activation["pdrs_placement_flips"] = int(
+                        activation.get("pdrs_placement_flips", 0)
+                    ) + 1
+        else:
+            def pdrs_score(candidate):
+                item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+                load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+                current = float(estimate_row["runtime_p50_ms"]) + load
+                suffix = suffix_expected_cost(future_artifacts, node_id, horizon)
+                affinity = pdrs_placement(candidate) if policy == "pdrs_p" else 0.0
+                return (
+                    float(item[0]),
+                    current + suffix + affinity,
+                    affinity,
+                    suffix,
+                    float(item[1]),
+                    item[2],
+                    0,
+                    item[3],
+                    gpu.index,
+                )
+
+            chosen = min(pool, key=pdrs_score)
 
     elif policy == "tie_current":
         """Empirical-TIE-adapted: E[X] + beta * CVaR_0.9[X] over a current-node-only
