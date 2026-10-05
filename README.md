@@ -1,5 +1,37 @@
 # Scheduler — Forecast-Aware GPU Scheduling for Multi-Model Video-Agent Workflows
 
+A research system for scheduling dynamically unfolding multi-model agent workflows on GPUs.
+
+## Project at a glance
+
+**Problem:** An online scheduler sees the currently ready task, while an agent's later model calls unfold at runtime. This project studies whether predicted future workflow information can improve today's GPU placement and execution order.
+
+**What I built:**
+
+- A node-level discrete-event GPU simulator using measured trace runtimes.
+- A future-workflow predictor and scheduler-facing prediction artifacts.
+- Online scheduling policies and a CP-SAT rolling-horizon reference.
+- GPU memory, model loading, caching, eviction, and execution constraints.
+- A reproducible benchmark framework with baselines, frozen splits, and input/code fingerprints.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Agent request / current ready node] --> P[Future-workflow predictor]
+    P --> F[Predicted future workflow artifacts]
+    F --> S[Online / rolling-horizon scheduler]
+    A --> S
+    G[GPU state: memory, cache, running tasks] --> S
+    S --> D[GPU assignment and execution order]
+    D --> E[Node-level event simulator]
+    E --> G
+```
+
+Start with [repository layout](#repository-layout) and [one-command reproduction](#reproducing-the-main-comparison). This is a trace-driven simulation study; the results below are simulation results rather than physical multi-GPU throughput measurements.
+
+## Research Results
+
 This repository contains the code, processed datasets, and experiment records for a study on
 **whether predicting a video-agent's future action chain improves GPU scheduling**.
 
