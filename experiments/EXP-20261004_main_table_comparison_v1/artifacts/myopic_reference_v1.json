@@ -1,0 +1,26 @@
+{
+ "schema": "myopic-reference-v1",
+ "note": "SUPPLEMENTARY (post-freeze; NOT part of the frozen main table). Myopic is the no-lookahead lower-bound reference of the information ladder (Myopic -> F0 -> Truth-H5 -> Oracle); it is not a main-table arm.",
+ "inputs": {
+  "episodes": "confirm300 (same frozen split and order as main_table_formal_v2.json)",
+  "extension_config": "substrate_extension_v7.json",
+  "profile_contract": "applied",
+  "pairing": "paired vs the F0 episode_values recorded in main_table_formal_v2.json"
+ },
+ "result": {
+  "myopic_mean_ms": 71280.3,
+  "f0_mean_ms": 69788.9,
+  "delta_point_ms": 1491.4,
+  "delta_ci95": [
+   945.4,
+   2102.1
+  ],
+  "n_worse": 197,
+  "n_episodes": 300,
+  "verdict": {
+   "statistically_worse": true,
+   "non_inferior": false,
+   "margin_inferior": true
+  }
+ }
+}
