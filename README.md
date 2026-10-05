@@ -28,19 +28,13 @@ flowchart TD
     E --> G
 ```
 
-Start with [repository layout](#repository-layout) and [one-command reproduction](#reproducing-the-main-comparison). This is a trace-driven simulation study; the results below are simulation results rather than physical multi-GPU throughput measurements.
+**Quick navigation:** [System overview](#project-at-a-glance) · [Architecture](#architecture) · [Reproduction](#reproducing-the-main-comparison) · [Research details](#research-results).
+
+This is a trace-driven simulation study; the results below are simulation results rather than physical multi-GPU throughput measurements.
 
 ## Research Results
 
-This repository contains the code, processed datasets, and experiment records for a study on
-**whether predicting a video-agent's future action chain improves GPU scheduling**.
-
-The core question: a multi-model agent workflow (planner → video tools → QA → generation) unfolds
-dynamically at runtime — a node-level scheduler only sees what is *currently ready* and cannot tell
-whether a request is about to finish, what it will call next, or how long the remaining chain will
-take. We build a **future-action predictor** (per-step model/role + runtime/load quantiles + a
-length/termination distribution), pack its output into a scheduler-facing interface, and study
-**how the predicted future should be consumed** by an online greedy list scheduler.
+The research question is how an online greedy list scheduler should consume predicted future information: per-step model/role, runtime/load quantiles, and length/termination distributions.
 
 ## Headline findings (1,000 validation episodes, paired bootstrap)
 
