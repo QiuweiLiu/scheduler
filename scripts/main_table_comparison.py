@@ -71,6 +71,7 @@ FUTURE_HORIZON = 5
 REFERENCE = "sameshape_h5_p95"
 MAIN_ARMS = ("parrot_appfifo", "qlm_queue", "llmsched", "hermes_gittins", "torpor_lifecycle")
 METRIC = "mean_completion_ms"
+METRICS = ("mean_completion_ms", "p95_completion_ms", "deadline_miss_rate", "makespan_ms")
 NI_MARGIN_MS = 485.0
 SEED = 11
 BOOTSTRAP = 2000
@@ -219,7 +220,7 @@ def run_arm(arm: str, context: Dict[str, Any], episodes: Sequence[Dict[str, Any]
             future_horizon: int = 0) -> Tuple[List[float], Dict[str, int]]:
     """Run one arm, failing closed on any episode that did not complete cleanly."""
 
-    values: List[float] = []
+    values: Dict[str, List[float]] = {metric: [] for metric in METRICS}
     activation_totals: Counter[str] = Counter()
     preemption_events = 0
     for index, episode in enumerate(episodes):
@@ -242,11 +243,12 @@ def run_arm(arm: str, context: Dict[str, Any], episodes: Sequence[Dict[str, Any]
                 "%s episode %s: completed %d/%d with %d failed; a partial run cannot "
                 "produce the metric" % (arm, episode.get("episode_id", index),
                                         completed, expected_jobs, failed))
-        value = float(summary[METRIC])
-        if not math.isfinite(value):
-            raise AssertionError("%s episode %s: %s is not finite"
-                                 % (arm, episode.get("episode_id", index), METRIC))
-        values.append(value)
+        for metric in METRICS:
+            value = float(summary[metric])
+            if not math.isfinite(value):
+                raise AssertionError("%s episode %s: %s is not finite"
+                                     % (arm, episode.get("episode_id", index), metric))
+            values[metric].append(value)
         activation_totals.update(policy_context["activation"])
     activation_totals["preemption_events"] = preemption_events
     return values, dict(sorted(activation_totals.items()))
@@ -345,6 +347,7 @@ def main() -> int:
         "episodes_file": str(EPISODES_FILE.relative_to(ROOT)).replace("\\", "/"),
         "n_episodes": len(episodes),
         "metric": METRIC,
+        "metrics": list(METRICS),
         "reference": REFERENCE,
         "arms": list(MAIN_ARMS),
         "seed": SEED,
@@ -386,29 +389,48 @@ def main() -> int:
         REFERENCE, {}, episodes, templates, stats, extension_config,
         future_artifacts=reference_artifacts, future_horizon=FUTURE_HORIZON)
     print("\n== %s (reference) ==" % REFERENCE)
-    print("   mean %s = %.1f" % (METRIC, statistics.fmean(reference_values)))
+    for metric in METRICS:
+        print("   %-20s %.4f" % (metric, statistics.fmean(reference_values[metric])))
 
     results: Dict[str, Any] = {}
     for arm in MAIN_ARMS:
         context = build_context(arm, templates)
         values, activation = run_arm(arm, context, episodes, templates, stats, extension_config)
-        deltas = [a - b for a, b in zip(values, reference_values)]
+        mean_values = values[METRIC]
+        deltas = [a - b for a, b in zip(mean_values, reference_values[METRIC])]
         point = statistics.fmean(deltas)
         lo, hi = paired_bootstrap_ci(deltas)
         verdict = classify(lo, hi)
+        per_metric: Dict[str, Any] = {}
+        for metric in METRICS:
+            metric_deltas = [a - b for a, b in zip(values[metric], reference_values[metric])]
+            metric_point = statistics.fmean(metric_deltas)
+            metric_lo, metric_hi = paired_bootstrap_ci(metric_deltas)
+            per_metric[metric] = {
+                "mean": statistics.fmean(values[metric]),
+                "delta_point": metric_point,
+                "delta_ci95": [metric_lo, metric_hi],
+                "n_worse": sum(1 for d in metric_deltas if d > 0),
+                "episode_values": values[metric],
+            }
         results[arm] = {
-            "mean": statistics.fmean(values),
+            "mean": statistics.fmean(mean_values),
             "delta_point": point,
             "delta_ci95": [lo, hi],
             "delta_median": statistics.median(deltas),
             "n_worse": sum(1 for d in deltas if d > 0),
             "n_episodes": len(deltas),
             "verdict": verdict,
+            "metrics": per_metric,
             "activation": activation,
-            "episode_values": values,
+            "episode_values": mean_values,
         }
         print("\n== %s ==" % arm)
-        print("   mean %s = %.1f" % (METRIC, statistics.fmean(values)))
+        for metric in METRICS:
+            entry = per_metric[metric]
+            print("   %-20s mean %12.4f  delta %+9.4f  CI95 [%+.4f, %+.4f]"
+                  % (metric, entry["mean"], entry["delta_point"],
+                     entry["delta_ci95"][0], entry["delta_ci95"][1]))
         print("   Delta vs %s: point %+.1f ms  CI95 [%+.1f, %+.1f]  %d/%d worse  -> %s"
               % (REFERENCE, point, lo, hi, results[arm]["n_worse"], len(deltas),
                  json.dumps(verdict, sort_keys=True)))
@@ -421,10 +443,17 @@ def main() -> int:
         "mode": "smoke" if args.smoke else "formal",
         "config": config,
         "reference_summary": {
-            "mean": statistics.fmean(reference_values),
-            "n_episodes": len(reference_values),
+            "mean": statistics.fmean(reference_values[METRIC]),
+            "metrics": {
+                metric: {
+                    "mean": statistics.fmean(reference_values[metric]),
+                    "episode_values": reference_values[metric],
+                }
+                for metric in METRICS
+            },
+            "n_episodes": len(reference_values[METRIC]),
             "activation": reference_activation,
-            "episode_values": reference_values,
+            "episode_values": reference_values[METRIC],
         },
         "results": results,
         "criteria": {

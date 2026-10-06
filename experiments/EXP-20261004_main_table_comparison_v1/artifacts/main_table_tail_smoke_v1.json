@@ -1,0 +1,568 @@
+{
+  "gate": "main_table_comparison",
+  "version": "v1",
+  "mode": "smoke",
+  "config": {
+    "split": "confirm",
+    "formal": false,
+    "split_manifest": "data/manifests/validation_split_dev700_confirm300.json",
+    "split_manifest_sha256": "1c7d22001bbe74d5819f130e00ea28d48d917c7f2ffb24295a8ea45acefd98a6",
+    "episodes_sha256": "d3080a015be297a9830a97dfbfeb9170fb51f9599339f70fe77d10211bd00eea",
+    "projection": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+    "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+    "episodes_file": "results/processed/r7_workload_v03_no_run_container/episodes/workload_validation_r7_v03.jsonl",
+    "n_episodes": 3,
+    "metric": "mean_completion_ms",
+    "metrics": [
+      "mean_completion_ms",
+      "p95_completion_ms",
+      "deadline_miss_rate",
+      "makespan_ms"
+    ],
+    "reference": "sameshape_h5_p95",
+    "arms": [
+      "parrot_appfifo",
+      "qlm_queue",
+      "llmsched",
+      "hermes_gittins",
+      "torpor_lifecycle"
+    ],
+    "seed": 11,
+    "non_inferiority_margin_ms": 485.0,
+    "bootstrap": 2000,
+    "topology_view": "causal_v3",
+    "extension_config": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/substrate_extension_v7.json",
+    "extension_config_sha256": "165d7631da59577280915b2274e59cfb3c8c3269353bdcbaeabc77638d86ed76",
+    "profile_contract": "shape = node role evidence; episode identity = uniform node gpu_model evidence",
+    "reference_artifacts_verification": {
+      "manifest": "data/manifests/f0_reference_artifacts_manifest_v1.json",
+      "manifest_sha256": "c986ed176ca339b34841688496a17a21624a8dad5ee91eefc9f3c338affe7d8e",
+      "packs": {
+        "base_pack": {
+          "pack": "outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts",
+          "tree_sha256": "3f3507058844e788f088a22694548b58e789e466336c5eec14de01f50b5ccab6",
+          "file_count": 6
+        },
+        "overlay_pack": {
+          "pack": "outputs/resource_v2_artifacts/f0_seed11",
+          "tree_sha256": "944fb8b8dc8e481831d2f9bc855958b2836333b2a185b2876177f4a382d9c4b6",
+          "file_count": 2
+        }
+      },
+      "overlay_provenance": {
+        "schema_version": "resource-v2-artifact-manifest-v2",
+        "artifact_id": "resource_v2_f0_seed11",
+        "arm": "F0",
+        "seed": 11,
+        "artifact_sha256": "586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+        "producer": "scripts/pack_f0_artifacts.py",
+        "producer_checkpoint_sha256": "060002388f1a5f024938ad7a983633bd10de02dcea539c72666ba16ea242c87d",
+        "producer_checkpoint": "outputs/j_series_histres_f0f1_v1/runs/F0/seed11/checkpoint.pt",
+        "frozen_j3_sha256": "0ee8ded4f92553853026ee24a3c320f21d524f9d2c60de841091430d14949c77",
+        "base_pack_sha256": "37163d3ba59c3e6489ffcd2d24870ea49efab4bbb18300fe70724b199702a528",
+        "bin_spec_sha256": "f781a7f3aa5caa261e28bf7bdf3602fcc34b3d82300d5b857e8f98ddd1b14b4a",
+        "bin_schema_id": "mass_balanced_16"
+      }
+    },
+    "substrate_mechanisms": {
+      "active_environment": [
+        "mp co-location (measured cells)",
+        "additive load interference",
+        "engine-level same-model batching (measured per-request latency factors)"
+      ],
+      "policy_gated": {
+        "request_preemption": "simulator gates preemption to preempting policies; no main-table arm preempts",
+        "policy_batch_dispatcher": "batch_enabled is off by design: it replaces each arm ordering objective with a myopic cost"
+      },
+      "counted_at_runtime": {
+        "colocation_admissions": 5290,
+        "colocation_rejections": 3301,
+        "batching_admissions": 1862,
+        "batching_rejections": 2083
+      }
+    },
+    "reference_base_artifacts": "outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts",
+    "reference_overlay_artifacts": "outputs/resource_v2_artifacts/f0_seed11",
+    "future_horizon": 5,
+    "smoke_episodes": 3,
+    "git_head": "01af8bf385ae79973213b5e255d77168bd30c82f"
+  },
+  "reference_summary": {
+    "mean": 55383.40817835569,
+    "metrics": {
+      "mean_completion_ms": {
+        "mean": 55383.40817835569,
+        "episode_values": [
+          58204.60774776127,
+          48133.429940453694,
+          59812.18684685211
+        ]
+      },
+      "p95_completion_ms": {
+        "mean": 85059.64943643847,
+        "episode_values": [
+          89456.21133368023,
+          80656.5260653907,
+          85066.2109102445
+        ]
+      },
+      "deadline_miss_rate": {
+        "mean": 0.0,
+        "episode_values": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "makespan_ms": {
+        "mean": 635166.1915222713,
+        "episode_values": [
+          772407.3580000001,
+          544700.3855668136,
+          588390.831
+        ]
+      }
+    },
+    "n_episodes": 3,
+    "activation": {
+      "preemption_events": 0
+    },
+    "episode_values": [
+      58204.60774776127,
+      48133.429940453694,
+      59812.18684685211
+    ]
+  },
+  "results": {
+    "parrot_appfifo": {
+      "mean": 55255.21955405492,
+      "delta_point": -128.18862430077812,
+      "delta_ci95": [
+        -1451.438794656904,
+        662.1144902912856
+      ],
+      "delta_median": 404.75843146328407,
+      "n_worse": 2,
+      "n_episodes": 3,
+      "verdict": {
+        "statistically_worse": false,
+        "non_inferior": false,
+        "margin_inferior": false
+      },
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 55255.21955405492,
+          "delta_point": -128.18862430077812,
+          "delta_ci95": [
+            -1451.438794656904,
+            662.1144902912856
+          ],
+          "n_worse": 2,
+          "episode_values": [
+            58866.722238052556,
+            48538.18837191698,
+            58360.74805219521
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 84563.22224356572,
+          "delta_point": -496.42719287275395,
+          "delta_ci95": [
+            -3592.5085117109993,
+            1186.3862532640487
+          ],
+          "n_worse": 2,
+          "episode_values": [
+            90642.59758694428,
+            81573.36674521939,
+            81473.7023985335
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 634644.0314409328,
+          "delta_point": -522.1600813385254,
+          "delta_ci95": [
+            -1566.4802440155763,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            772407.3580000001,
+            543133.9053227981,
+            588390.831
+          ]
+        }
+      },
+      "activation": {
+        "app_fifo_action_flip_count": 5,
+        "decisions": 402,
+        "preemption_events": 0
+      },
+      "episode_values": [
+        58866.722238052556,
+        48538.18837191698,
+        58360.74805219521
+      ]
+    },
+    "qlm_queue": {
+      "mean": 57710.45534801394,
+      "delta_point": 2327.0471696582513,
+      "delta_ci95": [
+        732.7092814270218,
+        5342.2684708235465
+      ],
+      "delta_median": 906.1637567241851,
+      "n_worse": 3,
+      "n_episodes": 3,
+      "verdict": {
+        "statistically_worse": true,
+        "non_inferior": false,
+        "margin_inferior": true
+      },
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 57710.45534801394,
+          "delta_point": 2327.0471696582513,
+          "delta_ci95": [
+            732.7092814270218,
+            5342.2684708235465
+          ],
+          "n_worse": 3,
+          "episode_values": [
+            58937.31702918829,
+            49039.59369717788,
+            65154.45531767566
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 92006.340154543,
+          "delta_point": 6946.69071810452,
+          "delta_ci95": [
+            1507.9042780519812,
+            16524.02505917268
+          ],
+          "n_worse": 3,
+          "episode_values": [
+            90964.11561173221,
+            83464.6688824796,
+            101590.23596941718
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 634381.714542728,
+          "delta_point": -784.4769795431445,
+          "delta_ci95": [
+            -2353.4309386294335,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            772407.3580000001,
+            542346.9546281842,
+            588390.831
+          ]
+        }
+      },
+      "activation": {
+        "decisions": 402,
+        "load_present_count": 54,
+        "preemption_events": 0,
+        "stochastic_reorder_count": 19,
+        "swap_cost_affected_count": 1
+      },
+      "episode_values": [
+        58937.31702918829,
+        49039.59369717788,
+        65154.45531767566
+      ]
+    },
+    "llmsched": {
+      "mean": 55547.09833019251,
+      "delta_point": 163.6901518368201,
+      "delta_ci95": [
+        -1451.438794656904,
+        1280.3947598760788
+      ],
+      "delta_median": 662.1144902912856,
+      "n_worse": 2,
+      "n_episodes": 3,
+      "verdict": {
+        "statistically_worse": false,
+        "non_inferior": false,
+        "margin_inferior": false
+      },
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 55547.09833019251,
+          "delta_point": 163.6901518368201,
+          "delta_ci95": [
+            -1451.438794656904,
+            1280.3947598760788
+          ],
+          "n_worse": 2,
+          "episode_values": [
+            58866.722238052556,
+            49413.82470032977,
+            58360.74805219521
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 85087.09352840904,
+          "delta_point": 27.44409197057151,
+          "delta_ci95": [
+            -3592.5085117109993,
+            2488.454534358665
+          ],
+          "n_worse": 2,
+          "episode_values": [
+            90642.59758694428,
+            83144.98059974937,
+            81473.7023985335
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 634019.3701424497,
+          "delta_point": -1146.8213798214372,
+          "delta_ci95": [
+            -3440.4641394643113,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            772407.3580000001,
+            541259.9214273493,
+            588390.831
+          ]
+        }
+      },
+      "activation": {
+        "preemption_events": 0
+      },
+      "episode_values": [
+        58866.722238052556,
+        49413.82470032977,
+        58360.74805219521
+      ]
+    },
+    "hermes_gittins": {
+      "mean": 55701.406196756034,
+      "delta_point": 317.9980184003386,
+      "delta_ci95": [
+        -425.3293460067871,
+        719.3598964049233
+      ],
+      "delta_median": 659.9635048028795,
+      "n_worse": 2,
+      "n_episodes": 3,
+      "verdict": {
+        "statistically_worse": false,
+        "non_inferior": false,
+        "margin_inferior": false
+      },
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 55701.406196756034,
+          "delta_point": 317.9980184003386,
+          "delta_ci95": [
+            -425.3293460067871,
+            719.3598964049233
+          ],
+          "n_worse": 2,
+          "episode_values": [
+            58864.57125256415,
+            48852.78983685862,
+            59386.857500845326
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 83710.0946398079,
+          "delta_point": -1349.5547966305796,
+          "delta_ci95": [
+            -5190.986259155819,
+            1186.3862532640487
+          ],
+          "n_worse": 1,
+          "episode_values": [
+            90642.59758694428,
+            75465.53980623488,
+            85022.14652624453
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 636887.0631881146,
+          "delta_point": 1720.8716658432193,
+          "delta_ci95": [
+            0.0,
+            5162.614997529658
+          ],
+          "n_worse": 1,
+          "episode_values": [
+            772407.3580000001,
+            549863.0005643433,
+            588390.831
+          ]
+        }
+      },
+      "activation": {
+        "decisions": 402,
+        "pdgraph_conditional_used": 354,
+        "pdgraph_refined": 49,
+        "preemption_events": 0
+      },
+      "episode_values": [
+        58864.57125256415,
+        48852.78983685862,
+        59386.857500845326
+      ]
+    },
+    "torpor_lifecycle": {
+      "mean": 56568.70620613757,
+      "delta_point": 1185.2980277818788,
+      "delta_ci95": [
+        -165.96038532353123,
+        3641.7763495359322
+      ],
+      "delta_median": 80.0781191332353,
+      "n_worse": 2,
+      "n_episodes": 3,
+      "verdict": {
+        "statistically_worse": false,
+        "non_inferior": false,
+        "margin_inferior": false
+      },
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 56568.70620613757,
+          "delta_point": 1185.2980277818788,
+          "delta_ci95": [
+            -165.96038532353123,
+            3641.7763495359322
+          ],
+          "n_worse": 2,
+          "episode_values": [
+            58038.64736243774,
+            48213.50805958693,
+            63453.963196388046
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 85946.62646293084,
+          "delta_point": 886.9770264923669,
+          "delta_ci95": [
+            -4077.293275981763,
+            8961.84843136344
+          ],
+          "n_worse": 1,
+          "episode_values": [
+            85378.91805769847,
+            78432.90198948613,
+            94028.05934160794
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 633095.2711336993,
+          "delta_point": -2070.9203885718794,
+          "delta_ci95": [
+            -6212.761165715638,
+            0.0
+          ],
+          "n_worse": 0,
+          "episode_values": [
+            772407.3580000001,
+            538487.624401098,
+            588390.831
+          ]
+        }
+      },
+      "activation": {
+        "cold_swap": 36,
+        "covered_load_choice": 36,
+        "decisions": 402,
+        "preemption_events": 0,
+        "resident_hit": 366
+      },
+      "episode_values": [
+        58038.64736243774,
+        48213.50805958693,
+        63453.963196388046
+      ]
+    }
+  },
+  "criteria": {
+    "delta": "candidate - sameshape_h5_p95",
+    "non_inferior": "CI_upper < +485 ms",
+    "statistically_better": "CI_upper < 0",
+    "substantively_better": "point <= -485 ms AND CI_upper < 0"
+  },
+  "wall_seconds": 246.73193502426147
+}
