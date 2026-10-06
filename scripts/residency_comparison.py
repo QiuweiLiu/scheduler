@@ -84,6 +84,10 @@ MECHANISM_FIELDS = (
     "used_prefetches",
     "cold_loads_on_demand",
     "evicted_then_reloaded",
+    "preemptions",
+    "preemption_resume_count",
+    "preempt_recompute_ms",
+    "preemption_stall_ms",
 )
 
 

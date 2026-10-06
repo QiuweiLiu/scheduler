@@ -98,6 +98,8 @@ POLICIES = (
     "pdrs_resident",
     "pdrs_p95_evict",
     "pdrs_p95_resident",
+    "f0point_preempt",
+    "pdrs_preempt",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
     "tie_current",
@@ -631,6 +633,9 @@ class Job:
     assigned_gpus: list[int] = field(default_factory=list)
     preemptions: int = 0
     preempt_recompute_ms: float = 0.0
+    preempt_stall_ms: float = 0.0
+    preempted_at: dict[str, float] = field(default_factory=dict)
+    resume_count: int = 0
     # Request-level preemption resume state per node: the interrupted call keeps
     # its token progress; on re-dispatch the work is R_m + remaining decode.
     # Execution truth only, never exposed to the scheduler.
@@ -690,6 +695,10 @@ class GPUActiveTask:
     interference_mode: str = ""
     interference_model: str = ""
     request_split: RequestSplit | None = None
+    # Liveness guard: tokens already complete when a resumed call was re-dispatched.
+    # A resumed call must finish at least one further decode unit before it can be
+    # preempted again (no zero-progress ping-pong).
+    resume_tokens_base: int | None = None
 
     def __post_init__(self) -> None:
         if self.remaining_work_ms is None:
@@ -743,6 +752,7 @@ class GPU:
         request_split: RequestSplit | None = None,
         work_start_ms: float | None = None,
         predicted_work_ms: float | None = None,
+        resume_tokens_base: int | None = None,
     ) -> str:
         """Record one device interval; the ledger is the sole occupancy source."""
 
@@ -775,6 +785,9 @@ class GPU:
             interference_mode=str(interference_mode),
             interference_model=str(interference_model),
             request_split=request_split,
+            resume_tokens_base=(
+                None if resume_tokens_base is None else int(resume_tokens_base)
+            ),
             slowdown=float(slowdown),
             work_start_ms=(start if work_start_ms is None else float(work_start_ms)),
             predicted_work_ms=(
@@ -2849,6 +2862,8 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "pdrs_resident",
     "pdrs_p95_evict",
     "pdrs_p95_resident",
+    "f0point_preempt",
+    "pdrs_preempt",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
 )
@@ -2858,9 +2873,20 @@ RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "f0point_resident",
     "pdrs_resident",
     "pdrs_p95_resident",
+    "f0point_preempt",
+    "pdrs_preempt",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
 )
+# Request-level preemption arms.  The legacy two keep their original heuristics;
+# the round-6 belief arms use the R_B (remaining-work belief) rule.
+PREEMPTION_POLICIES: tuple[str, ...] = (
+    "myopic_preempt",
+    "batch_myopic_preempt",
+    "f0point_preempt",
+    "pdrs_preempt",
+)
+BELIEF_PREEMPTION_POLICIES: tuple[str, ...] = ("f0point_preempt", "pdrs_preempt")
 
 
 def sameshape_future_cost(
@@ -7240,7 +7266,10 @@ def simulate_episode(
         matches = [
             entry
             for entry in finish_heap
-            if entry[2] == owner[0] and entry[4] == gpu.index and entry[5] == owner[1]
+            if entry[2] == owner[0]
+            and entry[4] == gpu.index
+            and entry[5] == owner[1]
+            and entry[3] != "preemption_boundary"
         ]
         if len(matches) != 1:
             raise KeyError(f"expected one node finish event for {owner!r}, found {len(matches)}")
@@ -7541,13 +7570,40 @@ def simulate_episode(
             release_ready(job_index)
             complete_job_if_done(job)
 
+    def preemption_rank_value(
+        job_index: int, node_id: str, remaining_visible_ms: float | None
+    ) -> float:
+        """R_B(j) = scheduler-visible remaining work + predicted future suffix.
+
+        The visible part is the frozen dispatch-time prediction minus observed
+        elapsed time for a running call, or the train-only estimate for a ready
+        node.  The future suffix uses the arm's folding (F0: p95 + hard load
+        threshold; PDRS: survival-weighted p95 + soft load).  No execution truth
+        and no machine table is read.
+        """
+
+        job = jobs[job_index]
+        if remaining_visible_ms is None:
+            row = estimate(job.template.by_id[node_id], train_stats)
+            visible = float(row["runtime_p50_ms"])
+        else:
+            visible = float(remaining_visible_ms)
+        if policy == "f0point_preempt":
+            future = sameshape_future_cost(node_id, future_artifacts, train_stats, 5, "p95")
+        else:
+            from tracing.analysis.pdrs_methods import suffix_expected_cost_p95
+
+            future = suffix_expected_cost_p95(future_artifacts, node_id, 5)
+        return visible + future
+
     def maybe_preempt() -> bool:
         """Preempt one active normal node using explicit recompute semantics."""
 
         if not extension_config.get("preemption_enabled"):
             return False
-        if policy not in {"myopic_preempt", "batch_myopic_preempt"}:
+        if policy not in PREEMPTION_POLICIES:
             return False
+        belief_preemption = policy in BELIEF_PREEMPTION_POLICIES
         max_preemptions = int(extension_config.get("max_preemptions", max(1, 2 * len(jobs))))
         if sum(job.preemptions for job in jobs) >= max_preemptions:
             return False
@@ -7564,6 +7620,11 @@ def simulate_episode(
         target_job = jobs[target_job_index]
         target_node = target_job.template.by_id[target_node_id]
         target_row = estimate_for_batch(target_node, train_stats, target_node.batch_size, extension_config)
+        target_rank_value = (
+            preemption_rank_value(target_job_index, target_node_id, None)
+            if belief_preemption
+            else None
+        )
         target_slack = math.inf
         if target_job.deadline_ms is not None:
             target_slack = target_job.deadline_ms - now - float(target_row["runtime_p50_ms"])
@@ -7658,13 +7719,28 @@ def simulate_episode(
                     continue
                 if victim_job.service_class == "priority":
                     continue
-                should_preempt = (
-                    target_priority < (0 if victim_job.service_class == "priority" else 1)
-                    or now - target_ready >= age_threshold
-                    or target_slack <= slack_threshold
-                )
-                if not should_preempt:
-                    continue
+                victim_rank_value = None
+                if belief_preemption:
+                    # SRPT-style: the ready target may only take the device from a
+                    # call whose remaining-work belief is strictly larger.
+                    victim_remaining = max(
+                        0.0,
+                        float(victim_task.predicted_work_ms or 0.0)
+                        - max(0.0, now - float(victim_task.work_start_ms or victim_task.start_ms)),
+                    )
+                    victim_rank_value = preemption_rank_value(
+                        victim_job_index, victim_node_id, victim_remaining
+                    )
+                    if not (float(target_rank_value) < victim_rank_value - 1e-9):
+                        continue
+                else:
+                    should_preempt = (
+                        target_priority < (0 if victim_job.service_class == "priority" else 1)
+                        or now - target_ready >= age_threshold
+                        or target_slack <= slack_threshold
+                    )
+                    if not should_preempt:
+                        continue
                 # Victim ranking reads scheduler-visible fields only.  Execution
                 # truth (request phase / token position) is consulted after the
                 # victim is chosen and can only defer or refuse the action; it
@@ -7711,10 +7787,15 @@ def simulate_episode(
                         victim_job,
                         victim_node,
                         victim_task,
+                        victim_rank_value,
                     )
                 )
         if not victim_rows:
             return False
+        if belief_preemption:
+            chosen_row = max(victim_rows, key=lambda row: (float(row[7]),))
+        else:
+            chosen_row = min(victim_rows, key=lambda row: (row[0], row[1]))
         (
             _service_class,
             _gpu_order,
@@ -7723,16 +7804,35 @@ def simulate_episode(
             victim_job,
             victim_node,
             victim_task,
-        ) = min(victim_rows, key=lambda row: (row[0], row[1]))
+            _rank_value,
+        ) = chosen_row
         victim_job_index, victim_node_id = victim_task.owner
         matching = [
             entry
             for entry in finish_heap
-            if entry[2] == victim_job_index and entry[5] == victim_node.node_id and entry[4] == gpu.index
+            if entry[2] == victim_job_index
+            and entry[5] == victim_node.node_id
+            and entry[4] == gpu.index
+            and entry[3] != "preemption_boundary"
         ]
         if not matching:
             block_preemption(gpu, "victim_finish_event_missing")
             return False
+        # A deferred-preemption wake for the same call is now meaningless: the
+        # call is leaving the device.  Dropping it also keeps the finish heap
+        # unambiguous for reschedule_node_finish.
+        stale_wakes = [
+            entry
+            for entry in finish_heap
+            if entry[2] == victim_job_index
+            and entry[5] == victim_node.node_id
+            and entry[4] == gpu.index
+            and entry[3] == "preemption_boundary"
+        ]
+        for entry in stale_wakes:
+            finish_heap.remove(entry)
+        if stale_wakes:
+            heapq.heapify(finish_heap)
         _finish, _order, victim_job_index, lane, gpu_index, node_id = matching[0]
         victim_task_id = next(
             task_id
@@ -7767,6 +7867,14 @@ def simulate_episode(
                 )
                 schedule_preemption_wake(gpu, victim_task, float(phase["next_boundary_ms"]))
                 return False
+            if (
+                victim_task.resume_tokens_base is not None
+                and int(phase["tokens_done"]) <= int(victim_task.resume_tokens_base)
+            ):
+                # Liveness invariant: a resumed call must complete at least one
+                # further decode unit before it can be preempted again.
+                block_preemption(gpu, "resume_zero_progress_guard")
+                return False
             rm_ms = request_recompute_ms(
                 request_preemption_profile, victim_node.model_id, int(phase["n_ctx"])
             )
@@ -7794,6 +7902,7 @@ def simulate_episode(
         for survivor_id, survivor in gpu.active_node_entries():
             set_node_slowdown(gpu, survivor_id, 1.0, now)
         victim_job.preemptions += 1
+        victim_job.preempted_at[victim_node_id] = float(now)
         if request_victim_info is not None:
             victim_job.request_resume_state[node_id] = {
                 "rm_ms": float(request_victim_info["rm_ms"]),
@@ -8130,6 +8239,7 @@ def simulate_episode(
                     request_layer = None
                     request_rates = None
                     resume_request = None
+                    resume_tokens_base = None
                     if (
                         request_preemption_profile is not None
                         and not fused_members
@@ -8146,6 +8256,11 @@ def simulate_episode(
                                     + int(resume_request["remaining_tokens"])
                                     * float(resume_request["decode_step_work_ms"]),
                                 )
+                                job.resume_count += 1
+                                job.preempt_stall_ms += max(
+                                    0.0, float(now) - float(job.preempted_at.pop(node_id, now))
+                                )
+                                resume_tokens_base = int(resume_request["tokens_done"])
                         else:
                             request_layer = None
                             request_rates = None
@@ -8225,6 +8340,7 @@ def simulate_episode(
                         request_split=request_split,
                         work_start_ms=work_start_time,
                         predicted_work_ms=predicted_compute_ms(estimate(node, train_stats)),
+                        resume_tokens_base=resume_tokens_base,
                     )
                     if transition_duration > 1e-9:
                         sequence += 1
@@ -8364,6 +8480,8 @@ def simulate_episode(
         "preemptions": sum(job.preemptions for job in jobs),
         "preemption_blocked_reasons": dict(sorted(preemption_blocked_reasons.items())),
         "preempt_recompute_ms": sum(job.preempt_recompute_ms for job in jobs),
+        "preemption_resume_count": sum(job.resume_count for job in jobs),
+        "preemption_stall_ms": round(sum(job.preempt_stall_ms for job in jobs), 3),
         "prefetch_count": sum(gpu.prefetch_count for gpu in gpus),
         "prefetch_load_ms": sum(gpu.prefetch_load_ms for gpu in gpus),
         "prefetch_interference_events": dict(sorted(prefetch_interference_events.items())),
