@@ -69,6 +69,8 @@ ARM_LABELS = (
     "pdrs_evict",
     "f0point_resident",
     "pdrs_resident",
+    "pdrs_p95_evict",
+    "pdrs_p95_resident",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
 )
@@ -171,7 +173,10 @@ def main() -> int:
     parser.add_argument("--smoke", type=int, default=0)
     parser.add_argument("--formal", action="store_true")
     parser.add_argument("--out", default="residency_comparison_v1.json")
+    parser.add_argument("--arms", default="",
+                        help="comma-separated arm labels (default: all registered arms)")
     args = parser.parse_args()
+    arm_labels = tuple(a for a in args.arms.split(",") if a) or ARM_LABELS
 
     if args.formal:
         for record in ("docs/research/2026-10-05_architecture_round6_residency_actions.md",):
@@ -205,7 +210,7 @@ def main() -> int:
         "primary_metric": "mean_completion_ms",
         "secondary_metrics": list(METRICS[1:]),
         "reference": REFERENCE,
-        "arms": list(ARM_LABELS),
+        "arms": list(arm_labels),
         "seed": SEED,
         "bootstrap": BOOTSTRAP,
         "projection_sha256": sha256_file(PROJECTION),
@@ -228,7 +233,7 @@ def main() -> int:
         print("   %-20s %.4f" % (metric, statistics.fmean(reference_values[metric])))
 
     results: Dict[str, Any] = {}
-    for label in ARM_LABELS:
+    for label in arm_labels:
         policy = label
         values, info = run_arm(policy, label, episodes, templates, stats,
                                extension_config, future_artifacts)

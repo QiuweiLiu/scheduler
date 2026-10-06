@@ -1,0 +1,449 @@
+{
+  "gate": "residency_comparison",
+  "version": "v1",
+  "mode": "smoke",
+  "config": {
+    "split": "confirm",
+    "formal": false,
+    "n_episodes": 5,
+    "primary_metric": "mean_completion_ms",
+    "secondary_metrics": [
+      "p95_completion_ms",
+      "deadline_miss_rate",
+      "makespan_ms"
+    ],
+    "reference": "sameshape_h5_p95",
+    "arms": [
+      "f0point_resident",
+      "pdrs_resident",
+      "pdrs_p95_evict",
+      "pdrs_p95_resident"
+    ],
+    "seed": 11,
+    "bootstrap": 2000,
+    "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+    "extension_config_sha256": "165d7631da59577280915b2274e59cfb3c8c3269353bdcbaeabc77638d86ed76",
+    "reference_pack": "resource_v2_f0_seed11",
+    "reference_artifact_sha256": "586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+    "future_horizon": 5,
+    "smoke_episodes": 5,
+    "git_head": "01af8bf385ae79973213b5e255d77168bd30c82f"
+  },
+  "reference_summary": {
+    "metrics": {
+      "mean_completion_ms": 68847.72397441478,
+      "p95_completion_ms": 112568.37355071804,
+      "deadline_miss_rate": 0.0,
+      "makespan_ms": 617616.3630162341
+    },
+    "n_episodes": 5,
+    "episode_values": {
+      "mean_completion_ms": [
+        58204.60774776127,
+        48133.429940453694,
+        59812.18684685211,
+        100593.82958739746,
+        77494.56574960933
+      ],
+      "p95_completion_ms": [
+        89456.21133368023,
+        80656.5260653907,
+        85066.2109102445,
+        185485.1869947564,
+        122177.73244951846
+      ],
+      "deadline_miss_rate": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "makespan_ms": [
+        772407.3580000001,
+        544700.3855668136,
+        588390.831,
+        633362.9457286046,
+        549220.2947857523
+      ]
+    },
+    "info": {
+      "activation": {},
+      "mechanism": {
+        "cold_loads_on_demand": 63,
+        "episodes": 5,
+        "evicted_then_reloaded": 36,
+        "gpu_evictions": 55,
+        "prefetch_count": 0,
+        "prefetch_load_ms": 0,
+        "used_prefetches": 0,
+        "wasted_prefetches": 0
+      }
+    }
+  },
+  "results": {
+    "f0point_resident": {
+      "policy": "f0point_resident",
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 71965.67698355294,
+          "delta_point": 3117.953009138165,
+          "delta_ci95": [
+            -1089.311127646634,
+            10698.949198178621
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            58114.62043224698,
+            47275.581085334095,
+            59661.102432927124,
+            118761.72267404335,
+            76015.35829321314
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 107088.70311389971,
+          "delta_point": -5479.670436818356,
+          "delta_ci95": [
+            -13130.228065136933,
+            -775.0042781027499
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            88857.77617043337,
+            77299.44729299573,
+            85066.21091024451,
+            164720.4998103265,
+            119499.5813854984
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 613339.5202118459,
+          "delta_point": -4276.842804388283,
+          "delta_ci95": [
+            -12121.65992515469,
+            -64.06732740080915
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            772407.3580000001,
+            544380.0489298096,
+            588390.831,
+            613373.7369446828,
+            548145.6261847367
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 24,
+        "residency_prefetch_proposed": 11
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 52,
+        "episodes": 5,
+        "evicted_then_reloaded": 29,
+        "gpu_evictions": 47,
+        "prefetch_count": 11,
+        "prefetch_load_ms": 42453,
+        "used_prefetches": 8,
+        "wasted_prefetches": 2
+      }
+    },
+    "pdrs_resident": {
+      "policy": "pdrs_resident",
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 71328.77868519256,
+          "delta_point": 2481.054710777794,
+          "delta_ci95": [
+            -1948.7725562535372,
+            10350.044356642127
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            55602.2346849592,
+            46603.47534082002,
+            59661.102432927124,
+            118761.72267404335,
+            76015.35829321314
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 106131.40782007738,
+          "delta_point": -6436.965730640685,
+          "delta_ci95": [
+            -13671.629470037802,
+            -1606.8413471788488
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            86070.27660080098,
+            75300.47039351647,
+            85066.21091024451,
+            164720.4998103265,
+            119499.5813854984
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 613339.5202118459,
+          "delta_point": -4276.842804388283,
+          "delta_ci95": [
+            -12121.65992515469,
+            -64.06732740080915
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            772407.3580000001,
+            544380.0489298096,
+            588390.831,
+            613373.7369446828,
+            548145.6261847367
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 26,
+        "residency_prefetch_proposed": 12
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 52,
+        "episodes": 5,
+        "evicted_then_reloaded": 31,
+        "gpu_evictions": 48,
+        "prefetch_count": 12,
+        "prefetch_load_ms": 46612,
+        "used_prefetches": 9,
+        "wasted_prefetches": 3
+      }
+    },
+    "pdrs_p95_evict": {
+      "policy": "pdrs_p95_evict",
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 69968.5567716001,
+          "delta_point": 1120.8327971853184,
+          "delta_ci95": [
+            -3453.0642471464016,
+            6982.268989639987
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            58194.201211535605,
+            47331.11779444254,
+            59812.18684685211,
+            112498.38195213448,
+            72006.89605303571
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 107544.92434687528,
+          "delta_point": -5023.449203842771,
+          "delta_ci95": [
+            -15047.348392256226,
+            1569.1790214497014
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            87784.50066484614,
+            77710.76686828403,
+            85066.2109102445,
+            161388.19274003158,
+            125774.95055097018
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 611303.4552767768,
+          "delta_point": -6312.9077394573715,
+          "delta_ci95": [
+            -14473.499244534014,
+            -64.06732740080915
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            772407.3580000001,
+            544380.0489298096,
+            588390.831,
+            611997.8357704262,
+            539341.2026836479
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 17,
+        "residency_placement_flips": 1
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 56,
+        "episodes": 5,
+        "evicted_then_reloaded": 26,
+        "gpu_evictions": 38,
+        "prefetch_count": 0,
+        "prefetch_load_ms": 0,
+        "used_prefetches": 0,
+        "wasted_prefetches": 0
+      }
+    },
+    "pdrs_p95_resident": {
+      "policy": "pdrs_p95_resident",
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 70241.75785557422,
+          "delta_point": 1394.0338811594527,
+          "delta_ci95": [
+            -4699.278458038151,
+            10074.270319500389
+          ],
+          "n_worse": 1,
+          "n_episodes": 5,
+          "episode_values": [
+            55602.2346849592,
+            46603.47534082002,
+            59661.102432927124,
+            118761.72267404335,
+            70580.25414512143
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 107281.11968146151,
+          "delta_point": -5287.253869256555,
+          "delta_ci95": [
+            -13530.023445032784,
+            771.0338113655132
+          ],
+          "n_worse": 2,
+          "n_episodes": 5,
+          "episode_values": [
+            86070.27660080098,
+            75300.47039351647,
+            85066.21091024451,
+            164720.4998103265,
+            125248.14069241905
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 611554.1221983818,
+          "delta_point": -6062.240817852318,
+          "delta_ci95": [
+            -13993.857004020223,
+            -64.06732740080915
+          ],
+          "n_worse": 0,
+          "n_episodes": 5,
+          "episode_values": [
+            772407.3580000001,
+            544380.0489298096,
+            588390.831,
+            613373.7369446828,
+            539218.6361174166
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 23,
+        "residency_prefetch_proposed": 12
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 48,
+        "episodes": 5,
+        "evicted_then_reloaded": 27,
+        "gpu_evictions": 44,
+        "prefetch_count": 12,
+        "prefetch_load_ms": 46612,
+        "used_prefetches": 9,
+        "wasted_prefetches": 3
+      }
+    }
+  },
+  "interaction": {},
+  "criteria": {
+    "delta": "candidate - sameshape_h5_p95 (negative = better)",
+    "headline": "interaction = (pdrs_resident - f0point_resident) - (pdrs_p - F0); CI upper < 0 confirms the action-space expansion unlocked the belief",
+    "mechanism": [
+      "gpu_evictions",
+      "prefetch_count",
+      "prefetch_load_ms",
+      "wasted_prefetches",
+      "used_prefetches",
+      "cold_loads_on_demand",
+      "evicted_then_reloaded"
+    ]
+  },
+  "wall_seconds": 15.431557893753052
+}

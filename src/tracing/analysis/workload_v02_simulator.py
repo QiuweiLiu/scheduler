@@ -96,6 +96,8 @@ POLICIES = (
     "pdrs_evict",
     "f0point_resident",
     "pdrs_resident",
+    "pdrs_p95_evict",
+    "pdrs_p95_resident",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
     "tie_current",
@@ -2845,6 +2847,8 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "pdrs_evict",
     "f0point_resident",
     "pdrs_resident",
+    "pdrs_p95_evict",
+    "pdrs_p95_resident",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
 )
@@ -2853,6 +2857,7 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
 RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "f0point_resident",
     "pdrs_resident",
+    "pdrs_p95_resident",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
 )
@@ -5020,11 +5025,27 @@ def choose_action(
         values, _next_demand = residency_demand_totals(
             jobs, residency_pack, residency_mode_for_policy(policy), horizon
         )
+        p95_ordering = policy in {"pdrs_p95_resident", "pdrs_p95_evict"}
+        if p95_ordering:
+            from tracing.analysis.pdrs_methods import suffix_expected_cost_p95
 
         def residency_f0_key(candidate):
             item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
             load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
             current = float(estimate_row["runtime_p50_ms"]) + load
+            if p95_ordering:
+                suffix = suffix_expected_cost_p95(future_artifacts, node_id, horizon)
+                return (
+                    float(item[0]),
+                    current + suffix,
+                    0.0,
+                    suffix,
+                    float(item[1]),
+                    item[2],
+                    0,
+                    item[3],
+                    gpu.index,
+                )
             future = sameshape_future_cost(
                 node_id, future_artifacts, train_stats, horizon, "p95"
             )
