@@ -89,6 +89,8 @@ POLICIES = (
     "pdrs_o",
     "pdrs_place",
     "pdrs_p",
+    "pdrs_o_p95",
+    "pdrs_p95",
     "pdrs_oracle",
     "f0point_evict",
     "pdrs_evict",
@@ -4852,7 +4854,7 @@ def choose_action(
 
         chosen = min(pool, key=sameshape_aging_score)
 
-    elif policy in {"pdrs_o", "pdrs_place", "pdrs_p"}:
+    elif policy in {"pdrs_o", "pdrs_place", "pdrs_p", "pdrs_o_p95", "pdrs_p95"}:
         """PDRS — prefix-conditioned distributional receding-horizon scheduling.
 
         Consumes the frozen per-instance future belief WITHOUT any machine-response
@@ -4862,12 +4864,16 @@ def choose_action(
         * ``pdrs_place`` — ordering identical to F0; only the GPU is re-chosen with
                            the H=1 next-model residency affinity A.
         * ``pdrs_p``     — both: ordering on W and placement on A.
+        * ``pdrs_o_p95`` / ``pdrs_p95`` — same as ``pdrs_o`` / ``pdrs_p`` except the
+                           step runtime uses the predicted p95 quantile instead of
+                           the mean (the conservative-functional variant).
         """
         if future_artifacts is None:
             raise ValueError(f"{policy} requires finite-horizon artifacts")
         from tracing.analysis.pdrs_methods import (
             placement_affinity,
             suffix_expected_cost,
+            suffix_expected_cost_p95,
         )
 
         horizon = 5
@@ -4922,12 +4928,17 @@ def choose_action(
                         activation.get("pdrs_placement_flips", 0)
                     ) + 1
         else:
+            suffix_function = (
+                suffix_expected_cost_p95 if policy.endswith("_p95") else suffix_expected_cost
+            )
+            affinity_policies = {"pdrs_p", "pdrs_p95"}
+
             def pdrs_score(candidate):
                 item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
                 load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
                 current = float(estimate_row["runtime_p50_ms"]) + load
-                suffix = suffix_expected_cost(future_artifacts, node_id, horizon)
-                affinity = pdrs_placement(candidate) if policy == "pdrs_p" else 0.0
+                suffix = suffix_function(future_artifacts, node_id, horizon)
+                affinity = pdrs_placement(candidate) if policy in affinity_policies else 0.0
                 return (
                     float(item[0]),
                     current + suffix + affinity,

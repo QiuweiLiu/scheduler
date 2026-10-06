@@ -9,6 +9,7 @@ from tracing.analysis.pdrs_methods import (
     next_model_distribution,
     placement_affinity,
     suffix_expected_cost,
+    suffix_expected_cost_p95,
     survival_weights,
 )
 
@@ -54,6 +55,19 @@ class PdrsConsumerTests(unittest.TestCase):
         r = row(steps=[step(load_prob=0.5, load_p95=200.0, models={"m1": 0.7, "m2": 0.3})])
         # q1=1.0, p_load=0.5, p95=200, hit=0.7 -> 100 * 0.3
         self.assertAlmostEqual(placement_affinity({"n": r}, "n", {"m1"}), 30.0)
+
+    def test_suffix_p95_uses_the_p95_quantile_not_the_mean(self) -> None:
+        s = step(1000.0, 0.5, 200.0)
+        s["resource"]["runtime_ms_quantiles"] = {"p50": 900.0, "p95": 1500.0}
+        r = row((0.0, 1.0, 0.0, 0.0, 0.0, 0.0), steps=[s])
+        # mean functional: 1000 + 0.5*200 = 1100; p95 functional: 1500 + 100 = 1600
+        self.assertAlmostEqual(suffix_expected_cost({"n": r}, "n"), 1100.0)
+        self.assertAlmostEqual(suffix_expected_cost_p95({"n": r}, "n"), 1600.0)
+
+    def test_suffix_p95_fails_closed_without_the_quantile(self) -> None:
+        r = row(steps=[step()])
+        with self.assertRaisesRegex(ValueError, "runtime_ms_quantiles.p95"):
+            suffix_expected_cost_p95({"n": r}, "n")
 
     def test_next_model_distribution_reads_the_first_future_step(self) -> None:
         r = row(steps=[step(models={"m1": 0.6, "m2": 0.4})])

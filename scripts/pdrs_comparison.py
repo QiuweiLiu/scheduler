@@ -164,7 +164,10 @@ def main() -> int:
     parser.add_argument("--smoke", type=int, default=0)
     parser.add_argument("--formal", action="store_true")
     parser.add_argument("--out", default="pdrs_comparison_v1.json")
+    parser.add_argument("--arms", default="",
+                        help="comma-separated arm labels (default: all registered arms)")
     args = parser.parse_args()
+    arm_labels = tuple(a for a in args.arms.split(",") if a) or ARM_LABELS
 
     if args.formal:
         for record in ("docs/research/2026-10-05_architecture_round5_pdrs.md",
@@ -203,7 +206,7 @@ def main() -> int:
         "n_episodes": len(episodes),
         "metric": "mean_completion_ms",
         "reference": REFERENCE,
-        "arms": list(ARM_LABELS),
+        "arms": list(arm_labels),
         "seed": SEED,
         "bootstrap": BOOTSTRAP,
         "projection_sha256": sha256_file(PROJECTION),
@@ -226,7 +229,7 @@ def main() -> int:
         print("   %-20s %.4f" % (metric, statistics.fmean(reference_values[metric])))
 
     results: Dict[str, Any] = {}
-    for label in ARM_LABELS:
+    for label in arm_labels:
         if label == "pdrs_prior":
             policy, artifacts = "pdrs_p", variant_artifacts["pdrs_prior"]
         elif label == "pdrs_shuffle":

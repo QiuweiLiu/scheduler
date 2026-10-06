@@ -99,6 +99,39 @@ def suffix_expected_cost(
     return total
 
 
+def suffix_expected_cost_p95(
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    node_id: str,
+    horizon: int = HORIZON,
+) -> float:
+    """Survival-weighted remaining work with the conservative p95 functional.
+
+    Identical structure to :func:`suffix_expected_cost` (survival weights q_k,
+    soft load occurrence) except each step's runtime uses the predicted p95
+    quantile instead of the predicted mean -- the requested variant that keeps
+    PDRS's probability treatment but adopts F0's conservative duration
+    functional.  Fail-closed on the p95 quantile.
+    """
+
+    row = _row(future_artifacts, node_id)
+    steps = _steps(row, horizon)
+    if not steps:
+        return 0.0
+    weights = survival_weights(row, horizon)
+    total = 0.0
+    for index, step in enumerate(steps[:horizon]):
+        resource = step.get("resource") or {}
+        runtime = (resource.get("runtime_ms_quantiles") or {}).get("p95")
+        if not isinstance(runtime, (int, float)) or isinstance(runtime, bool):
+            raise ValueError(f"PDRS-p95 requires runtime_ms_quantiles.p95; got {runtime!r}")
+        runtime = float(runtime)
+        if runtime != runtime or runtime in (float("inf"), float("-inf")) or runtime < 0.0:
+            raise ValueError(f"PDRS-p95 requires a finite non-negative p95 runtime; got {runtime!r}")
+        load_prob = _required_number(step, "load_occurrence_probability")
+        total += weights[index] * (runtime + load_prob * _load_p95(step))
+    return total
+
+
 def next_model_distribution(
     future_artifacts: Mapping[str, Mapping[str, Any]],
     node_id: str,
