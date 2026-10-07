@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b6b6b"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c98a2e"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="560" fill="white"/>
+
+  <!-- Top labels -->
+  <text x="230" y="55" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#2b5d8a" text-anchor="middle">Known prefix</text>
+  <text x="830" y="55" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#6b6b6b" text-anchor="middle">Unrevealed suffix</text>
+
+  <!-- Workflow line -->
+  <line x1="120" y1="140" x2="1010" y2="140" stroke="#6b6b6b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Nodes -->
+  <rect x="90" y="110" rx="12" ry="12" width="120" height="60" fill="#2b5d8a"/>
+  <text x="150" y="147" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="white" text-anchor="middle">Planner</text>
+
+  <rect x="280" y="110" rx="12" ry="12" width="150" height="60" fill="#2f8f83"/>
+  <text x="355" y="147" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="white" text-anchor="middle">Spatial Tool</text>
+
+  <rect x="515" y="110" rx="12" ry="12" width="100" height="60" fill="white" stroke="#6b6b6b" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="565" y="147" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#6b6b6b" text-anchor="middle">?</text>
+
+  <rect x="675" y="110" rx="12" ry="12" width="100" height="60" fill="white" stroke="#6b6b6b" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="725" y="147" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#6b6b6b" text-anchor="middle">?</text>
+
+  <rect x="870" y="110" rx="12" ry="12" width="120" height="60" fill="#2b5d8a"/>
+  <text x="930" y="147" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="white" text-anchor="middle">Answer</text>
+
+  <!-- Separator -->
+  <line x1="470" y1="80" x2="470" y2="240" stroke="#c98a2e" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="470" y="92" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#c98a2e" text-anchor="middle">decision time</text>
+
+  <!-- Explanatory text -->
+  <text x="245" y="195" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#6b6b6b" text-anchor="middle">prefix is visible now</text>
+  <text x="760" y="195" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#6b6b6b" text-anchor="middle">future stages are still unknown</text>
+
+  <!-- Decision arrow -->
+  <line x1="470" y1="240" x2="470" y2="285" stroke="#c98a2e" stroke-width="3" marker-end="url(#arrowAmber)"/>
+
+  <!-- Decision box -->
+  <rect x="360" y="290" rx="12" ry="12" width="220" height="58" fill="#fff7e8" stroke="#c98a2e" stroke-width="2"/>
+  <text x="470" y="326" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" fill="#c98a2e" text-anchor="middle">Residency / loading decision</text>
+
+  <!-- GPU boxes -->
+  <rect x="120" y="390" rx="16" ry="16" width="390" height="130" fill="#f7f9fb" stroke="#2b5d8a" stroke-width="2"/>
+  <text x="150" y="420" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#2b5d8a">GPU 0</text>
+  <text x="150" y="445" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#6b6b6b">Resident models</text>
+  <rect x="145" y="460" rx="10" ry="10" width="120" height="34" fill="#2b5d8a"/>
+  <text x="205" y="482" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">Planner-8B</text>
+  <rect x="280" y="460" rx="10" ry="10" width="130" height="34" fill="#2f8f83"/>
+  <text x="345" y="482" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">Spatial-8B</text>
+
+  <rect x="690" y="390" rx="16" ry="16" width="390" height="130" fill="#f7f9fb" stroke="#2b5d8a" stroke-width="2"/>
+  <text x="720" y="420" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#2b5d8a">GPU 1</text>
+  <text x="720" y="445" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#6b6b6b">Resident models</text>
+  <rect x="715" y="460" rx="10" ry="10" width="120" height="34" fill="#2b5d8a"/>
+  <text x="775" y="482" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">Answer-3B</text>
+  <rect x="850" y="460" rx="10" ry="10" width="90" height="34" fill="#b3544a"/>
+  <text x="895" y="482" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">YOLO</text>
+</svg>

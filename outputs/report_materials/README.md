@@ -14,6 +14,9 @@
 | `fig5_residency_result_and_mechanism` | 驻留动作四指标 Δ+CI;机制柱(驱逐/冷加载/重载/预取命中) | 核心结果 |
 | `fig6_attribution` | 因果拆解:point/distribution/shuffle/oracle × mean/p95 | 归因 |
 | `fig7_tail_story` | 尾部故事:Parrot/驻留/抢占/无动作 的 p95 | 尾部机制 |
+| `fig1_problem` | 问题示意:已知前缀 vs 未知后缀 + 决策时刻 + 两张 GPU | 问题页 |
+| `fig2_system` | 系统框图:prefix→冻结预测器→{排序,驻留控制}→GPU;机器表只在 evaluator 层 | 方法页 |
+| `fig8_positioning` | 相关工作二维定位(五近邻 + Ours) | 论文用(可选汇报) |
 
 ### `tables/`(4 组结果表,MD + CSV)
 
@@ -27,10 +30,16 @@
 ## 重新生成
 
 ```bash
-# 图(需要 conda 环境 print)
+# 数据图(需要 conda 环境 print)
 MPLCONFIGDIR=/tmp/mpl-cache conda run -n print python scripts/make_report_figures.py
 # 表
 python3 scripts/make_report_tables.py
+# 示意图(fig1/fig2/fig8):SVG 由 GPT 第 9 轮提供,渲染:
+MPLCONFIGDIR=/tmp/mpl-cache conda run -n print python -c "
+import cairosvg; from pathlib import Path
+d = Path('outputs/report_materials/figures')
+for n in ('fig1_problem','fig2_system','fig8_positioning'):
+    cairosvg.svg2png(url=str(d/(n+'.svg')), write_to=str(d/(n+'.png')), scale=2.0)"
 ```
 
 ## 重要口径说明
