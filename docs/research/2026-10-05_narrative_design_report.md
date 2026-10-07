@@ -1,3 +1,7 @@
+> **更正注(2026-10-05,后加)**:文中机制数字 "eviction −18%" 系口径混用——−17~18% 是"仅驱逐"臂
+> (pdrs_evict)的口径;**主线 `pdrs_resident` 的精确值为:驱逐 −10.3%、按需冷加载 −21.5%、驱逐后重载 −22.3%**
+> (预取 1432/600/174,命中 42%)。详见 `experiments/EXP-20261005_residency_comparison_v1/RESULT.md` 机制表。
+
 # 第 7 轮:汇报/论文叙事设计(GPT 回复全文)
 
 > 来源:网页版 GPT(GPT-5.6 Sol + High;generation 11 会话 `6ac1f777-6728-83ec-9281-18a3cb787f23`),
