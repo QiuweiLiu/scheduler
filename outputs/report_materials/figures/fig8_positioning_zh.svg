@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="760" viewBox="0 0 980 760">
+  <defs>
+    <marker id="axisArrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b6b6b"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="760" fill="white"/>
+
+  <!-- Axes -->
+  <line x1="120" y1="640" x2="900" y2="640" stroke="#6b6b6b" stroke-width="2" marker-end="url(#axisArrow)"/>
+  <line x1="120" y1="640" x2="120" y2="90" stroke="#6b6b6b" stroke-width="2" marker-end="url(#axisArrow)"/>
+
+  <!-- Axis labels -->
+  <text x="510" y="705" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="22" font-weight="700" fill="#6b6b6b" text-anchor="middle">
+    未来信息:已揭示  →  未揭示
+  </text>
+  <g transform="translate(40,360) rotate(-90)">
+    <text x="0" y="0" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="22" font-weight="700" fill="#6b6b6b" text-anchor="middle">
+      控制对象:队列 / 批处理  →  GPU 驻留 / 放置
+    </text>
+  </g>
+
+  <!-- Corner hints -->
+  <text x="140" y="665" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">已揭示前沿</text>
+  <text x="760" y="665" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">未揭示后缀</text>
+  <text x="138" y="620" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b" transform="rotate(-90 138 620)">面向排序</text>
+  <text x="138" y="180" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b" transform="rotate(-90 138 180)">驻留 / 放置</text>
+
+  <!-- Points -->
+  <!-- Maestro -->
+  <circle cx="299" cy="272" r="9" fill="#dfe6ee" stroke="#2b5d8a" stroke-width="2"/>
+  <text x="315" y="268" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a">Maestro</text>
+  <text x="315" y="289" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">当前阶段需求</text>
+
+  <!-- Latency-Aware -->
+  <circle cx="354" cy="211" r="9" fill="#fff2ef" stroke="#b3544a" stroke-width="2"/>
+  <text x="370" y="207" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="18" font-weight="700" fill="#b3544a">Latency-Aware</text>
+  <text x="370" y="228" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">依赖设备模型</text>
+
+  <!-- LLMSched -->
+  <circle cx="455" cy="420" r="9" fill="#dfe6ee" stroke="#2b5d8a" stroke-width="2"/>
+  <text x="471" y="416" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a">LLMSched</text>
+  <text x="471" y="437" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">BN,无驻留</text>
+
+  <!-- JITServe -->
+  <circle cx="549" cy="475" r="9" fill="#dfe6ee" stroke="#2b5d8a" stroke-width="2"/>
+  <text x="565" y="471" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a">JITServe</text>
+  <text x="565" y="492" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">吞吐 / 批处理</text>
+
+  <!-- AgentIR -->
+  <circle cx="666" cy="200" r="10" fill="#e8f5f2" stroke="#2f8f83" stroke-width="2.5"/>
+  <text x="682" y="196" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="18" font-weight="700" fill="#2f8f83">AgentIR</text>
+  <text x="682" y="217" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">IR + 在线画像</text>
+
+  <!-- Ours -->
+  <circle cx="752" cy="238" r="13" fill="#2b5d8a" stroke="#c98a2e" stroke-width="4"/>
+  <text x="772" y="234" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="19" font-weight="700" fill="#2b5d8a">本文方法</text>
+  <text x="772" y="255" font-family="STHeiti, PingFang SC, Arial, sans-serif" font-size="14" fill="#6b6b6b">逐实例后缀</text>
+
+</svg>
