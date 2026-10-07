@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1160" height="900" viewBox="0 0 1160 900">
   <defs>
-    <marker id="ab" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L9,4.5 L0,9 z" fill="#2b5d8a"/>
+    <marker id="af" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#5a6672"/>
     </marker>
-    <marker id="ag" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L9,4.5 L0,9 z" fill="#6b6b6b"/>
+    <marker id="ae" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#8a97a6"/>
     </marker>
   </defs>
 
@@ -12,65 +12,73 @@
 
   <!-- ================= row 1 ================= -->
 
-  <rect x="70" y="120" width="200" height="110" rx="10" fill="#dfe6ee" stroke="#2b5d8a" stroke-width="2"/>
-  <text x="170" y="168" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a" text-anchor="middle">History</text>
+  <!-- 数据(灰族) -->
+  <rect x="70" y="120" width="200" height="110" rx="10" fill="#f0f2f5" stroke="#8a97a6" stroke-width="2"/>
+  <text x="170" y="168" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#5a6672" text-anchor="middle">History</text>
   <text x="170" y="194" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">(executed prefix)</text>
 
-  <line x1="270" y1="175" x2="348" y2="175" stroke="#2b5d8a" stroke-width="2" marker-end="url(#ab)"/>
+  <line x1="270" y1="175" x2="348" y2="175" stroke="#5a6672" stroke-width="2" marker-end="url(#af)"/>
 
-  <rect x="350" y="110" width="240" height="130" rx="12" fill="#f7f9fb" stroke="#2b5d8a" stroke-width="2"/>
+  <!-- 方法(蓝族) -->
+  <rect x="350" y="110" width="240" height="130" rx="12" fill="#e8f0f7" stroke="#2b5d8a" stroke-width="2"/>
   <text x="470" y="160" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a" text-anchor="middle">GRU predictor</text>
-  <text x="470" y="187" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">causal GRU &#183; per-instance</text>
-  <text x="470" y="209" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">predicts &#8804;5 steps ahead</text>
+  <text x="470" y="187" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">causal GRU · per-instance</text>
+  <text x="470" y="209" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">predicts ≤5 steps ahead</text>
 
-  <line x1="590" y1="175" x2="668" y2="175" stroke="#6b6b6b" stroke-width="2" marker-end="url(#ag)"/>
+  <line x1="590" y1="175" x2="668" y2="175" stroke="#5a6672" stroke-width="2" marker-end="url(#af)"/>
 
-  <rect x="670" y="100" width="360" height="150" rx="12" fill="#f7f9fb" stroke="#2b5d8a" stroke-width="1.8"/>
-  <text x="850" y="137" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#2b5d8a" text-anchor="middle">Prediction outputs</text>
+  <!-- 数据(灰族) -->
+  <rect x="670" y="100" width="360" height="150" rx="12" fill="#f0f2f5" stroke="#8a97a6" stroke-width="1.8"/>
+  <text x="850" y="137" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#5a6672" text-anchor="middle">Prediction outputs</text>
   <text x="695" y="170" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#333333">T: per-step runtime quantiles</text>
   <text x="695" y="198" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#333333">P(M): next-model distribution</text>
   <text x="695" y="226" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#333333">P(L): remaining-length distribution</text>
 
-  <line x1="850" y1="250" x2="850" y2="343" stroke="#6b6b6b" stroke-width="2" marker-end="url(#ag)"/>
+  <line x1="850" y1="250" x2="850" y2="343" stroke="#5a6672" stroke-width="2" marker-end="url(#af)"/>
   <text x="862" y="300" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="start">prediction</text>
 
-  <!-- ================= row 2 (right to left) ================= -->
+  <!-- ================= row 2 ================= -->
 
+  <!-- 方法容器(蓝族) -->
   <rect x="660" y="345" width="380" height="210" rx="12" fill="white" stroke="#2b5d8a" stroke-width="2.2"/>
   <text x="850" y="385" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a" text-anchor="middle">Scheduler</text>
-  <rect x="685" y="400" width="330" height="62" rx="8" fill="#f7f9fb" stroke="#2b5d8a" stroke-width="1.5"/>
+  <!-- Ordering(蓝族) -->
+  <rect x="685" y="400" width="330" height="62" rx="8" fill="#f4f9fd" stroke="#2b5d8a" stroke-width="1.5"/>
   <text x="850" y="428" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2b5d8a" text-anchor="middle">Ordering</text>
   <text x="850" y="449" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">which ready task runs first</text>
-  <rect x="685" y="475" width="330" height="62" rx="8" fill="#fff7e8" stroke="#c98a2e" stroke-width="1.5"/>
+  <!-- Residency control(琥珀族 = 新增能力) -->
+  <rect x="685" y="475" width="330" height="62" rx="8" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.5"/>
   <text x="850" y="503" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#c98a2e" text-anchor="middle">Residency control</text>
   <text x="850" y="524" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">which models stay in GPU memory</text>
 
-  <line x1="660" y1="450" x2="602" y2="450" stroke="#2b5d8a" stroke-width="2" marker-end="url(#ab)"/>
+  <line x1="660" y1="450" x2="602" y2="450" stroke="#5a6672" stroke-width="2" marker-end="url(#af)"/>
 
-  <rect x="360" y="385" width="240" height="130" rx="10" fill="#fff7e8" stroke="#c98a2e" stroke-width="1.8"/>
+  <!-- Scheduling actions(琥珀族) -->
+  <rect x="360" y="385" width="240" height="130" rx="10" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.8"/>
   <text x="480" y="418" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#c98a2e" text-anchor="middle">Scheduling actions</text>
   <text x="380" y="446" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#333333">dispatch: run a task</text>
   <text x="380" y="466" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#333333">keep / evict: model residency</text>
   <text x="380" y="486" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#333333">prefetch: load ahead</text>
 
-  <line x1="360" y1="450" x2="312" y2="450" stroke="#2b5d8a" stroke-width="2" marker-end="url(#ab)"/>
+  <line x1="360" y1="450" x2="312" y2="450" stroke="#5a6672" stroke-width="2" marker-end="url(#af)"/>
 
-  <rect x="70" y="385" width="240" height="130" rx="12" fill="#f7f9fb" stroke="#2b5d8a" stroke-width="2"/>
-  <text x="190" y="428" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#2b5d8a" text-anchor="middle">Executor</text>
+  <!-- Executor(灰族) -->
+  <rect x="70" y="385" width="240" height="130" rx="12" fill="#f0f2f5" stroke="#8a97a6" stroke-width="2"/>
+  <text x="190" y="428" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#5a6672" text-anchor="middle">Executor</text>
   <text x="190" y="455" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">two GPUs</text>
-  <text x="190" y="477" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">runs tasks &#183; manages models</text>
+  <text x="190" y="477" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="middle">runs tasks · manages models</text>
 
-  <!-- ================= evaluation panel ================= -->
+  <!-- ================= 仿真评估(灰族,虚线) ================= -->
 
-  <rect x="70" y="620" width="1020" height="240" rx="12" fill="none" stroke="#6b6b6b" stroke-width="1.8" stroke-dasharray="8 6"/>
-  <text x="100" y="658" font-family="Arial, Helvetica, sans-serif" font-size="14.5" font-weight="700" fill="#6b6b6b">Simulation-based evaluation (environment: accounting &amp; measurement only)</text>
+  <rect x="70" y="620" width="1020" height="240" rx="12" fill="none" stroke="#8a97a6" stroke-width="1.8" stroke-dasharray="8 6"/>
+  <text x="100" y="658" font-family="Arial, Helvetica, sans-serif" font-size="14.5" font-weight="700" fill="#5a6672">Simulation-based evaluation (environment: accounting &amp; measurement only)</text>
   <text x="1060" y="658" font-family="Arial, Helvetica, sans-serif" font-size="13.5" font-weight="700" fill="#b3544a" text-anchor="end">policy never reads these tables</text>
 
-  <text x="100" y="700" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">&#183; Measured basis: co-location slowdown, load interference, batching, load / evict costs on real GPUs</text>
-  <text x="100" y="730" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">&#183; Derived: time and memory costs per configuration, used to account each scheduling action</text>
-  <text x="100" y="760" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">&#183; Evaluation: frozen confirm300 &#8212; F0 vs five adapted baselines + residency-action ablation</text>
-  <text x="100" y="790" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">&#183; Reported metrics: mean / p95 completion &#183; deadline miss &#183; makespan</text>
+  <text x="100" y="700" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">· Measured basis: co-location slowdown, load interference, batching, load / evict costs on real GPUs</text>
+  <text x="100" y="730" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">· Derived: time and memory costs per configuration, used to account each scheduling action</text>
+  <text x="100" y="760" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">· Evaluation: frozen confirm300 — F0 vs five adapted baselines + residency-action ablation</text>
+  <text x="100" y="790" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#333333">· Reported metrics: mean / p95 completion · deadline miss · makespan</text>
 
-  <line x1="190" y1="620" x2="190" y2="517" stroke="#6b6b6b" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#ag)"/>
+  <line x1="190" y1="620" x2="190" y2="517" stroke="#8a97a6" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#ae)"/>
   <text x="202" y="572" font-family="Arial, Helvetica, sans-serif" font-size="11.5" fill="#6b6b6b" text-anchor="start">accounts costs</text>
 </svg>
