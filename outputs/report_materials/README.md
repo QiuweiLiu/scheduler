@@ -5,7 +5,10 @@
 
 ## 内容
 
-### `figures/`(5 张数据图,PNG + SVG)
+### `figures/`(8 张图,PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
+
+**中文版**:文件名加 `_zh` 后缀(如 `fig2_system_zh.png`);数据图由 `scripts/make_report_figures_zh.py` 生成,
+示意图由英文 SVG 翻译生成(字体 STHeiti)。
 
 | 文件 | 内容 | 对应汇报页 |
 |---|---|---|
