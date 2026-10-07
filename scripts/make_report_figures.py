@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "outputs" / "report_figures"
+OUT = ROOT / "outputs" / "report_materials" / "figures"
 OUT.mkdir(parents=True, exist_ok=True)
 
 MAIN_TAIL = ROOT / "experiments/EXP-20261004_main_table_comparison_v1/artifacts/main_table_tail_v1.json"
