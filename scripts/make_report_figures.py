@@ -26,6 +26,8 @@ PDRS_V2 = ROOT / "experiments/EXP-20261005_pdrs_comparison_v1/artifacts/pdrs_com
 PDRS_V3 = ROOT / "experiments/EXP-20261005_pdrs_comparison_v1/artifacts/pdrs_comparison_v3.json"
 RES_V1 = ROOT / "experiments/EXP-20261005_residency_comparison_v1/artifacts/residency_comparison_v1.json"
 PREEMPT = ROOT / "experiments/EXP-20261005_residency_comparison_v1/artifacts/residency_preempt_v1.json"
+J_TEST = ROOT / "experiments/EXP-20260911_p9d_j_series_joint_resource/test_eval.json"
+TRUTH_RANK = ROOT / "experiments/EXP-20260921_histres_causal_input_v1/artifacts/pack_vs_truth_ranking.json"
 
 BLUE = "#2b5d8a"
 TEAL = "#2f8f83"
@@ -110,7 +112,7 @@ def fig4_design_space() -> None:
          delta(v3, "pdrs_p95", "p95_completion_ms")),
         ("Oracle future (true identity)", delta(res, "pdrs_resident_oracle", "mean_completion_ms"),
          delta(res, "pdrs_resident_oracle", "p95_completion_ms")),
-        ("Preemption (SRPT-style)", delta(pre, "pdrs_preempt", "mean_completion_ms"),
+        ("Preemption (residency + SRPT)", delta(pre, "pdrs_preempt", "mean_completion_ms"),
          delta(pre, "pdrs_preempt", "p95_completion_ms")),
         ("Residency actions (main line)", delta(res, "pdrs_resident", "mean_completion_ms"),
          delta(res, "pdrs_resident", "p95_completion_ms")),
@@ -181,8 +183,9 @@ def fig5_residency() -> None:
     vals = [ev, cold, reload_, hit]
     colors = [TEAL, TEAL, TEAL, AMBER]
     bars = ax2.bar(np.arange(4), vals, color=colors, width=0.62)
-    for x, v in zip(np.arange(4), vals):
-        ax2.text(x, v + (2 if v >= 0 else -5), f"{v:+.1f}%", ha="center", fontsize=10.5)
+    for i, (x, v) in enumerate(zip(np.arange(4), vals)):
+        txt = f"{v:+.1f}%" if i < 3 else f"{v:.1f}%"
+        ax2.text(x, v + (2 if v >= 0 else -5), txt, ha="center", fontsize=10.5)
     ax2.axhline(0, color=GRAY, lw=1.0)
     ax2.set_xticks(np.arange(4))
     ax2.set_xticklabels(labels, fontsize=9.5)
@@ -190,6 +193,8 @@ def fig5_residency() -> None:
     ax2.set_ylabel("relative change vs. F0 (%)", fontsize=9.5)
     ax2.set_title("Mechanism counters (300 episodes)", fontsize=11)
     ax2.spines[["top", "right"]].set_visible(False)
+    ax2.text(0.0, -0.30, "hit rate is absolute (F0 has no prefetch); other bars: relative change vs. F0",
+             transform=ax2.transAxes, fontsize=8, color=GRAY)
     save(fig, "fig5_residency_result_and_mechanism")
 
 
@@ -239,7 +244,7 @@ def fig7_tail_story() -> None:
         ("Residency + f0point belief", res["results"]["f0point_resident"]["metrics"]["p95_completion_ms"], TEAL),
         ("Oracle future + actions", res["results"]["pdrs_resident_oracle"]["metrics"]["p95_completion_ms"], TEAL),
         ("No actions (pdrs_p, SRPT-ish ordering)", res["results"]["pdrs_p"]["metrics"]["p95_completion_ms"], RED),
-        ("Preemption (explicit SRPT)", pre["results"]["pdrs_preempt"]["metrics"]["p95_completion_ms"], RED),
+        ("Preemption (residency + SRPT)", pre["results"]["pdrs_preempt"]["metrics"]["p95_completion_ms"], RED),
     ]
     rows.sort(key=lambda r: r[1]["delta_point"])
     fig, ax = plt.subplots(figsize=(9.6, 4.4))
@@ -264,10 +269,76 @@ def fig7_tail_story() -> None:
     save(fig, "fig7_tail_story")
 
 
+def fig13_predictor() -> None:
+    jt = load(J_TEST)
+    tr = load(TRUTH_RANK)
+    seeds = ["11", "22", "33"]
+    variants = [("J0", RED), ("J1", RED), ("J2", BLUE), ("J3", TEAL)]
+    fig, axes = plt.subplots(1, 2, figsize=(11.8, 4.6), gridspec_kw={"width_ratios": [1.2, 1]})
+
+    ax = axes[0]
+    ys = np.arange(len(variants))[::-1]
+    ymin, ymax = -0.55, 3.62
+    ax.set_ylim(ymin, ymax)
+    all_lo, all_hi = [], []
+    for y, (v, color) in zip(ys, variants):
+        for k, s in enumerate(seeds):
+            e = jt["per_seed"][s][v]["runtime_delta"]
+            off = (k - 1) * 0.21
+            ax.plot([e["ci_lower"], e["ci_upper"]], [y + off, y + off],
+                    color=color, lw=1.1, alpha=0.55, solid_capstyle="round")
+            ax.plot([e["delta_mean"]], [y + off], "o", color=color, ms=3.2, alpha=0.85)
+            all_lo.append(e["ci_lower"])
+            all_hi.append(e["ci_upper"])
+    xmin, xmax = min(all_lo), max(all_hi)
+    ax.set_xlim(xmin - 18, xmax + 165)
+    for y, (v, color) in zip(ys, variants):
+        m = float(np.mean([jt["per_seed"][s][v]["runtime_delta"]["delta_mean"] for s in seeds]))
+        ax.text(xmax + 155, y, f"{m:+.0f}", va="center", ha="right", fontsize=9.5, color="#333")
+    ax.text(xmax + 155, ymax - 0.30, "mean Δ", va="center", ha="right", fontsize=8.5, color=GRAY)
+    ax.axvline(0, color=GRAY, lw=1.4)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([v for v, _ in variants], fontsize=10.5)
+    ax.set_xlabel("RuntimeQScore Δ vs. reference B1 (ms; negative = better)", fontsize=9.5)
+    ax.set_title("Resource-head training (test, consumed once):\n"
+                 "J2/J3 improve runtime prediction on 3/3 seeds; J0/J1 are significantly worse",
+                 fontsize=10.5)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.grid(axis="x", color=LIGHT, lw=0.7)
+    ax.set_axisbelow(True)
+
+    ax2 = axes[1]
+    packs = [("F0\n(deployed)", "F0_seed11", AMBER),
+             ("J3\n(incumbent)", "J3 (A0)", BLUE),
+             ("R1b", "R1b (A1)", GRAY),
+             ("R3a-U", "R3a-U (A2)", GRAY)]
+    xs = np.arange(len(packs))
+    vals = [tr["agreement_with_truth"][k]["spearman"] for _, k, _ in packs]
+    ax2.bar(xs, vals, color=[c for _, _, c in packs], width=0.62)
+    for x, v in zip(xs, vals):
+        ax2.text(x, v + 0.012, f"{v:.3f}", ha="center", fontsize=10.5)
+    ax2.set_xticks(xs)
+    ax2.set_xticklabels([p for p, _, _ in packs], fontsize=9.5)
+    ax2.set_ylim(0, 0.78)
+    ax2.set_ylabel("Spearman vs. truth ordering", fontsize=9.5)
+    ax2.set_title("Deployment selection: truth-referenced ranking quality\n"
+                  "(7,663 anchors; F0 = first candidate to beat the incumbent J3)", fontsize=10.5)
+    ax2.spines[["top", "right"]].set_visible(False)
+    ax2.grid(axis="y", color=LIGHT, lw=0.7)
+    ax2.set_axisbelow(True)
+
+    fig.text(0.012, -0.035,
+             "Note: J-series test consumed once; J2/J3 missed the load-duration non-inferiority bar (+3–7%) → no Core GO; "
+             "telemetry ablation (F1−F0) CI crosses 0 — not adopted; truth walk = fixed empty-residency proxy, fair across packs.",
+             fontsize=8, color=GRAY)
+    save(fig, "fig13_predictor_quality")
+
+
 if __name__ == "__main__":
     fig3_main_table_forest()
     fig4_design_space()
     fig5_residency()
     fig6_attribution()
     fig7_tail_story()
+    fig13_predictor()
     print("done")
