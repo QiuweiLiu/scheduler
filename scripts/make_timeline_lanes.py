@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Timeline lanes: time axis on top, job arrivals / completions, then the two
-GPUs' behavior over time (bars colored by model).
+"""Timeline lanes v2: time axis on top; one lane per JOB (agent behavior with
+model+action labels); then the two GPU lanes (device behavior).
 
-Real trace validation_000013 (pdrs_resident), first 140 s.
+Real trace validation_000013 (pdrs_resident), first 140 s.  Consecutive stages of
+the same (gpu, job, role, model) are merged into one block.
 Run: MPLCONFIGDIR=/tmp/mpl-cache [FIG_LANG=en] conda run -n print python scripts/make_timeline_lanes.py
 """
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 import matplotlib
@@ -39,6 +41,7 @@ from tracing.analysis.workload_v02_simulator import (  # noqa: E402
 
 OUT = ROOT / "outputs" / "report_materials" / "figures"
 WINDOW_S = 140.0
+PX_PER_SECOND = 1245.0 / 140.0
 LANG = os.environ.get("FIG_LANG", "zh")
 
 
@@ -52,20 +55,49 @@ MODEL_COLORS = {
     "Qwen2.5-VL-3B-Instruct": "#c98a2e",
     "yolo11x.pt": "#b3544a",
 }
-MODEL_LEGEND = {
-    "Qwen3-VL-8B-Instruct": T("8B 模型", "model 8B"),
-    "Qwen3-4B": T("4B 模型", "model 4B"),
-    "Qwen2.5-VL-3B-Instruct": T("3B 模型", "model 3B"),
+MODEL_SHORT = {
+    "Qwen3-VL-8B-Instruct": "8B",
+    "Qwen3-4B": "4B",
+    "Qwen2.5-VL-3B-Instruct": "3B",
+    "yolo11x.pt": "YOLO",
 }
 ROLE_SHORT = {
     "planner": T("规划", "plan"),
-    "videotool_spatial": T("空间", "spatial"),
+    "videotool_spatial": T("空间选取", "spatial"),
     "answer_generation": T("回答", "answer"),
     "videotool_temporal": T("时间", "temporal"),
-    "videotool_generalist": T("通用", "gen"),
+    "videotool_generalist": T("通用", "general"),
 }
-ARRIVAL = "#5a6672"
-COMPLETE = "#4e7a3a"
+
+
+def label_seconds(text: str, fontsize: float, px_per_second: float) -> float:
+    """Approximate width of a label in seconds (latin ~0.55em, CJK ~1.0em)."""
+    px = 0.0
+    for ch in text:
+        if ch == "·":
+            px += fontsize * 0.45
+        elif ord(ch) > 0x2E80:
+            px += fontsize
+        else:
+            px += fontsize * 0.55
+    return px / px_per_second
+
+
+def merge_bars(bars):
+    groups = defaultdict(list)
+    for bar in bars:
+        groups[(bar[2], bar[3], bar[4], bar[5])].append(list(bar))
+    merged = []
+    for items in groups.values():
+        items.sort()
+        out: list[list] = []
+        for it in items:
+            if out and it[0] - out[-1][1] <= 0.5:
+                out[-1][1] = max(out[-1][1], it[1])
+            else:
+                out.append(it)
+        merged.extend(tuple(b) for b in out)
+    return sorted(merged)
 
 
 def main() -> None:
@@ -89,17 +121,13 @@ def main() -> None:
         for node in template.nodes:
             roles[node.node_id] = node.role or ""
 
-    arrivals, completions, starts, bars = [], [], {}, []
-    job_index: dict[str, int] = {}
+    starts, bars, job_index = {}, [], {}
     for event in events:
         kind = event.get("event_type")
         t = float(event.get("time_ms") or 0.0) / 1000.0
         job = str(event.get("job_instance_id") or "")
         if kind == "job_arrive" and not job.startswith("__prefetch__"):
             job_index.setdefault(job, len(job_index) + 1)
-            arrivals.append((t, job_index[job]))
-        elif kind == "job_finish" and not job.startswith("__prefetch__"):
-            completions.append((t, job_index.get(job, 0)))
         elif kind == "node_start" and event.get("lane") == "gpu":
             starts[(job, str(event.get("node_id")))] = t
         elif kind == "node_finish" and event.get("lane") == "gpu":
@@ -109,29 +137,41 @@ def main() -> None:
             bars.append((start, min(t, WINDOW_S), int(event.get("gpu_index", 0)),
                          job_index.get(job, 0), str(event.get("model_id")),
                          roles.get(str(event.get("node_id")), "")))
+    bars = merge_bars(bars)
 
-    # merge consecutive bars of the same (gpu, job, role, model) with small gaps
-    merged: list[list] = []
-    for bar in sorted(bars):
-        if merged:
-            last = merged[-1]
-            if (bar[2] == last[2] and bar[3] == last[3] and bar[4] == last[4]
-                    and bar[5] == last[5] and bar[0] - last[1] <= 0.5):
-                last[1] = max(last[1], bar[1])
-                continue
-        merged.append(list(bar))
-    bars = [tuple(b) for b in merged]
+    jobs_present = sorted({b[3] for b in bars})
+    n_jobs = len(jobs_present)
+    fig, ax = plt.subplots(figsize=(13.6, 7.6))
+    # y layout: jobs on top (one lane each), then GPU 0 / GPU 1
+    job_y = {j: (n_jobs - 1 - i) * 0.85 + 1.9 for i, j in enumerate(jobs_present)}
+    y_gpu = {0: 1.05, 1: 0.15}
 
-    fig, ax = plt.subplots(figsize=(13.6, 5.0))
-    y_arr, y_done, y_gpu = 4.30, 3.45, {0: 2.35, 1: 1.20}
-    for y in (y_arr, y_done, y_gpu[0], y_gpu[1]):
-        ax.axhspan(y - 0.34, y + 0.34, color="#f7f8fa", zorder=0)
+    for y in list(job_y.values()) + list(y_gpu.values()):
+        ax.axhspan(y - 0.30, y + 0.30, color="#f7f8fa", zorder=0)
 
     def overlaps_any(bar):
         s, f, g = bar[0], bar[1], bar[2]
         return any(o is not bar and o[2] == g and o[0] < f - 1e-9 and o[1] > s + 1e-9
                    for o in bars)
 
+    # job lanes: model + action labels
+    for start, finish, gpu, jidx, model, role in bars:
+        y = job_y[jidx]
+        color = MODEL_COLORS.get(model, "#8a97a6")
+        width = max(0.4, finish - start)
+        ax.add_patch(Rectangle((start, y - 0.20), width, 0.40, facecolor=color,
+                               edgecolor="white", lw=0.5, zorder=3))
+        label = f"{MODEL_SHORT.get(model, '?')}·{ROLE_SHORT.get(role, '')}"
+        need = label_seconds(label, 7.4, PX_PER_SECOND) + 1.0
+        short = MODEL_SHORT.get(model, "?")
+        if width >= need:
+            ax.text(start + width / 2, y, label, ha="center", va="center", fontsize=7.4,
+                    color="white", fontweight="bold", zorder=4)
+        elif width >= label_seconds(short, 7.0, PX_PER_SECOND) + 0.3:
+            ax.text(start + width / 2, y, short, ha="center",
+                    va="center", fontsize=7.0, color="white", fontweight="bold", zorder=4)
+
+    # GPU lanes: job + action labels; co-located bars split into half-bars
     for bar in bars:
         start, finish, gpu, jidx, model, role = bar
         y = y_gpu[gpu]
@@ -141,48 +181,34 @@ def main() -> None:
         if co:
             bottom = all(not (o is not bar and o[2] == gpu and o[0] < finish - 1e-9
                               and o[1] > start + 1e-9) or o[3] >= jidx for o in bars)
-            cy = y - 0.115 if bottom else y + 0.115
-            ax.add_patch(Rectangle((start, cy - 0.10), width, 0.20, facecolor=color,
+            cy = y - 0.105 if bottom else y + 0.105
+            ax.add_patch(Rectangle((start, cy - 0.09), width, 0.18, facecolor=color,
                                    edgecolor="white", lw=0.5, zorder=3))
         else:
             cy = y
-            ax.add_patch(Rectangle((start, y - 0.22), width, 0.44, facecolor=color,
+            ax.add_patch(Rectangle((start, y - 0.20), width, 0.40, facecolor=color,
                                    edgecolor="white", lw=0.5, zorder=3))
         label = f"J{jidx}·{ROLE_SHORT.get(role, '')}"
-        if width >= 5.5:
-            ax.text(start + width / 2, cy, label, ha="center", va="center", fontsize=7.8,
+        need = label_seconds(label, 6.8, PX_PER_SECOND) + 1.0
+        short = f"J{jidx}"
+        if width >= need:
+            ax.text(start + width / 2, cy, label, ha="center", va="center", fontsize=6.8,
                     color="white", fontweight="bold", zorder=4)
-        elif width >= 3.0:
-            ax.text(start + width / 2, cy, f"J{jidx}", ha="center", va="center", fontsize=7.2,
+        elif width >= label_seconds(short, 7.0, PX_PER_SECOND) + 0.3:
+            ax.text(start + width / 2, cy, short, ha="center", va="center", fontsize=7.0,
                     color="white", fontweight="bold", zorder=4)
-
-    for t, idx in arrivals:
-        if t > WINDOW_S:
-            continue
-        ax.plot([t], [y_arr], marker="v", ms=8, color=ARRIVAL, zorder=6)
-        ax.text(t, y_arr + 0.40, f"J{idx}", ha="center", va="bottom", fontsize=9,
-                color=ARRIVAL, fontweight="bold", zorder=6)
-
-    used_times: list[float] = []
-    for t, idx in completions:
-        if t > WINDOW_S:
-            continue
-        slot = sum(1 for u in used_times if abs(u - t) < 12.0)
-        used_times.append(t)
-        ax.plot([t], [y_done], marker="P", ms=8, color=COMPLETE, zorder=6)
-        ax.text(t, y_done - 0.42 - 0.30 * (slot % 2), f"J{idx} {T('完成', 'done')}",
-                ha="center", va="top", fontsize=8.5, color=COMPLETE, zorder=6)
 
     ax.set_xlim(0, WINDOW_S)
-    ax.set_ylim(0.55, 4.95)
-    ax.set_yticks([y_arr, y_done, y_gpu[0], y_gpu[1]])
-    ax.set_yticklabels([T("任务到达", "Job arrivals"), T("任务完成", "Job completions"),
-                        "GPU 0", "GPU 1"], fontsize=12)
-    # time axis on top
+    ax.set_ylim(-0.25, job_y[jobs_present[0]] + 0.55)
+    ticks = [job_y[j] for j in jobs_present] + [y_gpu[0], y_gpu[1]]
+    ax.set_yticks(ticks)
+    ax.set_yticklabels([f"J{j}" for j in jobs_present] + ["GPU 0", "GPU 1"], fontsize=11.5)
     ax.xaxis.set_ticks_position("top")
     ax.xaxis.set_label_position("top")
-    ax.set_xlabel(T("时间(s)· 真实轨迹 validation_000013", "Time (s) · real trace validation_000013"),
-                  fontsize=10.5, labelpad=8)
+    ax.set_xlabel(T("时间(s)· 真实轨迹 validation_000013 · 上:每个任务的行为(模型·动作);下:两张 GPU 的行为",
+                    "Time (s) · real trace validation_000013 · top: per-job behavior (model·action); "
+                    "bottom: per-GPU behavior"),
+                  fontsize=10, labelpad=8)
     ax.grid(axis="x", color="#e6e9ee", lw=0.8)
     ax.set_axisbelow(True)
     for side in ("bottom", "right", "left"):
@@ -190,13 +216,9 @@ def main() -> None:
 
     handles = [Rectangle((0, 0), 1, 1, facecolor=MODEL_COLORS[m], edgecolor="white")
                for m in ("Qwen3-VL-8B-Instruct", "Qwen3-4B", "Qwen2.5-VL-3B-Instruct")]
-    handles.append(plt.Line2D([0], [0], marker="v", color=ARRIVAL, ls="", ms=8))
-    handles.append(plt.Line2D([0], [0], marker="P", color=COMPLETE, ls="", ms=8))
-    labels = [MODEL_LEGEND[m] for m in ("Qwen3-VL-8B-Instruct", "Qwen3-4B",
-                                        "Qwen2.5-VL-3B-Instruct")]
-    labels += [T("任务到达", "job arrival"), T("任务完成", "job completion")]
-    ax.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, -0.02),
-              fontsize=9.5, frameon=False, ncol=5)
+    labels = [T("8B 模型", "model 8B"), T("4B 模型", "model 4B"), T("3B 模型", "model 3B")]
+    ax.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, -0.015),
+              fontsize=9.5, frameon=False, ncol=3)
 
     fig.tight_layout()
     suffix = "_zh" if LANG == "zh" else ""
