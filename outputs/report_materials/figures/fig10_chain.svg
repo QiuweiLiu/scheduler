@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="560" viewBox="0 0 1140 560">
+  <defs>
+    <marker id="af" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#5a6672"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1140" height="560" fill="white"/>
+
+  <!-- 时间方向 -->
+  <text x="55" y="50" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#8a97a6">time →</text>
+  <text x="55" y="237" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#8a97a6">time →</text>
+
+  <!-- ================= 第一行:J1 arrives → 派发 → 规划 → 空间工具 → J4 arrives ================= -->
+
+  <rect x="143" y="70" width="150" height="80" rx="9" fill="#f0f2f5" stroke="#8a97a6" stroke-width="1.6"/>
+  <text x="218" y="105" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#5a6672" text-anchor="middle">J1 arrives</text>
+  <text x="218" y="127" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(0 s)</text>
+
+  <line x1="293" y1="110" x2="317" y2="110" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="319" y="70" width="150" height="80" rx="9" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.8"/>
+  <text x="394" y="105" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#c98a2e" text-anchor="middle">Scheduler: dispatch</text>
+  <text x="394" y="127" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(start J1)</text>
+
+  <line x1="469" y1="110" x2="493" y2="110" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="495" y="70" width="150" height="80" rx="9" fill="#e8f0f7" stroke="#2b5d8a" stroke-width="1.6"/>
+  <text x="570" y="115" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2b5d8a" text-anchor="middle">Plan 8B</text>
+
+  <line x1="645" y1="110" x2="669" y2="110" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="671" y="70" width="150" height="80" rx="9" fill="#e6f3f1" stroke="#2f8f83" stroke-width="1.6"/>
+  <text x="746" y="115" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2f8f83" text-anchor="middle">Spatial tool 8B</text>
+
+  <line x1="821" y1="110" x2="845" y2="110" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="847" y="70" width="150" height="80" rx="9" fill="#f0f2f5" stroke="#8a97a6" stroke-width="1.6"/>
+  <text x="922" y="105" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#5a6672" text-anchor="middle">J4 arrives</text>
+  <text x="922" y="127" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(60.5 s)</text>
+
+  <!-- 折返连接 -->
+  <polyline points="922,150 922,205 130,205 130,248" fill="none" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+  <text x="526" y="197" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#8a97a6" text-anchor="middle">time continues</text>
+
+  <!-- ================= 第二行:驱逐 → 加载 → 规划 → 预取 → 空间工具 → 循环 ================= -->
+
+  <rect x="55" y="250" width="150" height="80" rx="9" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.8"/>
+  <text x="130" y="285" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#c98a2e" text-anchor="middle">Scheduler: evict 8B</text>
+  <text x="130" y="307" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(free memory)</text>
+
+  <line x1="205" y1="290" x2="229" y2="290" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="231" y="250" width="150" height="80" rx="9" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.8"/>
+  <text x="306" y="285" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#c98a2e" text-anchor="middle">Scheduler: load 4B</text>
+  <text x="306" y="307" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(wait 4.0 s)</text>
+
+  <line x1="381" y1="290" x2="405" y2="290" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="407" y="250" width="150" height="80" rx="9" fill="#e8f0f7" stroke="#2b5d8a" stroke-width="1.6"/>
+  <text x="482" y="295" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2b5d8a" text-anchor="middle">Plan 4B</text>
+
+  <line x1="557" y1="290" x2="581" y2="290" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="583" y="250" width="150" height="80" rx="9" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.8"/>
+  <text x="658" y="285" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#c98a2e" text-anchor="middle">Scheduler: prefetch 3B</text>
+  <text x="658" y="307" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(idle window · 3.9 s)</text>
+
+  <line x1="733" y1="290" x2="757" y2="290" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="759" y="250" width="150" height="80" rx="9" fill="#e6f3f1" stroke="#2f8f83" stroke-width="1.6"/>
+  <text x="834" y="285" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2f8f83" text-anchor="middle">Spatial tool 3B</text>
+  <text x="834" y="307" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(no wait at use)</text>
+
+  <line x1="909" y1="290" x2="933" y2="290" stroke="#5a6672" stroke-width="1.8" marker-end="url(#af)"/>
+
+  <rect x="935" y="250" width="150" height="80" rx="9" fill="#f0f2f5" stroke="#8a97a6" stroke-width="1.6"/>
+  <text x="1010" y="285" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#5a6672" text-anchor="middle">Loop … → answer</text>
+  <text x="1010" y="307" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle">(rounds unknown)</text>
+
+  <!-- ================= 图例 ================= -->
+
+  <rect x="143" y="470" width="14" height="14" rx="3" fill="#f0f2f5" stroke="#8a97a6" stroke-width="1.4"/>
+  <text x="165" y="482" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#5a6672">Job arrival / loop</text>
+  <rect x="320" y="470" width="14" height="14" rx="3" fill="#e8f0f7" stroke="#2b5d8a" stroke-width="1.4"/>
+  <text x="342" y="482" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#5a6672">Agent: plan</text>
+  <rect x="500" y="470" width="14" height="14" rx="3" fill="#e6f3f1" stroke="#2f8f83" stroke-width="1.4"/>
+  <text x="522" y="482" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#5a6672">Agent: tool execution</text>
+  <rect x="710" y="470" width="14" height="14" rx="3" fill="#fdf3e0" stroke="#c98a2e" stroke-width="1.4"/>
+  <text x="732" y="482" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#5a6672">Scheduler actions (dispatch / evict / load / prefetch)</text>
+
+  <text x="143" y="525" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#8a97a6">Example from a real simulation trace (validation_000013): J1 arrives at 0 s; J4 arrives at 60.5 s and triggers memory pressure</text>
+</svg>
