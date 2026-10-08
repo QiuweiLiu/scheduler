@@ -11,6 +11,8 @@
 
 | 文件 | 用途 |
 |---|---|
+| `fig14_predictor_structure_zh.png` / `.svg` | 多步结构预测跨族对比(中文,汇报用)—— **已定稿** |
+| `fig14_predictor_structure.png` / `.svg` | 多步结构预测跨族对比(英文,论文用)—— **已定稿** |
 | `fig12_lanes_zh.png` / `.svg` | 时间线泳道图(中文,汇报用)—— **已定稿** |
 | `fig12_lanes.png` / `.svg` | 时间线泳道图(英文,论文用)—— **已定稿** |
 | `fig9_workflow_zh.png` / `.svg` | 视频 Agent 工作流图(中文,汇报用)—— **已定稿** |
@@ -18,7 +20,7 @@
 | `fig2_system_zh.png` / `.svg` | 系统框图(中文,汇报用)—— **已定稿** |
 | `fig2_system.png` / `.svg` | 系统框图(英文,论文用)—— **已定稿** |
 
-### `figures/`(工作区:10 张图,PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
+### `figures/`(工作区:9 张图,PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
 
 **中文版**:文件名加 `_zh` 后缀(如 `fig2_system_zh.png`);数据图由 `scripts/make_report_figures_zh.py` 生成,
 示意图由英文 SVG 翻译生成(字体 STHeiti)。
@@ -34,7 +36,6 @@
 | `fig2_system` | 系统框图:prefix→冻结预测器→{排序,驻留控制}→GPU;机器表只在 evaluator 层 | 方法页 |
 | `fig8_positioning` | 相关工作二维定位(五近邻 + Ours) | 论文用(可选汇报) |
 | `fig13_predictor_families_single_step` | 预测器跨族(单步):动作族 top-1(18 个模型)/ 运行时 rel-MAE(9 个模型,含噪声参考线) | 预测器-1 |
-| `fig14_predictor_structure` | 多步结构预测跨族(P9d):统计 vs LightGBM vs 因果 GRU × 4 指标(验证/留出) | 预测器-2 |
 
 ### `tables/`(4 组结果表,MD + CSV)
 
