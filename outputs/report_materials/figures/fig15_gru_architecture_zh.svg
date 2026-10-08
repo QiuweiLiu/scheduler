@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1960" height="930" viewBox="0 0 1960 930">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5a6672"/></marker></defs>
+<rect width="1960" height="930" fill="white"/>
+<text x="44" y="54" font-family="'STHeiti','PingFang SC','Arial'" font-size="23" fill="#1f2933" text-anchor="start" font-weight="600">未来预测器架构:共享因果 GRU + 多任务头</text>
+<text x="44" y="84" font-family="'STHeiti','PingFang SC','Arial'" font-size="13" fill="#53616f" text-anchor="start" font-weight="normal">部署组成:J3:seed11(结构/内容/行为)+ F0:seed11(资源头) · 冻结 · SHA 固定 · 仅 train 拟合</text>
+<rect x="322" y="126" width="1278" height="700" rx="16" fill="none" stroke="#b3544a" stroke-width="1.3" stroke-dasharray="7,5" opacity="0.75"/>
+<text x="1596" y="116" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#b3544a" text-anchor="end" font-weight="normal">冻结区:部署模型</text>
+<rect x="44" y="170" width="258" height="190" rx="10" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.4"/>
+<text x="59" y="197" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">已执行前缀(≤ 64 步)</text>
+<text x="59" y="220" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">事件类型 · 节点类型 · 角色</text>
+<text x="59" y="243" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">原始动作 · 动作族 · 模型 ID</text>
+<rect x="44" y="470" width="258" height="168" rx="10" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.4"/>
+<text x="59" y="497" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">当前节点上下文</text>
+<text x="59" y="527" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">任务类型 · 领域 · 问题类型</text>
+<text x="59" y="557" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">官方类别 · 子类 · 时序范围</text>
+<text x="59" y="587" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">基线 · 模型栈 · 规划模型</text>
+<text x="44" y="692" font-family="'STHeiti','PingFang SC','Arial'" font-size="12" fill="#b3544a" text-anchor="start" font-weight="normal">未来事件 / 真值标签 / 机器表</text>
+<text x="44" y="712" font-family="'STHeiti','PingFang SC','Arial'" font-size="12" fill="#b3544a" text-anchor="start" font-weight="normal">不进入任何输入</text>
+<rect x="344" y="186" width="240" height="182" rx="10" fill="#e9eef4" stroke="#7d93a9" stroke-width="1.4"/>
+<text x="359" y="213" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">逐字段嵌入</text>
+<text x="359" y="236" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">6 字段 × 16 维,步内求和</text>
+<text x="359" y="259" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">+ 位置嵌入(≤ 64)</text>
+<text x="359" y="282" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">→ 步向量序列 x_1…x_T</text>
+<text x="359" y="305" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">x [B, ≤64, 16]</text>
+<rect x="344" y="486" width="240" height="134" rx="10" fill="#e9eef4" stroke="#7d93a9" stroke-width="1.4"/>
+<text x="359" y="513" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">上下文嵌入</text>
+<text x="359" y="541" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">9 字段 × 12 维,求和</text>
+<text x="359" y="569" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">+ 任务模态 one-hot 投影</text>
+<rect x="628" y="196" width="250" height="40" rx="8" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.1"/>
+<text x="753" y="221" font-family="'STHeiti','PingFang SC','Arial'" font-size="11.5" fill="#53616f" text-anchor="middle" font-weight="normal">x_1 → x_2 → x_3 → … → x_T</text>
+<text x="753" y="256" font-family="'STHeiti','PingFang SC','Arial'" font-size="11.5" fill="#2f8f83" text-anchor="middle" font-weight="normal">因果:只读已执行前缀</text>
+<rect x="628" y="286" width="250" height="168" rx="10" fill="#dfeaf7" stroke="#2b5d8a" stroke-width="1.4"/>
+<text x="643" y="313" font-family="'STHeiti','PingFang SC','Arial'" font-size="16" fill="#1f2933" text-anchor="start" font-weight="600">单向因果 GRU</text>
+<text x="643" y="343" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">hidden = 128</text>
+<text x="643" y="373" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">pack_padded · 取末步 h_T</text>
+<rect x="938" y="356" width="190" height="118" rx="10" fill="#e6f0ee" stroke="#2f8f83" stroke-width="1.4"/>
+<text x="953" y="383" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">共享表示</text>
+<text x="953" y="413" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">tanh(W_h·h_T + W_c·ctx)</text>
+<text x="953" y="443" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">128 维</text>
+<rect x="1188" y="170" width="380" height="150" rx="10" fill="#e9eef4" stroke="#7d93a9" stroke-width="1.4"/>
+<text x="1203" y="197" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">行级头(每决策点)</text>
+<text x="1203" y="220" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">剩余步数分布(0–5 类)</text>
+<text x="1203" y="243" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">终止概率</text>
+<text x="1203" y="266" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">下一角色 · 下一动作族</text>
+<rect x="1188" y="366" width="380" height="128" rx="10" fill="#e6f0ee" stroke="#2f8f83" stroke-width="1.4"/>
+<text x="1203" y="393" font-family="'STHeiti','PingFang SC','Arial'" font-size="13.5" fill="#1f2933" text-anchor="start" font-weight="600">槽位属性头(未来步 1…5 · 槽位条件)</text>
+<text x="1203" y="416" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">节点类型 · 角色 · 动作族 · 模型类</text>
+<text x="1203" y="439" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">合并 · 重试 · 嵌套模型类</text>
+<rect x="1188" y="566" width="380" height="158" rx="10" fill="#fbf2e2" stroke="#c98a2e" stroke-width="1.4"/>
+<text x="1203" y="593" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">资源头(槽位条件)</text>
+<text x="1203" y="616" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">runtime:16 桶质量均衡分布</text>
+<text x="1203" y="639" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">→ p50 / p90 / p95 · CVaR95</text>
+<text x="1203" y="662" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">load:发生概率 · 时长分位</text>
+<rect x="1652" y="244" width="264" height="158" rx="10" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.4"/>
+<text x="1667" y="271" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">冻结预测包(≤ 5 步未来)</text>
+<text x="1667" y="294" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">结构/属性 + 模型分布</text>
+<text x="1667" y="317" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">runtime 分位(p50/p90/p95)</text>
+<text x="1667" y="340" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">load 概率 / 时长分位</text>
+<rect x="1652" y="560" width="264" height="128" rx="10" fill="#dfeaf7" stroke="#2b5d8a" stroke-width="1.4"/>
+<text x="1667" y="587" font-family="'STHeiti','PingFang SC','Arial'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">调度器(本文方法)</text>
+<text x="1667" y="610" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">F0 排序 + 驻留动作</text>
+<text x="1667" y="633" font-family="'STHeiti','PingFang SC','Arial'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">消费其中 7 项字段</text>
+<line x1="302" y1="262" x2="344" y2="262" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="302" y1="560" x2="344" y2="560" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="584" y1="290" x2="628" y2="330" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<path d="M 584 556 L 906 556 L 906 440 L 938 440" fill="none" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="878" y1="370" x2="938" y2="396" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1128" y1="396" x2="1188" y2="262" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1128" y1="412" x2="1188" y2="430" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1128" y1="430" x2="1188" y2="620" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1378" y1="494" x2="1378" y2="566" stroke="#c98a2e" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="1390" y="535" font-family="'STHeiti','PingFang SC','Arial'" font-size="11.5" fill="#c98a2e" text-anchor="start" font-weight="normal">属性特征条件</text>
+<line x1="1568" y1="245" x2="1652" y2="290" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1568" y1="430" x2="1652" y2="330" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1568" y1="645" x2="1652" y2="372" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1784" y1="402" x2="1784" y2="560" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+</svg>

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1960" height="930" viewBox="0 0 1960 930">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5a6672"/></marker></defs>
+<rect width="1960" height="930" fill="white"/>
+<text x="44" y="54" font-family="'Arial','Helvetica Neue'" font-size="23" fill="#1f2933" text-anchor="start" font-weight="600">Future predictor architecture — shared causal GRU with multi-task heads</text>
+<text x="44" y="84" font-family="'Arial','Helvetica Neue'" font-size="13" fill="#53616f" text-anchor="start" font-weight="normal">Deployed: J3:seed11 (structure/content/behavior) + F0:seed11 (resource head) · frozen · SHA-pinned · train-only fit</text>
+<rect x="322" y="126" width="1278" height="700" rx="16" fill="none" stroke="#b3544a" stroke-width="1.3" stroke-dasharray="7,5" opacity="0.75"/>
+<text x="1596" y="116" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#b3544a" text-anchor="end" font-weight="normal">frozen zone: deployed model</text>
+<rect x="44" y="170" width="258" height="190" rx="10" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.4"/>
+<text x="59" y="197" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Executed prefix (≤ 64 steps)</text>
+<text x="59" y="220" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">event type · node type · role</text>
+<text x="59" y="243" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">raw action · action family · model ID</text>
+<rect x="44" y="470" width="258" height="168" rx="10" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.4"/>
+<text x="59" y="497" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Current-node context</text>
+<text x="59" y="527" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">task type · domain · question type</text>
+<text x="59" y="557" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">official type · sub-category · scope</text>
+<text x="59" y="587" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">baseline · model stack · planner model</text>
+<text x="44" y="692" font-family="'Arial','Helvetica Neue'" font-size="12" fill="#b3544a" text-anchor="start" font-weight="normal">future events / labels / machine tables</text>
+<text x="44" y="712" font-family="'Arial','Helvetica Neue'" font-size="12" fill="#b3544a" text-anchor="start" font-weight="normal">never enter any input</text>
+<rect x="344" y="186" width="240" height="182" rx="10" fill="#e9eef4" stroke="#7d93a9" stroke-width="1.4"/>
+<text x="359" y="213" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Per-field embedding</text>
+<text x="359" y="236" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">6 fields × 16-d, summed per step</text>
+<text x="359" y="259" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">+ position embedding (≤ 64)</text>
+<text x="359" y="282" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">→ step vectors x_1…x_T</text>
+<text x="359" y="305" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">x [B, ≤64, 16]</text>
+<rect x="344" y="486" width="240" height="134" rx="10" fill="#e9eef4" stroke="#7d93a9" stroke-width="1.4"/>
+<text x="359" y="513" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Context embedding</text>
+<text x="359" y="541" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">9 fields × 12-d, summed</text>
+<text x="359" y="569" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">+ task-modality one-hot projection</text>
+<rect x="628" y="196" width="250" height="40" rx="8" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.1"/>
+<text x="753" y="221" font-family="'Arial','Helvetica Neue'" font-size="11.5" fill="#53616f" text-anchor="middle" font-weight="normal">x_1 → x_2 → x_3 → … → x_T</text>
+<text x="753" y="256" font-family="'Arial','Helvetica Neue'" font-size="11.5" fill="#2f8f83" text-anchor="middle" font-weight="normal">causal: executed prefix only</text>
+<rect x="628" y="286" width="250" height="168" rx="10" fill="#dfeaf7" stroke="#2b5d8a" stroke-width="1.4"/>
+<text x="643" y="313" font-family="'Arial','Helvetica Neue'" font-size="16" fill="#1f2933" text-anchor="start" font-weight="600">Unidirectional causal GRU</text>
+<text x="643" y="343" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">hidden = 128</text>
+<text x="643" y="373" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">pack_padded · last step h_T</text>
+<rect x="938" y="356" width="190" height="118" rx="10" fill="#e6f0ee" stroke="#2f8f83" stroke-width="1.4"/>
+<text x="953" y="383" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Shared representation</text>
+<text x="953" y="413" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">tanh(W_h·h_T + W_c·ctx)</text>
+<text x="953" y="443" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">128-d</text>
+<rect x="1188" y="170" width="380" height="150" rx="10" fill="#e9eef4" stroke="#7d93a9" stroke-width="1.4"/>
+<text x="1203" y="197" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Row heads (per decision point)</text>
+<text x="1203" y="220" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">remaining-length dist. (0–5)</text>
+<text x="1203" y="243" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">termination probability</text>
+<text x="1203" y="266" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">next role · next action family</text>
+<rect x="1188" y="366" width="380" height="128" rx="10" fill="#e6f0ee" stroke="#2f8f83" stroke-width="1.4"/>
+<text x="1203" y="393" font-family="'Arial','Helvetica Neue'" font-size="13.5" fill="#1f2933" text-anchor="start" font-weight="600">Slot-attribute heads (future steps 1…5, slot-conditioned)</text>
+<text x="1203" y="416" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">node type · role · action family · model class</text>
+<text x="1203" y="439" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">merged · retry · nested model class</text>
+<rect x="1188" y="566" width="380" height="158" rx="10" fill="#fbf2e2" stroke="#c98a2e" stroke-width="1.4"/>
+<text x="1203" y="593" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Resource heads (slot-conditioned)</text>
+<text x="1203" y="616" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">runtime: 16-bin mass-balanced dist.</text>
+<text x="1203" y="639" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">→ p50 / p90 / p95 · CVaR95</text>
+<text x="1203" y="662" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">load: occurrence prob. · duration quantiles</text>
+<rect x="1652" y="244" width="264" height="158" rx="10" fill="#f4f6f9" stroke="#a7b2bd" stroke-width="1.4"/>
+<text x="1667" y="271" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Frozen prediction pack (≤ 5 steps)</text>
+<text x="1667" y="294" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">structure/attrs + model dist.</text>
+<text x="1667" y="317" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">runtime quantiles (p50/p90/p95)</text>
+<text x="1667" y="340" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">load prob. / duration quantiles</text>
+<rect x="1652" y="560" width="264" height="128" rx="10" fill="#dfeaf7" stroke="#2b5d8a" stroke-width="1.4"/>
+<text x="1667" y="587" font-family="'Arial','Helvetica Neue'" font-size="15" fill="#1f2933" text-anchor="start" font-weight="600">Scheduler (ours)</text>
+<text x="1667" y="610" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">F0 ordering + residency actions</text>
+<text x="1667" y="633" font-family="'Arial','Helvetica Neue'" font-size="12.5" fill="#53616f" text-anchor="start" font-weight="normal">consumes 7 of these fields</text>
+<line x1="302" y1="262" x2="344" y2="262" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="302" y1="560" x2="344" y2="560" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="584" y1="290" x2="628" y2="330" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<path d="M 584 556 L 906 556 L 906 440 L 938 440" fill="none" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="878" y1="370" x2="938" y2="396" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1128" y1="396" x2="1188" y2="262" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1128" y1="412" x2="1188" y2="430" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1128" y1="430" x2="1188" y2="620" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1378" y1="494" x2="1378" y2="566" stroke="#c98a2e" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="1390" y="535" font-family="'Arial','Helvetica Neue'" font-size="11.5" fill="#c98a2e" text-anchor="start" font-weight="normal">attribute features</text>
+<line x1="1568" y1="245" x2="1652" y2="290" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1568" y1="430" x2="1652" y2="330" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1568" y1="645" x2="1652" y2="372" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+<line x1="1784" y1="402" x2="1784" y2="560" stroke="#5a6672" stroke-width="1.4" marker-end="url(#arr)"/>
+</svg>

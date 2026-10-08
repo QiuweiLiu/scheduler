@@ -20,7 +20,7 @@
 | `fig2_system_zh.png` / `.svg` | 系统框图(中文,汇报用)—— **已定稿** |
 | `fig2_system.png` / `.svg` | 系统框图(英文,论文用)—— **已定稿** |
 
-### `figures/`(工作区:9 张图,PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
+### `figures/`(工作区:15 张图,含 fig10 系列备选;PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
 
 **中文版**:文件名加 `_zh` 后缀(如 `fig2_system_zh.png`);数据图由 `scripts/make_report_figures_zh.py` 生成,
 示意图由英文 SVG 翻译生成(字体 STHeiti)。
@@ -36,6 +36,7 @@
 | `fig2_system` | 系统框图:prefix→冻结预测器→{排序,驻留控制}→GPU;机器表只在 evaluator 层 | 方法页 |
 | `fig8_positioning` | 相关工作二维定位(五近邻 + Ours) | 论文用(可选汇报) |
 | `fig13_predictor_families_single_step` | 预测器跨族(单步):动作族 top-1(18 个模型)/ 运行时 rel-MAE(9 个模型,含噪声参考线) | 预测器-1 |
+| `fig15_gru_architecture` | 预测器架构图:共享因果 GRU + 多任务头(部署 J3/F0;因果边界/冻结区标注) | 方法-预测器 |
 
 ### `tables/`(4 组结果表,MD + CSV)
 
