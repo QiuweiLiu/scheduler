@@ -11,6 +11,8 @@
 
 | 文件 | 用途 |
 |---|---|
+| `fig12_lanes_zh.png` / `.svg` | 时间线泳道图(中文,汇报用)—— **已定稿** |
+| `fig12_lanes.png` / `.svg` | 时间线泳道图(英文,论文用)—— **已定稿** |
 | `fig9_workflow_zh.png` / `.svg` | 视频 Agent 工作流图(中文,汇报用)—— **已定稿** |
 | `fig9_workflow.png` / `.svg` | 视频 Agent 工作流图(英文,论文用)—— **已定稿** |
 | `fig2_system_zh.png` / `.svg` | 系统框图(中文,汇报用)—— **已定稿** |
