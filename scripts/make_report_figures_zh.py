@@ -32,8 +32,6 @@ PDRS_V2 = ROOT / "experiments/EXP-20261005_pdrs_comparison_v1/artifacts/pdrs_com
 PDRS_V3 = ROOT / "experiments/EXP-20261005_pdrs_comparison_v1/artifacts/pdrs_comparison_v3.json"
 RES_V1 = ROOT / "experiments/EXP-20261005_residency_comparison_v1/artifacts/residency_comparison_v1.json"
 PREEMPT = ROOT / "experiments/EXP-20261005_residency_comparison_v1/artifacts/residency_preempt_v1.json"
-J_TEST = ROOT / "experiments/EXP-20260911_p9d_j_series_joint_resource/test_eval.json"
-TRUTH_RANK = ROOT / "experiments/EXP-20260921_histres_causal_input_v1/artifacts/pack_vs_truth_ranking.json"
 
 BLUE = "#2b5d8a"
 TEAL = "#2f8f83"
@@ -276,70 +274,6 @@ def fig7_tail_story() -> None:
     save(fig, "fig7_tail_story")
 
 
-def fig13_predictor() -> None:
-    jt = load(J_TEST)
-    tr = load(TRUTH_RANK)
-    seeds = ["11", "22", "33"]
-    variants = [("J0", RED), ("J1", RED), ("J2", BLUE), ("J3", TEAL)]
-    fig, axes = plt.subplots(1, 2, figsize=(11.8, 4.6), gridspec_kw={"width_ratios": [1.2, 1]})
-
-    ax = axes[0]
-    ys = np.arange(len(variants))[::-1]
-    ymin, ymax = -0.55, 3.62
-    ax.set_ylim(ymin, ymax)
-    all_lo, all_hi = [], []
-    for y, (v, color) in zip(ys, variants):
-        for k, s in enumerate(seeds):
-            e = jt["per_seed"][s][v]["runtime_delta"]
-            off = (k - 1) * 0.21
-            ax.plot([e["ci_lower"], e["ci_upper"]], [y + off, y + off],
-                    color=color, lw=1.1, alpha=0.55, solid_capstyle="round")
-            ax.plot([e["delta_mean"]], [y + off], "o", color=color, ms=3.2, alpha=0.85)
-            all_lo.append(e["ci_lower"])
-            all_hi.append(e["ci_upper"])
-    xmin, xmax = min(all_lo), max(all_hi)
-    ax.set_xlim(xmin - 18, xmax + 165)
-    for y, (v, color) in zip(ys, variants):
-        m = float(np.mean([jt["per_seed"][s][v]["runtime_delta"]["delta_mean"] for s in seeds]))
-        ax.text(xmax + 155, y, f"{m:+.0f}", va="center", ha="right", fontsize=9.5, color="#333")
-    ax.text(xmax + 155, ymax - 0.30, "均值 Δ", va="center", ha="right", fontsize=8.5, color=GRAY)
-    ax.axvline(0, color=GRAY, lw=1.4)
-    ax.set_yticks(ys)
-    ax.set_yticklabels([v for v, _ in variants], fontsize=10.5)
-    ax.set_xlabel("相对参照 B1 的 RuntimeQScore 差(ms;负 = 更好)", fontsize=9.5)
-    ax.set_title("资源头训练(test 仅消费一次):\n"
-                 "J2/J3 在 3/3 seeds 上改善 runtime 预测;J0/J1 显著更差",
-                 fontsize=10.5)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.grid(axis="x", color=LIGHT, lw=0.7)
-    ax.set_axisbelow(True)
-
-    ax2 = axes[1]
-    packs = [("F0\n(部署)", "F0_seed11", AMBER),
-             ("J3\n(前代)", "J3 (A0)", BLUE),
-             ("R1b", "R1b (A1)", GRAY),
-             ("R3a-U", "R3a-U (A2)", GRAY)]
-    xs = np.arange(len(packs))
-    vals = [tr["agreement_with_truth"][k]["spearman"] for _, k, _ in packs]
-    ax2.bar(xs, vals, color=[c for _, _, c in packs], width=0.62)
-    for x, v in zip(xs, vals):
-        ax2.text(x, v + 0.012, f"{v:.3f}", ha="center", fontsize=10.5)
-    ax2.set_xticks(xs)
-    ax2.set_xticklabels([p for p, _, _ in packs], fontsize=9.5)
-    ax2.set_ylim(0, 0.78)
-    ax2.set_ylabel("与真值排序的 Spearman", fontsize=9.5)
-    ax2.set_title("部署选型:真值参照排序质量\n"
-                  "(7,663 锚点;F0 = 首个超过前代 J3 的候选包)", fontsize=10.5)
-    ax2.spines[["top", "right"]].set_visible(False)
-    ax2.grid(axis="y", color=LIGHT, lw=0.7)
-    ax2.set_axisbelow(True)
-
-    fig.text(0.012, -0.035,
-             "注:J 系列 test 仅消费一次;J2/J3 因 load-duration 非劣失败(+3~+7%)未获 Core GO;"
-             "遥测消融(F1−F0)CI 跨 0,未采纳;真值走查为固定空驻留代理,四包公平。",
-             fontsize=8, color=GRAY)
-    save(fig, "fig13_predictor_quality")
-
 
 if __name__ == "__main__":
     fig3_main_table_forest()
@@ -347,5 +281,4 @@ if __name__ == "__main__":
     fig5_residency()
     fig6_attribution()
     fig7_tail_story()
-    fig13_predictor()
     print("done")
