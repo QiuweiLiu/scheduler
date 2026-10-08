@@ -236,13 +236,12 @@ def fig14_structure() -> None:
                Patch(facecolor="#8a97a6", edgecolor="white", label="\u7559\u51fa(holdout)")]
     fig.legend(handles=handles, loc="upper right", ncol=2, frameon=False, fontsize=8.4,
                bbox_to_anchor=(0.995, 1.045), handletextpad=0.4, columnspacing=1.2)
-    fig.suptitle("\u591a\u6b65\u7ed3\u6784\u9884\u6d4b:\u7edf\u8ba1 vs \u8868\u683c ML vs \u56e0\u679c GRU"
-                 "(P9d \u57fa\u51c6;\u540c\u4e00\u6570\u636e\u4e0e\u5207\u5206)",
+    fig.suptitle("\u591a\u6b65\u7ed3\u6784\u9884\u6d4b:\u7edf\u8ba1 vs \u8868\u683c ML vs \u56e0\u679c GRU",
                  fontsize=10.5, x=0.008, ha="left", y=1.045, color=TXT)
     fig.text(0.008, -0.055,
-             "GRU:\u5171\u4eab\u56e0\u679c GRU,3 seeds \u5747\u503c\u00b1std(\u534f\u8bae\u9009\u5b9a topology \u53d8\u4f53);"
-             "\u7edf\u8ba1\u57fa\u7ebf = \u6761\u4ef6\u7ecf\u9a8c\u9891\u7387\u8868,holdout \u4e0a\u6761\u4ef6\u952e\u5168\u90e8\u672a\u89c1 \u2192 \u5168\u5c40\u56de\u9000\u3002"
-             "P9d v1 \u951a\u70b9:13,754/2,029/1,520/1,380;holdout \u51bb\u7ed3\u540e\u4ec5\u8bfb\u4e00\u6b21\u3002",
+             "\u6307\u6807\u8bf4\u660e:\u5c42\u6570 / \u8282\u70b9\u6570 / \u5bbd\u5ea6\u5411\u91cf MAE = \u9884\u6d4b\u672a\u6765 DAG \u7ed3\u6784"
+             "(\u5c42\u6570\u3001\u8282\u70b9\u6570\u3001\u5404\u5c42\u5bbd\u5ea6)\u4e0e\u771f\u503c\u7684\u5e73\u5747\u7edd\u5bf9\u8bef\u5dee,\u8d8a\u4f4e\u8d8a\u597d;"
+             "\u7cbe\u786e\u7b7e\u540d top-1 = \u9884\u6d4b\u7ed3\u6784\u4e0e\u771f\u503c\u5b8c\u5168\u4e00\u81f4\u7684\u6bd4\u4f8b,\u8d8a\u9ad8\u8d8a\u597d\u3002",
              fontsize=7.8, color=GRAY)
     save(fig, "fig14_predictor_structure")
 

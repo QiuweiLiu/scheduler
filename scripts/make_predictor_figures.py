@@ -229,13 +229,12 @@ def fig14_structure() -> None:
                Patch(facecolor="#8a97a6", edgecolor="white", label="holdout")]
     fig.legend(handles=handles, loc="upper right", ncol=2, frameon=False, fontsize=8.4,
                bbox_to_anchor=(0.995, 1.045), handletextpad=0.4, columnspacing=1.2)
-    fig.suptitle("Multi-step structure prediction — statistical vs. tabular-ML vs. causal GRU "
-                 "(P9d benchmark; identical data & splits)",
+    fig.suptitle("Multi-step structure prediction — statistical vs. tabular-ML vs. causal GRU",
                  fontsize=10.5, x=0.008, ha="left", y=1.045, color=TXT)
     fig.text(0.008, -0.055,
-             "GRU: shared causal GRU, 3 seeds (mean±std over seeds; protocol-selected topology variant). "
-             "Statistical baseline = conditional empirical frequency table; on holdout all condition keys are unseen → global fallback. "
-             "P9d v1 anchors: 13,754 train / 2,029 validation / 1,520 test / 1,380 holdout; holdout read once after freezing.",
+             "Metric notes: layer / node-count / width-vector MAE = mean absolute error of the predicted future-DAG structure "
+             "(layer count, node count, per-layer widths) vs. ground truth — lower is better; "
+             "exact-signature top-1 = share of exactly-matching predicted structures — higher is better.",
              fontsize=7.8, color=GRAY)
     save(fig, "fig14_predictor_structure")
 
