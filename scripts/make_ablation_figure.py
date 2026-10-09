@@ -52,11 +52,9 @@ T = {
             "main_b": "主线(参考)",
         },
         "tag": "主线",
-        "foot": ("图示:在主线(pdrs_resident)上逐项消融——动作消融(驻留动作取舍)与信息消融(预测分布质量);"
-                 "各臂与主线逐集配对(冻结 confirm300,CI = 95% bootstrap;正 = 比主线差;除抢占臂为跨运行配对,其余同 run)。"
-                 "读数:去掉预取 +264 均值 / +430 p95;去掉全部驻留动作 +841 / +2,547;加抢占显著恶化 p95(+2,559)与 makespan(+3,376)。"
-                 "预测分布:打乱内容 → 尾部显著变差(+1,615);改为点估计 → 全指标与主线统计打平"
-                 "(首步预测分布已近似确定:argmax 中位 0.94 → 消费粒度不影响结论)。"),
+        "foot": ("指标:平均完成时间 = confirm300(300 集)的平均完成时间;"
+                 "p95 完成时间 = 完成时间的 95 分位数;makespan = 全部任务完成的总时长;"
+                 "Δ vs 主线 = 各臂与主线的逐集配对差值(正 = 比主线差;CI = 95% bootstrap)。"),
     },
     "en": {
         "suptitle": "Main-line ablations — action and information variants (Δ vs main line, frozen confirm300)",
@@ -72,13 +70,9 @@ T = {
             "main_b": "Main line (reference)",
         },
         "tag": "main line",
-        "foot": ("What is plotted: one-component-at-a-time ablations of the main line (pdrs_resident) — "
-                 "action ablation (residency choices) and information ablation (predicted-distribution quality); every arm is paired per episode "
-                 "against the main line (frozen confirm300; 95% bootstrap CIs; positive = worse; all arms share the run except preemption, which is cross-run). "
-                 "Readings: dropping prefetch costs +264 mean / +430 p95; dropping all residency actions +841 / +2,547; "
-                 "adding preemption significantly hurts p95 (+2,559) and makespan (+3,376). "
-                 "Distribution: shuffling the predicted distribution is significantly worse at the tail (+1,615); replacing it with a point estimate ties the main line on all metrics "
-                 "(the first-step distribution is already near-deterministic: median argmax 0.94 — consumption granularity does not change the outcome)."),
+        "foot": ("Metrics: mean completion = average completion time over the 300-episode confirm set; "
+                 "p95 completion = 95th percentile of completion times; makespan = total span to finish all tasks; "
+                 "Δ vs main line = per-episode paired difference (positive = worse; 95% bootstrap CI)."),
     },
 }
 
@@ -157,8 +151,9 @@ def render(lang: str):
     for ax, metric, xlim, label_x in panels:
         for kind, key, yy in entries:
             if kind == "header":
-                ax.text(xlim[0] + 55, yy, t["headers"][key], fontsize=9.0,
-                        color=TXT, fontweight="bold")
+                if ax is axes[0]:
+                    ax.text(xlim[0] + 55, yy, t["headers"][key], fontsize=9.0,
+                            color=TXT, fontweight="bold")
                 if key != "A":
                     ax.axhline(yy - 0.50, color=LIGHT, lw=0.9)
                 continue
