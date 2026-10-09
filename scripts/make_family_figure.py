@@ -50,10 +50,11 @@ T = {
             "parrot": "Parrot:应用级 FIFO [OSDI'24]",
             "llmsched": "LLMSched:贝叶斯信息获取 [ICDCS'25]",
             "hermes": "Hermes:PDGraph + Gittins + 预热 [TACO'26]",
-            "main": "主线(参考):F0 排序 + PDRS 信念 + 驱逐 + 预取",
+            "main": "主线(参考)",
         },
         "tag": "主线",
-        "foot": ("图示:六条适配基线相对主线的逐集配对差值(三个面板:平均 / p95 / makespan;正 = 比主线差;"
+        "foot": ("图示:六条适配基线相对主线(pdrs_resident = F0 排序 + PDRS 信念 + 最小 ΣV 驱逐 + 保守预取)的逐集配对差值"
+                 "(三个面板:平均 / p95 / makespan;正 = 比主线差;"
                  "CI = 95% bootstrap,冻结 confirm300、跨运行配对;跨接口提示:基线不携带驻留动作,仅作端到端对比、不作机制归因;"
                  "Myopic(补充下限)未画)。基线来源:Parrot [OSDI '24],QLM [SoCC '24],LLMSched [ICDCS '25],"
                  "Hermes [TACO '26],Torpor [ATC '25],FCFS 为经典基线。"),
@@ -69,10 +70,11 @@ T = {
             "parrot": "Parrot: application FIFO [OSDI'24]",
             "llmsched": "LLMSched: Bayesian info gain [ICDCS'25]",
             "hermes": "Hermes: PDGraph + Gittins + prewarm [TACO'26]",
-            "main": "Main line (reference): F0 ordering + PDRS belief + eviction + prefetch",
+            "main": "Main line (reference)",
         },
         "tag": "main line",
         "foot": ("What is plotted: per-episode paired deltas of the six adapted baselines against the main line "
+                 "(pdrs_resident = F0 ordering + PDRS belief + minimal-ΣV eviction + conservative prefetch) "
                  "(mean / p95 / makespan; positive = worse; 95% bootstrap CIs; frozen confirm300, cross-run pairing; "
                  "cross-interface caveat: baselines do not carry the residency actions — end-to-end only, no mechanism attribution; "
                  "Myopic lower bound omitted). Baseline sources: Parrot [OSDI '24], QLM [SoCC '24], LLMSched [ICDCS '25], "
