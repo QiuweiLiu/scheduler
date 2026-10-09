@@ -42,43 +42,45 @@ T = {
         "suptitle": "主线消融:动作消融与信息消融(Δ vs 主线,confirm300 冻结集)",
         "panels": ["平均完成时间", "p95 完成时间", "makespan"],
         "xlabel": "Δ vs 主线(ms;正 = 更差)",
-        "headers": {"A": "动作消融(驻留动作的取舍)", "B": "信息消融(信念质量)"},
+        "headers": {"A": "动作消融(驻留动作的取舍)", "B": "信息消融(预测分布质量)"},
         "rows": {
-            "f0": "F0 底座(无驻留动作)",
-            "evict": "仅驱逐(无预取)",
-            "main_a": "主线(参考)", "preempt": "+ 抢占(SRPT 请求级)",
-            "shuffle": "打乱信念 + 驻留",
+            "f0": "主线(无驱逐、预取)",
+            "evict": "主线(无预取)",
+            "main_a": "主线(参考)", "preempt": "主线 + 抢占(SRPT)",
+            "shuffle": "打乱预测分布 + 驻留",
             "f0point": "点信念(f0point)+ 驻留",
             "main_b": "主线(参考)",
-            "oracle": "开天眼(真值身份)+ 驻留",
+            "oracle": "真实值 + 驻留",
         },
         "tag": "主线",
-        "foot": ("图示:在主线(pdrs_resident)上逐项消融——动作消融(驻留动作取舍)与信息消融(信念质量);"
+        "foot": ("图示:在主线(pdrs_resident)上逐项消融——动作消融(驻留动作取舍)与信息消融(预测分布质量);"
                  "各臂与主线逐集配对(冻结 confirm300,CI = 95% bootstrap;正 = 比主线差;除抢占臂为跨运行配对,其余同 run)。"
                  "读数:去掉预取 +264 均值 / +430 p95;去掉全部驻留动作 +841 / +2,547;加抢占显著恶化 p95(+2,559)与 makespan(+3,376)。"
-                 "信念:打乱信念尾部显著变差(+1,615),点信念与开天眼均与主线打平(信息已无剩余空间)。"),
+                 "预测分布:打乱后尾部显著变差(+1,615);点信念与真实值全指标与主线统计打平"
+                 "(首步预测分布已近似确定:argmax 中位 0.94、99.6% 的行 ≥0.5 → 几无剩余空间)。"),
     },
     "en": {
         "suptitle": "Main-line ablations — action and information variants (Δ vs main line, frozen confirm300)",
         "panels": ["Mean completion", "p95 completion", "Makespan"],
         "xlabel": "Δ vs main line (ms, positive = worse)",
-        "headers": {"A": "Action ablation (residency choices)", "B": "Information ablation (belief quality)"},
+        "headers": {"A": "Action ablation (residency choices)", "B": "Information ablation (predicted-distribution quality)"},
         "rows": {
-            "f0": "F0 base (no residency actions)",
-            "evict": "Eviction only (no prefetch)",
-            "main_a": "Main line (reference)", "preempt": "+ Preemption (SRPT)",
-            "shuffle": "Shuffled belief + residency",
+            "f0": "Main line (no eviction/prefetch)",
+            "evict": "Main line (no prefetch)",
+            "main_a": "Main line (reference)", "preempt": "Main line + preemption (SRPT)",
+            "shuffle": "Shuffled predicted distribution + residency",
             "f0point": "Point belief (f0point) + residency",
             "main_b": "Main line (reference)",
-            "oracle": "Oracle (true identity) + residency",
+            "oracle": "True values + residency",
         },
         "tag": "main line",
         "foot": ("What is plotted: one-component-at-a-time ablations of the main line (pdrs_resident) — "
-                 "action ablation (residency choices) and information ablation (belief quality); every arm is paired per episode "
+                 "action ablation (residency choices) and information ablation (predicted-distribution quality); every arm is paired per episode "
                  "against the main line (frozen confirm300; 95% bootstrap CIs; positive = worse; all arms share the run except preemption, which is cross-run). "
                  "Readings: dropping prefetch costs +264 mean / +430 p95; dropping all residency actions +841 / +2,547; "
                  "adding preemption significantly hurts p95 (+2,559) and makespan (+3,376). "
-                 "Belief: shuffled belief is significantly worse at the tail (+1,615); point belief and oracle tie the main line on all metrics (no remaining headroom)."),
+                 "Distribution: shuffling is significantly worse at the tail (+1,615); point belief and true values tie the main line on all metrics "
+                 "(the predicted first-step distribution is already near-deterministic: median argmax 0.94, 99.6% of rows ≥0.5 — little remaining headroom)."),
     },
 }
 
