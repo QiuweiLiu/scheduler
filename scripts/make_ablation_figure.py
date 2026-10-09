@@ -46,18 +46,17 @@ T = {
         "rows": {
             "f0": "主线(无驱逐、预取)",
             "evict": "主线(无预取)",
-            "main_a": "主线(参考)", "preempt": "主线 + 抢占(SRPT)",
+            "main_a": "主线(参考)", "preempt": "主线 + 抢占",
             "shuffle": "打乱预测分布 + 驻留",
-            "f0point": "点信念(f0point)+ 驻留",
+            "f0point": "主线(概率分布估计改为点估计)",
             "main_b": "主线(参考)",
-            "oracle": "真实值 + 驻留",
         },
         "tag": "主线",
         "foot": ("图示:在主线(pdrs_resident)上逐项消融——动作消融(驻留动作取舍)与信息消融(预测分布质量);"
                  "各臂与主线逐集配对(冻结 confirm300,CI = 95% bootstrap;正 = 比主线差;除抢占臂为跨运行配对,其余同 run)。"
                  "读数:去掉预取 +264 均值 / +430 p95;去掉全部驻留动作 +841 / +2,547;加抢占显著恶化 p95(+2,559)与 makespan(+3,376)。"
-                 "预测分布:打乱后尾部显著变差(+1,615);点信念与真实值全指标与主线统计打平"
-                 "(首步预测分布已近似确定:argmax 中位 0.94、99.6% 的行 ≥0.5 → 几无剩余空间)。"),
+                 "预测分布:打乱内容 → 尾部显著变差(+1,615);改为点估计 → 全指标与主线统计打平"
+                 "(首步预测分布已近似确定:argmax 中位 0.94 → 消费粒度不影响结论)。"),
     },
     "en": {
         "suptitle": "Main-line ablations — action and information variants (Δ vs main line, frozen confirm300)",
@@ -67,11 +66,10 @@ T = {
         "rows": {
             "f0": "Main line (no eviction/prefetch)",
             "evict": "Main line (no prefetch)",
-            "main_a": "Main line (reference)", "preempt": "Main line + preemption (SRPT)",
+            "main_a": "Main line (reference)", "preempt": "Main line + preemption",
             "shuffle": "Shuffled predicted distribution + residency",
-            "f0point": "Point belief (f0point) + residency",
+            "f0point": "Main line (distribution estimate → point estimate)",
             "main_b": "Main line (reference)",
-            "oracle": "True values + residency",
         },
         "tag": "main line",
         "foot": ("What is plotted: one-component-at-a-time ablations of the main line (pdrs_resident) — "
@@ -79,14 +77,14 @@ T = {
                  "against the main line (frozen confirm300; 95% bootstrap CIs; positive = worse; all arms share the run except preemption, which is cross-run). "
                  "Readings: dropping prefetch costs +264 mean / +430 p95; dropping all residency actions +841 / +2,547; "
                  "adding preemption significantly hurts p95 (+2,559) and makespan (+3,376). "
-                 "Distribution: shuffling is significantly worse at the tail (+1,615); point belief and true values tie the main line on all metrics "
-                 "(the predicted first-step distribution is already near-deterministic: median argmax 0.94, 99.6% of rows ≥0.5 — little remaining headroom)."),
+                 "Distribution: shuffling the predicted distribution is significantly worse at the tail (+1,615); replacing it with a point estimate ties the main line on all metrics "
+                 "(the first-step distribution is already near-deterministic: median argmax 0.94 — consumption granularity does not change the outcome)."),
     },
 }
 
 ORDER = [
     ("A", "f0"), ("A", "evict"), ("A", "main_a"), ("A", "preempt"),
-    ("B", "shuffle"), ("B", "f0point"), ("B", "main_b"), ("B", "oracle"),
+    ("B", "shuffle"), ("B", "f0point"), ("B", "main_b"),
 ]
 
 
@@ -110,7 +108,6 @@ def build_rows():
         "evict": res["results"]["pdrs_evict"],
         "shuffle": res["results"]["pdrs_resident_shuffle"],
         "f0point": res["results"]["f0point_resident"],
-        "oracle": res["results"]["pdrs_resident_oracle"],
         "preempt": pre["results"]["pdrs_preempt"],
     }
     out = {}
@@ -147,7 +144,7 @@ def render(lang: str):
         y = i if i < 4 else 5.4 + (i - 4)
         entries.append(("row", key, y))
     entries.append(("header", "B", 4.55))
-    y_bottom = 8.4
+    y_bottom = 7.4
 
     fig = plt.figure(figsize=(12.6, 5.0))
     gs = fig.add_gridspec(1, 3, wspace=0.10, width_ratios=[1.12, 1.22, 1.0])
