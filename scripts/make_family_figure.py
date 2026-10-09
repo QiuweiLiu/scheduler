@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import random
 import statistics
+import textwrap
 from pathlib import Path
 
 import matplotlib
@@ -215,7 +216,9 @@ def render(lang: str):
         ax.set_title(title, fontsize=10.2, color=TXT, pad=14, loc="left")
 
     fig.suptitle(t["suptitle"], fontsize=11.5, x=0.008, ha="left", y=1.03, color=TXT)
-    fig.text(0.008, -0.075, t["foot"], fontsize=7.6, color=GRAYTXT)
+    width = 105 if lang == "zh" else 200
+    foot = "\n".join(textwrap.wrap(t["foot"], width=width))
+    fig.text(0.008, -0.06, foot, fontsize=7.6, color=GRAYTXT, va="top", linespacing=1.45)
 
     suffix = "_zh" if lang == "zh" else ""
     name = f"fig16_main_vs_families{suffix}"
