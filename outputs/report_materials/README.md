@@ -11,6 +11,7 @@
 
 | 文件 | 用途 |
 |---|---|
+| `formulas_main_line_and_baselines.md` | 公式文档:主线 + 七条适配基线(实现对齐版,含代码行号;汇报/论文附录)—— **已定稿** |
 | `fig17_main_ablations_zh.png` / `.svg` | 主线消融:动作 + 信息(中文,汇报用)—— **已定稿** |
 | `fig17_main_ablations.png` / `.svg` | 主线消融:动作 + 信息(英文,论文用)—— **已定稿** |
 | `fig16_main_vs_families_zh.png` / `.svg` | 调度器对比:主线 vs 六条适配基线(柱状;中文,汇报用)—— **已定稿** |
