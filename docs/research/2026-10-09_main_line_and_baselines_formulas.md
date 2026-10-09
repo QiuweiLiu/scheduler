@@ -78,7 +78,7 @@ R_B(j) = 可见剩余工作量 + Σ 预测未来后缀工作量
 
 ## 2. 适配基线(主表,冻结)
 
-能力分布(与图 16 分组一致):**[基础] FCFS、Parrot;[含未来信息] LLMSched、QLM、Hermes(Hermes 另含在线预热动作);[含复杂动作] Torpor**。
+能力分布(逐条标注):**[基础] FCFS、Parrot;[含未来信息] LLMSched [ICDCS'25]、QLM [SoCC'24]、Hermes [TACO'26](Hermes 另含在线预热动作);[含复杂动作] Torpor [ATC'25]**。
 
 ### 2.1 FCFS
 
@@ -94,7 +94,7 @@ key = ( prio, p50_runtime + 1[m∉resident]·p50_load, 1[m∉resident], ready_ti
 
 只评估**当前一步**成本(实现 L6332;主表外补充测:mean +1,491.4 [+945.4,+2,102.1])。
 
-### 2.3 Parrot(App-FIFO 适配)
+### 2.3 Parrot(App-FIFO 适配;OSDI'24)
 
 ```
 key = ( prio, job.arrival_ms, ready_time, j, n, gpu )     # 同 service class 内最老 application 先;连续 stage 承袭 arrival → 深度优先
@@ -102,7 +102,7 @@ key = ( prio, job.arrival_ms, ready_time, j, n, gpu )     # 同 service class �
 
 省略:Semantic Variable API / prefix 共享 / batching / 并行 task-group;禁止:critical-path 等 LJF 变体(实现 L5186)。
 
-### 2.4 Torpor(lifecycle 适配)
+### 2.4 Torpor(lifecycle 适配;ATC'25)
 
 ```
 key = ( prio, ready_time, j, n, rank, placement_cost, gpu )
@@ -113,7 +113,7 @@ placement_cost(rank=1) = 实测 load + 干扰附加(由 (infer_model, infer_shap
 
 实现 L5285;`torpor_methods.torpor_placement_rank` L99、`swap_burden_order` L76。
 
-### 2.5 Hermes(PDGraph + 论文原式 Gittins 适配)
+### 2.5 Hermes(PDGraph + 论文原式 Gittins 适配;TACO'26)
 
 ```
 key = ( prio, G_j, ready_time, j, n, gpu )      # G 越小优先级越高
@@ -123,7 +123,7 @@ G(D,0) = inf_{Δ>0} E[min(X, Δ)] / P(X ≤ Δ)      # 精确经验 Gittins:在�
 
 实现 L5379;`hermes_methods.gittins_index` L203。
 
-### 2.6 QLM(不确定性感知的随机队列,SAA 适配)
+### 2.6 QLM(不确定性感知的随机队列,SAA 适配;SoCC'24)
 
 ```
 场景:S = 64 个公共随机数场景(每集固定种子)
@@ -134,7 +134,7 @@ G(D,0) = inf_{Δ>0} E[min(X, Δ)] / P(X ≤ Δ)      # 精确经验 Gittins:在�
 
 实现 L5433;`qlm_methods.qlm_saa_choice` L70。
 
-### 2.7 LLMSched(信息获取 vs JCT 利用)
+### 2.7 LLMSched(信息获取 vs JCT 利用;ICDCS'25)
 
 ```
 每次决策掷一次 ε 硬币(ε = 0.1):

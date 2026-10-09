@@ -38,7 +38,7 @@
 | `fig8_positioning` | 相关工作二维定位(五近邻 + Ours) | 论文用(可选汇报) |
 | `fig13_predictor_families_single_step` | 预测器跨族(单步):动作族 top-1(18 个模型)/ 运行时 rel-MAE(9 个模型,含噪声参考线) | 预测器-1 |
 | `fig15_gru_architecture` | 预测器架构图:共享因果 GRU + 多任务头(部署 J3/F0;因果边界/冻结区标注) | 方法-预测器 |
-| `fig16_main_vs_families` | 调度器总对比:主线 vs 适配基线(按能力分组:基础/含未来信息/含复杂动作;Δ vs 主线,mean/p95/makespan + CI) | 结果-总览 |
+| `fig16_main_vs_families` | 调度器总对比:主线 vs 六条适配基线(单列,标注方法与出处;Δ vs 主线,mean/p95/makespan + CI) | 结果-总览 |
 
 ### `tables/`(4 组结果表,MD + CSV)
 

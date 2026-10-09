@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""fig16: the main line vs the adapted baselines (delta vs main line, confirm300).
+"""fig16: the main line vs the six adapted baselines (delta vs main line, confirm300).
 
-Baselines grouped by capability (as adapted, per the frozen manifest):
-  A  basic (no future info / no complex actions): FCFS, Parrot
-  B  future information in ordering: QLM, LLMSched, Hermes
-  C  complex actions (residency / loading): Torpor
+One flat list; each baseline annotated with its method and source venue.
 Reference row: the main line itself.
 
 Outputs SVG + PNG (zh + en) into outputs/report_materials/figures/.
@@ -36,63 +33,54 @@ MT = ROOT / "experiments/EXP-20261004_main_table_comparison_v1/artifacts/main_ta
 FCFS = ROOT / "experiments/EXP-20261004_main_table_comparison_v1/artifacts/fcfs_tail_v1.json"
 RES = ROOT / "experiments/EXP-20261005_residency_comparison_v1/artifacts/residency_comparison_v1.json"
 
-GRAY, TEAL, AMBER, BLUE = "#8a97a6", "#2f8f83", "#c98a2e", "#2b5d8a"
+GRAY, BLUE = "#8a97a6", "#2b5d8a"
 LIGHT = "#e8eaed"
 TXT = "#2b2f33"
 GRAYTXT = "#6b6b6b"
-GROUP_COLOR = {"A": GRAY, "B": TEAL, "C": AMBER}
 
 T = {
     "zh": {
-        "suptitle": "调度器对比:主线 vs 适配基线(按能力分组;Δ vs 主线,confirm300)",
+        "suptitle": "调度器对比:主线 vs 六条适配基线(Δ vs 主线,confirm300 冻结集)",
         "panels": ["平均完成时间", "p95 完成时间", "makespan"],
         "xlabel": "Δ vs 主线(ms;正 = 更差)",
-        "headers": {"A": "基础基线(无未来信息 / 无复杂动作)",
-                     "B": "含未来信息(预测 / 信念参与排序)",
-                     "C": "含复杂动作(主动驻留 / 加载管理)"},
         "rows": {
-            "fcfs": "FCFS", "parrot": "Parrot(App-FIFO)",
-            "qlm": "QLM(时长分布 + 场景)", "llmsched": "LLMSched(贝叶斯后验)",
-            "hermes": "Hermes(PDGraph + Gittins;含在线预热)",
-            "torpor": "Torpor(换入换出 + 驱逐 + 干扰感知)",
-            "main": "主线(pdrs_resident;参考)",
+            "fcfs": "FCFS:经典先到先服务",
+            "torpor": "Torpor:生命周期管理 [ATC'25]",
+            "qlm": "QLM:随机队列 + SLO [SoCC'24]",
+            "parrot": "Parrot:应用级 FIFO [OSDI'24]",
+            "llmsched": "LLMSched:贝叶斯信息获取 [ICDCS'25]",
+            "hermes": "Hermes:PDGraph + Gittins + 预热 [TACO'26]",
+            "main": "主线(参考):F0 排序 + PDRS 信念 + 驱逐 + 预取",
         },
         "tag": "主线",
-        "foot": ("参照 = 主线 pdrs_resident(F0 排序 + PDRS 信念 + 最小 ΣV 驱逐 + 保守预取);"
-                 "Δ>0 = 比主线差。CI = 300 集逐集配对 bootstrap 95%(跨运行;同一冻结 confirm300,参照 F0 逐位复现)。"
-                 "违约率:主线对全部 6 条更优(Δ 0.002–0.008);makespan:显著胜 Parrot/LLMSched/Hermes,"
-                 "与 FCFS/QLM 打平(CI 含 0),显著负于 Torpor。"
-                 "跨接口提示:基线不携带驻留动作,仅作端到端对比、不作机制归因。Myopic(补充下限)未画。"),
+        "foot": ("图示:六条适配基线相对主线的逐集配对差值(三个面板:平均 / p95 / makespan;正 = 比主线差;"
+                 "CI = 95% bootstrap,冻结 confirm300、跨运行配对;跨接口提示:基线不携带驻留动作,仅作端到端对比、不作机制归因;"
+                 "Myopic(补充下限)未画)。基线来源:Parrot [OSDI '24],QLM [SoCC '24],LLMSched [ICDCS '25],"
+                 "Hermes [TACO '26],Torpor [ATC '25],FCFS 为经典基线。"),
     },
     "en": {
-        "suptitle": "Scheduler comparison — main line vs adapted baselines (grouped by capability; Δ vs main line, confirm300)",
+        "suptitle": "Scheduler comparison — main line vs six adapted baselines (Δ vs main line, frozen confirm300)",
         "panels": ["Mean completion", "p95 completion", "Makespan"],
         "xlabel": "Δ vs main line (ms, positive = worse)",
-        "headers": {"A": "Basic baselines",
-                     "B": "Future-information methods",
-                     "C": "Complex-action methods"},
         "rows": {
-            "fcfs": "FCFS", "parrot": "Parrot (App-FIFO)",
-            "qlm": "QLM (duration dist. + scenarios)", "llmsched": "LLMSched (Bayesian posterior)",
-            "hermes": "Hermes (PDGraph + Gittins; online prewarm)",
-            "torpor": "Torpor (swap + eviction + interference-aware)",
-            "main": "Main line (pdrs_resident; reference)",
+            "fcfs": "FCFS (classic)",
+            "torpor": "Torpor: lifecycle [ATC'25]",
+            "qlm": "QLM: stochastic queue + SLO [SoCC'24]",
+            "parrot": "Parrot: application FIFO [OSDI'24]",
+            "llmsched": "LLMSched: Bayesian info gain [ICDCS'25]",
+            "hermes": "Hermes: PDGraph + Gittins + prewarm [TACO'26]",
+            "main": "Main line (reference): F0 ordering + PDRS belief + eviction + prefetch",
         },
         "tag": "main line",
-        "foot": ("Reference = the main line pdrs_resident (F0 ordering + PDRS belief + minimal-ΣV eviction + conservative prefetch); "
-                 "Δ>0 means worse than the main line. CIs = paired bootstrap 95% over 300 episodes (cross-run; identical frozen confirm300, F0 reproduced bit-identically). "
-                 "Deadline miss: main line better on all six (Δ 0.002–0.008); makespan: significant wins over Parrot/LLMSched/Hermes, ties FCFS/QLM (CI crosses 0), significant loss to Torpor. "
-                 "Grouping: basic = no future info / no complex actions; future-info = prediction or belief in ordering; complex-action = active residency / loading management. "
-                 "Cross-interface caveat: baselines do not carry the residency actions — end-to-end only, no mechanism attribution. Myopic (supplementary) omitted."),
+        "foot": ("What is plotted: per-episode paired deltas of the six adapted baselines against the main line "
+                 "(mean / p95 / makespan; positive = worse; 95% bootstrap CIs; frozen confirm300, cross-run pairing; "
+                 "cross-interface caveat: baselines do not carry the residency actions — end-to-end only, no mechanism attribution; "
+                 "Myopic lower bound omitted). Baseline sources: Parrot [OSDI '24], QLM [SoCC '24], LLMSched [ICDCS '25], "
+                 "Hermes [TACO '26], Torpor [ATC '25], FCFS classic."),
     },
 }
 
-ORDER = [
-    ("A", "fcfs"), ("A", "parrot"),
-    ("B", "qlm"), ("B", "llmsched"), ("B", "hermes"),
-    ("C", "torpor"),
-    ("M", "main"),
-]
+ORDER = ["fcfs", "torpor", "qlm", "parrot", "llmsched", "hermes", "main"]
 
 
 def load(path: Path) -> dict:
@@ -112,11 +100,11 @@ def build_rows():
 
     sources = {
         "fcfs": fcfs,
-        "parrot": mt["results"]["parrot_appfifo"],
+        "torpor": mt["results"]["torpor_lifecycle"],
         "qlm": mt["results"]["qlm_queue"],
+        "parrot": mt["results"]["parrot_appfifo"],
         "llmsched": mt["results"]["llmsched"],
         "hermes": mt["results"]["hermes_gittins"],
-        "torpor": mt["results"]["torpor_lifecycle"],
     }
     metrics = ["mean_completion_ms", "p95_completion_ms", "makespan_ms"]
     out = {}
@@ -142,44 +130,31 @@ def render(lang: str):
 
     entries = []
     y = 0.0
-    for gi, group in enumerate(("A", "B", "C")):
-        if gi > 0:
-            y += 1.45
-        entries.append(("header", group, y - 0.62))
-        for g, key in ORDER:
-            if g == group:
-                entries.append(("row", key, y))
-                y += 1.0
+    for key in ORDER[:-1]:
+        entries.append(("row", key, y))
+        y += 1.0
     y += 0.95
     entries.append(("row", "main", y))
     y_bottom = y
 
-    fig = plt.figure(figsize=(12.8, 5.6))
+    fig = plt.figure(figsize=(12.6, 4.5))
     gs = fig.add_gridspec(1, 3, wspace=0.10, width_ratios=[1.12, 1.22, 1.0])
     axes = [fig.add_subplot(gs[0, i]) for i in range(3)]
     panels = list(zip(axes,
                       ["mean_completion_ms", "p95_completion_ms", "makespan_ms"],
-                      [(-600, 7300), (-2000, 11500), (-3400, 4900)],
-                      [7100, 11300, 4700]))
+                      [(-700, 6700), (-2100, 10600), (-3300, 4400)],
+                      [6500, 10400, 4200]))
 
     for ax, metric, xlim, label_x in panels:
         for kind, key, yy in entries:
-            if kind == "header":
-                ax.text(xlim[0] + 60, yy, t["headers"][key], fontsize=8.8,
-                        color=TXT, fontweight="bold")
-                if key != "A":
-                    ax.axhline(yy - 0.40, color=LIGHT, lw=0.9)
-                continue
-            group = next(g for g, k in ORDER if k == key)
-            color = BLUE if key == "main" else GROUP_COLOR[group]
+            color = BLUE if key == "main" else GRAY
             point, (lo, hi) = data[key][metric]
             highlight = key == "main"
             if highlight:
                 ax.axhspan(yy - 0.40, yy + 0.40, color="#eef3f9", zorder=0)
-            if key == "main":
                 ax.plot([0.0], [yy], "o", color=BLUE, ms=5.2, zorder=3)
             else:
-                ax.plot([lo, hi], [yy, yy], color=color, lw=1.9, alpha=0.6,
+                ax.plot([lo, hi], [yy, yy], color=color, lw=1.9, alpha=0.65,
                         solid_capstyle="round", zorder=2)
                 ax.plot([point], [yy], "o", color=color, ms=4.6, zorder=3)
             label = "0" if highlight else f"{point:+,.0f}"
@@ -187,10 +162,10 @@ def render(lang: str):
                     color=color if highlight else GRAYTXT,
                     fontweight="bold" if highlight else "normal")
         ax.axvline(0.0, color=BLUE, lw=1.2, ls=(0, (4, 3)), alpha=0.75, zorder=1)
-        ax.text(0.0, -1.45, t["tag"], color=BLUE, fontsize=8.4,
+        ax.text(0.0, -1.05, t["tag"], color=BLUE, fontsize=8.4,
                 ha="center", va="bottom", clip_on=False)
         ax.set_xlim(*xlim)
-        ax.set_ylim(y_bottom + 0.15, -1.35)
+        ax.set_ylim(y_bottom + 0.15, -0.95)
         ax.set_yticks([])
         ax.grid(axis="x", color=LIGHT, lw=0.7)
         ax.set_axisbelow(True)
@@ -199,24 +174,20 @@ def render(lang: str):
         ax.spines["bottom"].set_linewidth(0.9)
         ax.tick_params(axis="x", labelsize=8.2)
         ax.set_xlabel(t["xlabel"], fontsize=8.4, color=TXT)
+        ax.set_title(t["panels"][list(panels and [p[1] for p in panels]).index(metric)]
+                     if False else t["panels"][["mean_completion_ms", "p95_completion_ms",
+                                                "makespan_ms"].index(metric)],
+                     fontsize=10.2, color=TXT, pad=14, loc="left")
 
-    # shared row labels on the first axes
-    labels = []
-    for kind, key, yy in entries:
-        labels.append((yy, t["headers"][key] if kind == "header" else t["rows"][key], kind, key))
-    axes[0].set_yticks([yy for yy, _, _, _ in labels])
-    axes[0].set_yticklabels(["" if kind == "header" else lab for _, lab, kind, _ in labels],
-                            fontsize=8.3)
+    axes[0].set_yticks([yy for _, _, yy in entries])
+    axes[0].set_yticklabels([t["rows"][key] for _, key, _ in entries], fontsize=8.3)
     axes[0].tick_params(axis="y", length=0)
-    for tick, (_, _, kind, key) in zip(axes[0].get_yticklabels(), labels):
-        if kind == "row" and key == "main":
+    for tick, (_, key, _) in zip(axes[0].get_yticklabels(), entries):
+        if key == "main":
             tick.set_color(BLUE); tick.set_fontweight("bold")
 
-    for ax, title in zip(axes, t["panels"]):
-        ax.set_title(title, fontsize=10.2, color=TXT, pad=14, loc="left")
-
     fig.suptitle(t["suptitle"], fontsize=11.5, x=0.008, ha="left", y=1.03, color=TXT)
-    width = 105 if lang == "zh" else 200
+    width = 108 if lang == "zh" else 205
     foot = "\n".join(textwrap.wrap(t["foot"], width=width))
     fig.text(0.008, -0.06, foot, fontsize=7.6, color=GRAYTXT, va="top", linespacing=1.45)
 
