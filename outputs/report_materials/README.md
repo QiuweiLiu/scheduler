@@ -11,6 +11,8 @@
 
 | 文件 | 用途 |
 |---|---|
+| `fig16_main_vs_families_zh.png` / `.svg` | 调度器对比:主线 vs 六条适配基线(柱状;中文,汇报用)—— **已定稿** |
+| `fig16_main_vs_families.png` / `.svg` | 调度器对比:主线 vs 六条适配基线(柱状;英文,论文用)—— **已定稿** |
 | `fig15_predictor_architecture_zh.png` | 预测器架构图(图像生成版,中文;用户提供)—— **暂定** |
 | `fig14_predictor_structure_zh.png` / `.svg` | 多步结构预测跨族对比(中文,汇报用)—— **已定稿** |
 | `fig14_predictor_structure.png` / `.svg` | 多步结构预测跨族对比(英文,论文用)—— **已定稿** |
@@ -21,7 +23,7 @@
 | `fig2_system_zh.png` / `.svg` | 系统框图(中文,汇报用)—— **已定稿** |
 | `fig2_system.png` / `.svg` | 系统框图(英文,论文用)—— **已定稿** |
 
-### `figures/`(工作区:16 张图,含 fig10 系列备选;PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
+### `figures/`(工作区:15 张图,含 fig10 系列备选;PNG + SVG;每张都有英文版与 **`_zh` 中文版**)
 
 **中文版**:文件名加 `_zh` 后缀(如 `fig2_system_zh.png`);数据图由 `scripts/make_report_figures_zh.py` 生成,
 示意图由英文 SVG 翻译生成(字体 STHeiti)。

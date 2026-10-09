@@ -156,9 +156,12 @@ def render(lang: str):
                 ax.axhspan(yy - 0.40, yy + 0.40, color="#eef3f9", zorder=0)
                 ax.plot([0.0], [yy], "o", color=BLUE, ms=5.2, zorder=3)
             else:
-                ax.plot([lo, hi], [yy, yy], color=color, lw=1.9, alpha=0.65,
-                        solid_capstyle="round", zorder=2)
-                ax.plot([point], [yy], "o", color=color, ms=4.6, zorder=3)
+                ax.barh(yy, point, height=0.52, color=color, alpha=0.75,
+                        edgecolor="white", linewidth=0.6, zorder=2)
+                ax.errorbar([point], [yy],
+                            xerr=[[max(0.0, point - lo)], [max(0.0, hi - point)]],
+                            fmt="none", ecolor="#4a5560", elinewidth=0.9,
+                            capsize=2.4, capthick=0.9, zorder=3)
             label = "0" if highlight else f"{point:+,.0f}"
             ax.text(label_x, yy, label, ha="right", va="center", fontsize=8.0,
                     color=color if highlight else GRAYTXT,
