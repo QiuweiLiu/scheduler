@@ -11,6 +11,7 @@
 
 | 文件 | 用途 |
 |---|---|
+| `fig15_predictor_architecture_zh.png` | 预测器架构图(图像生成版,中文;用户提供)—— **暂定** |
 | `fig14_predictor_structure_zh.png` / `.svg` | 多步结构预测跨族对比(中文,汇报用)—— **已定稿** |
 | `fig14_predictor_structure.png` / `.svg` | 多步结构预测跨族对比(英文,论文用)—— **已定稿** |
 | `fig12_lanes_zh.png` / `.svg` | 时间线泳道图(中文,汇报用)—— **已定稿** |
