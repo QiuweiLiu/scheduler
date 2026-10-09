@@ -76,7 +76,9 @@ R_B(j) = 可见剩余工作量 + Σ 预测未来后缀工作量
 
 ---
 
-## 2. 基础基线(主表,冻结)
+## 2. 适配基线(主表,冻结)
+
+能力分布(与图 16 分组一致):**[基础] FCFS、Parrot;[含未来信息] LLMSched、QLM、Hermes(Hermes 另含在线预热动作);[含复杂动作] Torpor**。
 
 ### 2.1 FCFS
 
@@ -145,20 +147,7 @@ G(D,0) = inf_{Δ>0} E[min(X, Δ)] / P(X ≤ Δ)      # 精确经验 Gittins:在�
 
 ---
 
-## 3. 附:两种"未来感知排序折算"(图 16 B 组,无动作)
-
-```
-suffix_expected_cost      = Σ_{k=1..5} q_k · ( runtime_mean_k + occ_k · p95_load_k )        # 均值口径
-suffix_expected_cost_p95  = Σ_{k=1..5} q_k · ( p95_runtime_k  + occ_k · p95_load_k )        # p95 口径
-q_k = P(L ≥ k) (生存权重)
-```
-
-实现:`pdrs_methods.suffix_expected_cost` L82 / `suffix_expected_cost_p95` L102。
-纯排序(无动作)结果:均值口径 mean +61 [−217,+329] / p95 +1,666 [+285,+3,000];p95 口径 mean −8 / p95 +226(n.s.)→ 不叠加动作时尾部受损。
-
----
-
-## 4. 对齐与边界说明
+## 3. 对齐与边界说明
 
 - 所有臂共享同一 substrate 与信息契约(manifest §前提);本文件只给公式,不复述保留/省略清单。
 - 主线沿用的 F0 排序键与全部基线/对照臂在**同一模拟器内**逐字节复现(参照 F0 mean 69,788.8878 ms)。
