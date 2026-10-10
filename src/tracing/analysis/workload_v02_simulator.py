@@ -2368,8 +2368,23 @@ def residency_artifacts_for_policy(
     Every residency arm orders by the REAL frozen artifacts; only the residency
     belief changes.  The shuffle arm swaps the belief pack per instance (cached
     once per episode in ``policy_context``) so the ordering stays untouched.
+    The prior arm replaces the identity (every modelled step) and chain-length
+    channels with unconditional pooled marginals (round-7 information ladder;
+    ``docs/research/2026-10-10_exp_a_info_ladder_residency.md``).  The runner may
+    pre-seed the prior pack in ``policy_context["_residency_prior_pack"]`` so the
+    pooling is computed once per run instead of once per episode.
     """
 
+    if policy == "pdrs_resident_prior":
+        if policy_context is None:
+            return future_artifacts
+        cached = policy_context.get("_residency_prior_pack")
+        if cached is None:
+            from tracing.analysis.pdrs_methods import build_prior_artifacts
+
+            cached = build_prior_artifacts(future_artifacts, all_steps=True)
+            policy_context["_residency_prior_pack"] = cached
+        return cached
     if policy != "pdrs_resident_shuffle":
         return future_artifacts
     if policy_context is None:
@@ -2866,6 +2881,7 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "pdrs_preempt",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
+    "pdrs_resident_prior",
 )
 # Prefetch is the second residency action and is enabled only for the full
 # residency package; the eviction-only diagnostic arms must never prefetch.
@@ -2877,6 +2893,7 @@ RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "pdrs_preempt",
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
+    "pdrs_resident_prior",
 )
 # Request-level preemption arms.  The legacy two keep their original heuristics;
 # the round-6 belief arms use the R_B (remaining-work belief) rule.

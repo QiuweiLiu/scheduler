@@ -189,6 +189,7 @@ def placement_affinity(
 def build_prior_artifacts(
     future_artifacts: Mapping[str, Mapping[str, Any]],
     horizon: int = HORIZON,
+    all_steps: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Unconditional-prior control: pooled marginals replace instance beliefs.
 
@@ -197,10 +198,19 @@ def build_prior_artifacts(
     chain ``length_probabilities`` with pooled averages over all frozen rows.
     This is the matched control for "instance-conditioned vs prior" (the
     SAGA/LLMSched-style historical/aggregate alternative).
+
+    ``all_steps=True`` (round-7 residency information-ladder control) pools the
+    model distribution PER FUTURE STEP k (separate marginal over all rows that
+    carry step k) and replaces every step's ``model_probabilities``; the chain
+    marginal is pooled as before.  Default ``False`` keeps the round-5
+    first-step-only behaviour byte-identical.  See
+    ``docs/research/2026-10-10_exp_a_info_ladder_residency.md``.
     """
 
     model_acc: dict[str, float] = {}
     model_n = 0
+    step_acc: list[dict[str, float]] = []
+    step_n: list[int] = []
     length_acc: list[float] | None = None
     length_n = 0
     for row in future_artifacts.values():
@@ -211,6 +221,19 @@ def build_prior_artifacts(
                 for model, probability in distribution.items():
                     model_acc[str(model)] = model_acc.get(str(model), 0.0) + float(probability)
                 model_n += 1
+            if all_steps:
+                for index, step in enumerate(steps[:horizon]):
+                    step_distribution = step.get("model_probabilities") or {}
+                    if not step_distribution:
+                        continue
+                    while len(step_acc) <= index:
+                        step_acc.append({})
+                        step_n.append(0)
+                    for model, probability in step_distribution.items():
+                        step_acc[index][str(model)] = (
+                            step_acc[index].get(str(model), 0.0) + float(probability)
+                        )
+                    step_n[index] += 1
         probs = row.get("length_probabilities") or []
         if probs:
             if length_acc is None:
@@ -219,16 +242,29 @@ def build_prior_artifacts(
                 length_acc[index] += float(probability)
             length_n += 1
     prior_model = {model: value / model_n for model, value in model_acc.items()} if model_n else {}
+    prior_steps = [
+        ({model: value / step_n[index] for model, value in acc.items()} if step_n[index] else {})
+        for index, acc in enumerate(step_acc)
+    ]
     prior_length = [value / length_n for value in length_acc] if (length_acc and length_n) else None
 
     result: dict[str, dict[str, Any]] = {}
     for node_id, row in future_artifacts.items():
         new_row = dict(row)
         scenarios = row.get(f"future_h{horizon}") or []
-        if scenarios and prior_model:
+        replace_steps = (
+            (all_steps and any(prior_steps))
+            or (not all_steps and bool(prior_model))
+        )
+        if scenarios and replace_steps:
             steps = [dict(step) for step in (scenarios[0].get("steps") or [])]
             if steps:
-                steps[0] = {**steps[0], "model_probabilities": dict(prior_model)}
+                if all_steps:
+                    for index in range(len(steps)):
+                        if index < len(prior_steps) and prior_steps[index]:
+                            steps[index] = {**steps[index], "model_probabilities": dict(prior_steps[index])}
+                else:
+                    steps[0] = {**steps[0], "model_probabilities": dict(prior_model)}
                 new_row[f"future_h{horizon}"] = [{**scenarios[0], "steps": steps}]
         if prior_length is not None:
             new_row["length_probabilities"] = list(prior_length)
