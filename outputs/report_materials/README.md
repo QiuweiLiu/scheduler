@@ -13,6 +13,7 @@
 |---|---|
 | `formulas_main_line_and_baselines.md` | 公式文档:主线 + 七条适配基线(实现对齐版,含代码行号;汇报/论文附录)—— **已定稿** |
 | `tables/all_formal_experiments_2026-10.md` | **完整实验表格**:调度证据链总表(A–E 升级版)+ 全部 44 个正式实验清单(2026-10-10) |
+| `tables/raw_results_ABCDE_2026-10-10.md` | **A–E 原始结果数据表(无结论)**:各臂绝对均值、Δ+CI、机制计数、预注册对照(2026-10-10) |
 | `fig17_main_ablations_zh.png` / `.svg` | 主线消融:动作 + 信息(中文,汇报用)—— **已定稿** |
 | `fig17_main_ablations.png` / `.svg` | 主线消融:动作 + 信息(英文,论文用)—— **已定稿** |
 | `fig16_main_vs_families_zh.png` / `.svg` | 调度器对比:主线 vs 六条适配基线(柱状;中文,汇报用)—— **已定稿** |
