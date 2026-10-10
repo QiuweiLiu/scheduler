@@ -2460,6 +2460,62 @@ def residency_demand_totals(
     return values, nexts
 
 
+def pack_gittins_samples(
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    node_id: str,
+    train_stats: Mapping[str, Mapping[str, Any]],
+    horizon: int = 5,
+    scale: int = 200,
+) -> list[float]:
+    """Remaining-demand samples implied by the frozen pack (Gittins input).
+
+    Matched-consumer helper (exp B): Hermes's rank consumes an empirical
+    distribution of remaining demand.  This derives that distribution from the
+    SAME frozen prediction pack the residency arms consume: chain-length outcome
+    k=1..H carries the cumulative conservative step cost
+    ``W_k = sum_{i<=k} q95_step_cost(step_i)`` (the frozen F0 ordering
+    functional) with probability ``P(L=k)`` (individual masses for k<H; the
+    ``k>=H`` tail mass is one point at ``W_H``), normalised by ``P(L>=1)`` and
+    represented as integer-repeated samples (scale=200).  Empty rows (chain
+    tails) return ``[]``; the caller maps that to +inf like the faithful arm.
+    """
+
+    from tracing.analysis.pdrs_methods import _steps
+
+    row = future_artifacts.get(str(node_id)) or {}
+    steps = _steps(row, horizon)
+    if not steps:
+        return []
+    probs = [float(value) for value in (row.get("length_probabilities") or [])]
+    if len(probs) < 2:
+        return []
+    cumulative: list[float] = []
+    total = 0.0
+    for step in steps[:horizon]:
+        total += _q95_step_cost(step, train_stats)
+        cumulative.append(total)
+    if not cumulative:
+        return []
+    q1 = sum(probs[1:])
+    if q1 <= 0.0:
+        return []
+    masses: list[float] = []
+    for k in range(1, horizon + 1):
+        if k < horizon:
+            masses.append(probs[k] if k < len(probs) else 0.0)
+        else:
+            masses.append(sum(probs[horizon:]))
+    samples: list[float] = []
+    for index, mass in enumerate(masses):
+        repeats = int(round((mass / q1) * scale))
+        if repeats > 0:
+            value = cumulative[min(index, len(cumulative) - 1)]
+            samples.extend([value] * repeats)
+    if not samples:
+        samples = [cumulative[-1]]
+    return samples
+
+
 def roots(template: Template) -> list[str]:
     return [node.node_id for node in template.nodes if not node.predecessors]
 
@@ -2882,9 +2938,17 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
     "pdrs_resident_prior",
+    # Matched-consumer mechanism controls (exp B): F0 ordering + belief eviction +
+    # the arm-specific swapped component.  hermes_order_mainline has its own
+    # ordering branch placed BEFORE this residency branch in the ordering chain.
+    "hermes_order_mainline",
+    "hermes_prefetch_mainline",
+    "torpor_evict_mainline",
 )
 # Prefetch is the second residency action and is enabled only for the full
 # residency package; the eviction-only diagnostic arms must never prefetch.
+# hermes_prefetch_mainline is deliberately absent: its prefetch rule is the
+# swapped Hermes-style trigger dispatched separately.
 RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "f0point_resident",
     "pdrs_resident",
@@ -2894,6 +2958,8 @@ RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "pdrs_resident_shuffle",
     "pdrs_resident_oracle",
     "pdrs_resident_prior",
+    "hermes_order_mainline",
+    "torpor_evict_mainline",
 )
 # Request-level preemption arms.  The legacy two keep their original heuristics;
 # the round-6 belief arms use the R_B (remaining-work belief) rule.
@@ -5050,6 +5116,67 @@ def choose_action(
 
         chosen = min(pool, key=pdrs_oracle_score)
 
+    elif policy == "hermes_order_mainline":
+        """Matched-consumer control (exp B): Hermes's Gittins rank on the pack.
+
+        The demand distribution comes from the SAME frozen prediction pack the
+        residency arms consume (cumulative conservative step costs truncated by
+        the predicted chain-length distribution, see ``pack_gittins_samples``);
+        everything else is the main line: minimal-SigmaV eviction, U-argmax
+        prefetch, residency placement.  Mechanism comparison only -- not a
+        reproduction of the Hermes paper (its PDGraph is not involved).
+
+        Design: docs/research/2026-10-10_exp_b_matched_consumer.md
+        """
+        if future_artifacts is None:
+            raise ValueError(f"{policy} requires finite-horizon artifacts")
+        horizon = 5
+        from tracing.analysis.hermes_methods import gittins_index
+        from tracing.analysis.residency_methods import eviction_penalty
+
+        residency_pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        values, _next_demand = residency_demand_totals(
+            jobs, residency_pack, residency_mode_for_policy(policy), horizon
+        )
+
+        def hermes_pack_key(candidate):
+            item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+            index = gittins_index(
+                pack_gittins_samples(future_artifacts, node_id, train_stats, horizon)
+            )
+            if index is None:
+                index = math.inf
+            return (
+                float(item[0]),
+                float(index),
+                float(item[1]),
+                item[2],
+                item[3],
+                gpu.index,
+            )
+
+        hermes_choice = min(pool, key=hermes_pack_key)
+        chosen_node_id = hermes_choice[2]
+        node_pool = [candidate for candidate in pool if candidate[2] == chosen_node_id]
+        if len(node_pool) > 1:
+            def hermes_pack_placement_key(candidate):
+                item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+                node = jobs[job_index].template.by_id[node_id]
+                _admitted, evicted, _memory, _workspace, _projected = plan_gpu_admission(
+                    gpu, node, estimate_row, eviction_values=values
+                )
+                return (eviction_penalty(evicted, values), hermes_pack_key(candidate))
+
+            chosen = min(node_pool, key=hermes_pack_placement_key)
+            if policy_context is not None:
+                if hermes_choice[4].index != chosen[4].index:
+                    activation = policy_context.setdefault("activation", {})
+                    activation["hermes_order_placement_flips"] = int(
+                        activation.get("hermes_order_placement_flips", 0)
+                    ) + 1
+        else:
+            chosen = hermes_choice
+
     elif policy in RESIDENCY_POLICIES:
         """Round-6 residency arms: frozen-F0 ordering for every arm; the belief
         only feeds residency actions (eviction subset at dispatch + prefetch).
@@ -6868,6 +6995,78 @@ def simulate_episode(
             ) + 1
         return [{"gpu_index": gpu_index, "model_id": target}]
 
+    def _hermes_pack_prefetch_plan() -> list[dict[str, Any]]:
+        """Hermes-style prewarm trigger on the frozen prediction pack (exp B).
+
+        Matched-consumer mechanism control: the trigger conditions and target
+        selection keep the faithful Hermes shape (single running task per device,
+        most probable next unit must clear K=0.5, the load must finish before the
+        scheduler-visible predicted completion, target device = the running
+        device, same-device duplicate check only), but the demand distribution is
+        read from the SAME frozen pack the residency arms consume -- the running
+        node's row, first future step -- instead of the online PDGraph.  The
+        duplicate scope (same device here vs every device in the main-line
+        prefetch rule) is part of each rule and stays as designed.  Not a paper
+        reproduction.
+
+        Design: docs/research/2026-10-10_exp_b_matched_consumer.md
+        """
+
+        from tracing.analysis.hermes_methods import model_load_estimate_ms
+
+        if future_artifacts is None:
+            return []
+        K = 0.5
+        pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        for gpu in gpus:
+            entries = gpu.active_node_entries()
+            if len(entries) != 1 or gpu.prefetch_pending:
+                continue
+            _task_id, task = entries[0]
+            if task.owner is None:
+                continue
+            if task.work_start_ms is not None and task.work_start_ms > now + 1e-9:
+                continue
+            job_index, node_id = task.owner
+            row = pack.get(str(node_id)) or {}
+            scenarios = row.get("future_h5") or []
+            steps = (scenarios[0].get("steps") or []) if scenarios else []
+            distribution = (steps[0].get("model_probabilities") or {}) if steps else {}
+            if not distribution:
+                continue
+            model_id = max(
+                sorted(str(model) for model in distribution),
+                key=lambda model: (float(distribution[model]), model),
+            )
+            p_s = float(distribution[model_id])
+            if p_s < K:
+                continue
+            # Faithful Hermes duplicate check: same device only (the wider
+            # every-device check belongs to the main-line prefetch rule, not
+            # to this swapped component).
+            if model_id in gpu.resident or model_id in gpu.loading_model_ids():
+                continue
+            model_node = find_model_node(model_id)
+            if model_node is None or model_node.resident_model_mb is None:
+                continue
+            t_p = model_load_estimate_ms(train_stats, model_id)
+            if t_p <= 0.0:
+                continue
+            predicted_work = optional_number(task.predicted_work_ms)
+            if predicted_work is None or predicted_work <= 0.0:
+                continue
+            t_c = float(task.work_start_ms if task.work_start_ms is not None else task.start_ms)
+            t_c += float(predicted_work) * max(1e-9, float(task.slowdown))
+            if float(now) + t_p > t_c + 1e-9:
+                continue
+            activation = (policy_context or {}).get("activation")
+            if activation is not None:
+                activation["hermes_style_prewarm_trigger"] = int(
+                    activation.get("hermes_style_prewarm_trigger", 0)
+                ) + 1
+            return [{"gpu_index": gpu.index, "model_id": model_id}]
+        return []
+
     def _latency_aware_prefetch_plan() -> list[dict[str, Any]]:
         """Eq (5) alpha_N = Prefetch, derived from the live pool state.
 
@@ -6945,9 +7144,10 @@ def simulate_episode(
         return sequence
 
     prefetch_plan_consumed = False
+    prefetch_capacity_failures = 0
 
     def initialize_prefetch() -> None:
-        nonlocal prefetch_plan_consumed
+        nonlocal prefetch_plan_consumed, prefetch_capacity_failures
         """Schedule explicit, paid model loads before the first dispatch.
 
         The plan comes from ``extension_config["prefetch_plan"]`` for the existing
@@ -6964,6 +7164,8 @@ def simulate_episode(
             plan = _latency_aware_prefetch_plan()
         if not plan and policy == "hermes_gittins":
             plan = _hermes_prefetch_plan()
+        if not plan and policy == "hermes_prefetch_mainline":
+            plan = _hermes_pack_prefetch_plan()
         if not plan and policy in RESIDENCY_PREFETCH_POLICIES:
             plan = _residency_prefetch_plan()
         if not plan:
@@ -6994,6 +7196,7 @@ def simulate_episode(
                 + gpu.active_workspace_mb()
             )
             if projected > gpu.capacity_mb + 1e-9:
+                prefetch_capacity_failures += 1
                 log_prefetch(
                     "prefetch_fail",
                     gpu,
@@ -8122,7 +8325,7 @@ def simulate_episode(
                     )
                     eviction_preference = None
                     eviction_values = None
-                    if policy == "torpor_lifecycle":
+                    if policy in ("torpor_lifecycle", "torpor_evict_mainline"):
                         from tracing.analysis.torpor_methods import swap_burden_order
 
                         eviction_preference = swap_burden_order(
@@ -8423,6 +8626,7 @@ def simulate_episode(
         if extension_config.get("prefetch_overlap") and (
             extension_config.get("prefetch_plan")
             or policy == "hermes_gittins"
+            or policy == "hermes_prefetch_mainline"
             or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()
@@ -8500,6 +8704,7 @@ def simulate_episode(
         "preemption_resume_count": sum(job.resume_count for job in jobs),
         "preemption_stall_ms": round(sum(job.preempt_stall_ms for job in jobs), 3),
         "prefetch_count": sum(gpu.prefetch_count for gpu in gpus),
+        "prefetch_capacity_failures": prefetch_capacity_failures,
         "prefetch_load_ms": sum(gpu.prefetch_load_ms for gpu in gpus),
         "prefetch_interference_events": dict(sorted(prefetch_interference_events.items())),
         "prefetch_interference_unsupported": dict(sorted(prefetch_interference_unsupported.items())),
