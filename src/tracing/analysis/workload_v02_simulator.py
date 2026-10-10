@@ -2358,6 +2358,32 @@ def residency_mode_for_policy(policy: str) -> str:
     return "pdrs"
 
 
+def residency_states_for_policy(policy: str) -> tuple[str, ...]:
+    """Frontier states feeding the residency value (scope sensitivity variant).
+
+    Frozen design: ready + running.  ``pdrs_resident_readyonly`` restricts the
+    aggregation to ready nodes (the ``V/U aggregation scope`` sensitivity arm,
+    docs/research/2026-10-10_exp_e_sensitivity.md).
+    """
+
+    if policy == "pdrs_resident_readyonly":
+        return ("ready",)
+    return ("ready", "running")
+
+
+def residency_next_steps_for_policy(policy: str) -> int:
+    """Next-demand window for the prefetch target score (depth variant).
+
+    Frozen design: the first future step only (k=1).
+    ``pdrs_resident_k2`` scores the prefetch target on the cumulative demand of
+    the next TWO predicted steps (k=2).
+    """
+
+    if policy == "pdrs_resident_k2":
+        return 2
+    return 1
+
+
 def residency_artifacts_for_policy(
     policy: str,
     future_artifacts: Mapping[str, Mapping[str, Any]],
@@ -2428,8 +2454,15 @@ def residency_demand_totals(
     future_artifacts: Mapping[str, Mapping[str, Any]],
     mode: str,
     horizon: int = 5,
+    states: Sequence[str] = ("ready", "running"),
+    next_steps: int = 1,
 ) -> tuple[dict[str, float], dict[str, float]]:
-    """(V totals, U totals) over every active frontier node (ready + running)."""
+    """(V totals, U totals) over the selected frontier node states.
+
+    ``states`` defaults to the frozen ready+running frontier; the scope
+    sensitivity variant restricts it to ``("ready",)``.  ``next_steps`` defaults
+    to the frozen single-step next-demand (prefetch-depth variant uses 2).
+    """
 
     from tracing.analysis.residency_methods import (
         demand_quality,
@@ -2439,9 +2472,10 @@ def residency_demand_totals(
 
     values: dict[str, float] = {}
     nexts: dict[str, float] = {}
+    state_set = set(states)
     for job in jobs:
         for node_id, state in job.node_state.items():
-            if state not in ("ready", "running"):
+            if state not in state_set:
                 continue
             if mode == "oracle":
                 demand = oracle_demand(
@@ -2452,7 +2486,7 @@ def residency_demand_totals(
                 )
             else:
                 demand = demand_quality(future_artifacts, node_id, mode, horizon)
-            node_values, node_nexts = totals_from_demand(demand)
+            node_values, node_nexts = totals_from_demand(demand, next_steps=next_steps)
             for model, value in node_values.items():
                 values[model] = values.get(model, 0.0) + value
             for model, value in node_nexts.items():
@@ -2944,6 +2978,12 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "hermes_order_mainline",
     "hermes_prefetch_mainline",
     "torpor_evict_mainline",
+    # Prefetch parameter sensitivity arms (exp E): k=2 demand window, two
+    # in-flight prefetch targets, ready-only V/U aggregation.  Frozen design
+    # choices are k=1 / one-in-flight / ready+running.
+    "pdrs_resident_k2",
+    "pdrs_resident_inflight2",
+    "pdrs_resident_readyonly",
 )
 # Prefetch is the second residency action and is enabled only for the full
 # residency package; the eviction-only diagnostic arms must never prefetch.
@@ -2960,6 +3000,8 @@ RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "pdrs_resident_prior",
     "hermes_order_mainline",
     "torpor_evict_mainline",
+    "pdrs_resident_k2",
+    "pdrs_resident_readyonly",
 )
 # Request-level preemption arms.  The legacy two keep their original heuristics;
 # the round-6 belief arms use the R_B (remaining-work belief) rule.
@@ -5193,7 +5235,9 @@ def choose_action(
 
         residency_pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
         values, _next_demand = residency_demand_totals(
-            jobs, residency_pack, residency_mode_for_policy(policy), horizon
+            jobs, residency_pack, residency_mode_for_policy(policy), horizon,
+            states=residency_states_for_policy(policy),
+            next_steps=residency_next_steps_for_policy(policy),
         )
         p95_ordering = policy in {"pdrs_p95_resident", "pdrs_p95_evict"}
         if p95_ordering:
@@ -6951,6 +6995,8 @@ def simulate_episode(
         _values, nexts = residency_demand_totals(
             jobs, pack, residency_mode_for_policy(policy),
             int(future_horizon) if future_horizon else 5,
+            states=residency_states_for_policy(policy),
+            next_steps=residency_next_steps_for_policy(policy),
         )
         # The belief may assign demand to CPU-lane pseudo-models; a prefetch can
         # only act on measured GPU deployments, so the target is the largest
@@ -6994,6 +7040,71 @@ def simulate_episode(
                 activation.get("residency_prefetch_proposed", 0)
             ) + 1
         return [{"gpu_index": gpu_index, "model_id": target}]
+
+    def _residency_prefetch_plan_inflight2() -> list[dict[str, Any]]:
+        """Sensitivity variant: up to TWO concurrent prefetch targets per call.
+
+        Same belief consumption, same no-eviction fit rule and same duplicate
+        guards as the frozen single-in-flight plan; targets are the top-2 U(m)
+        actionable models, each assigned to the best no-eviction device that has
+        no pending prefetch and is not already used by this plan.  The frozen
+        design choice (one in-flight prefetch) is the control.
+        """
+
+        from tracing.analysis.residency_methods import choose_prefetch_gpu
+
+        if future_artifacts is None:
+            return []
+        pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        _values, nexts = residency_demand_totals(
+            jobs, pack, residency_mode_for_policy(policy),
+            int(future_horizon) if future_horizon else 5,
+        )
+        gpu_models = {
+            str(node.model_id)
+            for template in templates.values()
+            for node in template.nodes
+            if node.lane == "gpu" and node.model_id
+        }
+        actionable = {
+            model: value for model, value in nexts.items()
+            if model in gpu_models and value > 0.0
+        }
+        if not actionable:
+            return []
+        targets = sorted(actionable, key=lambda model: (-actionable[model], model))[:2]
+        plan: list[dict[str, Any]] = []
+        used_devices: set[int] = set()
+        for target in targets:
+            if any(
+                target in gpu.resident or target in gpu.loading_model_ids() for gpu in gpus
+            ):
+                continue
+            model_node = find_model_node(target)
+            if model_node is None or model_node.resident_model_mb is None:
+                continue
+            model_row = estimate(model_node, train_stats)
+            memory = model_memory(model_node, model_row)
+            free: dict[int, float] = {}
+            for gpu in gpus:
+                if gpu.prefetch_pending or gpu.index in used_devices:
+                    continue
+                resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+                projected = resident_mb + memory + gpu.active_workspace_mb()
+                if projected <= gpu.capacity_mb + 1e-9:
+                    free[gpu.index] = gpu.capacity_mb - resident_mb - gpu.active_workspace_mb()
+            gpu_index = choose_prefetch_gpu(free, memory)
+            if gpu_index is None:
+                continue
+            used_devices.add(gpu_index)
+            plan.append({"gpu_index": gpu_index, "model_id": target})
+        if plan:
+            activation = (policy_context or {}).get("activation")
+            if activation is not None:
+                activation["residency_prefetch_proposed"] = int(
+                    activation.get("residency_prefetch_proposed", 0)
+                ) + len(plan)
+        return plan
 
     def _hermes_pack_prefetch_plan() -> list[dict[str, Any]]:
         """Hermes-style prewarm trigger on the frozen prediction pack (exp B).
@@ -7166,6 +7277,8 @@ def simulate_episode(
             plan = _hermes_prefetch_plan()
         if not plan and policy == "hermes_prefetch_mainline":
             plan = _hermes_pack_prefetch_plan()
+        if not plan and policy == "pdrs_resident_inflight2":
+            plan = _residency_prefetch_plan_inflight2()
         if not plan and policy in RESIDENCY_PREFETCH_POLICIES:
             plan = _residency_prefetch_plan()
         if not plan:
@@ -8340,6 +8453,8 @@ def simulate_episode(
                             _residency_pack,
                             residency_mode_for_policy(policy),
                             int(future_horizon) if future_horizon else 5,
+                            states=residency_states_for_policy(policy),
+                            next_steps=residency_next_steps_for_policy(policy),
                         )
                     admitted, evicted_plan, memory, predicted_workspace, total_memory = plan_gpu_admission(
                         gpu, node, row, eviction_preference=eviction_preference,
@@ -8627,6 +8742,7 @@ def simulate_episode(
             extension_config.get("prefetch_plan")
             or policy == "hermes_gittins"
             or policy == "hermes_prefetch_mainline"
+            or policy == "pdrs_resident_inflight2"
             or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()

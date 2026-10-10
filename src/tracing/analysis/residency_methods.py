@@ -133,15 +133,24 @@ def oracle_demand(
     return out
 
 
-def totals_from_demand(demand: Sequence[Mapping[str, float]]) -> tuple[dict[str, float], dict[str, float]]:
-    """(V totals over all steps, U totals over the first step)."""
+def totals_from_demand(
+    demand: Sequence[Mapping[str, float]],
+    next_steps: int = 1,
+) -> tuple[dict[str, float], dict[str, float]]:
+    """(V totals over all steps, U totals over the first ``next_steps`` steps).
+
+    ``next_steps`` defaults to the frozen single-step next-demand; the
+    sensitivity variant uses 2 (prefetch target scored on the cumulative
+    demand of the next two steps).
+    """
 
     values: dict[str, float] = {}
     nexts: dict[str, float] = {}
+    window = max(1, int(next_steps))
     for index, step in enumerate(demand):
         for model, value in step.items():
             values[model] = values.get(model, 0.0) + value
-            if index == 0:
+            if index < window:
                 nexts[model] = nexts.get(model, 0.0) + value
     return values, nexts
 

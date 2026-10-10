@@ -1,0 +1,708 @@
+{
+  "gate": "future_info_counterfactual",
+  "version": "v1",
+  "mode": "smoke",
+  "config": {
+    "split": "confirm",
+    "formal": false,
+    "n_episodes_per_cell": 5,
+    "primary_metric": "mean_completion_ms",
+    "reference": "sameshape_h5_p95",
+    "arms": [
+      "myopic",
+      "pdrs_resident"
+    ],
+    "cells": [
+      "c_cap3232",
+      "c_allres",
+      "c_single"
+    ],
+    "natural_episodes_file": "results/processed/r7_workload_v03_no_run_container/episodes/workload_validation_r7_v03.jsonl",
+    "natural_episodes_sha256": "d3080a015be297a9830a97dfbfeb9170fb51f9599339f70fe77d10211bd00eea",
+    "seed": 11,
+    "bootstrap": 2000,
+    "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+    "extension_config_sha256": "165d7631da59577280915b2274e59cfb3c8c3269353bdcbaeabc77638d86ed76",
+    "reference_pack": "resource_v2_f0_seed11",
+    "reference_artifact_sha256": "586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+    "future_horizon": 5,
+    "smoke_episodes": 5,
+    "git_head": "09d43b099c7231d9d303e581064dbdacb6c7ec8b"
+  },
+  "cells": {
+    "c_cap3232": {
+      "episode_aggregate_sha256": "1f5b15bc9ba9565c9594fdcfbd619234fcda38f2ff1f24982554e2d0ac3fcb28",
+      "reference_summary": {
+        "metrics": {
+          "mean_completion_ms": 66325.44993408794,
+          "p95_completion_ms": 108382.18982404606,
+          "deadline_miss_rate": 0.0,
+          "makespan_ms": 613662.8435247305
+        },
+        "episode_values": {
+          "mean_completion_ms": [
+            57777.17649380286,
+            48190.48302129805,
+            55820.52790879876,
+            100554.06137042466,
+            69285.00087611536
+          ],
+          "p95_completion_ms": [
+            87104.36503920023,
+            81071.074784737,
+            72153.51408635231,
+            186395.551221471,
+            115186.44398846972
+          ],
+          "deadline_miss_rate": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "makespan_ms": [
+            772407.3580000001,
+            544359.1633787748,
+            588390.831,
+            634171.7569522158,
+            528985.1082926624
+          ]
+        },
+        "info": {
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 52,
+            "episodes": 5,
+            "evicted_then_reloaded": 22,
+            "gpu_evictions": 34,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        }
+      },
+      "results": {
+        "myopic": {
+          "metrics": {
+            "mean_completion_ms": {
+              "mean": 68680.73809553125,
+              "delta_point": 2355.288161443311,
+              "delta_ci95": [
+                -983.660199944643,
+                7833.222027822153
+              ],
+              "n_worse": 4,
+              "episode_values": [
+                58206.75873324968,
+                48435.91473144358,
+                53956.08959236024,
+                113445.8102766979,
+                69359.11714390485
+              ]
+            },
+            "p95_completion_ms": {
+              "mean": 108508.66716757618,
+              "delta_point": 126.47734353011182,
+              "delta_ci95": [
+                -4039.63077560926,
+                2978.2914519567507
+              ],
+              "n_worse": 4,
+              "episode_values": [
+                89456.21133368023,
+                81145.23372862411,
+                74614.0233371405,
+                178386.45869625665,
+                118941.40874217931
+              ]
+            },
+            "deadline_miss_rate": {
+              "mean": 0.0,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "makespan_ms": {
+              "mean": 610657.6381448292,
+              "delta_point": -3005.2053799014307,
+              "delta_ci95": [
+                -8984.818133054068,
+                1795.6047630277462
+              ],
+              "n_worse": 1,
+              "episode_values": [
+                772407.3580000001,
+                538465.1503276575,
+                588390.831,
+                620550.7311962566,
+                533474.1202002318
+              ]
+            }
+          },
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 49,
+            "episodes": 5,
+            "evicted_then_reloaded": 20,
+            "gpu_evictions": 35,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        },
+        "pdrs_resident": {
+          "metrics": {
+            "mean_completion_ms": {
+              "mean": 64597.34269695841,
+              "delta_point": -1728.107237129529,
+              "delta_ci95": [
+                -2860.0653710504835,
+                -825.879163060266
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                53947.813839644055,
+                46596.037892597036,
+                54499.04575223389,
+                99063.30463421352,
+                68880.51136610354
+              ]
+            },
+            "p95_completion_ms": {
+              "mean": 97617.41780888554,
+              "delta_point": -10764.772015160506,
+              "delta_ci95": [
+                -23121.814154711028,
+                -2771.234660368186
+              ],
+              "n_worse": 1,
+              "episode_values": [
+                78286.66158439252,
+                75347.64956057767,
+                72323.71352292324,
+                151674.81111305882,
+                110454.25326347546
+              ]
+            },
+            "deadline_miss_rate": {
+              "mean": 0.0,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "makespan_ms": {
+              "mean": 610909.0078282475,
+              "delta_point": -2753.835696483031,
+              "delta_ci95": [
+                -13070.622811448155,
+                4756.934007153055
+              ],
+              "n_worse": 2,
+              "episode_values": [
+                772407.3580000001,
+                544620.0719530048,
+                588390.831,
+                612300.4160750589,
+                536826.3621131742
+              ]
+            }
+          },
+          "activation": {
+            "residency_eviction_flips": 20,
+            "residency_prefetch_proposed": 10
+          },
+          "mechanism": {
+            "cold_loads_on_demand": 29,
+            "episodes": 5,
+            "evicted_then_reloaded": 9,
+            "gpu_evictions": 20,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 10,
+            "used_prefetches": 9,
+            "wasted_prefetches": 2
+          }
+        }
+      }
+    },
+    "c_allres": {
+      "episode_aggregate_sha256": "99fe002a03b8f4f2b40b2c23c9c64f302d819b0a364d778273470cbecbf9e696",
+      "reference_summary": {
+        "metrics": {
+          "mean_completion_ms": 62942.345169954235,
+          "p95_completion_ms": 95600.58689223243,
+          "deadline_miss_rate": 0.0,
+          "makespan_ms": 606783.2722051952
+        },
+        "episode_values": {
+          "mean_completion_ms": [
+            54989.790328771734,
+            46379.209801684076,
+            53889.76686255663,
+            94899.9529937382,
+            64553.00586302055
+          ],
+          "p95_completion_ms": [
+            76394.10071525366,
+            76760.46774725869,
+            67861.48501478716,
+            152790.95224502764,
+            104195.92873883498
+          ],
+          "deadline_miss_rate": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "makespan_ms": [
+            772407.3580000001,
+            538689.507267514,
+            588390.831,
+            611219.6094983567,
+            523209.0552601053
+          ]
+        },
+        "info": {
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 23,
+            "episodes": 5,
+            "evicted_then_reloaded": 0,
+            "gpu_evictions": 0,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        }
+      },
+      "results": {
+        "myopic": {
+          "metrics": {
+            "mean_completion_ms": {
+              "mean": 64500.94858740656,
+              "delta_point": 1558.6034174523156,
+              "delta_ci95": [
+                -617.3492529631519,
+                4694.436565683919
+              ],
+              "n_worse": 4,
+              "episode_values": [
+                55718.67796440282,
+                46894.265554951555,
+                52446.203644651854,
+                102380.64343436642,
+                65064.95233866013
+              ]
+            },
+            "p95_completion_ms": {
+              "mean": 99354.15529490996,
+              "delta_point": 3753.568402677527,
+              "delta_ci95": [
+                700.1324373509008,
+                8623.3985323381
+              ],
+              "n_worse": 4,
+              "episode_values": [
+                78316.8954026224,
+                76621.52609963962,
+                68807.44401921096,
+                155762.48037021555,
+                117262.43058286124
+              ]
+            },
+            "deadline_miss_rate": {
+              "mean": 0.0,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "makespan_ms": {
+              "mean": 608323.3211596326,
+              "delta_point": 1540.0489544373936,
+              "delta_ci95": [
+                -3298.6294389964546,
+                7816.5582229811
+              ],
+              "n_worse": 2,
+              "episode_values": [
+                772407.3580000001,
+                539200.5976641517,
+                588390.831,
+                605551.53030115,
+                536066.2888328612
+              ]
+            }
+          },
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 24,
+            "episodes": 5,
+            "evicted_then_reloaded": 0,
+            "gpu_evictions": 0,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        },
+        "pdrs_resident": {
+          "metrics": {
+            "mean_completion_ms": {
+              "mean": 63391.67584294967,
+              "delta_point": 449.33067299542597,
+              "delta_ci95": [
+                -797.4788905330555,
+                1826.6968377856042
+              ],
+              "n_worse": 2,
+              "episode_values": [
+                54031.88093250521,
+                45580.0924820092,
+                53332.93373062377,
+                97585.99714161396,
+                66427.47492799618
+              ]
+            },
+            "p95_completion_ms": {
+              "mean": 94681.68728649353,
+              "delta_point": -918.8996057388955,
+              "delta_ci95": [
+                -2759.7149456860584,
+                640.0662569601379
+              ],
+              "n_worse": 2,
+              "episode_values": [
+                77709.0595693498,
+                74619.34508542673,
+                67752.50292834414,
+                148791.9022789863,
+                104535.62657036069
+              ]
+            },
+            "deadline_miss_rate": {
+              "mean": 0.0,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "makespan_ms": {
+              "mean": 606121.4527208749,
+              "delta_point": -661.8194843203179,
+              "delta_ci95": [
+                -1817.7801642291247,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                772407.3580000001,
+                538689.507267514,
+                588390.831,
+                608189.9758913082,
+                522929.59144555224
+              ]
+            }
+          },
+          "activation": {
+            "residency_prefetch_proposed": 9
+          },
+          "mechanism": {
+            "cold_loads_on_demand": 17,
+            "episodes": 5,
+            "evicted_then_reloaded": 0,
+            "gpu_evictions": 0,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 9,
+            "used_prefetches": 9,
+            "wasted_prefetches": 0
+          }
+        }
+      }
+    },
+    "c_single": {
+      "episode_aggregate_sha256": "8062983c7b92c5c92939211330c643f25b6b7a7dd7ce98d46f27229ce1b15ecb",
+      "reference_summary": {
+        "metrics": {
+          "mean_completion_ms": 40862.79861180755,
+          "p95_completion_ms": 67078.55623228144,
+          "deadline_miss_rate": 0.0,
+          "makespan_ms": 569360.7078409593
+        },
+        "episode_values": {
+          "mean_completion_ms": [
+            33765.766930110985,
+            26708.952611923018,
+            32506.699677072847,
+            68415.76166612274,
+            42916.81217380817
+          ],
+          "p95_completion_ms": [
+            63518.67753062969,
+            43224.198971350015,
+            59132.87606045006,
+            106162.43408486266,
+            63354.59451411474
+          ],
+          "deadline_miss_rate": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "makespan_ms": [
+            749526.9550000001,
+            499321.8611004,
+            561332.4549999998,
+            555546.8080848627,
+            481075.460019534
+          ]
+        },
+        "info": {
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 7,
+            "episodes": 5,
+            "evicted_then_reloaded": 0,
+            "gpu_evictions": 0,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        }
+      },
+      "results": {
+        "myopic": {
+          "metrics": {
+            "mean_completion_ms": {
+              "mean": 40390.58461421092,
+              "delta_point": -472.213997596626,
+              "delta_ci95": [
+                -1018.9342033257738,
+                42.25585641999787
+              ],
+              "n_worse": 1,
+              "episode_values": [
+                33871.40657116098,
+                26708.952611923018,
+                32506.699677072847,
+                67101.78097232486,
+                41764.083238572915
+              ]
+            },
+            "p95_completion_ms": {
+              "mean": 68557.50605742859,
+              "delta_point": 1478.9498251471553,
+              "delta_ci95": [
+                123.18266996782332,
+                2909.72269959425
+              ],
+              "n_worse": 3,
+              "episode_values": [
+                66412.62444548905,
+                43224.198971350015,
+                59132.87606045006,
+                110047.32294589996,
+                63970.507863953855
+              ]
+            },
+            "deadline_miss_rate": {
+              "mean": 0.0,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "makespan_ms": {
+              "mean": 569699.1676763669,
+              "delta_point": 338.4598354075453,
+              "delta_ci95": [
+                0.0,
+                786.8083036224707
+              ],
+              "n_worse": 2,
+              "episode_values": [
+                749526.9550000001,
+                499321.8611004,
+                561332.4549999998,
+                556667.6792554,
+                481646.8880260344
+              ]
+            }
+          },
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 7,
+            "episodes": 5,
+            "evicted_then_reloaded": 0,
+            "gpu_evictions": 0,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        },
+        "pdrs_resident": {
+          "metrics": {
+            "mean_completion_ms": {
+              "mean": 40862.79861180755,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                33765.766930110985,
+                26708.952611923018,
+                32506.699677072847,
+                68415.76166612274,
+                42916.81217380817
+              ]
+            },
+            "p95_completion_ms": {
+              "mean": 67078.55623228144,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                63518.67753062969,
+                43224.198971350015,
+                59132.87606045006,
+                106162.43408486266,
+                63354.59451411474
+              ]
+            },
+            "deadline_miss_rate": {
+              "mean": 0.0,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "makespan_ms": {
+              "mean": 569360.7078409593,
+              "delta_point": 0.0,
+              "delta_ci95": [
+                0.0,
+                0.0
+              ],
+              "n_worse": 0,
+              "episode_values": [
+                749526.9550000001,
+                499321.8611004,
+                561332.4549999998,
+                555546.8080848627,
+                481075.460019534
+              ]
+            }
+          },
+          "activation": {},
+          "mechanism": {
+            "cold_loads_on_demand": 7,
+            "episodes": 5,
+            "evicted_then_reloaded": 0,
+            "gpu_evictions": 0,
+            "prefetch_capacity_failures": 0,
+            "prefetch_count": 0,
+            "used_prefetches": 0,
+            "wasted_prefetches": 0
+          }
+        }
+      }
+    }
+  },
+  "cross_cell": {
+    "gain_change_c_allres_minus_c_cap3232": {
+      "delta_point": 2177.437910124955,
+      "delta_ci95": [
+        1079.7824484607481,
+        3275.0933717891617
+      ]
+    },
+    "gain_change_c_single_minus_c_cap3232": {
+      "delta_point": 1728.107237129529,
+      "delta_ci95": [
+        825.879163060266,
+        2860.0653710504835
+      ]
+    }
+  },
+  "criteria": {
+    "per_cell": "arm - same-cell F0 (negative = better)",
+    "cross_cell": "(main - F0)_cell - (main - F0)_c_cap3232, paired per episode; the elimination claim expects a POSITIVE shift (gain shrinks)",
+    "metrics": [
+      "mean_completion_ms",
+      "p95_completion_ms",
+      "deadline_miss_rate",
+      "makespan_ms"
+    ]
+  },
+  "wall_seconds": 8.799417972564697
+}

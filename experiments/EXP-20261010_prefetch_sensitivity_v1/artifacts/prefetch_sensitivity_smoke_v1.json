@@ -1,0 +1,633 @@
+{
+  "gate": "prefetch_sensitivity",
+  "version": "v1",
+  "mode": "smoke",
+  "config": {
+    "split": "confirm",
+    "formal": false,
+    "n_episodes": 10,
+    "primary_metric": "mean_completion_ms",
+    "reference": "sameshape_h5_p95",
+    "mainline": "pdrs_resident",
+    "variant_arms": [
+      "pdrs_resident_k2",
+      "pdrs_resident_inflight2",
+      "pdrs_resident_readyonly"
+    ],
+    "seed": 11,
+    "bootstrap": 2000,
+    "projection_sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+    "extension_config_sha256": "165d7631da59577280915b2274e59cfb3c8c3269353bdcbaeabc77638d86ed76",
+    "reference_pack": "resource_v2_f0_seed11",
+    "reference_artifact_sha256": "586ae65d75e8993ed72176b7920bf9878a3fb47b2cbdfcb7a222482de606a086",
+    "future_horizon": 5,
+    "smoke_episodes": 10,
+    "git_head": "09d43b099c7231d9d303e581064dbdacb6c7ec8b"
+  },
+  "reference_summary": {
+    "metrics": {
+      "mean_completion_ms": 69001.5425092349,
+      "p95_completion_ms": 112892.06992058251,
+      "deadline_miss_rate": 0.0,
+      "makespan_ms": 543819.7281627746
+    },
+    "n_episodes": 10,
+    "episode_values": {
+      "mean_completion_ms": [
+        58204.60774776127,
+        48133.429940453694,
+        59812.18684685211,
+        100593.82958739746,
+        77494.56574960933,
+        66471.51952070248,
+        71042.4011663957,
+        82967.70163985447,
+        66073.7431040131,
+        59221.43978930944
+      ],
+      "p95_completion_ms": [
+        89456.21133368023,
+        80656.5260653907,
+        85066.2109102445,
+        185485.1869947564,
+        122177.73244951846,
+        114367.26885702336,
+        105406.65844755001,
+        145771.83414117846,
+        118093.394079724,
+        82439.67592675894
+      ],
+      "deadline_miss_rate": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "makespan_ms": [
+        772407.3580000001,
+        544700.3855668136,
+        588390.831,
+        633362.9457286046,
+        549220.2947857523,
+        543096.9223570233,
+        456297.0277897001,
+        399928.70691106556,
+        452389.6370472863,
+        498403.1724415
+      ]
+    },
+    "info": {
+      "activation": {},
+      "mechanism": {
+        "cold_loads_on_demand": 141,
+        "episodes": 10,
+        "evicted_then_reloaded": 85,
+        "gpu_evictions": 123,
+        "prefetch_capacity_failures": 0,
+        "prefetch_count": 0,
+        "used_prefetches": 0,
+        "wasted_prefetches": 0
+      }
+    }
+  },
+  "results": {
+    "pdrs_resident": {
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 70522.77859142786,
+          "delta_point": 1521.2360821929622,
+          "delta_ci95": [
+            -918.1685304513085,
+            5434.232829926184
+          ],
+          "n_worse": 5,
+          "n_episodes": 10,
+          "episode_values": [
+            55602.2346849592,
+            46603.47534082002,
+            59661.102432927124,
+            118761.72267404335,
+            76015.35829321314,
+            66001.7916644298,
+            71369.07307618138,
+            84166.7848289558,
+            66441.13884111214,
+            60605.10407763674
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 110548.12051191682,
+          "delta_point": -2343.9494086656923,
+          "delta_ci95": [
+            -7245.739285280989,
+            1592.7778880122773
+          ],
+          "n_worse": 5,
+          "n_episodes": 10,
+          "episode_values": [
+            86070.27660080098,
+            75300.47039351647,
+            85066.21091024451,
+            164720.4998103265,
+            119499.5813854984,
+            109023.2853622284,
+            109356.21397744433,
+            148924.86084677017,
+            123998.47625199237,
+            83521.329580346
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 10,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 542224.2176867465,
+          "delta_point": -1595.5104760281042,
+          "delta_ci95": [
+            -6625.686039588484,
+            2244.138432997116
+          ],
+          "n_worse": 3,
+          "n_episodes": 10,
+          "episode_values": [
+            772407.3580000001,
+            544380.0489298096,
+            588390.831,
+            613373.7369446828,
+            548145.6261847367,
+            536014.9225161864,
+            460018.03760847735,
+            408286.0601947857,
+            452389.6370472863,
+            498835.91844149993
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 44,
+        "residency_prefetch_proposed": 26
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 121,
+        "episodes": 10,
+        "evicted_then_reloaded": 77,
+        "gpu_evictions": 120,
+        "prefetch_capacity_failures": 0,
+        "prefetch_count": 26,
+        "used_prefetches": 18,
+        "wasted_prefetches": 6
+      }
+    },
+    "pdrs_resident_k2": {
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 70180.31642826268,
+          "delta_point": 1178.7739190277782,
+          "delta_ci95": [
+            -1582.6823850840956,
+            4896.824624301399
+          ],
+          "n_worse": 6,
+          "n_episodes": 10,
+          "episode_values": [
+            57733.8141786969,
+            45855.31877252787,
+            60553.56103657022,
+            116447.23426270828,
+            71687.92900119298,
+            65519.41866442979,
+            73174.96915928213,
+            83467.99324647152,
+            66097.35210824134,
+            61265.57385250581
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 110297.27017803039,
+          "delta_point": -2594.7997425521316,
+          "delta_ci95": [
+            -7926.476442266865,
+            2042.960436169237
+          ],
+          "n_worse": 4,
+          "n_episodes": 10,
+          "episode_values": [
+            85486.39617542915,
+            75120.84119265128,
+            85041.19170469455,
+            165494.21890052807,
+            112498.07415465018,
+            109023.2853622284,
+            114372.98262935158,
+            148846.71528931707,
+            123897.06819127218,
+            83191.92818018129
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 10,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 539478.5702239571,
+          "delta_point": -4341.157938817492,
+          "delta_ci95": [
+            -9639.45458066063,
+            317.96505253209034
+          ],
+          "n_worse": 1,
+          "n_episodes": 10,
+          "episode_values": [
+            772407.3580000001,
+            543789.1944596038,
+            588390.831,
+            622822.7009277133,
+            525644.5114046502,
+            536014.9225161864,
+            449478.7146605965,
+            408792.4408564345,
+            452389.6370472863,
+            495055.39136709995
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 39,
+        "residency_prefetch_proposed": 35
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 114,
+        "episodes": 10,
+        "evicted_then_reloaded": 75,
+        "gpu_evictions": 123,
+        "prefetch_capacity_failures": 0,
+        "prefetch_count": 35,
+        "used_prefetches": 22,
+        "wasted_prefetches": 4
+      }
+    },
+    "pdrs_resident_inflight2": {
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 69025.72924789603,
+          "delta_point": 24.186738661116397,
+          "delta_ci95": [
+            -791.1307436431168,
+            926.6971509889867
+          ],
+          "n_worse": 4,
+          "n_episodes": 10,
+          "episode_values": [
+            58642.555963529165,
+            46521.11358099119,
+            58424.21830125483,
+            103543.89568176807,
+            76123.3424112987,
+            65626.0662567744,
+            70547.41311184039,
+            84667.7849523995,
+            65582.12960456341,
+            60578.77261454059
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 108349.4697061601,
+          "delta_point": -4542.6002144224085,
+          "delta_ci95": [
+            -10647.356171981386,
+            -148.27676960143145
+          ],
+          "n_worse": 3,
+          "n_episodes": 10,
+          "episode_values": [
+            88857.77617043337,
+            75033.1248658358,
+            78543.43907492376,
+            157380.65034378733,
+            119499.5813854984,
+            109023.2853622284,
+            108765.42090815693,
+            149282.59797244493,
+            114001.52580974076,
+            83107.2951685513
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 10,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 542325.7299078677,
+          "delta_point": -1493.9982549068052,
+          "delta_ci95": [
+            -6362.170795366127,
+            2394.517604626069
+          ],
+          "n_worse": 3,
+          "n_episodes": 10,
+          "episode_values": [
+            772407.3580000001,
+            546070.1140163686,
+            588390.831,
+            614063.7638437873,
+            548145.6261847367,
+            536014.9225161864,
+            457654.8653313277,
+            409717.00869748474,
+            452389.6370472863,
+            498403.1724415
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 71,
+        "residency_placement_flips": 1,
+        "residency_prefetch_proposed": 50
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 103,
+        "episodes": 10,
+        "evicted_then_reloaded": 75,
+        "gpu_evictions": 126,
+        "prefetch_capacity_failures": 0,
+        "prefetch_count": 50,
+        "used_prefetches": 31,
+        "wasted_prefetches": 7
+      }
+    },
+    "pdrs_resident_readyonly": {
+      "metrics": {
+        "mean_completion_ms": {
+          "mean": 70352.19613799444,
+          "delta_point": 1350.6536287595227,
+          "delta_ci95": [
+            -98.262056455735,
+            3501.7314137915514
+          ],
+          "n_worse": 4,
+          "n_episodes": 10,
+          "episode_values": [
+            58194.201211535605,
+            48292.28958649426,
+            59812.18684685211,
+            111089.16063455543,
+            77494.56574960933,
+            65821.34959238324,
+            71042.4011663957,
+            82949.30270235447,
+            66446.88679979411,
+            62379.61708997002
+          ]
+        },
+        "p95_completion_ms": {
+          "mean": 111374.6410402776,
+          "delta_point": -1517.4288803049071,
+          "delta_ci95": [
+            -6725.0421670495925,
+            2594.1247437831057
+          ],
+          "n_worse": 2,
+          "n_episodes": 10,
+          "episode_values": [
+            87784.50066484614,
+            79896.2830743003,
+            85066.2109102445,
+            164194.78609642142,
+            122177.73244951846,
+            109108.85555890118,
+            105406.65844755001,
+            145771.83414117846,
+            124002.02252121281,
+            90337.5265386027
+          ]
+        },
+        "deadline_miss_rate": {
+          "mean": 0.0,
+          "delta_point": 0.0,
+          "delta_ci95": [
+            0.0,
+            0.0
+          ],
+          "n_worse": 0,
+          "n_episodes": 10,
+          "episode_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "makespan_ms": {
+          "mean": 540819.4837268033,
+          "delta_point": -3000.2444359713236,
+          "delta_ci95": [
+            -7408.595516292134,
+            -57.63559162180172
+          ],
+          "n_worse": 0,
+          "n_episodes": 10,
+          "episode_values": [
+            772407.3580000001,
+            544124.0296505956,
+            588390.831,
+            611609.3682851095,
+            549220.2947857523,
+            535718.7943570232,
+            456297.0277897001,
+            399634.3239110655,
+            452389.6370472863,
+            498403.1724415
+          ]
+        }
+      },
+      "activation": {
+        "residency_eviction_flips": 40,
+        "residency_placement_flips": 1,
+        "residency_prefetch_proposed": 2
+      },
+      "mechanism": {
+        "cold_loads_on_demand": 134,
+        "episodes": 10,
+        "evicted_then_reloaded": 75,
+        "gpu_evictions": 108,
+        "prefetch_capacity_failures": 0,
+        "prefetch_count": 2,
+        "used_prefetches": 2,
+        "wasted_prefetches": 0
+      }
+    }
+  },
+  "contrasts": {
+    "pdrs_resident_k2_minus_pdrs_resident": {
+      "mean_completion_ms": {
+        "delta_point": -342.46216316518405,
+        "delta_ci95": [
+          -1566.1950942917138,
+          729.335791567104
+        ]
+      },
+      "p95_completion_ms": {
+        "delta_point": -250.85033388643933,
+        "delta_ci95": [
+          -2122.2147555570455,
+          1321.7223389041974
+        ]
+      },
+      "deadline_miss_rate": {
+        "delta_point": 0.0,
+        "delta_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "makespan_ms": {
+        "delta_point": -2745.6474627893886,
+        "delta_ci95": [
+          -8131.681370089168,
+          1822.2599687298177
+        ]
+      }
+    },
+    "pdrs_resident_inflight2_minus_pdrs_resident": {
+      "mean_completion_ms": {
+        "delta_point": -1497.0493435318458,
+        "delta_ci95": [
+          -4820.817061737052,
+          553.3612342826498
+        ]
+      },
+      "p95_completion_ms": {
+        "delta_point": -2198.650805756716,
+        "delta_ci95": [
+          -4818.503233360747,
+          74.85323329956881
+        ]
+      },
+      "deadline_miss_rate": {
+        "delta_point": 0.0,
+        "delta_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "makespan_ms": {
+        "delta_point": 101.51222112129908,
+        "delta_ci95": [
+          -559.1836554299109,
+          710.3847809005063
+        ]
+      }
+    },
+    "pdrs_resident_readyonly_minus_pdrs_resident": {
+      "mean_completion_ms": {
+        "delta_point": -170.58245343343953,
+        "delta_ci95": [
+          -2133.613107867931,
+          1162.6418186289986
+        ]
+      },
+      "p95_completion_ms": {
+        "delta_point": 826.5205283607851,
+        "delta_ci95": [
+          -948.8276099115217,
+          2759.256464917965
+        ]
+      },
+      "deadline_miss_rate": {
+        "delta_point": 0.0,
+        "delta_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "makespan_ms": {
+        "delta_point": -1404.7339599432191,
+        "delta_ci95": [
+          -3301.132516691339,
+          -38.30892951840069
+        ]
+      }
+    }
+  },
+  "criteria": {
+    "delta": "arm - baseline (negative = better)",
+    "variants": "k2 / inflight2 / readyonly each vs the frozen main line; a variant significantly BETTER than the main line would falsify the frozen choice",
+    "mechanism": [
+      "gpu_evictions",
+      "prefetch_count",
+      "prefetch_capacity_failures",
+      "used_prefetches",
+      "wasted_prefetches",
+      "cold_loads_on_demand",
+      "evicted_then_reloaded"
+    ]
+  },
+  "wall_seconds": 14.875221014022827
+}
