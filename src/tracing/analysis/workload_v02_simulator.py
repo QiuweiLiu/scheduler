@@ -2984,6 +2984,14 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "pdrs_resident_k2",
     "pdrs_resident_inflight2",
     "pdrs_resident_readyonly",
+    # Prefetch decision-module replacements (exp G): distilled value function
+    # (A), online scenario rollout (B), high-budget rollout reference (HB), and
+    # the dev probe; dispatched through their own closures below.
+    "pdrs_resident_g",
+    "pdrs_resident_rollout",
+    "pdrs_resident_da",
+    "pdrs_resident_hb",
+    "pdrs_resident_probe",
 )
 # Prefetch is the second residency action and is enabled only for the full
 # residency package; the eviction-only diagnostic arms must never prefetch.
@@ -7106,6 +7114,508 @@ def simulate_episode(
                 ) + len(plan)
         return plan
 
+    def _prefetch_frontier_items(pack: Mapping[str, Mapping[str, Any]]):
+        """Frontier (running + ready) items with decision-time remaining times."""
+
+        from tracing.analysis.prefetch_value_methods import FrontierItem
+
+        items = []
+        for gpu in gpus:
+            for _task_id, task in gpu.active_node_entries():
+                if task.owner is None:
+                    continue
+                job_index, node_id = task.owner
+                node = jobs[job_index].template.by_id.get(str(node_id))
+                row = pack.get(str(node_id)) or {}
+                if node is None or not (row.get("future_h5") or []):
+                    continue
+                estimate_row = estimate(node, train_stats)
+                predicted_work = optional_number(task.predicted_work_ms)
+                remaining = 0.0
+                if predicted_work is not None and task.work_start_ms is not None:
+                    remaining = max(0.0, float(predicted_work) * max(1e-9, float(task.slowdown))
+                                    - (float(now) - float(task.work_start_ms)))
+                items.append(FrontierItem(
+                    key=str(node_id), row=row, current_model=str(node.model_id),
+                    current_remaining_ms=remaining,
+                    current_mb=model_memory(node, estimate_row),
+                ))
+        for job in jobs:
+            for node_id, state in job.node_state.items():
+                if state != "ready":
+                    continue
+                node = job.template.by_id.get(str(node_id))
+                row = pack.get(str(node_id)) or {}
+                if node is None or not (row.get("future_h5") or []):
+                    continue
+                estimate_row = estimate(node, train_stats)
+                items.append(FrontierItem(
+                    key=str(node_id), row=row, current_model=str(node.model_id),
+                    current_remaining_ms=float(estimate_row["runtime_p50_ms"]),
+                    current_mb=model_memory(node, estimate_row),
+                ))
+        return items
+
+    def _prefetch_plan_net_benefit() -> list[dict[str, Any]]:
+        """Method A: argmax analytic net benefit G(m) (exp G arm B2)."""
+
+        import time as _time
+
+        from tracing.analysis.hermes_methods import model_load_estimate_ms
+        from tracing.analysis.prefetch_value_methods import (
+            DEFAULT_LAMBDA_MEM_MS_PER_MB, analytic_benefit_table, choose_net_benefit,
+        )
+        from tracing.analysis.residency_methods import choose_prefetch_gpu
+
+        started = _time.perf_counter()
+        activation = (policy_context or {}).get("activation")
+
+        def _finish(plan):
+            if activation is not None:
+                activation["prefetch_plan_calls"] = int(activation.get("prefetch_plan_calls", 0)) + 1
+                activation["prefetch_plan_wall_us"] = int(
+                    activation.get("prefetch_plan_wall_us", 0)
+                    + ( _time.perf_counter() - started) * 1e6
+                )
+            return plan
+
+        if future_artifacts is None:
+            return _finish([])
+        pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        items = _prefetch_frontier_items(pack)
+        if not items:
+            return _finish([])
+        load_ms_of = lambda model: float(model_load_estimate_ms(train_stats, model) or 0.0)
+        table = analytic_benefit_table(items, load_ms_of)
+        gpu_models = {
+            str(node.model_id)
+            for template in templates.values()
+            for node in template.nodes
+            if node.lane == "gpu" and node.model_id
+        }
+
+        def fits_device(model: str):
+            node = find_model_node(model)
+            if node is None or node.resident_model_mb is None:
+                return None
+            estimate_row = estimate(node, train_stats)
+            memory = model_memory(node, estimate_row)
+            free: dict[int, float] = {}
+            for gpu in gpus:
+                if gpu.prefetch_pending:
+                    continue
+                resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+                projected = resident_mb + memory + gpu.active_workspace_mb()
+                if projected <= gpu.capacity_mb + 1e-9:
+                    free[gpu.index] = gpu.capacity_mb - resident_mb - gpu.active_workspace_mb()
+            return choose_prefetch_gpu(free, memory)
+
+        def memory_mb_of(model: str) -> float:
+            node = find_model_node(model)
+            if node is None:
+                return 0.0
+            return model_memory(node, estimate(node, train_stats))
+
+        candidates = []
+        for model in sorted(set(table) & gpu_models):
+            if table[model]["benefit_ms"] <= 0.0:
+                continue
+            if any(model in gpu.resident or model in gpu.loading_model_ids() for gpu in gpus):
+                continue
+            if fits_device(model) is None:
+                continue
+            candidates.append(model)
+
+        u1 = {m: table[m]["u1_ms"] for m in table if m in gpu_models and table[m]["u1_ms"] > 0.0}
+        b1_target = max(sorted(u1), key=lambda m: (u1[m], m)) if u1 else None
+        b1_action = None
+        if b1_target is not None:
+            resident_anywhere = any(
+                b1_target in gpu.resident or b1_target in gpu.loading_model_ids()
+                for gpu in gpus
+            )
+            if not resident_anywhere and fits_device(b1_target) is not None:
+                b1_action = b1_target
+
+        if activation is not None:
+            if candidates:
+                activation["prefetch_candidate_moments"] = int(
+                    activation.get("prefetch_candidate_moments", 0)) + 1
+
+        if not candidates:
+            return _finish([])
+        profile = _prefetch_interference_profile(extension_config)
+
+        def interference_of(model: str) -> float:
+            gpu_index = fits_device(model)
+            if gpu_index is None:
+                return 0.0
+            gpu = gpus[gpu_index]
+            active = gpu.active_node_entries()
+            if len(active) != 1:
+                return 0.0
+            _task_id, task = active[0]
+            if task.work_start_ms is not None and task.work_start_ms > float(now) + 1e-9:
+                return 0.0
+            extra = prefetch_interference_extra_ms(profile, task.model_id, task.workload_shape, model)
+            return float(extra) if extra is not None else 0.0
+
+        lam = float((policy_context or {}).get("net_benefit_lambda_mem", DEFAULT_LAMBDA_MEM_MS_PER_MB))
+        chosen, _scored = choose_net_benefit(table, candidates, interference_of, memory_mb_of, lam)
+        if activation is not None:
+            activation["prefetch_benefit_evaluations"] = int(
+                activation.get("prefetch_benefit_evaluations", 0)) + len(candidates)
+            if chosen is not None:
+                activation["prefetch_action_count"] = int(activation.get("prefetch_action_count", 0)) + 1
+            else:
+                activation["prefetch_skip_no_benefit"] = int(
+                    activation.get("prefetch_skip_no_benefit", 0)) + 1
+            if chosen != b1_action:
+                activation["prefetch_action_differs_from_b1"] = int(
+                    activation.get("prefetch_action_differs_from_b1", 0)) + 1
+        if chosen is None:
+            return _finish([])
+        gpu_index = fits_device(chosen)
+        if gpu_index is None:
+            return _finish([])
+        return _finish([{"gpu_index": gpu_index, "model_id": chosen}])
+
+    def _prefetch_common():
+        """Shared decision-time context for the exp-G prefetch modules."""
+
+        from tracing.analysis.hermes_methods import model_load_estimate_ms
+        from tracing.analysis.prefetch_value_methods import benefit_feature_table
+
+        if future_artifacts is None:
+            return None
+        pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+        items = _prefetch_frontier_items(pack)
+        if not items:
+            return None
+        load_ms_of = lambda model: float(model_load_estimate_ms(train_stats, model) or 0.0)
+        table = benefit_feature_table(items, load_ms_of)
+        gpu_models = {
+            str(node.model_id)
+            for template in templates.values()
+            for node in template.nodes
+            if node.lane == "gpu" and node.model_id
+        }
+
+        def fit_devices(model: str):
+            node = find_model_node(model)
+            if node is None or node.resident_model_mb is None:
+                return []
+            estimate_row = estimate(node, train_stats)
+            memory = model_memory(node, estimate_row)
+            out = []
+            for gpu in gpus:
+                if gpu.prefetch_pending:
+                    continue
+                resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+                if resident_mb + memory + gpu.active_workspace_mb() <= gpu.capacity_mb + 1e-9:
+                    out.append(gpu.index)
+            return out
+
+        def fits_device(model: str):
+            fit = fit_devices(model)
+            if not fit:
+                return None
+            free = {}
+            for gpu_index in fit:
+                gpu = gpus[gpu_index]
+                resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+                free[gpu_index] = gpu.capacity_mb - resident_mb - gpu.active_workspace_mb()
+            return min(free, key=lambda index: (-free[index], index))
+
+        def memory_mb_of(model: str) -> float:
+            node = find_model_node(model)
+            if node is None:
+                return 0.0
+            return model_memory(node, estimate(node, train_stats))
+
+        candidates = []
+        for model in sorted(set(table) & gpu_models):
+            if table[model]["demand_mass"] <= 0.0:
+                continue
+            if any(model in gpu.resident or model in gpu.loading_model_ids() for gpu in gpus):
+                continue
+            if fits_device(model) is None:
+                continue
+            candidates.append(model)
+
+        u1 = {m: table[m]["u1_ms"] for m in table if m in gpu_models and table[m]["u1_ms"] > 0.0}
+        b1_target = max(sorted(u1), key=lambda m: (u1[m], m)) if u1 else None
+        b1_action = None
+        if b1_target is not None:
+            resident_anywhere = any(
+                b1_target in gpu.resident or b1_target in gpu.loading_model_ids()
+                for gpu in gpus
+            )
+            if not resident_anywhere and fits_device(b1_target) is not None:
+                b1_action = b1_target
+
+        profile = _prefetch_interference_profile(extension_config)
+
+        def interference_ms(model: str, gpu_index: int) -> float:
+            gpu = gpus[gpu_index]
+            active = gpu.active_node_entries()
+            if len(active) != 1:
+                return 0.0
+            _task_id, task = active[0]
+            if task.work_start_ms is not None and task.work_start_ms > float(now) + 1e-9:
+                return 0.0
+            extra = prefetch_interference_extra_ms(profile, task.model_id, task.workload_shape, model)
+            return float(extra) if extra is not None else 0.0
+
+        return {
+            "pack": pack, "items": items, "load_ms_of": load_ms_of, "table": table,
+            "gpu_models": gpu_models, "candidates": candidates,
+            "fits_device": fits_device, "fit_devices": fit_devices,
+            "memory_mb_of": memory_mb_of, "b1_action": b1_action,
+            "interference_ms": interference_ms,
+        }
+
+    def _prefetch_wall(activation, started):
+        if activation is not None:
+            activation["prefetch_plan_calls"] = int(activation.get("prefetch_plan_calls", 0)) + 1
+            activation["prefetch_plan_wall_us"] = int(
+                activation.get("prefetch_plan_wall_us", 0)
+                + (time.perf_counter() - started) * 1e6
+            )
+
+    def _prefetch_note_action(activation, chosen, b1_action):
+        if activation is None:
+            return
+        if chosen is not None:
+            activation["prefetch_action_count"] = int(activation.get("prefetch_action_count", 0)) + 1
+        if chosen != b1_action:
+            activation["prefetch_action_differs_from_b1"] = int(
+                activation.get("prefetch_action_differs_from_b1", 0)) + 1
+
+    def _prefetch_plan_da() -> list[dict[str, Any]]:
+        """Method A (distilled): interpretable linear value function, frozen beta."""
+
+        from tracing.analysis.prefetch_value_methods import (
+            FEATURE_NAMES, DeviceState, candidate_feature_vector, distilled_score,
+        )
+
+        started = time.perf_counter()
+        activation = (policy_context or {}).get("activation")
+        common = _prefetch_common()
+        if common is None:
+            _prefetch_wall(activation, started)
+            return []
+        candidates = common["candidates"]
+        if activation is not None and candidates:
+            activation["prefetch_candidate_moments"] = int(
+                activation.get("prefetch_candidate_moments", 0)) + 1
+        if not candidates:
+            _prefetch_wall(activation, started)
+            return []
+        distilled = (policy_context or {}).get("distilled_benefit") or {}
+        beta = distilled.get("beta") or {name: (1.0 if name == "benefit_ms" else 0.0)
+                                         for name in FEATURE_NAMES}
+        devices = [
+            DeviceState(capacity_mb=float(gpu.capacity_mb), resident=dict(gpu.resident),
+                        busy_until=max(float(now), float(gpu.busy_until)))
+            for gpu in gpus
+        ]
+        best_model = None
+        best_score = 0.0
+        for model in candidates:
+            gpu_index = common["fits_device"](model)
+            if gpu_index is None:
+                continue
+            features = candidate_feature_vector(
+                common["table"][model], model, gpu_index, devices,
+                common["memory_mb_of"], common["interference_ms"](model, gpu_index),
+                common["load_ms_of"],
+            )
+            score = distilled_score(features, beta)
+            if activation is not None:
+                activation["prefetch_benefit_evaluations"] = int(
+                    activation.get("prefetch_benefit_evaluations", 0)) + 1
+            if score > best_score + 1e-12:
+                best_score = score
+                best_model = model
+        if activation is not None and best_model is None:
+            activation["prefetch_skip_no_benefit"] = int(
+                activation.get("prefetch_skip_no_benefit", 0)) + 1
+        _prefetch_note_action(activation, best_model, common["b1_action"])
+        _prefetch_wall(activation, started)
+        if best_model is None:
+            return []
+        gpu_index = common["fits_device"](best_model)
+        if gpu_index is None:
+            return []
+        return [{"gpu_index": gpu_index, "model_id": best_model}]
+
+    def _prefetch_plan_rollout() -> list[dict[str, Any]]:
+        """Method B (online): top-2 distilled candidates + none x 8 common scenarios."""
+
+        from tracing.analysis.prefetch_value_methods import (
+            FEATURE_NAMES, DeviceState, build_scenarios, candidate_feature_vector,
+            choose_rollout_action, distilled_score,
+        )
+
+        started = time.perf_counter()
+        activation = (policy_context or {}).get("activation")
+        common = _prefetch_common()
+        if common is None:
+            _prefetch_wall(activation, started)
+            return []
+        candidates = common["candidates"]
+        if activation is not None and candidates:
+            activation["prefetch_candidate_moments"] = int(
+                activation.get("prefetch_candidate_moments", 0)) + 1
+        if not candidates:
+            _prefetch_wall(activation, started)
+            return []
+        distilled = (policy_context or {}).get("distilled_benefit") or {}
+        beta = distilled.get("beta") or {name: (1.0 if name == "benefit_ms" else 0.0)
+                                         for name in FEATURE_NAMES}
+        devices = [
+            DeviceState(capacity_mb=float(gpu.capacity_mb), resident=dict(gpu.resident),
+                        busy_until=max(float(now), float(gpu.busy_until)))
+            for gpu in gpus
+        ]
+        # candidate shortlist = top-2 by the mainline's own U(m) (frozen: the
+        # dev-phase distillation could not rank reliably; the rollout's job here
+        # is RE-RANKING a small shortlist, not candidate generation)
+        ranked = []
+        for model in candidates:
+            gpu_index = common["fits_device"](model)
+            if gpu_index is None:
+                continue
+            u1 = float(common["table"][model].get("u1_ms", 0.0))
+            ranked.append((u1, model, gpu_index))
+        ranked.sort(key=lambda row: (-row[0], row[1]))
+        actions = [(model, gpu_index) for _score, model, gpu_index in ranked[:2]]
+        scenarios = build_scenarios(common["items"])
+        chosen, info = choose_rollout_action(
+            common["items"], devices, actions, common["load_ms_of"],
+            common["memory_mb_of"], float(now), scenarios=scenarios,
+        )
+        if activation is not None:
+            activation["prefetch_scenarios_built"] = int(
+                activation.get("prefetch_scenarios_built", 0)) + len(scenarios)
+            if chosen is None:
+                activation["prefetch_skip_rollout_no_gain"] = int(
+                    activation.get("prefetch_skip_rollout_no_gain", 0)) + 1
+            else:
+                activation["rollout_improvement_ms"] = int(
+                    activation.get("rollout_improvement_ms", 0) + float(info.get("improvement_ms", 0.0)))
+        _prefetch_note_action(activation, chosen[0] if chosen else None, common["b1_action"])
+        _prefetch_wall(activation, started)
+        if chosen is None:
+            return []
+        return [{"gpu_index": int(chosen[1]), "model_id": str(chosen[0])}]
+
+    def _prefetch_plan_hb() -> list[dict[str, Any]]:
+        """High-budget rollout reference: ALL feasible (model, device) actions."""
+
+        from tracing.analysis.prefetch_value_methods import (
+            DeviceState, build_scenarios, choose_rollout_action,
+        )
+
+        started = time.perf_counter()
+        activation = (policy_context or {}).get("activation")
+        common = _prefetch_common()
+        if common is None:
+            _prefetch_wall(activation, started)
+            return []
+        candidates = common["candidates"]
+        if activation is not None and candidates:
+            activation["prefetch_candidate_moments"] = int(
+                activation.get("prefetch_candidate_moments", 0)) + 1
+        if not candidates:
+            _prefetch_wall(activation, started)
+            return []
+        scenario_count = int((policy_context or {}).get("rollout_scenarios", 32))
+        devices = [
+            DeviceState(capacity_mb=float(gpu.capacity_mb), resident=dict(gpu.resident),
+                        busy_until=max(float(now), float(gpu.busy_until)))
+            for gpu in gpus
+        ]
+        actions = []
+        for model in candidates:
+            for gpu_index in common["fit_devices"](model):
+                actions.append((model, gpu_index))
+        scenarios = build_scenarios(common["items"], count=scenario_count)
+        chosen, info = choose_rollout_action(
+            common["items"], devices, actions, common["load_ms_of"],
+            common["memory_mb_of"], float(now), scenarios=scenarios,
+        )
+        if activation is not None:
+            activation["prefetch_scenarios_built"] = int(
+                activation.get("prefetch_scenarios_built", 0)) + len(scenarios)
+            activation["hb_rollouts_evaluated"] = int(
+                activation.get("hb_rollouts_evaluated", 0)) + len(actions + [None]) * len(scenarios)
+            if chosen is None:
+                activation["prefetch_skip_rollout_no_gain"] = int(
+                    activation.get("prefetch_skip_rollout_no_gain", 0)) + 1
+            else:
+                activation["rollout_improvement_ms"] = int(
+                    activation.get("rollout_improvement_ms", 0) + float(info.get("improvement_ms", 0.0)))
+        _prefetch_note_action(activation, chosen[0] if chosen else None, common["b1_action"])
+        _prefetch_wall(activation, started)
+        if chosen is None:
+            return []
+        return [{"gpu_index": int(chosen[1]), "model_id": str(chosen[0])}]
+
+    def _prefetch_plan_probe() -> list[dict[str, Any]]:
+        """Dev probe: mainline plan + decision-state snapshots for label generation."""
+
+        started = time.perf_counter()
+        activation = (policy_context or {}).get("activation")
+        states = (policy_context or {}).get("probe_states")
+        if states is not None:
+            cap = int((policy_context or {}).get("probe_cap", 6))
+            if len(states) < cap:
+                common = _prefetch_common()
+                if common is not None and common["candidates"]:
+                    states.append({
+                        "episode_id": str(episode.get("episode_id")),
+                        "time_ms": float(now),
+                        "items": [
+                            {"node_id": item.key, "current_model": item.current_model,
+                             "current_remaining_ms": float(item.current_remaining_ms),
+                             "current_mb": float(item.current_mb)}
+                            for item in common["items"]
+                        ],
+                        "devices": [
+                            {"capacity_mb": float(gpu.capacity_mb),
+                             "busy_until": float(gpu.busy_until),
+                             "resident": {str(m): float(mb) for m, mb in gpu.resident.items()}}
+                            for gpu in gpus
+                        ],
+                        "candidates": [
+                            [model, int(gpu_index), round(common["interference_ms"](model, gpu_index), 3)]
+                            for model in common["candidates"]
+                            for gpu_index in common["fit_devices"](model)
+                        ],
+                    })
+                    if activation is not None:
+                        activation["probe_states_captured"] = int(
+                            activation.get("probe_states_captured", 0)) + 1
+        plan = _residency_prefetch_plan_counted()
+        _prefetch_wall(activation, started)
+        return plan
+
+    def _residency_prefetch_plan_counted() -> list[dict[str, Any]]:
+        """Instrumentation-only wrapper: same plan, plus CPU counters."""
+
+        started = time.perf_counter()
+        plan = _residency_prefetch_plan()
+        activation = (policy_context or {}).get("activation")
+        if activation is not None:
+            activation["prefetch_plan_calls"] = int(activation.get("prefetch_plan_calls", 0)) + 1
+            activation["prefetch_plan_wall_us"] = int(
+                activation.get("prefetch_plan_wall_us", 0)
+                + (time.perf_counter() - started) * 1e6
+            )
+        return plan
+
     def _hermes_pack_prefetch_plan() -> list[dict[str, Any]]:
         """Hermes-style prewarm trigger on the frozen prediction pack (exp B).
 
@@ -7279,8 +7789,18 @@ def simulate_episode(
             plan = _hermes_pack_prefetch_plan()
         if not plan and policy == "pdrs_resident_inflight2":
             plan = _residency_prefetch_plan_inflight2()
+        if not plan and policy == "pdrs_resident_g":
+            plan = _prefetch_plan_net_benefit()
+        if not plan and policy == "pdrs_resident_rollout":
+            plan = _prefetch_plan_rollout()
+        if not plan and policy == "pdrs_resident_da":
+            plan = _prefetch_plan_da()
+        if not plan and policy == "pdrs_resident_hb":
+            plan = _prefetch_plan_hb()
+        if not plan and policy == "pdrs_resident_probe":
+            plan = _prefetch_plan_probe()
         if not plan and policy in RESIDENCY_PREFETCH_POLICIES:
-            plan = _residency_prefetch_plan()
+            plan = _residency_prefetch_plan_counted()
         if not plan:
             return
         # A prefetch cannot start in the past.  The cursor was seeded from busy_until
@@ -8743,6 +9263,11 @@ def simulate_episode(
             or policy == "hermes_gittins"
             or policy == "hermes_prefetch_mainline"
             or policy == "pdrs_resident_inflight2"
+            or policy == "pdrs_resident_g"
+            or policy == "pdrs_resident_rollout"
+            or policy == "pdrs_resident_da"
+            or policy == "pdrs_resident_hb"
+            or policy == "pdrs_resident_probe"
             or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()
