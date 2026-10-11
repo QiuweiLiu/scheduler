@@ -5,15 +5,14 @@
 
 ## 内容
 
-### `final/` —— **正式用图**(定稿一张、进一张)
+### `final/` —— **正式交付物**(定稿一张、进一张:图 / 文档 / 数据表)
 
 汇报/论文**直接使用**的版本放这里(工作区里仍保留全部历史版本):
 
 | 文件 | 用途 |
 |---|---|
 | `formulas_main_line_and_baselines.md` | 公式文档:主线 + 七条适配基线(实现对齐版,含代码行号;汇报/论文附录)—— **已定稿** |
-| `tables/all_formal_experiments_2026-10.md` | **完整实验表格**:调度证据链总表(A–E 升级版)+ 全部 44 个正式实验清单(2026-10-10) |
-| `tables/raw_results_ABCDE_2026-10-10.md` | **A–E 原始结果数据表(无结论)**:各臂绝对均值、Δ+CI、机制计数、预注册对照(2026-10-10) |
+| `experiment_data.md` | **实验数据汇总(数值表)**:主表/系统级/驻留机制 + A–E 全部原始数据(无结论;汇报/论文附录)—— **已定稿** |
 | `fig17_main_ablations_zh.png` / `.svg` | 主线消融:动作 + 信息(中文,汇报用)—— **已定稿** |
 | `fig17_main_ablations.png` / `.svg` | 主线消融:动作 + 信息(英文,论文用)—— **已定稿** |
 | `fig16_main_vs_families_zh.png` / `.svg` | 调度器对比:主线 vs 六条适配基线(柱状;中文,汇报用)—— **已定稿** |
@@ -47,7 +46,7 @@
 | `fig15_gru_architecture` | 预测器架构图:共享因果 GRU + 多任务头(部署 J3/F0;因果边界/冻结区标注) | 方法-预测器 |
 | `fig16_main_vs_families` | 调度器总对比:主线 vs 六条适配基线(单列,标注方法与出处;Δ vs 主线,mean/p95/makespan + CI) | 结果-总览(已进 final) |
 
-### `tables/`(4 组结果表,MD + CSV)
+### `tables/`(结果表与清单,MD + CSV)
 
 | 文件 | 内容 |
 |---|---|
@@ -55,6 +54,8 @@
 | `residency_arms_vs_F0` | 全部驻留臂 vs F0(含 v1/p95/preempt 三个 run) |
 | `mechanism_counters` | 机制计数(300 集合计 + 相对 F0 百分比) |
 | `system_level_vs_main_line` | 系统级:各基线 vs 主线 `pdrs_resident`(逐集配对) |
+| `all_formal_experiments_2026-10.md` | **完整实验表格**:调度证据链总表 + 全部 44 个正式实验清单(2026-10-10) |
+| `raw_results_ABCDE_2026-10-10.md` | A–E 原始结果数据表(无结论;final/experiment_data.md 的来源副本) |
 
 ## 重新生成
 
