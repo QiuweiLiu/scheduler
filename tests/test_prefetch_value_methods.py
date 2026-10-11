@@ -17,6 +17,7 @@ from tracing.analysis.prefetch_value_methods import (  # noqa: E402
     benefit_feature_table,
     build_scenarios,
     candidate_feature_vector,
+    choose_joint_rollout_action,
     choose_net_benefit,
     choose_rollout_action,
     distilled_score,
@@ -133,6 +134,53 @@ class RolloutTests(unittest.TestCase):
         self.assertAlmostEqual(prefetch_cost, 6000.0)
 
 
+class JointRolloutTests(unittest.TestCase):
+    def test_first_task_forced_order(self) -> None:
+        row_empty = row([])
+        items = [item("n0", 5000.0, row_empty, current_model="A"),
+                 item("n1", 1000.0, row_empty, current_model="B")]
+        devices = [DeviceState(capacity_mb=40000.0, resident={"A": 100.0, "B": 100.0},
+                               busy_until=0.0)]
+        default = rollout_cost(items, [[], []], devices, None,
+                               lambda m: 1000.0, lambda m: 100.0, now=0.0)
+        forced = rollout_cost(items, [[], []], devices, None,
+                              lambda m: 1000.0, lambda m: 100.0, now=0.0,
+                              first_task=0, first_gpu=0)
+        self.assertAlmostEqual(default, 7000.0)   # 1000 then 6000
+        self.assertAlmostEqual(forced, 11000.0)   # 5000 then 6000
+
+    def test_eviction_mode_changes_later_residency(self) -> None:
+        row_empty = row([])
+        items = [item("n0", 1000.0, row_empty, current_model="Z"),
+                 item("n1", 1000.0, row_empty, current_model="X")]
+        devices = [DeviceState(capacity_mb=10000.0,
+                               resident={"X": 5000.0, "Y": 4000.0}, busy_until=0.0)]
+        memory = {"Z": 5000.0, "X": 5000.0, "Y": 4000.0}
+        loads = {"Z": 1000.0, "X": 1000.0, "Y": 1000.0}
+        least = rollout_cost(items, [[], []], devices, None,
+                             lambda m: loads[m], lambda m: memory[m], now=0.0,
+                             eviction_mode="least_needed")
+        largest = rollout_cost(items, [[], []], devices, None,
+                               lambda m: loads[m], lambda m: memory[m], now=0.0,
+                               eviction_mode="largest_first")
+        self.assertAlmostEqual(least, 5000.0)     # evicts Y, keeps X
+        self.assertAlmostEqual(largest, 6000.0)   # evicts X (bigger), reload later
+
+    def test_joint_choice_prefers_better_dispatch(self) -> None:
+        row_empty = row([])
+        items = [item("n0", 5000.0, row_empty, current_model="A"),
+                 item("n1", 1000.0, row_empty, current_model="B")]
+        devices = [DeviceState(capacity_mb=40000.0, resident={"A": 100.0, "B": 100.0},
+                               busy_until=0.0)]
+        best, info = choose_joint_rollout_action(
+            items, devices, dispatch_options=[(0, 0), (1, 0)],
+            prefetch_options=[None], load_ms_of=lambda m: 1000.0,
+            memory_mb_of=lambda m: 100.0, now=0.0, scenarios=[[[], []]],
+        )
+        self.assertEqual(best["first_item"], 1)
+        self.assertEqual(best["eviction_mode"], "least_needed")
+
+
 class FeatureTests(unittest.TestCase):
     def test_feature_table_and_vector(self) -> None:
         items = [
@@ -186,7 +234,8 @@ class EndToEndTests(unittest.TestCase):
             "a:2": row([{"models": {"model-a": 1.0}}], (0.0, 1.0, 0.0, 0.0, 0.0, 0.0)),
         }
         for policy in ("pdrs_resident_g", "pdrs_resident_rollout", "pdrs_resident_da",
-                       "pdrs_resident_hb", "pdrs_resident_probe"):
+                       "pdrs_resident_hb", "pdrs_resident_probe",
+                       "pdrs_resident_joint", "pdrs_resident_joint_hb"):
             context = {"activation": {}, "probe_states": [], "rollout_scenarios": 8}
             summary, _ = simulate_episode(
                 episode, templates, policy, train_stats=stats, policy_context=context,

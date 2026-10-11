@@ -281,6 +281,9 @@ def rollout_cost(
     load_ms_of: Callable[[str], float],
     memory_mb_of: Callable[[str], float],
     now: float,
+    first_task: Optional[int] = None,
+    first_gpu: Optional[int] = None,
+    eviction_mode: str = "least_needed",
 ) -> float:
     """Bounded list-scheduling rollout; returns the sum of per-job completion times.
 
@@ -317,8 +320,15 @@ def rollout_cost(
         ready = [(job_index, job["queue"][0]) for job_index, job in enumerate(jobs) if job["queue"] and job["finish"] is None]
         if not ready:
             break
-        job_index, (model, duration) = min(ready, key=lambda pair: (pair[1][1], pair[0]))
+        forced_gpu = None
+        if first_task is not None and any(pair[0] == first_task for pair in ready):
+            job_index, (model, duration) = next(pair for pair in ready if pair[0] == first_task)
+            forced_gpu = first_gpu
+            first_task = None
+        else:
+            job_index, (model, duration) = min(ready, key=lambda pair: (pair[1][1], pair[0]))
         needed = float(memory_mb_of(model) or 0.0)
+        required = 0.0 if any(model in device.resident for device in state) else needed
         # future use map for eviction decisions
         future_use: Dict[str, int] = {}
         for other_index, job in enumerate(jobs):
@@ -330,27 +340,10 @@ def rollout_cost(
                     continue
                 if future_model not in future_use:
                     future_use[future_model] = other_index * 100 + position
-        choice = None
-        # earliest-start device among devices that fit without eviction; a missing
-        # model pays its load serially on that device (no resident-affinity pull)
-        best_key = None
-        for device_index, device in enumerate(state):
-            fits_now = sum(device.resident.values()) + needed <= device.capacity_mb + 1e-9
-            if not fits_now:
-                continue
-            start = device.busy_until
-            if model not in device.resident:
-                start += float(load_ms_of(model) or 0.0)
-            key = (start, device_index)
-            if best_key is None or key < best_key:
-                best_key = key
-                choice = device_index
-        if choice is None:
-            # evict least-needed residents on the roomiest device
-            device_index = max(range(len(state)),
-                               key=lambda i: (state[i].capacity_mb - sum(state[i].resident.values()), -i))
-            device = state[device_index]
-            candidates = sorted(
+        def _eviction_candidates(device):
+            if eviction_mode == "largest_first":
+                return sorted(device.resident, key=lambda m: (-device.resident[m], m))
+            return sorted(
                 device.resident,
                 key=lambda resident: (
                     -future_use.get(resident, 10 ** 9),
@@ -358,11 +351,48 @@ def rollout_cost(
                     resident,
                 ),
             )
-            for resident in candidates:
+
+        choice = None
+        if forced_gpu is not None and 0 <= int(forced_gpu) < len(state):
+            device = state[int(forced_gpu)]
+            if sum(device.resident.values()) + required <= device.capacity_mb + 1e-9:
+                choice = int(forced_gpu)
+            else:
+                for resident in _eviction_candidates(device):
+                    if resident == model:
+                        continue
+                    device.resident.pop(resident, None)
+                    if sum(device.resident.values()) + required <= device.capacity_mb + 1e-9:
+                        break
+                if sum(device.resident.values()) + required <= device.capacity_mb + 1e-9:
+                    choice = int(forced_gpu)
+        if choice is None:
+            # earliest-start device among devices that fit without eviction; a missing
+            # model pays its load serially on that device (no resident-affinity pull)
+            best_key = None
+            for device_index, device in enumerate(state):
+                fits_now = sum(device.resident.values()) + required <= device.capacity_mb + 1e-9
+                if not fits_now:
+                    continue
+                start = device.busy_until
+                if model not in device.resident:
+                    start += float(load_ms_of(model) or 0.0)
+                key = (start, device_index)
+                if best_key is None or key < best_key:
+                    best_key = key
+                    choice = device_index
+        if choice is None:
+            # evict per the selected mode on the roomiest device
+            device_index = max(range(len(state)),
+                               key=lambda i: (state[i].capacity_mb - sum(state[i].resident.values()), -i))
+            device = state[device_index]
+            for resident in _eviction_candidates(device):
+                if resident == model:
+                    continue
                 device.resident.pop(resident, None)
-                if sum(device.resident.values()) + needed <= device.capacity_mb + 1e-9:
+                if sum(device.resident.values()) + required <= device.capacity_mb + 1e-9:
                     break
-            if sum(device.resident.values()) + needed <= device.capacity_mb + 1e-9:
+            if sum(device.resident.values()) + required <= device.capacity_mb + 1e-9:
                 choice = device_index
         if choice is None:
             # cannot fit anywhere even after eviction: charge the task to the roomiest device
@@ -383,6 +413,62 @@ def rollout_cost(
     for job in jobs:
         total += float(job["finish"]) if job["finish"] is not None else float("inf")
     return total
+
+
+def choose_joint_rollout_action(
+    items: Sequence[FrontierItem],
+    devices: Sequence[DeviceState],
+    dispatch_options: Sequence[Tuple[int, int]],
+    prefetch_options: Sequence[Optional[Tuple[str, int]]],
+    load_ms_of: Callable[[str], float],
+    memory_mb_of: Callable[[str], float],
+    now: float,
+    scenarios: List[List[List[Tuple[str, float]]]],
+) -> Tuple[Dict[str, Any], Dict[str, Dict[str, float]]]:
+    """Joint (ordering, prefetch, eviction) selection by mean rollout cost.
+
+    ``dispatch_options`` = (item_index, gpu_index) of the shortlisted dispatch
+    candidates (caller keeps the top-k by the frozen F0 key); ``prefetch_options``
+    = candidate prefetch actions including None; eviction modes are the frozen
+    pair {least_needed, largest_first}.  The default joint action = first F0
+    candidate + no prefetch + least_needed.
+    """
+
+    eviction_modes = ("least_needed", "largest_first")
+    option_list: List[Dict[str, Any]] = []
+    if dispatch_options:
+        default_item, default_gpu = dispatch_options[0]
+        option_list.append({"first_item": default_item, "first_gpu": default_gpu,
+                            "prefetch": None, "eviction_mode": "least_needed"})
+    for item_index, gpu_index in dispatch_options:
+        for prefetch in prefetch_options:
+            for mode in eviction_modes:
+                entry = {"first_item": item_index, "first_gpu": gpu_index,
+                         "prefetch": prefetch, "eviction_mode": mode}
+                if entry in option_list:
+                    continue
+                option_list.append(entry)
+    costs: Dict[str, Dict[str, float]] = {}
+    best_entry = option_list[0]
+    best_cost = float("inf")
+    for position, entry in enumerate(option_list):
+        total = 0.0
+        for scenario in scenarios:
+            total += rollout_cost(
+                items, scenario, devices, entry["prefetch"], load_ms_of,
+                memory_mb_of, now, first_task=entry["first_item"],
+                first_gpu=entry["first_gpu"], eviction_mode=entry["eviction_mode"],
+            )
+        average = total / len(scenarios)
+        key = "j%02d" % position
+        costs[key] = {"first_item": entry["first_item"], "first_gpu": entry["first_gpu"],
+                      "prefetch": ("%s@%d" % entry["prefetch"]) if entry["prefetch"] else "__none__",
+                      "eviction_mode": entry["eviction_mode"], "cost": average}
+        if average < best_cost - 1e-9:
+            best_cost = average
+            best_entry = entry
+    info = {"best_cost": best_cost, "n_options": len(option_list)}
+    return dict(best_entry, cost=best_cost), info
 
 
 def choose_rollout_action(

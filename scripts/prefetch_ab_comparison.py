@@ -69,6 +69,8 @@ ARM_SPECS = (
     ("B2_distilled", "pdrs_resident_da"),
     ("B3_rollout8", "pdrs_resident_rollout"),
     ("B5_rollout_hb", "pdrs_resident_hb"),
+    ("J8_joint", "pdrs_resident_joint"),
+    ("JHB_joint", "pdrs_resident_joint_hb"),
 )
 CONTRASTS = (
     ("B1_u_max", "B0_no_prefetch"),
@@ -123,6 +125,7 @@ def run_arm(policy: str, label: str, episodes: Sequence[Dict[str, Any]],
             extension_config: Dict[str, Any],
             future_artifacts: Dict[str, Any],
             distilled: Dict[str, Any] | None,
+            scenario_override: int = 0,
             ) -> Tuple[Dict[str, List[float]], List[float], Dict[str, Any]]:
     values: Dict[str, List[float]] = {metric: [] for metric in ALL_METRICS}
     wall_us_series: List[float] = []
@@ -131,6 +134,9 @@ def run_arm(policy: str, label: str, episodes: Sequence[Dict[str, Any]],
         policy_context: Dict[str, Any] = {"activation": {}}
         if distilled is not None:
             policy_context["distilled_benefit"] = distilled
+        if scenario_override:
+            policy_context["rollout_scenarios"] = int(scenario_override)
+        elif distilled is not None:
             policy_context["rollout_scenarios"] = int(distilled.get("n_scenarios", 32))
         summary, _ = simulate_episode(
             episode, templates, policy, train_stats=stats,
@@ -174,6 +180,8 @@ def main() -> int:
     parser.add_argument("--out", default="prefetch_ab_v1.json")
     parser.add_argument("--distilled", default=str(DISTILLED))
     parser.add_argument("--only", default="", help="comma-separated arm labels to run")
+    parser.add_argument("--rollout-scenarios", type=int, default=0,
+                        help="override the joint/high-budget rollout scenario count")
     args = parser.parse_args()
 
     if args.formal:
@@ -240,7 +248,7 @@ def main() -> int:
             continue
         values, wall_us, activation = run_arm(
             policy, label, episodes, templates, stats, extension_config,
-            future_artifacts, distilled)
+            future_artifacts, distilled, args.rollout_scenarios)
         wall_series[label] = wall_us
         results[label] = {"policy": policy, "metrics": values, "activation": activation}
         print("\n== %s (%s) ==" % (label, policy))

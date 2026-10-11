@@ -2992,6 +2992,9 @@ RESIDENCY_POLICIES: tuple[str, ...] = (
     "pdrs_resident_da",
     "pdrs_resident_hb",
     "pdrs_resident_probe",
+    # Joint action-space arms (exp H): ordering x prefetch x eviction rollout.
+    "pdrs_resident_joint",
+    "pdrs_resident_joint_hb",
 )
 # Prefetch is the second residency action and is enabled only for the full
 # residency package; the eviction-only diagnostic arms must never prefetch.
@@ -3011,6 +3014,15 @@ RESIDENCY_PREFETCH_POLICIES: tuple[str, ...] = (
     "pdrs_resident_k2",
     "pdrs_resident_readyonly",
 )
+# Joint (ordering x prefetch x eviction) rollout arms (exp H).  These own ALL
+# three decision dimensions at dispatch time; eviction mode travels in
+# policy_context["joint_evict_mode"] and the prefetch target in
+# policy_context["joint_prefetch"].
+JOINT_POLICIES: tuple[str, ...] = (
+    "pdrs_resident_joint",
+    "pdrs_resident_joint_hb",
+)
+
 # Request-level preemption arms.  The legacy two keep their original heuristics;
 # the round-6 belief arms use the R_B (remaining-work belief) rule.
 PREEMPTION_POLICIES: tuple[str, ...] = (
@@ -4495,6 +4507,154 @@ def _require_resource_applicable(node: Node, template_id: str) -> None:
         )
 
 
+def build_prefetch_common(
+    jobs: Sequence[Any],
+    gpus: Sequence[Any],
+    templates: Mapping[str, Any],
+    future_artifacts: Mapping[str, Mapping[str, Any]] | None,
+    policy_context: dict[str, Any] | None,
+    train_stats: Mapping[str, Mapping[str, Any]],
+    extension_config: Mapping[str, Any] | None,
+    now: float,
+    policy: str,
+) -> dict[str, Any] | None:
+    """Decision-time prefetch/joint state shared by the exp-G/H modules.
+
+    Module-level (the ordering dispatcher also needs it): frontier items with
+    decision-time remaining times, per-model feature table, legal candidates,
+    per-device fit checks and the measured interference reader.
+    """
+
+    from tracing.analysis.hermes_methods import model_load_estimate_ms
+    from tracing.analysis.prefetch_value_methods import FrontierItem, benefit_feature_table
+    from tracing.analysis.residency_methods import choose_prefetch_gpu
+
+    if future_artifacts is None:
+        return None
+    pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
+    items = []
+    for gpu in gpus:
+        for _task_id, task in gpu.active_node_entries():
+            if task.owner is None:
+                continue
+            job_index, node_id = task.owner
+            node = jobs[job_index].template.by_id.get(str(node_id))
+            row = pack.get(str(node_id)) or {}
+            if node is None or not (row.get("future_h5") or []):
+                continue
+            estimate_row = estimate(node, train_stats)
+            predicted_work = optional_number(task.predicted_work_ms)
+            remaining = 0.0
+            if predicted_work is not None and task.work_start_ms is not None:
+                remaining = max(0.0, float(predicted_work) * max(1e-9, float(task.slowdown))
+                                - (float(now) - float(task.work_start_ms)))
+            items.append(FrontierItem(key=str(node_id), row=row, current_model=str(node.model_id),
+                                      current_remaining_ms=remaining,
+                                      current_mb=model_memory(node, estimate_row)))
+    for job in jobs:
+        for node_id, state_name in job.node_state.items():
+            if state_name != "ready":
+                continue
+            node = job.template.by_id.get(str(node_id))
+            row = pack.get(str(node_id)) or {}
+            if node is None or not (row.get("future_h5") or []):
+                continue
+            estimate_row = estimate(node, train_stats)
+            items.append(FrontierItem(key=str(node_id), row=row, current_model=str(node.model_id),
+                                      current_remaining_ms=float(estimate_row["runtime_p50_ms"]),
+                                      current_mb=model_memory(node, estimate_row)))
+    if not items:
+        return None
+    load_ms_of = lambda model: float(model_load_estimate_ms(train_stats, model) or 0.0)
+    table = benefit_feature_table(items, load_ms_of)
+    gpu_models = {
+        str(node.model_id)
+        for template in templates.values()
+        for node in template.nodes
+        if node.lane == "gpu" and node.model_id
+    }
+
+    def _find_model_node(model_id: str):
+        for template in templates.values():
+            for node in template.nodes:
+                if node.model_id == model_id and node.lane == "gpu":
+                    return node
+        return None
+
+    def fit_devices(model: str):
+        node = _find_model_node(model)
+        if node is None or node.resident_model_mb is None:
+            return []
+        estimate_row = estimate(node, train_stats)
+        memory = model_memory(node, estimate_row)
+        out = []
+        for gpu in gpus:
+            if gpu.prefetch_pending:
+                continue
+            resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+            if resident_mb + memory + gpu.active_workspace_mb() <= gpu.capacity_mb + 1e-9:
+                out.append(gpu.index)
+        return out
+
+    def fits_device(model: str):
+        fit = fit_devices(model)
+        if not fit:
+            return None
+        free = {}
+        for gpu_index in fit:
+            gpu = gpus[gpu_index]
+            resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
+            free[gpu_index] = gpu.capacity_mb - resident_mb - gpu.active_workspace_mb()
+        return min(free, key=lambda index: (-free[index], index))
+
+    def memory_mb_of(model: str) -> float:
+        node = _find_model_node(model)
+        if node is None:
+            return 0.0
+        return model_memory(node, estimate(node, train_stats))
+
+    candidates = []
+    for model in sorted(set(table) & gpu_models):
+        if table[model]["demand_mass"] <= 0.0:
+            continue
+        if any(model in gpu.resident or model in gpu.loading_model_ids() for gpu in gpus):
+            continue
+        if fits_device(model) is None:
+            continue
+        candidates.append(model)
+
+    u1 = {m: table[m]["u1_ms"] for m in table if m in gpu_models and table[m]["u1_ms"] > 0.0}
+    b1_target = max(sorted(u1), key=lambda m: (u1[m], m)) if u1 else None
+    b1_action = None
+    if b1_target is not None:
+        resident_anywhere = any(
+            b1_target in gpu.resident or b1_target in gpu.loading_model_ids() for gpu in gpus
+        )
+        if not resident_anywhere and fits_device(b1_target) is not None:
+            b1_action = b1_target
+
+    profile = _prefetch_interference_profile(extension_config)
+
+    def interference_ms(model: str, gpu_index: int) -> float:
+        gpu = gpus[gpu_index]
+        active = gpu.active_node_entries()
+        if len(active) != 1:
+            return 0.0
+        _task_id, task = active[0]
+        if task.work_start_ms is not None and task.work_start_ms > float(now) + 1e-9:
+            return 0.0
+        extra = prefetch_interference_extra_ms(profile, task.model_id, task.workload_shape, model)
+        return float(extra) if extra is not None else 0.0
+
+    return {
+        "pack": pack, "items": items, "load_ms_of": load_ms_of, "table": table,
+        "gpu_models": gpu_models, "candidates": candidates,
+        "fits_device": fits_device, "fit_devices": fit_devices,
+        "memory_mb_of": memory_mb_of, "b1_action": b1_action,
+        "interference_ms": interference_ms,
+    }
+
+
 def choose_action(
     policy: str,
     ready_items: Sequence[tuple[float, int, int, str]],
@@ -5226,6 +5386,101 @@ def choose_action(
                     ) + 1
         else:
             chosen = hermes_choice
+
+    elif policy in JOINT_POLICIES:
+        """Joint (ordering x prefetch x eviction) rollout arms (exp H).
+
+        At each dispatch decision the module shortlists the top-3 candidates by
+        the frozen F0 key and evaluates a bounded joint action set by short-horizon
+        rollout: {top-3 dispatch choices} x {no-prefetch, top-2 U prefetch} x
+        {least-needed, largest-first eviction}.  The winning dispatch choice is
+        enacted here; the prefetch target and eviction mode are stashed for the
+        adjacent action sites.  Scenario count: 8 (online) or
+        policy_context["rollout_scenarios"] (high-budget reference).
+        """
+
+        import time as _time
+
+        from tracing.analysis.prefetch_value_methods import (
+            DeviceState, build_scenarios, choose_joint_rollout_action,
+        )
+
+        if future_artifacts is None:
+            raise ValueError(f"{policy} requires finite-horizon artifacts")
+        horizon = 5
+
+        def _joint_f0_key(candidate):
+            item, job_index, node_id, model_id, gpu, estimate_row, _fit = candidate
+            load = 0.0 if model_id in gpu.resident else float(estimate_row["load_p50_ms"])
+            current = float(estimate_row["runtime_p50_ms"]) + load
+            future = sameshape_future_cost(node_id, future_artifacts, train_stats, horizon, "p95")
+            return (float(item[0]), current + future, future, float(item[1]), item[2],
+                    0, item[3], gpu.index)
+
+        _joint_started = _time.perf_counter()
+        ranked_pool = sorted(pool, key=_joint_f0_key)
+        chosen = ranked_pool[0]
+        context = policy_context if policy_context is not None else {}
+        context["joint_prefetch"] = None
+        context["joint_evict_mode"] = "least_needed"
+        _gpus_all = (policy_context or {}).get("_gpus") or free_gpus
+        _templates_all = (policy_context or {}).get("_templates") or {}
+        common = build_prefetch_common(
+            jobs=jobs, gpus=_gpus_all, templates=_templates_all,
+            future_artifacts=future_artifacts, policy_context=policy_context,
+            train_stats=train_stats, extension_config=extension_config,
+            now=float(decision_time_ms), policy=policy,
+        )
+        if common is not None:
+            node_index = {item.key: index for index, item in enumerate(common["items"])}
+            dispatch_options = []
+            for candidate in ranked_pool[:3]:
+                node_id = str(candidate[2])
+                if node_id in node_index:
+                    dispatch_options.append((node_index[node_id], int(candidate[4].index)))
+            prefetch_options = [None]
+            for model in common["candidates"][:2]:
+                gpu_index = common["fits_device"](model)
+                if gpu_index is not None:
+                    prefetch_options.append((model, int(gpu_index)))
+            if dispatch_options:
+                scenario_count = 8 if policy == "pdrs_resident_joint" else int(
+                    context.get("rollout_scenarios", 64))
+                scenarios = build_scenarios(common["items"], count=scenario_count)
+                devices = [
+                    DeviceState(capacity_mb=float(gpu.capacity_mb), resident=dict(gpu.resident),
+                                busy_until=max(float(decision_time_ms), float(gpu.busy_until)))
+                    for gpu in _gpus_all
+                ]
+                best, _info = choose_joint_rollout_action(
+                    common["items"], devices, dispatch_options, prefetch_options,
+                    common["load_ms_of"], common["memory_mb_of"], float(decision_time_ms), scenarios,
+                )
+                target_node = common["items"][best["first_item"]].key
+                same = [candidate for candidate in pool
+                        if str(candidate[2]) == target_node
+                        and int(candidate[4].index) == int(best["first_gpu"])]
+                if same:
+                    chosen = same[0]
+                elif target_node in node_index:
+                    chosen = next(candidate for candidate in ranked_pool
+                                  if str(candidate[2]) == target_node)
+                context["joint_prefetch"] = best.get("prefetch")
+                context["joint_evict_mode"] = str(best["eviction_mode"])
+        activation = context.get("activation")
+        if activation is not None:
+            activation["joint_moments"] = int(activation.get("joint_moments", 0)) + 1
+            activation["prefetch_plan_calls"] = int(activation.get("prefetch_plan_calls", 0)) + 1
+            activation["prefetch_plan_wall_us"] = int(
+                activation.get("prefetch_plan_wall_us", 0)
+                + (_time.perf_counter() - _joint_started) * 1e6)
+            if str(chosen[2]) != str(ranked_pool[0][2]):
+                activation["joint_order_flips"] = int(activation.get("joint_order_flips", 0)) + 1
+            if context.get("joint_prefetch") is not None:
+                activation["joint_prefetch_actions"] = int(
+                    activation.get("joint_prefetch_actions", 0)) + 1
+            if context.get("joint_evict_mode") == "largest_first":
+                activation["joint_evict_largest"] = int(activation.get("joint_evict_largest", 0)) + 1
 
     elif policy in RESIDENCY_POLICIES:
         """Round-6 residency arms: frozen-F0 ordering for every arm; the belief
@@ -6827,6 +7082,9 @@ def simulate_episode(
             "enabled_metadata_missing_workload_shape" if missing_shape else "enabled"
         )
     gpus = [GPU(index, capacity) for index, capacity in enumerate(capacities)]
+    if policy_context is not None:
+        policy_context.setdefault("_gpus", gpus)
+        policy_context.setdefault("_templates", templates)
     for gpu, resident_models in zip(gpus, episode.get("initial_residency_hint") or []):
         for model in resident_models:
             memory = None
@@ -7281,99 +7539,14 @@ def simulate_episode(
         return _finish([{"gpu_index": gpu_index, "model_id": chosen}])
 
     def _prefetch_common():
-        """Shared decision-time context for the exp-G prefetch modules."""
+        """Shared decision-time context (module-level builder wrapper)."""
 
-        from tracing.analysis.hermes_methods import model_load_estimate_ms
-        from tracing.analysis.prefetch_value_methods import benefit_feature_table
-
-        if future_artifacts is None:
-            return None
-        pack = residency_artifacts_for_policy(policy, future_artifacts, policy_context)
-        items = _prefetch_frontier_items(pack)
-        if not items:
-            return None
-        load_ms_of = lambda model: float(model_load_estimate_ms(train_stats, model) or 0.0)
-        table = benefit_feature_table(items, load_ms_of)
-        gpu_models = {
-            str(node.model_id)
-            for template in templates.values()
-            for node in template.nodes
-            if node.lane == "gpu" and node.model_id
-        }
-
-        def fit_devices(model: str):
-            node = find_model_node(model)
-            if node is None or node.resident_model_mb is None:
-                return []
-            estimate_row = estimate(node, train_stats)
-            memory = model_memory(node, estimate_row)
-            out = []
-            for gpu in gpus:
-                if gpu.prefetch_pending:
-                    continue
-                resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
-                if resident_mb + memory + gpu.active_workspace_mb() <= gpu.capacity_mb + 1e-9:
-                    out.append(gpu.index)
-            return out
-
-        def fits_device(model: str):
-            fit = fit_devices(model)
-            if not fit:
-                return None
-            free = {}
-            for gpu_index in fit:
-                gpu = gpus[gpu_index]
-                resident_mb = sum(gpu.resident.values()) + gpu.pending_load_memory_mb()
-                free[gpu_index] = gpu.capacity_mb - resident_mb - gpu.active_workspace_mb()
-            return min(free, key=lambda index: (-free[index], index))
-
-        def memory_mb_of(model: str) -> float:
-            node = find_model_node(model)
-            if node is None:
-                return 0.0
-            return model_memory(node, estimate(node, train_stats))
-
-        candidates = []
-        for model in sorted(set(table) & gpu_models):
-            if table[model]["demand_mass"] <= 0.0:
-                continue
-            if any(model in gpu.resident or model in gpu.loading_model_ids() for gpu in gpus):
-                continue
-            if fits_device(model) is None:
-                continue
-            candidates.append(model)
-
-        u1 = {m: table[m]["u1_ms"] for m in table if m in gpu_models and table[m]["u1_ms"] > 0.0}
-        b1_target = max(sorted(u1), key=lambda m: (u1[m], m)) if u1 else None
-        b1_action = None
-        if b1_target is not None:
-            resident_anywhere = any(
-                b1_target in gpu.resident or b1_target in gpu.loading_model_ids()
-                for gpu in gpus
-            )
-            if not resident_anywhere and fits_device(b1_target) is not None:
-                b1_action = b1_target
-
-        profile = _prefetch_interference_profile(extension_config)
-
-        def interference_ms(model: str, gpu_index: int) -> float:
-            gpu = gpus[gpu_index]
-            active = gpu.active_node_entries()
-            if len(active) != 1:
-                return 0.0
-            _task_id, task = active[0]
-            if task.work_start_ms is not None and task.work_start_ms > float(now) + 1e-9:
-                return 0.0
-            extra = prefetch_interference_extra_ms(profile, task.model_id, task.workload_shape, model)
-            return float(extra) if extra is not None else 0.0
-
-        return {
-            "pack": pack, "items": items, "load_ms_of": load_ms_of, "table": table,
-            "gpu_models": gpu_models, "candidates": candidates,
-            "fits_device": fits_device, "fit_devices": fit_devices,
-            "memory_mb_of": memory_mb_of, "b1_action": b1_action,
-            "interference_ms": interference_ms,
-        }
+        return build_prefetch_common(
+            jobs=jobs, gpus=gpus, templates=templates,
+            future_artifacts=future_artifacts, policy_context=policy_context,
+            train_stats=train_stats, extension_config=extension_config,
+            now=float(now), policy=policy,
+        )
 
     def _prefetch_wall(activation, started):
         if activation is not None:
@@ -7616,6 +7789,27 @@ def simulate_episode(
             )
         return plan
 
+    def _joint_prefetch_plan() -> list[dict[str, Any]]:
+        """Enact the stashed joint prefetch decision (exp H)."""
+
+        context = policy_context if policy_context is not None else {}
+        stashed = context.get("joint_prefetch")
+        context["joint_prefetch"] = None
+        if not stashed:
+            return []
+        model, preferred_gpu = str(stashed[0]), int(stashed[1])
+        common = _prefetch_common()
+        if common is None:
+            return []
+        gpu_index = None
+        if preferred_gpu in common["fit_devices"](model):
+            gpu_index = preferred_gpu
+        else:
+            gpu_index = common["fits_device"](model)
+        if gpu_index is None:
+            return []
+        return [{"gpu_index": int(gpu_index), "model_id": model}]
+
     def _hermes_pack_prefetch_plan() -> list[dict[str, Any]]:
         """Hermes-style prewarm trigger on the frozen prediction pack (exp B).
 
@@ -7799,6 +7993,8 @@ def simulate_episode(
             plan = _prefetch_plan_hb()
         if not plan and policy == "pdrs_resident_probe":
             plan = _prefetch_plan_probe()
+        if not plan and policy in JOINT_POLICIES:
+            plan = _joint_prefetch_plan()
         if not plan and policy in RESIDENCY_PREFETCH_POLICIES:
             plan = _residency_prefetch_plan_counted()
         if not plan:
@@ -8964,6 +9160,11 @@ def simulate_episode(
                         eviction_preference = swap_burden_order(
                             gpu, train_stats, _prefetch_interference_profile(extension_config)
                         )
+                    elif policy in JOINT_POLICIES and (
+                        (policy_context or {}).get("joint_evict_mode") == "largest_first"
+                    ):
+                        eviction_preference = tuple(sorted(
+                            gpu.resident, key=lambda m: (-gpu.resident[m], str(m))))
                     elif policy in RESIDENCY_POLICIES:
                         _residency_pack = residency_artifacts_for_policy(
                             policy, future_artifacts, policy_context
@@ -9268,6 +9469,7 @@ def simulate_episode(
             or policy == "pdrs_resident_da"
             or policy == "pdrs_resident_hb"
             or policy == "pdrs_resident_probe"
+            or policy in JOINT_POLICIES
             or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()
