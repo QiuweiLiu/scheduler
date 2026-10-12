@@ -65,6 +65,7 @@ class MILPObservation:
     gpus: tuple[ObsGpu, ...]
     resident_mb_by_model: Mapping[str, float]
     decision_time_ms: float
+    resource_missing: tuple[str, ...] = ()  # models without a frozen train-only profile
 
     # Allowed sources (audited by T6b): ready heap, estimate(), artifact rows,
     # gpu.resident, active-task predicted_work_ms/work_start_ms/slowdown/kind.
@@ -77,8 +78,9 @@ def _chain_steps_from_artifact(
     anchor_node_id: str,
     artifact_row: Mapping[str, Any],
     estimate_lookup,
+    missing: list[str],
 ) -> tuple[ObsChainStep, ...]:
-    """Synthetic H5 chain steps from the frozen artifact (no template reads)."""
+    """Synthetic H5 chain steps from the frozen artifact (train-only profile)."""
 
     scenarios = artifact_row.get("future_h5") or []
     steps = (scenarios[0].get("steps") or []) if scenarios else []
@@ -96,7 +98,12 @@ def _chain_steps_from_artifact(
             if isinstance(occurrence, (int, float)) and float(occurrence) >= 0.5
             else 0.0
         )
-        memory = float(estimate_lookup(model_id, str(step.get("role") or "other"), lane))
+        memory_value = estimate_lookup(model_id, str(step.get("role") or "other"), lane)
+        if memory_value is None:
+            missing.append(model_id)
+            memory = 0.0
+        else:
+            memory = float(memory_value)
         chain.append(
             ObsChainStep(
                 model_id=model_id,
@@ -146,21 +153,27 @@ def build_milpo_observation(
             )
         )
 
+    # Frozen train-only model profile (advisor P1): never complete unknown
+    # models from non-train templates (hidden suffixes).
     resident_index: dict[str, float] = {}
     for template in templates.values():
+        if getattr(template, "split", "") != "train":
+            continue
         for node in template.nodes:
             if node.resident_model_mb is not None and node.model_id not in resident_index:
                 resident_index[str(node.model_id)] = float(node.resident_model_mb)
 
-    def estimate_lookup(model_id: str, role: str, lane: str) -> float:
+    def estimate_lookup(model_id: str, role: str, lane: str):
         for template in templates.values():
+            if getattr(template, "split", "") != "train":
+                continue
             for node in template.nodes:
                 if node.model_id == model_id and node.lane == lane:
                     try:
                         return float(estimate(node, train_stats)["memory_p95_mb"] or 0.0)
                     except Exception:
-                        return float(node.workspace_peak_mb or 0.0)
-        return 0.0
+                        return None
+        return None
 
     gpus: list[ObsGpu] = []
     for gpu_row in snapshot.get("gpus") or []:
@@ -184,9 +197,10 @@ def build_milpo_observation(
         )
 
     chains: dict[str, tuple[ObsChainStep, ...]] = {}
+    missing: list[str] = []
     for item in ready:
         row = future_artifacts.get(item.node_id) or {}
-        chains[item.node_id] = _chain_steps_from_artifact(item.node_id, row, estimate_lookup)
+        chains[item.node_id] = _chain_steps_from_artifact(item.node_id, row, estimate_lookup, missing)
 
     return MILPObservation(
         now_ms=now,
@@ -195,6 +209,7 @@ def build_milpo_observation(
         gpus=tuple(gpus),
         resident_mb_by_model=resident_index,
         decision_time_ms=now,
+        resource_missing=tuple(sorted(set(missing))),
     )
 
 
@@ -213,6 +228,7 @@ class PlanNode:
     load_ms: float
     workspace_mb: float
     anchor_key: str | None
+    predecessor_key: str | None
     is_ready: bool
     f0_key: tuple = field(default_factory=tuple)
 
@@ -231,15 +247,18 @@ def _build_nodes(obs: MILPObservation) -> list[PlanNode]:
                 load_ms=item.load_p50_ms,
                 workspace_mb=item.memory_p95_mb,
                 anchor_key=None,
+                predecessor_key=None,
                 is_ready=True,
                 f0_key=(item.priority, item.ready_since_ms, item.node_id),
             )
         )
+        previous_key = str(item.node_id)
         for step_index, step in enumerate(obs.chains.get(item.node_id, ())):
             compute = max(0.1, step.runtime_ms - step.load_ms)
+            node_key = f"pred:{item.node_id}:{step_index + 1}"
             nodes.append(
                 PlanNode(
-                    key=f"pred:{item.node_id}:{step_index + 1}",
+                    key=node_key,
                     job_index=item.job_index,
                     lane=step.lane,
                     model_id=step.model_id,
@@ -247,10 +266,12 @@ def _build_nodes(obs: MILPObservation) -> list[PlanNode]:
                     load_ms=step.load_ms,
                     workspace_mb=step.memory_mb,
                     anchor_key=str(item.node_id),
+                    predecessor_key=previous_key,
                     is_ready=False,
-                    f0_key=(item.priority, item.ready_since_ms, f"pred:{item.node_id}:{step_index + 1}"),
+                    f0_key=(item.priority, item.ready_since_ms, node_key),
                 )
             )
+            previous_key = node_key
     return nodes
 
 
@@ -284,8 +305,8 @@ def build_reference_schedule(
     ordered = sorted(nodes, key=lambda n: (n.anchor_key is not None, n.f0_key))
     for node in ordered:
         release = obs.now_ms
-        if node.anchor_key is not None and node.anchor_key in done:
-            release = max(release, done[node.anchor_key])
+        if node.predecessor_key is not None and node.predecessor_key in done:
+            release = max(release, done[node.predecessor_key])
         if node.lane != "gpu":
             done[node.key] = release + node.compute_ms
             plan[node.key] = {"gpu": -1, "start": release, "finish": done[node.key], "loaded": False}
@@ -386,12 +407,21 @@ def solve_v0a(
     """Solve the v0a MILP.  Falls back (first_action=None) when not applicable."""
 
     started = time.perf_counter()
+    if obs.resource_missing:
+        return _fallback_result(started, f"unknown_model_profile:{','.join(obs.resource_missing[:3])}")
     nodes = _build_nodes(obs)
     if not nodes:
         return _fallback_result(started, "no_ready_nodes")
     reference_makespan = build_reference_schedule(obs, nodes)
-    if reference_makespan is None:
-        return _fallback_result(started, "needs_eviction")
+    reference_failed = reference_makespan is None
+    if reference_failed:
+        # A greedy reference failure is NOT proven infeasibility: use a
+        # conservative bound and let the MILP decide (advisor P1).
+        reference_makespan = (
+            obs.now_ms
+            + sum(n.compute_ms + n.load_ms for n in nodes)
+            + max(n.compute_ms + n.load_ms for n in nodes)
+        )
     try:
         import numpy as np
         from scipy.optimize import Bounds, LinearConstraint, milp
@@ -414,6 +444,8 @@ def solve_v0a(
     h0 = offset; offset += len(gpu_nodes) * gpu_count            # h[i,g]
     z0 = offset; offset += len(gpu_nodes) * gpu_count            # z[i,g]
     q0 = offset; offset += len(pairs) * gpu_count * 2            # q[pair,g,dir]
+    ready_gpu_nodes = [i for i in gpu_nodes if nodes[i].is_ready]
+    d0 = offset; offset += len(ready_gpu_nodes)                  # dispatch-now bins
     n_vars = offset
 
     def X(i, g):  # gpu node index in gpu_nodes -> flat
@@ -426,6 +458,7 @@ def solve_v0a(
     def Z(i, g): return z0 + gpu_nodes.index(i) * gpu_count + g
     def Q(pair_idx, g, reverse):
         return q0 + (pair_idx * gpu_count + g) * 2 + (1 if reverse else 0)
+    def D(pos): return d0 + pos
 
     objective = np.zeros(n_vars, dtype=float)
     lower = np.zeros(n_vars, dtype=float)
@@ -450,6 +483,9 @@ def solve_v0a(
             for reverse in (False, True):
                 upper[Q(pair_idx, g, reverse)] = 1.0
                 integrality[Q(pair_idx, g, reverse)] = 1
+    for pos in range(len(ready_gpu_nodes)):
+        upper[D(pos)] = 1.0
+        integrality[D(pos)] = 1
 
     # objective: sum of boundary completions (w=1)
     boundary_nodes = []
@@ -484,9 +520,9 @@ def solve_v0a(
         if fam("assign"):
             add({X(i, g): 1.0 for g in range(gpu_count)}, 1.0, 1.0)
     for i, n in enumerate(nodes):
-        if n.anchor_key is not None and fam("chain"):
-            anchor_idx = next(j for j, m in enumerate(nodes) if m.key == n.anchor_key)
-            add({A(i): 1.0, C(anchor_idx): -1.0}, 0.0, math.inf)
+        if n.predecessor_key is not None and fam("chain"):
+            pred_idx = next(j for j, m in enumerate(nodes) if m.key == n.predecessor_key)
+            add({A(i): 1.0, C(pred_idx): -1.0}, 0.0, math.inf)
         if n.lane == "gpu":
             if fam("avail"):
                 for g in range(gpu_count):
@@ -504,6 +540,12 @@ def solve_v0a(
             add(row, n.compute_ms, n.compute_ms)
         else:
             add({C(i): 1.0, A(i): -1.0}, n.compute_ms, n.compute_ms)
+
+    # P0 immediate dispatch: at least one ready GPU node starts at now.
+    if fam("immediate") and ready_gpu_nodes:
+        for pos, i in enumerate(ready_gpu_nodes):
+            add({A(i): 1.0, D(pos): -big_u}, -math.inf, obs.now_ms)
+        add({D(pos): 1.0 for pos in range(len(ready_gpu_nodes))}, 1.0, math.inf)
 
     # C2: same-GPU precedence (conditional) + load-inclusive occupancy
     for pair_idx, (i, k) in enumerate(pairs):
@@ -630,16 +672,22 @@ def solve_v0a(
     status = status_names.get(int(getattr(result, "status", 4)), "OTHER")
     values = getattr(result, "x", None)
     if values is None or status in ("INFEASIBLE", "UNBOUNDED", "OTHER"):
-        return MilpV0Result(None, status, None, None, None, solve_ms, True, len(nodes), None, "no_solution")
-    # first action: earliest real ready GPU node
+        reason = "infeasible" if status == "INFEASIBLE" else "no_solution"
+        if reference_failed and status == "INFEASIBLE":
+            reason = "infeasible_after_reference_failure"
+        return MilpV0Result(None, status, None, None, None, solve_ms, True, len(nodes), None, reason)
+    # first action: earliest real ready GPU node that starts at NOW
+    # (the immediate-dispatch constraint guarantees at least one exists).
     best = None
     for i in gpu_nodes:
         n = nodes[i]
         if not n.is_ready:
             continue
+        start = float(values[A(i)])
+        if start > obs.now_ms + 1e-6:
+            continue
         for g in range(gpu_count):
             if values[X(i, g)] >= 0.5:
-                start = float(values[A(i)])
                 if best is None or (start, n.f0_key) < (best[0], best[1]):
                     best = (start, n.f0_key, n.key, g)
     if best is None:
@@ -661,4 +709,5 @@ def solve_v0a(
         fallback=False,
         planned_nodes=len(nodes),
         boundary_completion_ms=boundary,
+        reason=("reference_failed_milp_ok" if reference_failed else ""),
     )

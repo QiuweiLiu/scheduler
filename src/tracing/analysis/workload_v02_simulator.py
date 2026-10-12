@@ -5518,14 +5518,17 @@ def choose_action(
                 context["joint_prefetch"] = None
                 context["joint_evict_mode"] = "least_needed"
                 if _same:
+                    context["des_seq_pos"] = _pos + 1
                     chosen = _same[0]
                     activation = context.get("activation")
                     if activation is not None:
                         activation["des_seq_forced"] = int(activation.get("des_seq_forced", 0)) + 1
                     return chosen[0], chosen[4].index, chosen[5], len(pool), sum(bool(candidate[6]) for candidate in pool)
+                # not dispatchable yet: keep the pointer and let the main line
+                # decide this moment; the scripted action is retried later.
                 activation = context.get("activation")
                 if activation is not None:
-                    activation["des_seq_missed"] = int(activation.get("des_seq_missed", 0)) + 1
+                    activation["des_seq_wait"] = int(activation.get("des_seq_wait", 0)) + 1
                 return choose_action(
                     "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
                     round_robin_cursor, future_artifacts, rl_context, policy_context,
