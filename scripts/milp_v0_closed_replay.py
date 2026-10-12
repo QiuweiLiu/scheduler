@@ -47,8 +47,11 @@ def synth_plan_world(obs, dump, nodes, node_map, ep, templates):
     synth_templates = {}
     jobs = []
     for anchor_key, keys in groups.items():
+        keys = sorted(keys, key=lambda k: 0 if not k.startswith('pred:') else int(k.rsplit(':', 1)[1]))
         real_ids = [node_map.get(k) for k in keys]
         real_ids = [rid for rid in real_ids if rid]
+        step_of = {node_map[k]: (0 if not k.startswith('pred:') else int(k.rsplit(':', 1)[1]))
+                   for k in keys if node_map.get(k)}
         owner_job = None
         for job in ep['jobs']:
             tpl = templates[str(job['template_id'])]
@@ -66,9 +69,17 @@ def synth_plan_world(obs, dump, nodes, node_map, ep, templates):
                 node = replace(node, runtime_ms=item.runtime_p50_ms, load_ms=item.load_p50_ms,
                                workspace_peak_mb=item.memory_p95_mb)
             else:
-                # chain step: keep the scenario-aligned attributes already in the
-                # template? use the artifact-aligned values via the obs chain
-                pass
+                # chain step: use the PLAN's parameters (artifact-aligned) via the
+                # virtual key's step index (CPU steps in between shift positions).
+                step_index = step_of.get(rid, 0)
+                steps = obs.chains.get(anchor_key) or ()
+                if 0 < step_index <= len(steps):
+                    step = steps[step_index - 1]
+                    node = replace(
+                        node, model_id=step.model_id, lane=step.lane,
+                        runtime_ms=step.runtime_ms, load_ms=step.load_ms,
+                        workspace_peak_mb=step.memory_mb,
+                        resident_model_mb=obs.resident_mb_by_model.get(step.model_id))
             new_nodes.append(node)
         # linear rewire
         wired = []

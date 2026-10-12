@@ -1,6 +1,6 @@
 {
  "schema": "milp-v0a-tests-v1",
- "timestamp": "2026-10-12T17:02:16+0800",
+ "timestamp": "2026-10-12T22:34:16+0800",
  "T7": {
   "test": "T7_exhaustive_optimality",
   "instances": 24,
@@ -175,7 +175,7 @@
     "milp": 1105.0,
     "diff": 0.0,
     "ok": true,
-    "status": "OPTIMAL"
+    "status": "TIME_LIMIT"
    },
    {
     "index": 21,
@@ -217,21 +217,21 @@
       "0.05": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 13.43,
+       "solve_ms": 102.05,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 12.74,
+       "solve_ms": 41.84,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 12.85,
+       "solve_ms": 30.26,
        "fallback": true,
        "first": null
       }
@@ -253,7 +253,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1387193.7583506263,
-       "solve_ms": 7.03,
+       "solve_ms": 17.64,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -263,7 +263,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1387193.7583506263,
-       "solve_ms": 6.96,
+       "solve_ms": 16.08,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -273,7 +273,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1387193.7583506263,
-       "solve_ms": 6.95,
+       "solve_ms": 17.66,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -313,21 +313,21 @@
       "0.05": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 0.85,
+       "solve_ms": 2.46,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 0.8,
+       "solve_ms": 2.2,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 0.76,
+       "solve_ms": 2.29,
        "fallback": true,
        "first": null
       }
@@ -349,7 +349,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1632214.0719913435,
-       "solve_ms": 12.54,
+       "solve_ms": 39.33,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -359,7 +359,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1632214.0719913435,
-       "solve_ms": 12.55,
+       "solve_ms": 30.04,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -369,7 +369,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1632214.0719913435,
-       "solve_ms": 12.55,
+       "solve_ms": 27.48,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -409,21 +409,21 @@
       "0.05": {
        "status": "TIME_LIMIT",
        "objective": null,
-       "solve_ms": 53.11,
+       "solve_ms": 56.15,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "TIME_LIMIT",
        "objective": null,
-       "solve_ms": 111.83,
+       "solve_ms": 114.02,
        "fallback": true,
        "first": null
       },
       "0.5": {
-       "status": "OPTIMAL:NO_READY_ACTION",
+       "status": "TIME_LIMIT",
        "objective": null,
-       "solve_ms": 313.47,
+       "solve_ms": 505.46,
        "fallback": true,
        "first": null
       }
@@ -432,7 +432,7 @@
     },
     "T1": {
      "fallback": true,
-     "reason": "no_ready_action"
+     "reason": "no_solution"
     }
    },
    {
@@ -445,7 +445,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1639957.5229913434,
-       "solve_ms": 12.98,
+       "solve_ms": 22.81,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -455,7 +455,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1639957.5229913434,
-       "solve_ms": 12.94,
+       "solve_ms": 22.25,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -465,7 +465,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1639957.5229913434,
-       "solve_ms": 12.87,
+       "solve_ms": 21.9,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -581,7 +581,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 46.34,
+    "solve_ms": 64.03,
     "status": "OPTIMAL:NO_READY_ACTION"
    },
    {
@@ -596,7 +596,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 7.27,
+    "solve_ms": 15.29,
     "status": "OPTIMAL"
    },
    {
@@ -608,7 +608,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 1.03,
+    "solve_ms": 2.57,
     "status": "OPTIMAL:NO_READY_ACTION"
    },
    {
@@ -623,7 +623,7 @@
      0
     ],
     "change": "ordering",
-    "solve_ms": 13.6,
+    "solve_ms": 28.0,
     "status": "OPTIMAL"
    },
    {
@@ -635,8 +635,8 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 328.73,
-    "status": "OPTIMAL:NO_READY_ACTION"
+    "solve_ms": 514.39,
+    "status": "TIME_LIMIT"
    },
    {
     "episode": "train_000001",
@@ -650,7 +650,7 @@
      0
     ],
     "change": "ordering",
-    "solve_ms": 14.43,
+    "solve_ms": 31.81,
     "status": "OPTIMAL"
    }
   ]
@@ -737,8 +737,8 @@
  "T10b_synth": {
   "test": "T10b_synth_full_plan",
   "checked": 6,
-  "ok": 4,
-  "pass": false,
+  "ok": 6,
+  "pass": true,
   "details": [
    {
     "episode": "train_000000",
@@ -768,28 +768,28 @@
     "episode": "train_000001",
     "now_ms": 1597875.365,
     "plan_nodes": 6,
-    "forced": 1,
-    "waits": 2,
-    "order_ok": false,
+    "forced": 6,
+    "waits": 0,
+    "order_ok": true,
     "timing_ok": true,
-    "pass": false
+    "pass": true
    },
    {
     "episode": "train_000001",
     "now_ms": 1602263.857,
     "fallback": true,
-    "reason": "no_ready_action",
+    "reason": "no_solution",
     "pass": true
    },
    {
     "episode": "train_000001",
     "now_ms": 1605618.8159999999,
     "plan_nodes": 6,
-    "forced": 1,
-    "waits": 2,
-    "order_ok": false,
+    "forced": 6,
+    "waits": 0,
+    "order_ok": true,
     "timing_ok": true,
-    "pass": false
+    "pass": true
    }
   ]
  }
