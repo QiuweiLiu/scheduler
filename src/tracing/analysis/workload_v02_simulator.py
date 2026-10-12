@@ -9163,7 +9163,15 @@ def simulate_episode(
 
             _pending_times = _des_capture.get("at_ms_list")
             _due = None
-            if _pending_times:
+            if _des_capture.get("at_ready"):
+                # decision-moment capture: only when a ready item exists
+                _cap = int(_des_capture.get("cap", 8))
+                _done_list = _des_capture.setdefault("snapshots", [])
+                if len(_done_list) >= _cap:
+                    _des_capture["done"] = True
+                elif ready:
+                    _due = float(now)
+            elif _pending_times:
                 if _pending_times and now >= float(_pending_times[0]):
                     _due = float(_pending_times.pop(0))
             elif now >= float(_des_capture.get("at_ms") or 0.0):
@@ -9182,9 +9190,9 @@ def simulate_episode(
                     sequence=int(sequence),
                     rr_cursor=int(rr_cursor),
                 )
-                if _pending_times is not None:
+                if _pending_times is not None or _des_capture.get("at_ready"):
                     _des_capture.setdefault("snapshots", []).append(_snapshot)
-                    if not _pending_times:
+                    if _pending_times is not None and not _pending_times:
                         _des_capture["done"] = True
                 else:
                     _des_capture["snapshot"] = _snapshot

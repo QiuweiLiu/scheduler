@@ -141,6 +141,7 @@ def serialize_des_state(
         gpu_rows.append(
             {
                 "index": int(gpu.index),
+                "capacity_mb": float(gpu.capacity_mb),
                 "resident": {str(m): float(mb) for m, mb in gpu.resident.items()},
                 "active_tasks": [
                     {"task_id": str(task_id), **_task_to_dict(task)}
