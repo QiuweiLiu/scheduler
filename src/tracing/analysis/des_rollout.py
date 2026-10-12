@@ -198,11 +198,19 @@ def apply_injected_state(
     index_by_id = {str(job.job_instance_id): index for index, job in enumerate(jobs)}
     for row in injected.get("jobs") or []:
         job = jobs[index_by_id[str(row["job_instance_id"])]]
-        job.node_state = {str(k): str(v) for k, v in (row.get("node_state") or {}).items()}
-        job.ready_since = {str(k): float(v) for k, v in (row.get("ready_since") or {}).items()}
-        job.started = set(str(v) for v in row.get("started") or [])
-        job.completed = set(str(v) for v in row.get("completed") or [])
-        job.failed = set(str(v) for v in row.get("failed") or [])
+        # The planning template may have trimmed tail nodes (H5 scenario): keep
+        # only state that refers to nodes that still exist, or the job can never
+        # satisfy "all nodes complete".
+        live = {node.node_id for node in job.template.nodes}
+        job.node_state = {
+            str(k): str(v) for k, v in (row.get("node_state") or {}).items() if str(k) in live
+        }
+        job.ready_since = {
+            str(k): float(v) for k, v in (row.get("ready_since") or {}).items() if str(k) in live
+        }
+        job.started = set(str(v) for v in row.get("started") or [] if str(v) in live)
+        job.completed = set(str(v) for v in row.get("completed") or [] if str(v) in live)
+        job.failed = set(str(v) for v in row.get("failed") or [] if str(v) in live)
         job.finish_ms = row.get("finish_ms")
         if job.finish_ms is not None:
             job.finish_ms = float(job.finish_ms)
@@ -213,9 +221,13 @@ def apply_injected_state(
         job.preempt_recompute_ms = float(row.get("preempt_recompute_ms") or 0.0)
         job.preempt_stall_ms = float(row.get("preempt_stall_ms") or 0.0)
         job.resume_count = int(row.get("resume_count") or 0)
-        job.preempted_at = {str(k): float(v) for k, v in (row.get("preempted_at") or {}).items()}
+        job.preempted_at = {
+            str(k): float(v) for k, v in (row.get("preempted_at") or {}).items() if str(k) in live
+        }
         job.observed_intrinsic_ms = {
-            str(k): float(v) for k, v in (row.get("observed_intrinsic_ms") or {}).items()
+            str(k): float(v)
+            for k, v in (row.get("observed_intrinsic_ms") or {}).items()
+            if str(k) in live
         }
         job.request_resume_state = copy.copy(row.get("request_resume_state") or {})
 
@@ -396,10 +408,13 @@ def run_planning(
     forced_action: Mapping[str, Any] | None = None,
     policy: str = "des_rollout",
     collect_events: bool = True,
+    extra_context: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     """Run one planning world.  Returns (summary, events, policy_context)."""
 
     context: dict[str, Any] = {"activation": {}}
+    if extra_context:
+        context.update(extra_context)
     if forced_action is not None:
         context["des_action"] = dict(forced_action)
         context["des_first_pending"] = True
@@ -445,3 +460,275 @@ def future_flow_cost(
         total += finish - max(now0, arrivals.get(job_id, now0))
         counted += 1
     return {"future_flow_ms": total, "jobs_counted": counted}
+
+
+# --------------------------------------------------------------------------- #
+# deterministic scenario generator (greedy chain from the frozen artifacts)
+# --------------------------------------------------------------------------- #
+
+
+def _resident_mb_index(templates: Mapping[str, Template]) -> dict[str, float]:
+    index: dict[str, float] = {}
+    for template in templates.values():
+        for node in template.nodes:
+            if node.resident_model_mb is not None and node.model_id not in index:
+                index[str(node.model_id)] = float(node.resident_model_mb)
+    return index
+
+
+def greedy_chain_scenario(
+    snapshot: Mapping[str, Any],
+    episode: Mapping[str, Any],
+    templates: Mapping[str, Template],
+    future_artifacts: Mapping[str, Mapping[str, Any]],
+    train_stats: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Deterministic scenario: replace each pending node with the artifact's
+    greedy (top-1) predicted step anchored at the job's last visible node.
+
+    Nodes visible to the planner at the snapshot (complete / running / ready)
+    keep their true identity.  Pending nodes past the H5 horizon are trimmed
+    (the job is ``capped``; its tail is handled by the terminal value).
+    """
+
+    from tracing.analysis.workload_v02_simulator import estimate
+
+    jobs_by_id = {str(j["job_instance_id"]): j for j in episode.get("jobs") or []}
+    resident_index = _resident_mb_index(templates)
+    specs: dict[str, dict] = {}
+    capped: dict[str, bool] = {}
+    for row in snapshot.get("jobs") or []:
+        job_id = str(row["job_instance_id"])
+        job = jobs_by_id[job_id]
+        template = templates[str(job["template_id"])]
+        chain = list(template.nodes)
+        states = row.get("node_state") or {}
+        anchor_pos = -1
+        for pos, node in enumerate(chain):
+            if states.get(node.node_id) != "pending":
+                anchor_pos = pos
+        if anchor_pos < 0:
+            anchor_pos = 0  # nothing reached yet: keep the first node visible
+        pending_after = [
+            node for node in chain[anchor_pos + 1 :]
+            if states.get(node.node_id) == "pending"
+        ]
+        anchor_node = chain[anchor_pos]
+        artifact = future_artifacts.get(str(anchor_node.node_id)) or {}
+        scenarios = artifact.get("future_h5") or []
+        steps = (scenarios[0].get("steps") or []) if scenarios else []
+        replace: dict[str, dict] = {}
+        for step_index, node in enumerate(pending_after[:5]):
+            if step_index >= len(steps):
+                break
+            step = steps[step_index]
+            resource = step.get("resource") or {}
+            runtime_q = resource.get("runtime_ms_quantiles") or {}
+            load_q = resource.get("load_duration_ms_quantiles") or {}
+            occurrence = resource.get("load_occurrence_probability")
+            model_id = str(step.get("model_id") or node.model_id)
+            role = str(step.get("role") or node.role)
+            lane = str(step.get("execution_lane") or node.lane)
+            attrs: dict[str, Any] = {
+                "model_id": model_id,
+                "role": role,
+                "lane": lane,
+                "action_family": str(step.get("action_family") or node.action_family),
+                "runtime_ms": float(runtime_q.get("p50") or node.runtime_ms),
+                "load_ms": (
+                    float(load_q.get("p50") or 0.0)
+                    if isinstance(occurrence, (int, float)) and float(occurrence) >= 0.5
+                    else 0.0
+                ),
+                "resident_model_mb": resident_index.get(model_id, node.resident_model_mb),
+            }
+            try:
+                probe = replace(node, model_id=model_id, role=role, lane=lane)
+                attrs["workspace_peak_mb"] = float(estimate(probe, train_stats)["memory_p95_mb"])
+            except Exception:
+                attrs["workspace_peak_mb"] = node.workspace_peak_mb
+            replace[node.node_id] = attrs
+        drop = [node.node_id for node in pending_after[5:]]
+        specs[job_id] = {
+            "template_id": str(job["template_id"]),
+            "replace": replace,
+            "drop": drop,
+        }
+        capped[job_id] = bool(drop)
+    return {"jobs": specs, "capped": capped}
+
+
+# --------------------------------------------------------------------------- #
+# Markov joint scenario generator (fit on the training pool; leave-one-out)
+# --------------------------------------------------------------------------- #
+
+
+class MarkovScenarioModel:
+    """Joint scenario generator fit on the training pool's real runs.
+
+    Transition counts over consecutive (role, model, lane) triples are collected
+    from the training templates only; scenarios for an episode exclude that
+    episode's own templates (leave-one-out) so the generator never copies the
+    planned run's true future.  Step-1 attributes come from the anchor's frozen
+    artifact marginals; later steps follow the empirical transition chain.
+    """
+
+    def __init__(self, templates: Mapping[str, Template]) -> None:
+        self.transitions: dict[tuple[str, str, str], dict[tuple[str, str, str], int]] = {}
+        self.template_triples: dict[str, list[tuple[str, str, str]]] = {}
+        for template in templates.values():
+            if template.split != "train":
+                continue
+            triples = [
+                (str(node.role), str(node.model_id), str(node.lane))
+                for node in template.nodes
+                if node.lane in ("gpu", "cpu")
+            ]
+            self.template_triples[template.template_id] = triples
+            for a, b in zip(triples, triples[1:]):
+                self.transitions.setdefault(a, {})
+                self.transitions[a][b] = self.transitions[a].get(b, 0) + 1
+
+    def _loo_transitions(self, exclude_template_ids: set[str]):
+        counts: dict[tuple[str, str, str], dict[tuple[str, str, str], int]] = {}
+        for template_id, triples in self.template_triples.items():
+            if template_id in exclude_template_ids:
+                continue
+            for a, b in zip(triples, triples[1:]):
+                counts.setdefault(a, {})
+                counts[a][b] = counts[a].get(b, 0) + 1
+        return counts
+
+    def scenario(
+        self,
+        snapshot: Mapping[str, Any],
+        episode: Mapping[str, Any],
+        templates: Mapping[str, Template],
+        future_artifacts: Mapping[str, Mapping[str, Any]],
+        train_stats: Mapping[str, Mapping[str, Any]],
+        rng: Any,
+    ) -> dict[str, Any]:
+        """One sampled scenario spec (same shape as :func:`greedy_chain_scenario`)."""
+
+        from tracing.analysis.workload_v02_simulator import estimate
+
+        jobs_by_id = {str(j["job_instance_id"]): j for j in episode.get("jobs") or []}
+        resident_index = _resident_mb_index(templates)
+        exclude = {
+            str(jobs_by_id[str(row["job_instance_id"])]["template_id"])
+            for row in snapshot.get("jobs") or []
+            if str(row["job_instance_id"]) in jobs_by_id
+        }
+        transitions = self._loo_transitions(exclude)
+        specs: dict[str, dict] = {}
+        capped: dict[str, bool] = {}
+        for row in snapshot.get("jobs") or []:
+            job_id = str(row["job_instance_id"])
+            job = jobs_by_id[job_id]
+            template = templates[str(job["template_id"])]
+            chain = list(template.nodes)
+            states = row.get("node_state") or {}
+            anchor_pos = -1
+            for pos, node in enumerate(chain):
+                if states.get(node.node_id) != "pending":
+                    anchor_pos = pos
+            if anchor_pos < 0:
+                anchor_pos = 0
+            pending_after = [
+                node for node in chain[anchor_pos + 1 :]
+                if states.get(node.node_id) == "pending"
+            ]
+            anchor_node = chain[anchor_pos]
+            artifact = future_artifacts.get(str(anchor_node.node_id)) or {}
+            scenarios = artifact.get("future_h5") or []
+            steps = (scenarios[0].get("steps") or []) if scenarios else []
+            length_probs = artifact.get("length_probabilities") or []
+            sampled_length = 5
+            if length_probs:
+                bucket = rng.choices(range(len(length_probs)), weights=length_probs, k=1)[0]
+                sampled_length = max(1, int(bucket))
+            replace: dict[str, dict] = {}
+            previous = (str(anchor_node.role), str(anchor_node.model_id), str(anchor_node.lane))
+            for step_index, node in enumerate(pending_after[:5]):
+                if step_index >= sampled_length:
+                    break
+                if step_index < len(steps):
+                    step = steps[step_index]
+                    model_dist = step.get("model_probabilities") or {}
+                    if model_dist and step_index == 0:
+                        models = list(model_dist)
+                        weights = [max(0.0, float(model_dist[m])) for m in models]
+                        model_id = str(rng.choices(models, weights=weights, k=1)[0]) if models else str(step.get("model_id") or node.model_id)
+                        role = str(step.get("role") or node.role)
+                        lane = str(step.get("execution_lane") or node.lane)
+                    else:
+                        role, model_id, lane = self._sample_transition(
+                            transitions, previous, step, node, rng,
+                        )
+                    runtime_q = (step.get("resource") or {}).get("runtime_ms_quantiles") or {}
+                    load_q = (step.get("resource") or {}).get("load_duration_ms_quantiles") or {}
+                    occurrence = (step.get("resource") or {}).get("load_occurrence_probability")
+                    runtime_ms = self._sample_quantile(runtime_q, rng, node.runtime_ms)
+                    load_ms = (
+                        self._sample_quantile(load_q, rng, 0.0)
+                        if isinstance(occurrence, (int, float)) and rng.random() < float(occurrence)
+                        else 0.0
+                    )
+                else:
+                    role, model_id, lane = self._sample_transition(
+                        transitions, previous, {}, node, rng,
+                    )
+                    runtime_ms = node.runtime_ms
+                    load_ms = float(node.load_ms or 0.0)
+                attrs: dict[str, Any] = {
+                    "model_id": model_id,
+                    "role": role,
+                    "lane": lane,
+                    "runtime_ms": float(runtime_ms),
+                    "load_ms": float(load_ms),
+                    "resident_model_mb": resident_index.get(model_id, node.resident_model_mb),
+                }
+                try:
+                    probe = replace(node, model_id=model_id, role=role, lane=lane)
+                    attrs["workspace_peak_mb"] = float(estimate(probe, train_stats)["memory_p95_mb"])
+                except Exception:
+                    attrs["workspace_peak_mb"] = node.workspace_peak_mb
+                replace[node.node_id] = attrs
+                previous = (str(role), str(model_id), str(lane))
+            drop = [node.node_id for node in pending_after[min(sampled_length, 5):]]
+            if len(pending_after) > 5:
+                drop = [node.node_id for node in pending_after[5:]]
+            specs[job_id] = {
+                "template_id": str(job["template_id"]),
+                "replace": replace,
+                "drop": drop,
+            }
+            capped[job_id] = bool(drop) or sampled_length >= 5
+        return {"jobs": specs, "capped": capped}
+
+    @staticmethod
+    def _sample_quantile(quantiles: Mapping[str, Any], rng: Any, default: float) -> float:
+        values = []
+        for key in ("p50", "p90", "p95"):
+            value = quantiles.get(key)
+            if isinstance(value, (int, float)):
+                values.append(float(value))
+        if not values:
+            return float(default)
+        if len(values) == 1:
+            return values[0]
+        weights = [0.6, 0.3, 0.1][: len(values)]
+        return float(rng.choices(values, weights=weights, k=1)[0])
+
+    @staticmethod
+    def _sample_transition(transitions, previous, step, node, rng):
+        options = transitions.get(previous)
+        if options:
+            choices = list(options)
+            weights = [options[c] for c in choices]
+            role, model_id, lane = rng.choices(choices, weights=weights, k=1)[0]
+            return str(role), str(model_id), str(lane)
+        fallback_model = str(step.get("model_id") or node.model_id)
+        fallback_role = str(step.get("role") or node.role)
+        fallback_lane = str(step.get("execution_lane") or node.lane)
+        return fallback_role, fallback_model, fallback_lane

@@ -5501,9 +5501,31 @@ def choose_action(
         """
 
         context = policy_context if policy_context is not None else {}
+        if context.get("des_probe_pool") and not context.get("des_pool_recorded"):
+            context["des_pool_recorded"] = True
+            context["des_first_pool"] = [
+                [int(candidate[1]), str(candidate[2]), int(candidate[4].index)]
+                for candidate in pool
+            ]
+            context["des_first_state"] = {
+                "gpus": [
+                    {
+                        "index": int(gpu.index),
+                        "resident": {str(m): float(mb) for m, mb in gpu.resident.items()},
+                        "busy_until": float(gpu.busy_until),
+                    }
+                    for gpu in ((policy_context or {}).get("_gpus") or free_gpus)
+                ],
+                "ready": [
+                    [int(item[0]), float(item[1]), int(item[2]), str(item[3])]
+                    for item in ready_items
+                ],
+                "now_ms": float(decision_time_ms),
+            }
         if not context.get("des_first_pending"):
-            context["joint_prefetch"] = None
-            context["joint_evict_mode"] = "least_needed"
+            if not context.get("des_keep_stash"):
+                context["joint_prefetch"] = None
+                context["joint_evict_mode"] = "least_needed"
             return choose_action(
                 "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
                 round_robin_cursor, future_artifacts, rl_context, policy_context,
@@ -5513,6 +5535,29 @@ def choose_action(
         forced = dict(context.get("des_action") or {})
         target_node = str(forced.get("node_key") or "")
         target_gpu = forced.get("gpu_index")
+        # The residency actions are stashed first: they apply regardless of
+        # whether the ordering dimension is forced.
+        context["joint_prefetch"] = forced.get("prefetch")
+        context["joint_evict_mode"] = str(forced.get("evict_mode") or "least_needed")
+        if not target_node:
+            # Ordering follows the main line; keep the stash through the delegation.
+            context["des_keep_stash"] = True
+            result = choose_action(
+                "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+                round_robin_cursor, future_artifacts, rl_context, policy_context,
+                decision_time_ms, extension_config,
+            )
+            context["des_keep_stash"] = False
+            activation = context.get("activation")
+            if activation is not None:
+                activation["des_first_forced"] = 0
+                activation["des_first_node"] = str(result[0][2])
+                activation["des_first_gpu"] = int(result[1])
+                activation["des_prefetch"] = 1 if context.get("joint_prefetch") else 0
+                activation["des_evict_largest"] = (
+                    1 if context.get("joint_evict_mode") == "largest_first" else 0
+                )
+            return result
         same = [
             candidate for candidate in pool
             if str(candidate[2]) == target_node
@@ -5522,16 +5567,15 @@ def choose_action(
             activation = context.get("activation")
             if activation is not None:
                 activation["des_first_forced"] = 0
-            context["joint_prefetch"] = None
-            context["joint_evict_mode"] = "least_needed"
-            return choose_action(
+            context["des_keep_stash"] = True
+            result = choose_action(
                 "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
                 round_robin_cursor, future_artifacts, rl_context, policy_context,
                 decision_time_ms, extension_config,
             )
+            context["des_keep_stash"] = False
+            return result
         chosen = same[0]
-        context["joint_prefetch"] = forced.get("prefetch")
-        context["joint_evict_mode"] = str(forced.get("evict_mode") or "least_needed")
         activation = context.get("activation")
         if activation is not None:
             activation["des_first_forced"] = 1
@@ -9114,28 +9158,38 @@ def simulate_episode(
 
     _des_capture = (policy_context or {}).get("des_capture") if policy_context else None
     while arrival_heap or finish_heap or ready or any(gpu.prefetch_pending for gpu in gpus):
-        if (
-            _des_capture is not None
-            and not _des_capture.get("done")
-            and now >= float(_des_capture.get("at_ms") or 0.0)
-        ):
+        if _des_capture is not None and not _des_capture.get("done"):
             from tracing.analysis.des_rollout import serialize_des_state
 
-            _des_capture["snapshot"] = serialize_des_state(
-                episode_id=str(episode.get("episode_id")),
-                now=float(now),
-                jobs=jobs,
-                gpus=gpus,
-                finish_heap=finish_heap,
-                ready=ready,
-                arrival_heap=arrival_heap,
-                active_jobs=active_jobs,
-                wait_logged=wait_logged,
-                sequence=int(sequence),
-                rr_cursor=int(rr_cursor),
-            )
-            _des_capture["event_index"] = len(events)
-            _des_capture["done"] = True
+            _pending_times = _des_capture.get("at_ms_list")
+            _due = None
+            if _pending_times:
+                if _pending_times and now >= float(_pending_times[0]):
+                    _due = float(_pending_times.pop(0))
+            elif now >= float(_des_capture.get("at_ms") or 0.0):
+                _due = float(_des_capture.get("at_ms") or 0.0)
+            if _due is not None:
+                _snapshot = serialize_des_state(
+                    episode_id=str(episode.get("episode_id")),
+                    now=float(now),
+                    jobs=jobs,
+                    gpus=gpus,
+                    finish_heap=finish_heap,
+                    ready=ready,
+                    arrival_heap=arrival_heap,
+                    active_jobs=active_jobs,
+                    wait_logged=wait_logged,
+                    sequence=int(sequence),
+                    rr_cursor=int(rr_cursor),
+                )
+                if _pending_times is not None:
+                    _des_capture.setdefault("snapshots", []).append(_snapshot)
+                    if not _pending_times:
+                        _des_capture["done"] = True
+                else:
+                    _des_capture["snapshot"] = _snapshot
+                    _des_capture["event_index"] = len(events)
+                    _des_capture["done"] = True
         process_prefetch_finish()
         if not ready and not finish_heap and arrival_heap:
             next_prefetch = min(
