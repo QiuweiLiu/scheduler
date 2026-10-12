@@ -1,16 +1,19 @@
 {
  "schema": "milp-v0a-tests-v1",
- "timestamp": "2026-10-12T22:34:16+0800",
+ "timestamp": "2026-10-12T22:46:09+0800",
  "T7": {
   "test": "T7_exhaustive_optimality",
-  "instances": 24,
+  "instances": 36,
+  "random": 24,
+  "counterexamples": 12,
   "seed": 11,
-  "agree": 24,
+  "agree": 36,
   "fallback": 0,
   "pass": true,
   "results": [
    {
     "index": 0,
+    "kind": "random",
     "enum": 560.0,
     "milp": 560.0,
     "diff": 0.0,
@@ -19,6 +22,7 @@
    },
    {
     "index": 1,
+    "kind": "random",
     "enum": 230.0,
     "milp": 230.0,
     "diff": 0.0,
@@ -27,6 +31,7 @@
    },
    {
     "index": 2,
+    "kind": "random",
     "enum": 600.0,
     "milp": 600.0,
     "diff": 1e-06,
@@ -35,6 +40,7 @@
    },
    {
     "index": 3,
+    "kind": "random",
     "enum": 325.0,
     "milp": 325.0,
     "diff": 0.0,
@@ -43,6 +49,7 @@
    },
    {
     "index": 4,
+    "kind": "random",
     "enum": 185.0,
     "milp": 185.0,
     "diff": 0.0,
@@ -51,6 +58,7 @@
    },
    {
     "index": 5,
+    "kind": "random",
     "enum": 335.0,
     "milp": 335.0,
     "diff": 0.0,
@@ -59,6 +67,7 @@
    },
    {
     "index": 6,
+    "kind": "random",
     "enum": 225.0,
     "milp": 225.0,
     "diff": 0.0,
@@ -67,6 +76,7 @@
    },
    {
     "index": 7,
+    "kind": "random",
     "enum": 190.0,
     "milp": 190.0,
     "diff": 0.0,
@@ -75,6 +85,7 @@
    },
    {
     "index": 8,
+    "kind": "random",
     "enum": 480.0,
     "milp": 480.0,
     "diff": 0.0,
@@ -83,6 +94,7 @@
    },
    {
     "index": 9,
+    "kind": "random",
     "enum": 790.0,
     "milp": 790.0,
     "diff": 0.0,
@@ -91,6 +103,7 @@
    },
    {
     "index": 10,
+    "kind": "random",
     "enum": 435.0,
     "milp": 435.0,
     "diff": 1e-06,
@@ -99,6 +112,7 @@
    },
    {
     "index": 11,
+    "kind": "random",
     "enum": 150.0,
     "milp": 150.0,
     "diff": 0.0,
@@ -107,6 +121,7 @@
    },
    {
     "index": 12,
+    "kind": "random",
     "enum": 310.0,
     "milp": 310.0,
     "diff": 0.0,
@@ -115,6 +130,7 @@
    },
    {
     "index": 13,
+    "kind": "random",
     "enum": 720.0,
     "milp": 720.0,
     "diff": 0.0,
@@ -123,6 +139,7 @@
    },
    {
     "index": 14,
+    "kind": "random",
     "enum": 1195.0,
     "milp": 1195.0,
     "diff": 0.0,
@@ -131,6 +148,7 @@
    },
    {
     "index": 15,
+    "kind": "random",
     "enum": 515.0,
     "milp": 515.0,
     "diff": 1e-06,
@@ -139,6 +157,7 @@
    },
    {
     "index": 16,
+    "kind": "random",
     "enum": 175.0,
     "milp": 175.0,
     "diff": 0.0,
@@ -147,6 +166,7 @@
    },
    {
     "index": 17,
+    "kind": "random",
     "enum": 280.0,
     "milp": 280.0,
     "diff": 0.0,
@@ -155,6 +175,7 @@
    },
    {
     "index": 18,
+    "kind": "random",
     "enum": 225.0,
     "milp": 225.0,
     "diff": 1e-06,
@@ -163,6 +184,7 @@
    },
    {
     "index": 19,
+    "kind": "random",
     "enum": 560.0,
     "milp": 560.0,
     "diff": 0.0,
@@ -171,6 +193,7 @@
    },
    {
     "index": 20,
+    "kind": "random",
     "enum": 1105.0,
     "milp": 1105.0,
     "diff": 0.0,
@@ -179,6 +202,7 @@
    },
    {
     "index": 21,
+    "kind": "random",
     "enum": 475.0,
     "milp": 475.0,
     "diff": 1e-06,
@@ -187,6 +211,7 @@
    },
    {
     "index": 22,
+    "kind": "random",
     "enum": 475.0,
     "milp": 475.0,
     "diff": 0.0,
@@ -195,8 +220,117 @@
    },
    {
     "index": 23,
+    "kind": "random",
     "enum": 455.0,
     "milp": 455.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 24,
+    "kind": "counterexample",
+    "enum": 400.0,
+    "milp": 400.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 25,
+    "kind": "counterexample",
+    "enum": 390.0,
+    "milp": 390.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 26,
+    "kind": "counterexample",
+    "enum": 380.0,
+    "milp": 380.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 27,
+    "kind": "counterexample",
+    "enum": 400.0,
+    "milp": 400.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 28,
+    "kind": "counterexample",
+    "enum": 200.0,
+    "milp": 200.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 29,
+    "kind": "counterexample",
+    "enum": 670.0,
+    "milp": 670.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 30,
+    "kind": "counterexample",
+    "enum": 300.0,
+    "milp": 300.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 31,
+    "kind": "counterexample",
+    "enum": 370.0,
+    "milp": 370.0,
+    "diff": 1e-06,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 32,
+    "kind": "counterexample",
+    "enum": 380.0,
+    "milp": 380.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 33,
+    "kind": "counterexample",
+    "enum": 580.0,
+    "milp": 580.0,
+    "diff": 1e-06,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 34,
+    "kind": "counterexample",
+    "enum": 2300.0,
+    "milp": 2300.0,
+    "diff": 0.0,
+    "ok": true,
+    "status": "OPTIMAL"
+   },
+   {
+    "index": 35,
+    "kind": "counterexample",
+    "enum": 570.0,
+    "milp": 570.0,
     "diff": 0.0,
     "ok": true,
     "status": "OPTIMAL"
@@ -217,21 +351,21 @@
       "0.05": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 102.05,
+       "solve_ms": 69.89,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 41.84,
+       "solve_ms": 22.43,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 30.26,
+       "solve_ms": 21.47,
        "fallback": true,
        "first": null
       }
@@ -253,7 +387,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1387193.7583506263,
-       "solve_ms": 17.64,
+       "solve_ms": 12.41,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -263,7 +397,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1387193.7583506263,
-       "solve_ms": 16.08,
+       "solve_ms": 12.3,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -273,7 +407,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1387193.7583506263,
-       "solve_ms": 17.66,
+       "solve_ms": 13.41,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -313,21 +447,21 @@
       "0.05": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 2.46,
+       "solve_ms": 1.67,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 2.2,
+       "solve_ms": 1.64,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "OPTIMAL:NO_READY_ACTION",
        "objective": null,
-       "solve_ms": 2.29,
+       "solve_ms": 1.44,
        "fallback": true,
        "first": null
       }
@@ -349,7 +483,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1632214.0719913435,
-       "solve_ms": 39.33,
+       "solve_ms": 20.97,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -359,7 +493,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1632214.0719913435,
-       "solve_ms": 30.04,
+       "solve_ms": 20.54,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -369,7 +503,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1632214.0719913435,
-       "solve_ms": 27.48,
+       "solve_ms": 20.36,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -409,21 +543,21 @@
       "0.05": {
        "status": "TIME_LIMIT",
        "objective": null,
-       "solve_ms": 56.15,
+       "solve_ms": 56.53,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "TIME_LIMIT",
        "objective": null,
-       "solve_ms": 114.02,
+       "solve_ms": 109.23,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "TIME_LIMIT",
        "objective": null,
-       "solve_ms": 505.46,
+       "solve_ms": 505.43,
        "fallback": true,
        "first": null
       }
@@ -445,7 +579,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1639957.5229913434,
-       "solve_ms": 22.81,
+       "solve_ms": 22.13,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -455,7 +589,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1639957.5229913434,
-       "solve_ms": 22.25,
+       "solve_ms": 20.99,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -465,7 +599,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1639957.5229913434,
-       "solve_ms": 21.9,
+       "solve_ms": 20.84,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -581,7 +715,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 64.03,
+    "solve_ms": 72.86,
     "status": "OPTIMAL:NO_READY_ACTION"
    },
    {
@@ -596,7 +730,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 15.29,
+    "solve_ms": 13.35,
     "status": "OPTIMAL"
    },
    {
@@ -608,7 +742,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 2.57,
+    "solve_ms": 1.93,
     "status": "OPTIMAL:NO_READY_ACTION"
    },
    {
@@ -623,7 +757,7 @@
      0
     ],
     "change": "ordering",
-    "solve_ms": 28.0,
+    "solve_ms": 24.26,
     "status": "OPTIMAL"
    },
    {
@@ -635,7 +769,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 514.39,
+    "solve_ms": 515.94,
     "status": "TIME_LIMIT"
    },
    {
@@ -650,7 +784,7 @@
      0
     ],
     "change": "ordering",
-    "solve_ms": 31.81,
+    "solve_ms": 39.1,
     "status": "OPTIMAL"
    }
   ]

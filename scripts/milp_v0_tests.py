@@ -166,9 +166,19 @@ def exhaustive_optimum(obs: MILPObservation) -> float | None:
             progress = True
             pending = {g: list(combo[g]) for g in range(G)}
             guard = 0
-            while progress and valid and guard < 100:
+            while progress and valid and guard < 200:
                 guard += 1
                 progress = False
+                # CPU chain nodes: complete as soon as their predecessor is done
+                # (they never consume a GPU, but GPU steps may wait on them).
+                for node in nodes:
+                    if node["lane"] == "gpu" or node["key"] in finish:
+                        continue
+                    pred = node.get("pred")
+                    if pred is None or pred in finish:
+                        release = obs.now_ms if pred is None else max(obs.now_ms, finish[pred])
+                        finish[node["key"]] = release + node["compute"]
+                        progress = True
                 for g in range(G):
                     if not pending[g]:
                         continue
@@ -203,18 +213,57 @@ def exhaustive_optimum(obs: MILPObservation) -> float | None:
                     break
             if not valid or any(pending[g] for g in range(G)):
                 continue
-            # CPU nodes (time-only, chain-ordered)
+            # any remaining CPU node with an unfinished predecessor -> invalid
             for node in nodes:
-                if node["lane"] == "gpu":
+                if node["lane"] == "gpu" or node["key"] in finish:
                     continue
-                release = obs.now_ms
-                if node.get("pred") is not None and node["pred"] in finish:
-                    release = max(release, finish[node["pred"]])
-                finish[node["key"]] = release + node["compute"]
+                valid = False
+                break
             obj = sum(finish[b] for b in boundaries if b in finish)
             if best is None or obj < best:
                 best = obj
     return best
+
+
+def make_counterexample(index: int) -> TinyInstance:
+    """Targeted counterexamples (advisor request): cross-GPU chains, CPU/GPU
+    mixed chains, repeated models, dual-GPU cold loads, early terminations."""
+
+    resident_mb = {"M1": 8000.0, "M2": 12000.0, "M3": 4000.0}
+    cap = 32760.0
+
+    def step(model, lane="gpu", runtime=100.0, load=10.0, mem=3000.0):
+        return ObsChainStep(model_id=model, lane=lane, runtime_ms=runtime, load_ms=load, memory_mb=mem)
+
+    def ready(node_id, model, job=0, runtime=200.0, load=20.0, mem=6000.0):
+        return ObsReadyNode(job_index=job, node_id=node_id, priority=float(job), ready_since_ms=0.0,
+                            model_id=model, lane="gpu", runtime_p50_ms=runtime, load_p50_ms=load,
+                            memory_p95_mb=mem)
+
+    def gpu(g, resident=None):
+        return ObsGpu(index=g, capacity_mb=cap, available_at_ms=0.0, resident=resident or {})
+
+    cases = {
+        0: ([ready("A", "M1")], {"A": (step("M2"), step("M3"))}, [gpu(0), gpu(1)]),                       # cross-GPU chain
+        1: ([ready("A", "M1")], {"A": (step("M2", lane="cpu", load=0.0), step("M1"))}, [gpu(0), gpu(1)]),  # CPU in chain
+        2: ([ready("A", "M1")], {"A": (step("M1"), step("M1"))}, [gpu(0), gpu(1)]),                      # repeated model
+        3: ([ready("A", "M2"), ready("B", "M2", job=1)], {}, [gpu(0), gpu(1)]),                          # dual cold load
+        4: ([ready("A", "M1")], {}, [gpu(0), gpu(1)]),                                                   # no chain
+        5: ([ready("A", "M1")], {"A": (step("M2"), step("M1"), step("M3"), step("M2"), step("M1"))}, [gpu(0), gpu(1)]),  # H5 full
+        6: ([ready("A", "M1")], {"A": (step("M3"),)}, [gpu(0), gpu(1)]),                                 # length 1
+        7: ([ready("A", "M1")], {"A": (step("M2"), step("M2"))}, [gpu(0, {"M1": 8000.0}), gpu(1)]),      # resident on g0
+        8: ([ready("A", "M2")], {"A": (step("M2"), step("M2"))}, [gpu(0), gpu(1)]),                      # same model reload
+        9: ([ready("A", "M3"), ready("B", "M1", job=1)], {"A": (step("M1"),), "B": (step("M3"),)},
+            [gpu(0, {"M2": 12000.0}), gpu(1, {"M3": 4000.0})]),                                          # mixed residents
+        10: ([ready("A", "M1")], {"A": (step("M2", runtime=2000.0, load=100.0, mem=15000.0), step("M3"))},
+             [gpu(0), gpu(1)]),                                                                          # long heavy chain step
+        11: ([ready("A", "M1"), ready("B", "M1", job=1)], {"A": (step("M3"),), "B": (step("M2"),)},
+             [gpu(0, {"M2": 12000.0}), gpu(1, {"M1": 8000.0})]),                                         # two jobs, mixed
+    }
+    ready_nodes, chains, gpus = cases[index % len(cases)]
+    obs = MILPObservation(now_ms=0.0, ready=tuple(ready_nodes), chains=chains, gpus=tuple(gpus),
+                          resident_mb_by_model=resident_mb, decision_time_ms=0.0)
+    return TinyInstance(obs=obs, boundary_of={})
 
 
 def run_t7(instances: int, seed: int) -> dict:
@@ -222,34 +271,37 @@ def run_t7(instances: int, seed: int) -> dict:
     results = []
     agree = 0
     fallback = 0
-    for index in range(instances):
-        inst = make_tiny_instance(rng)
+    counterexamples = 12
+    for index in range(instances + counterexamples):
+        inst = make_counterexample(index - instances) if index >= instances else make_tiny_instance(rng)
         enum_best = exhaustive_optimum(inst.obs)
         res = solve_v0a(inst.obs, time_limit_s=5.0)
+        kind = "counterexample" if index >= instances else "random"
         if enum_best is None:
             # not applicable: MILP must fall back
             ok = res.fallback
-            results.append({"index": index, "enum": None, "milp": None, "ok": ok, "status": res.status})
+            results.append({"index": index, "kind": kind, "enum": None, "milp": None, "ok": ok, "status": res.status})
             if ok:
                 agree += 1
             continue
         if res.fallback:
             fallback += 1
-            results.append({"index": index, "enum": enum_best, "milp": None, "ok": False, "status": res.status})
+            results.append({"index": index, "kind": kind, "enum": enum_best, "milp": None, "ok": False, "status": res.status})
             continue
         diff = abs((res.objective or 0.0) - enum_best)
         ok = diff <= 1e-6 * max(1.0, abs(enum_best))
         if ok:
             agree += 1
         results.append({
-            "index": index, "enum": round(enum_best, 3), "milp": round(res.objective or -1, 3),
+            "index": index, "kind": kind, "enum": round(enum_best, 3), "milp": round(res.objective or -1, 3),
             "diff": round(diff, 6), "ok": ok, "status": res.status,
         })
+    total = instances + counterexamples
     return {
         "test": "T7_exhaustive_optimality",
-        "instances": instances, "seed": seed,
+        "instances": total, "random": instances, "counterexamples": counterexamples, "seed": seed,
         "agree": agree, "fallback": fallback,
-        "pass": agree == instances,
+        "pass": agree == total,
         "results": results,
     }
 
