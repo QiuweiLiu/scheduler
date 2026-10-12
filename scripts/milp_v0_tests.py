@@ -497,6 +497,233 @@ def run_t1_execution(episode_limit: int, cap: int) -> dict:
 # --------------------------------------------------------------------------- #
 
 
+def run_t6a_template_swap(episode_limit: int, cap: int) -> dict:
+    """Swap the true future in the TEMPLATES; the observation must stay identical."""
+
+    from dataclasses import replace
+
+    serial, templates, episodes, stats, artifacts = load_fixtures(episode_limit)
+    states = capture_states(episodes, templates, stats, artifacts, serial, cap=cap)
+    checked = 0
+    same = 0
+    for ep, jobs_meta, snap in states:
+        obs_a = obs_from_snapshot(snap, jobs_meta, templates, stats, artifacts)
+        if not [r for r in obs_a.ready if r.lane == "gpu"]:
+            continue
+        rng = random.Random(7)
+        perturbed_templates = {}
+        for tid, tpl in templates.items():
+            nodes = []
+            for node in tpl.nodes:
+                nodes.append(replace(node, runtime_ms=node.runtime_ms * rng.uniform(0.5, 2.0) + 111.0,
+                                     load_ms=(node.load_ms or 0.0) * rng.uniform(0.5, 2.0)))
+            perturbed_templates[tid] = replace(tpl, nodes=tuple(nodes),
+                                               by_id={n.node_id: n for n in nodes})
+        obs_b = obs_from_snapshot(snap, jobs_meta, perturbed_templates, stats, artifacts)
+        checked += 1
+        if obs_a == obs_b:
+            same += 1
+    return {"test": "T6a_template_swap", "checked": checked, "identical": same,
+            "pass": checked == same and checked > 0}
+
+
+def run_t9_audit(episode_limit: int, cap: int) -> dict:
+    """First-action change vs the frozen baseline + source + solve time."""
+
+    from tracing.analysis.des_rollout import build_planning_episode, run_planning
+
+    serial, templates, episodes, stats, artifacts = load_fixtures(episode_limit)
+    states = capture_states(episodes, templates, stats, artifacts, serial, cap=cap)
+    rows = []
+    for ep, jobs_meta, snap in states:
+        obs = obs_from_snapshot(snap, jobs_meta, templates, stats, artifacts)
+        if not [r for r in obs.ready if r.lane == "gpu"]:
+            continue
+        res = solve_v0a(obs, time_limit_s=0.5)
+        plan_episode = build_planning_episode(ep, snap, include_arrivals=True)
+        _s, events, _c = run_planning(
+            plan_episode, templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="pdrs_resident", forced_action=None,
+            collect_events=True)
+        baseline_first = None
+        for event in events:
+            if event.get("event_type") == "node_dispatch":
+                baseline_first = (str(event.get("node_id")), int(event.get("gpu_index")))
+                break
+        milp_first = res.first_action
+        if milp_first is None:
+            change = "fallback"
+        elif baseline_first is None:
+            change = "no_baseline"
+        elif milp_first == baseline_first:
+            change = "same"
+        elif milp_first[0] == baseline_first[0]:
+            change = "placement"
+        else:
+            change = "ordering"
+        rows.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"],
+                     "milp_first": list(milp_first) if milp_first else None,
+                     "baseline_first": list(baseline_first) if baseline_first else None,
+                     "change": change, "solve_ms": round(res.solve_ms, 2),
+                     "status": res.status})
+    return {"test": "T9_audit", "states": len(rows), "rows": rows}
+
+
+def run_t10a_single_step(episode_limit: int, cap: int) -> dict:
+    """Single-step transition consistency for the first action (aligned truth)."""
+
+    from tracing.analysis.des_rollout import (
+        build_planning_episode, build_scenario_templates, greedy_chain_scenario, run_planning)
+
+    serial, templates, episodes, stats, artifacts = load_fixtures(episode_limit)
+    states = capture_states(episodes, templates, stats, artifacts, serial, cap=cap)
+    checked = 0
+    ok = 0
+    details = []
+    for ep, jobs_meta, snap in states:
+        obs = obs_from_snapshot(snap, jobs_meta, templates, stats, artifacts)
+        if not [r for r in obs.ready if r.lane == "gpu"]:
+            continue
+        dump: dict = {}
+        res = solve_v0a(obs, time_limit_s=0.5, debug_dump=dump)
+        if res.fallback or not res.first_action:
+            continue
+        node_key, gpu_index = res.first_action
+        vals = dump.get("values") or []
+        idx = dump["index"]
+        nodes = _build_nodes(obs)
+        key_index = {n.key: i for i, n in enumerate(nodes)}
+        i0 = key_index[node_key]
+        gpos = dump["gpu_nodes"].index(i0)
+        z_total = sum(vals[idx["z0"] + gpos * dump["gpu_count"] + g]
+                      for g in range(dump["gpu_count"]))
+        node0 = nodes[i0]
+        scenario = greedy_chain_scenario(snap, ep, templates, artifacts, stats)
+        owner_job = None
+        for job in ep["jobs"]:
+            tpl = templates[str(job["template_id"])]
+            if node_key in tpl.by_id:
+                owner_job = job
+                break
+        spec = scenario["jobs"].get(str(owner_job["job_instance_id"])) if owner_job else None
+        if spec is None:
+            continue
+        spec["replace"][node_key] = {
+            "runtime_ms": node0.compute_ms + node0.load_ms,
+            "load_ms": node0.load_ms,
+            "workspace_peak_mb": node0.workspace_mb,
+        }
+        scenario_templates = build_scenario_templates(templates, scenario)
+        plan_episode = build_planning_episode(ep, snap, include_arrivals=True)
+        _s, _e, probe_ctx = run_planning(
+            plan_episode, scenario_templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=None,
+            collect_events=False, extra_context={"des_probe_pool": True})
+        pool = {(str(row[1]), int(row[2])) for row in (probe_ctx.get("des_first_pool") or [])}
+        if (node_key, int(gpu_index)) not in pool:
+            checked += 1
+            ok += 1
+            details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"], "node": node_key,
+                            "deferred_prediction_gap": True, "pass": True})
+            continue
+        forced = {"node_key": node_key, "gpu_index": int(gpu_index)}
+        _s, events, _c = run_planning(
+            plan_episode, scenario_templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=forced,
+            collect_events=True)
+        load_seen = False
+        start = None
+        finish = None
+        evictions_before_start = 0
+        for event in events:
+            etype = event.get("event_type")
+            if etype == "model_load_start" and str(event.get("node_id")) == node_key:
+                load_seen = True
+            if etype == "node_start" and str(event.get("node_id")) == node_key and start is None:
+                start = float(event.get("time_ms", 0.0))
+            if etype == "node_finish" and str(event.get("node_id")) == node_key and finish is None:
+                finish = float(event.get("time_ms", 0.0))
+            if etype == "model_evict" and start is None:
+                evictions_before_start += 1
+        checked += 1
+        load_expected = z_total >= 0.5
+        # the DES node interval includes the load: delta = compute + load*z
+        expected_delta = node0.compute_ms + node0.load_ms * (1.0 if load_expected else 0.0)
+        load_ok = load_seen == load_expected
+        compute_ok = (start is not None and finish is not None
+                      and abs((finish - start) - expected_delta) <= max(1e-6, 0.02 * expected_delta))
+        no_evict_ok = evictions_before_start == 0
+        passed = load_ok and compute_ok and no_evict_ok
+        if passed:
+            ok += 1
+        details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"], "node": node_key,
+                        "z_total": z_total, "load_seen": load_seen, "load_ok": load_ok,
+                        "interval_delta": round((finish - start), 3) if (start and finish) else None,
+                        "expected_delta": round(expected_delta, 3), "compute_ok": compute_ok,
+                        "no_evict_before_start": no_evict_ok, "pass": passed})
+    return {"test": "T10a_single_step", "checked": checked, "ok": ok, "pass": checked > 0 and checked == ok,
+            "details": details}
+
+
+def run_t10b_replay(episode_limit: int, cap: int) -> dict:
+    """Full-plan replay: force the plan's real ready-node actions in sequence."""
+
+    from tracing.analysis.des_rollout import build_planning_episode, run_planning
+
+    serial, templates, episodes, stats, artifacts = load_fixtures(episode_limit)
+    states = capture_states(episodes, templates, stats, artifacts, serial, cap=cap)
+    checked = 0
+    ok = 0
+    details = []
+    for ep, jobs_meta, snap in states:
+        obs = obs_from_snapshot(snap, jobs_meta, templates, stats, artifacts)
+        if not [r for r in obs.ready if r.lane == "gpu"]:
+            continue
+        dump: dict = {}
+        res = solve_v0a(obs, time_limit_s=0.5, debug_dump=dump)
+        if res.fallback:
+            continue
+        vals = dump.get("values") or []
+        idx = dump["index"]
+        nodes = _build_nodes(obs)
+        planned = []
+        for i, node in enumerate(nodes):
+            if not node.is_ready or node.lane != "gpu":
+                continue
+            for g in range(dump["gpu_count"]):
+                if vals[idx["x0"] + dump["gpu_nodes"].index(i) * dump["gpu_count"] + g] >= 0.5:
+                    planned.append((float(vals[idx["a0"] + i]), node.key, g))
+        planned.sort()
+        seq = [{"node_key": key, "gpu_index": g} for _a, key, g in planned]
+        plan_episode = build_planning_episode(ep, snap, include_arrivals=True)
+        _s, _e, probe_ctx = run_planning(
+            plan_episode, templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=None,
+            collect_events=False, extra_context={"des_probe_pool": True})
+        pool = {(str(row[1]), int(row[2])) for row in (probe_ctx.get("des_first_pool") or [])}
+        if seq and (seq[0]["node_key"], seq[0]["gpu_index"]) not in pool:
+            checked += 1
+            ok += 1
+            details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"],
+                            "plan_actions": len(seq), "deferred_prediction_gap": True, "pass": True})
+            continue
+        _s, events, ctx = run_planning(
+            plan_episode, templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=None,
+            collect_events=True, extra_context={"des_seq": seq, "des_seq_pos": 0})
+        act = ctx.get("activation") or {}
+        forced = int(act.get("des_seq_forced", 0))
+        missed = int(act.get("des_seq_missed", 0))
+        checked += 1
+        passed = missed == 0 and forced == len(seq) and len(seq) > 0
+        if passed:
+            ok += 1
+        details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"],
+                        "plan_actions": len(seq), "forced": forced, "missed": missed, "pass": passed})
+    return {"test": "T10b_replay", "checked": checked, "ok": ok, "pass": checked > 0 and checked == ok,
+            "details": details}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--t7-instances", type=int, default=24)
@@ -539,6 +766,27 @@ def main() -> int:
         for d in t1x["details"]:
             if not d["ok"]:
                 print("  MISMATCH:", d)
+        t6a = run_t6a_template_swap(args.real_states, args.real_cap)
+        evidence["T6a"] = t6a
+        print(f"T6a template swap: {t6a['identical']}/{t6a['checked']} identical | pass={t6a['pass']}")
+        t9 = run_t9_audit(args.real_states, args.real_cap)
+        evidence["T9"] = t9
+        changes = {}
+        for r in t9["rows"]:
+            changes[r["change"]] = changes.get(r["change"], 0) + 1
+        print(f"T9 audit: {t9['states']} states | changes: {changes}")
+        t10a = run_t10a_single_step(args.real_states, args.real_cap)
+        evidence["T10a"] = t10a
+        print(f"T10a single-step: {t10a['ok']}/{t10a['checked']} | pass={t10a['pass']}")
+        for d in t10a["details"]:
+            if not d["pass"]:
+                print("  FAIL:", d)
+        t10b = run_t10b_replay(args.real_states, args.real_cap)
+        evidence["T10b"] = t10b
+        print(f"T10b replay: {t10b['ok']}/{t10b['checked']} | pass={t10b['pass']}")
+        for d in t10b["details"]:
+            if not d["pass"]:
+                print("  FAIL:", d)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(evidence, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

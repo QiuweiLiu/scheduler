@@ -5501,6 +5501,41 @@ def choose_action(
         """
 
         context = policy_context if policy_context is not None else {}
+        # Sequence replay (T10b): consume the scripted plan action-by-action.
+        _des_seq = context.get("des_seq")
+        if _des_seq is not None:
+            _pos = int(context.get("des_seq_pos", 0))
+            if _pos < len(_des_seq):
+                context["des_seq_pos"] = _pos + 1
+                _forced = dict(_des_seq[_pos])
+                _target = str(_forced.get("node_key") or "")
+                _tgpu = _forced.get("gpu_index")
+                _same = [
+                    candidate for candidate in pool
+                    if str(candidate[2]) == _target
+                    and (_tgpu is None or int(candidate[4].index) == int(_tgpu))
+                ]
+                context["joint_prefetch"] = None
+                context["joint_evict_mode"] = "least_needed"
+                if _same:
+                    chosen = _same[0]
+                    activation = context.get("activation")
+                    if activation is not None:
+                        activation["des_seq_forced"] = int(activation.get("des_seq_forced", 0)) + 1
+                    return chosen[0], chosen[4].index, chosen[5], len(pool), sum(bool(candidate[6]) for candidate in pool)
+                activation = context.get("activation")
+                if activation is not None:
+                    activation["des_seq_missed"] = int(activation.get("des_seq_missed", 0)) + 1
+                return choose_action(
+                    "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+                    round_robin_cursor, future_artifacts, rl_context, policy_context,
+                    decision_time_ms, extension_config,
+                )
+            return choose_action(
+                "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+                round_robin_cursor, future_artifacts, rl_context, policy_context,
+                decision_time_ms, extension_config,
+            )
         if context.get("des_probe_pool") and not context.get("des_pool_recorded"):
             context["des_pool_recorded"] = True
             context["des_first_pool"] = [
