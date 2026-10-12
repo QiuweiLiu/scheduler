@@ -1,0 +1,7 @@
+states with multi-scenario runs: 48
+states with action signal (|delta|>1ms at K=64): 34
+   K   max_dev mean  max_dev p95  argmin agree
+   8          622.2       3125.4        87.5%
+  16          373.4       1548.2        85.4%
+  32          190.1        636.9        89.6%
+  64            0.0          0.0       100.0%

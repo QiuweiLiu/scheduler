@@ -302,6 +302,27 @@ def process_state(episode, snapshot, templates, stats, artifacts, extension_conf
     record["full_continuation"] = {
         "cost_ms": full_cost["future_flow_ms"], "wall_s": round(full_wall, 3)
     }
+    if args.full_actions:
+        record["actions"]["full_default"] = {
+            "action": {}, "cost_ms": full_cost["future_flow_ms"],
+            "costs": [full_cost["future_flow_ms"]], "wall_s": round(full_wall, 3),
+        }
+        for name, action in actions.items():
+            if name == "default":
+                continue
+            started = time.perf_counter()
+            _summary, events, _ = run_planning(
+                plan_episode, templates, future_artifacts=artifacts,
+                train_stats=stats, extension_config=extension_config,
+                policy="des_rollout", forced_action=action or None,
+                collect_events=True,
+            )
+            elapsed = time.perf_counter() - started
+            cost = future_flow_cost(events, snapshot, episode)
+            record["actions"][f"full_{name}"] = {
+                "action": action, "cost_ms": cost["future_flow_ms"],
+                "costs": [cost["future_flow_ms"]], "wall_s": round(elapsed, 3),
+            }
     rows_out.append(record)
     default_cost = record["actions"]["default"]["cost_ms"]
     print(
@@ -319,6 +340,7 @@ def main() -> int:
     parser.add_argument("--actions", default="smoke5")
     parser.add_argument("--generator", default="greedy", choices=("greedy", "markov"))
     parser.add_argument("--scenarios", type=int, default=1)
+    parser.add_argument("--full-actions", action="store_true")
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
