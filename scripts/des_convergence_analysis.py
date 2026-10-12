@@ -29,6 +29,8 @@ def main() -> int:
     states = [row for row in rows if row.get("scenarios", 1) > 1]
     print(f"states with multi-scenario runs: {len(states)}")
 
+    if not states:
+        print("no multi-scenario rows (deterministic run): convergence table skipped")
     summary: dict[int, dict] = {k: {"max_dev": [], "agree": 0, "total": 0} for k in grid}
     signal_states = 0
     for row in states:
@@ -59,10 +61,13 @@ def main() -> int:
         agree = summary[k]["agree"] / max(1, summary[k]["total"])
         devs_sorted = sorted(devs)
         p95 = devs_sorted[min(len(devs_sorted) - 1, int(0.95 * len(devs_sorted)))] if devs else 0.0
-        print(f"{k:>4} {statistics.fmean(devs):>14.1f} {p95:>12.1f} {agree:>12.1%}")
+        if devs:
+            print(f"{k:>4} {statistics.fmean(devs):>14.1f} {p95:>12.1f} {agree:>12.1%}")
+        else:
+            print(f"{k:>4} {'-':>14} {'-':>12} {'-':>13}")
 
     # myopia view (if full-action columns present)
-    full_rows = [row for row in states if any("full" in name for name in row["actions"])]
+    full_rows = [row for row in rows if any("full" in name for name in row["actions"])]
     if full_rows:
         print(f"\nmyopia check on {len(full_rows)} states with full-action columns:")
         agree = 0

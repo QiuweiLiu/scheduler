@@ -324,6 +324,10 @@ def process_state(episode, snapshot, templates, stats, artifacts, extension_conf
                 "costs": [cost["future_flow_ms"]], "wall_s": round(elapsed, 3),
             }
     rows_out.append(record)
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        with args.out.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
     default_cost = record["actions"]["default"]["cost_ms"]
     print(
         f"{episode['episode_id']}@{snapshot['now_ms']:.0f}: pool={len(pool)} "
@@ -365,11 +369,6 @@ def main() -> int:
                 gaps, args, rows_out, run_times, scenario_model=scenario_model,
             )
     if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(
-            "\n".join(json.dumps(row, ensure_ascii=False) for row in rows_out) + "\n",
-            encoding="utf-8",
-        )
         print(f"wrote {args.out} ({len(rows_out)} states)")
     if run_times:
         print(
