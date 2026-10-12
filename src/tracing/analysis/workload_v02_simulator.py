@@ -3022,6 +3022,13 @@ JOINT_POLICIES: tuple[str, ...] = (
     "pdrs_resident_joint",
     "pdrs_resident_joint_hb",
 )
+# DES-aligned rollout (planning DES).  The forced first action travels in
+# policy_context["des_action"]; the prefetch target reuses the joint stash key
+# ("joint_prefetch") and the eviction mode "joint_evict_mode".  Every later
+# decision delegates to pdrs_resident so the continuation stays non-clairvoyant.
+DES_POLICIES: tuple[str, ...] = (
+    "des_rollout",
+)
 
 # Request-level preemption arms.  The legacy two keep their original heuristics;
 # the round-6 belief arms use the R_B (remaining-work belief) rule.
@@ -5482,6 +5489,59 @@ def choose_action(
             if context.get("joint_evict_mode") == "largest_first":
                 activation["joint_evict_largest"] = int(activation.get("joint_evict_largest", 0)) + 1
 
+    elif policy in DES_POLICIES:
+        """DES-aligned rollout probe (planning DES).
+
+        The forced first action travels in ``policy_context["des_action"]``:
+        ``node_key`` / ``gpu_index`` (ordering + placement), ``prefetch``
+        ((model, gpu_index) or None) and ``evict_mode``.  Only the first dispatch
+        decision of the planning episode is forced; every later decision delegates
+        to the frozen main line (pdrs_resident) so the continuation is
+        non-clairvoyant and identical across candidate actions.
+        """
+
+        context = policy_context if policy_context is not None else {}
+        if not context.get("des_first_pending"):
+            context["joint_prefetch"] = None
+            context["joint_evict_mode"] = "least_needed"
+            return choose_action(
+                "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+                round_robin_cursor, future_artifacts, rl_context, policy_context,
+                decision_time_ms, extension_config,
+            )
+        context["des_first_pending"] = False
+        forced = dict(context.get("des_action") or {})
+        target_node = str(forced.get("node_key") or "")
+        target_gpu = forced.get("gpu_index")
+        same = [
+            candidate for candidate in pool
+            if str(candidate[2]) == target_node
+            and (target_gpu is None or int(candidate[4].index) == int(target_gpu))
+        ]
+        if not same:
+            activation = context.get("activation")
+            if activation is not None:
+                activation["des_first_forced"] = 0
+            context["joint_prefetch"] = None
+            context["joint_evict_mode"] = "least_needed"
+            return choose_action(
+                "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+                round_robin_cursor, future_artifacts, rl_context, policy_context,
+                decision_time_ms, extension_config,
+            )
+        chosen = same[0]
+        context["joint_prefetch"] = forced.get("prefetch")
+        context["joint_evict_mode"] = str(forced.get("evict_mode") or "least_needed")
+        activation = context.get("activation")
+        if activation is not None:
+            activation["des_first_forced"] = 1
+            activation["des_first_node"] = str(chosen[2])
+            activation["des_first_gpu"] = int(chosen[4].index)
+            activation["des_prefetch"] = 1 if context.get("joint_prefetch") else 0
+            activation["des_evict_largest"] = (
+                1 if context.get("joint_evict_mode") == "largest_first" else 0
+            )
+
     elif policy in RESIDENCY_POLICIES:
         """Round-6 residency arms: frozen-F0 ordering for every arm; the belief
         only feeds residency actions (eviction subset at dispatch + prefetch).
@@ -7126,6 +7186,35 @@ def simulate_episode(
         "nodes_attributed": 0.0,
     }
 
+    _injected_state = episode.get("injected_state")
+    if _injected_state:
+        from tracing.analysis.des_rollout import apply_injected_state
+
+        _installed = apply_injected_state(_injected_state, jobs, gpus)
+        now = float(_installed["now"])
+        sequence = int(_installed["sequence"])
+        rr_cursor = int(_installed["rr_cursor"])
+        arrival_heap.clear()
+        for _entry in _installed["arrival_heap"]:
+            heapq.heappush(arrival_heap, (float(_entry[0]), int(_entry[1])))
+        finish_heap.clear()
+        for _entry in _installed["finish_heap"]:
+            heapq.heappush(finish_heap, (
+                float(_entry[0]), int(_entry[1]), int(_entry[2]), str(_entry[3]),
+                _entry[4], str(_entry[5]),
+            ))
+        ready.clear()
+        for _entry in _installed["ready"]:
+            heapq.heappush(ready, (
+                float(_entry[0]), float(_entry[1]), int(_entry[2]), str(_entry[3]),
+            ))
+        active_jobs.clear()
+        active_jobs.update(int(v) for v in _installed["active_jobs"])
+        wait_logged.clear()
+        wait_logged.update(
+            (int(a), str(b)) for (a, b) in _installed.get("wait_logged") or []
+        )
+
     def log(event_type: str, job: Job, node: Node | None = None, **extra: Any) -> None:
         if not collect_events:
             return
@@ -7995,6 +8084,19 @@ def simulate_episode(
             plan = _prefetch_plan_probe()
         if not plan and policy in JOINT_POLICIES:
             plan = _joint_prefetch_plan()
+        if not plan and policy in DES_POLICIES:
+            _des_ctx = policy_context if policy_context is not None else {}
+            if _des_ctx.get("des_first_pending"):
+                # The forced first action has not been applied yet: defer every
+                # prefetch decision to the first dispatch moment.
+                return
+            if not _des_ctx.get("des_prefetch_consumed"):
+                _des_ctx["des_prefetch_consumed"] = True
+                plan = _joint_prefetch_plan()
+            else:
+                plan = _residency_prefetch_plan_counted()
+            if not plan:
+                return
         if not plan and policy in RESIDENCY_PREFETCH_POLICIES:
             plan = _residency_prefetch_plan_counted()
         if not plan:
@@ -8292,7 +8394,9 @@ def simulate_episode(
             gpu.prefetch_pending = remaining
         return completed_any
 
-    if not (extension_config.get("prefetch_overlap") and extension_config.get("prefetch_plan")):
+    if not episode.get("injected_state") and not (
+        extension_config.get("prefetch_overlap") and extension_config.get("prefetch_plan")
+    ):
         initialize_prefetch()
 
     def release_ready(job_index: int) -> None:
@@ -9008,7 +9112,30 @@ def simulate_episode(
                     break
         return result
 
+    _des_capture = (policy_context or {}).get("des_capture") if policy_context else None
     while arrival_heap or finish_heap or ready or any(gpu.prefetch_pending for gpu in gpus):
+        if (
+            _des_capture is not None
+            and not _des_capture.get("done")
+            and now >= float(_des_capture.get("at_ms") or 0.0)
+        ):
+            from tracing.analysis.des_rollout import serialize_des_state
+
+            _des_capture["snapshot"] = serialize_des_state(
+                episode_id=str(episode.get("episode_id")),
+                now=float(now),
+                jobs=jobs,
+                gpus=gpus,
+                finish_heap=finish_heap,
+                ready=ready,
+                arrival_heap=arrival_heap,
+                active_jobs=active_jobs,
+                wait_logged=wait_logged,
+                sequence=int(sequence),
+                rr_cursor=int(rr_cursor),
+            )
+            _des_capture["event_index"] = len(events)
+            _des_capture["done"] = True
         process_prefetch_finish()
         if not ready and not finish_heap and arrival_heap:
             next_prefetch = min(
@@ -9160,28 +9287,31 @@ def simulate_episode(
                         eviction_preference = swap_burden_order(
                             gpu, train_stats, _prefetch_interference_profile(extension_config)
                         )
-                    elif policy in JOINT_POLICIES and (
+                    elif (policy in JOINT_POLICIES or policy in DES_POLICIES) and (
                         (policy_context or {}).get("joint_evict_mode") == "largest_first"
                     ):
                         eviction_preference = tuple(sorted(
                             gpu.resident, key=lambda m: (-gpu.resident[m], str(m))))
-                    elif policy in RESIDENCY_POLICIES:
+                    elif policy in RESIDENCY_POLICIES or policy in DES_POLICIES:
+                        _residency_name = (
+                            "pdrs_resident" if policy in DES_POLICIES else policy
+                        )
                         _residency_pack = residency_artifacts_for_policy(
-                            policy, future_artifacts, policy_context
+                            _residency_name, future_artifacts, policy_context
                         )
                         eviction_values, _residency_next = residency_demand_totals(
                             jobs,
                             _residency_pack,
-                            residency_mode_for_policy(policy),
+                            residency_mode_for_policy(_residency_name),
                             int(future_horizon) if future_horizon else 5,
-                            states=residency_states_for_policy(policy),
-                            next_steps=residency_next_steps_for_policy(policy),
+                            states=residency_states_for_policy(_residency_name),
+                            next_steps=residency_next_steps_for_policy(_residency_name),
                         )
                     admitted, evicted_plan, memory, predicted_workspace, total_memory = plan_gpu_admission(
                         gpu, node, row, eviction_preference=eviction_preference,
                         eviction_values=eviction_values
                     )
-                    if policy in RESIDENCY_POLICIES and policy_context is not None:
+                    if (policy in RESIDENCY_POLICIES or policy in DES_POLICIES) and policy_context is not None:
                         default_evicted = tuple(
                             sorted(
                                 model_id
@@ -9470,6 +9600,7 @@ def simulate_episode(
             or policy == "pdrs_resident_hb"
             or policy == "pdrs_resident_probe"
             or policy in JOINT_POLICIES
+            or policy in DES_POLICIES
             or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()
@@ -9516,6 +9647,23 @@ def simulate_episode(
         if next_time <= now + 1e-9:
             raise RuntimeError(f"simulation made no time progress at {now}")
         now = max(now, next_time)
+
+    if episode.get("injected_state") and policy_context is not None:
+        from tracing.analysis.des_rollout import serialize_des_state
+
+        policy_context["des_final_state"] = serialize_des_state(
+            episode_id=str(episode.get("episode_id")),
+            now=float(now),
+            jobs=jobs,
+            gpus=gpus,
+            finish_heap=finish_heap,
+            ready=ready,
+            arrival_heap=arrival_heap,
+            active_jobs=active_jobs,
+            wait_logged=wait_logged,
+            sequence=int(sequence),
+            rr_cursor=int(rr_cursor),
+        )
 
     completed = [job for job in jobs if job.finish_ms is not None and not job.failed]
     durations = [float(job.finish_ms) - job.arrival_ms for job in completed]
