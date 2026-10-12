@@ -5489,6 +5489,101 @@ def choose_action(
             if context.get("joint_evict_mode") == "largest_first":
                 activation["joint_evict_largest"] = int(activation.get("joint_evict_largest", 0)) + 1
 
+    elif policy == "milp_v0a":
+        """Online H5-MILP-v0a arm: solve the serial MILP at this decision and
+        execute its first action when it is in the candidate pool; otherwise
+        fall back to the frozen main line (pdrs_resident)."""
+
+        import time as _time
+
+        from tracing.scheduling.milp_v0 import build_milpo_observation, solve_v0a
+
+        context = policy_context if policy_context is not None else {}
+        started = _time.perf_counter()
+        _gpus_all = context.get("_gpus") or free_gpus
+        _templates_all = context.get("_templates") or {}
+        jobs_meta = [
+            {"job_instance_id": str(job.job_instance_id), "template_id": str(job.template.template_id)}
+            for job in jobs
+        ]
+
+        def node_lookup(job_id, node_id):
+            for job in jobs:
+                if str(job.job_instance_id) == str(job_id):
+                    return job.template.by_id[node_id]
+            raise KeyError(node_id)
+
+        ready_seen = set()
+        ready_items_snap = []
+        for candidate in pool:
+            item, job_index, node_id = candidate[0], candidate[1], candidate[2]
+            if str(node_id) in ready_seen:
+                continue
+            ready_seen.add(str(node_id))
+            ready_items_snap.append([float(item[0]), float(item[1]), int(job_index), str(node_id)])
+        gpus_snap = []
+        for gpu in _gpus_all:
+            tasks = []
+            for task in gpu.active_tasks.values():
+                if not getattr(task, "active", False):
+                    continue
+                tasks.append({
+                    "predicted_work_ms": getattr(task, "predicted_work_ms", None),
+                    "work_start_ms": getattr(task, "work_start_ms", None),
+                    "slowdown": getattr(task, "slowdown", 1.0),
+                    "kind": getattr(task, "kind", "node"),
+                })
+            gpus_snap.append({
+                "index": int(gpu.index), "capacity_mb": float(gpu.capacity_mb),
+                "resident": {str(m): float(mb) for m, mb in gpu.resident.items()},
+                "active_tasks": tasks,
+            })
+        snapshot = {
+            "now_ms": float(decision_time_ms),
+            "ready_items": ready_items_snap,
+            "gpus": gpus_snap,
+        }
+        try:
+            obs = build_milpo_observation(
+                snapshot, jobs_meta=jobs_meta, node_lookup=node_lookup, estimate=estimate,
+                train_stats=train_stats, future_artifacts=future_artifacts or {},
+                templates=_templates_all,
+            )
+            result = solve_v0a(obs, time_limit_s=float(context.get("milp_budget_s", 0.5)))
+        except Exception:
+            result = None
+        solve_ms = (_time.perf_counter() - started) * 1000.0
+        activation = context.setdefault("activation", {})
+        activation["milp_decisions"] = int(activation.get("milp_decisions", 0)) + 1
+        activation["milp_solve_ms"] = float(activation.get("milp_solve_ms", 0.0)) + solve_ms
+        chosen = None
+        if result is not None and not result.fallback and result.first_action:
+            target_node, target_gpu = result.first_action
+            matches = [
+                candidate for candidate in pool
+                if str(candidate[2]) == str(target_node)
+                and int(candidate[4].index) == int(target_gpu)
+            ]
+            if matches:
+                chosen = matches[0]
+                activation["milp_executed"] = int(activation.get("milp_executed", 0)) + 1
+                # exposed latency: the chosen device was idle at this decision
+                if float(matches[0][4].busy_until) <= float(decision_time_ms) + 1e-9:
+                    activation["milp_exposed_ms"] = float(activation.get("milp_exposed_ms", 0.0)) + solve_ms
+            else:
+                activation["milp_gap_fallback"] = int(activation.get("milp_gap_fallback", 0)) + 1
+        else:
+            activation["milp_fallback"] = int(activation.get("milp_fallback", 0)) + 1
+        if chosen is not None:
+            context["joint_prefetch"] = None
+            context["joint_evict_mode"] = "least_needed"
+            return chosen[0], chosen[4].index, chosen[5], len(pool), sum(bool(candidate[6]) for candidate in pool)
+        return choose_action(
+            "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+            round_robin_cursor, future_artifacts, rl_context, policy_context,
+            decision_time_ms, extension_config,
+        )
+
     elif policy in DES_POLICIES:
         """DES-aligned rollout probe (planning DES).
 
@@ -9392,9 +9487,9 @@ def simulate_episode(
                     ):
                         eviction_preference = tuple(sorted(
                             gpu.resident, key=lambda m: (-gpu.resident[m], str(m))))
-                    elif policy in RESIDENCY_POLICIES or policy in DES_POLICIES:
+                    elif policy in RESIDENCY_POLICIES or policy in DES_POLICIES or policy == "milp_v0a":
                         _residency_name = (
-                            "pdrs_resident" if policy in DES_POLICIES else policy
+                            "pdrs_resident" if (policy in DES_POLICIES or policy == "milp_v0a") else policy
                         )
                         _residency_pack = residency_artifacts_for_policy(
                             _residency_name, future_artifacts, policy_context
@@ -9411,7 +9506,7 @@ def simulate_episode(
                         gpu, node, row, eviction_preference=eviction_preference,
                         eviction_values=eviction_values
                     )
-                    if (policy in RESIDENCY_POLICIES or policy in DES_POLICIES) and policy_context is not None:
+                    if (policy in RESIDENCY_POLICIES or policy in DES_POLICIES or policy == "milp_v0a") and policy_context is not None:
                         default_evicted = tuple(
                             sorted(
                                 model_id

@@ -1,0 +1,80 @@
+{
+ "schema": "milp-v0a-performance-v1",
+ "timestamp": "2026-10-13T00:14:28+0800",
+ "episodes": 30,
+ "budget_s": 0.5,
+ "arms": {
+  "M0_f0": {
+   "mean": 58891.82,
+   "p95": 95778.91,
+   "makespan": 1287975.59,
+   "cold_loads": 15.633,
+   "evictions": 13.067,
+   "wall_s_per_episode": 0.189
+  },
+  "M1_pdrs": {
+   "mean": 58481.55,
+   "p95": 94878.13,
+   "makespan": 1288018.77,
+   "cold_loads": 13.6,
+   "evictions": 10.5,
+   "wall_s_per_episode": 0.177
+  },
+  "M2_milp": {
+   "mean": 58323.9,
+   "p95": 93085.26,
+   "makespan": 1286001.71,
+   "cold_loads": 13.067,
+   "evictions": 9.7,
+   "wall_s_per_episode": 10.821
+  }
+ },
+ "deltas": {
+  "M2_milp_minus_M1_pdrs": {
+   "mean_delta": -157.65,
+   "mean_ci95": [
+    -510.06,
+    203.78
+   ],
+   "p95_delta": -1792.87,
+   "p95_ci95": [
+    -4216.22,
+    260.42
+   ]
+  },
+  "M2_milp_minus_M0_f0": {
+   "mean_delta": -567.92,
+   "mean_ci95": [
+    -915.4,
+    -198.79
+   ],
+   "p95_delta": -2693.66,
+   "p95_ci95": [
+    -5510.18,
+    -258.38
+   ]
+  },
+  "M1_pdrs_minus_M0_f0": {
+   "mean_delta": -410.27,
+   "mean_ci95": [
+    -696.6,
+    -165.1
+   ],
+   "p95_delta": -900.79,
+   "p95_ci95": [
+    -1808.98,
+    -155.14
+   ]
+  }
+ },
+ "milp_online": {
+  "decisions": 4080,
+  "executed": 2875,
+  "fallback": 1075,
+  "prediction_gap_fallback": 130,
+  "solve_ms_total": 318247.2,
+  "solve_ms_per_decision": 78.0,
+  "exposed_ms_total": 112084.1,
+  "exposed_ms_per_episode": 3736.14
+ }
+}
