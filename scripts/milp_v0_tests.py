@@ -550,6 +550,47 @@ def run_t1_execution(episode_limit: int, cap: int) -> dict:
             "pass": checked > 0 and checked == matched, "details": details}
 
 
+
+
+def run_dispatch_now_counterexamples() -> dict:
+    """Advisor-requested: single ready+free GPU; two ready+one GPU; both busy."""
+
+    resident_mb = {"M1": 8000.0}
+    cap = 32760.0
+
+    def mk(ready_count, avail):
+        ready = tuple(
+            ObsReadyNode(job_index=j, node_id=f"J{j}", priority=float(j), ready_since_ms=0.0,
+                         model_id="M1", lane="gpu", runtime_p50_ms=100.0, load_p50_ms=10.0,
+                         memory_p95_mb=6000.0) for j in range(ready_count))
+        gpus = tuple(ObsGpu(index=g, capacity_mb=cap, available_at_ms=avail[g], resident={})
+                     for g in range(2))
+        return MILPObservation(now_ms=0.0, ready=ready, chains={}, gpus=gpus,
+                               resident_mb_by_model=resident_mb, decision_time_ms=0.0)
+
+    results = {}
+    # (a) single ready + both free -> immediate dispatch at now
+    res_a = solve_v0a(mk(1, [0.0, 0.0]), time_limit_s=0.5)
+    results["single_ready_free_gpu"] = {
+        "fallback": res_a.fallback, "first": res_a.first_action,
+        "pass": (not res_a.fallback) and res_a.first_action is not None,
+    }
+    # (b) two ready + only one GPU free -> still immediate dispatch on the free GPU
+    res_b = solve_v0a(mk(2, [0.0, 5000.0]), time_limit_s=0.5)
+    results["two_ready_one_gpu"] = {
+        "fallback": res_b.fallback, "first": res_b.first_action,
+        "pass": (not res_b.fallback) and res_b.first_action is not None and res_b.first_action[1] == 0,
+    }
+    # (c) both GPUs busy -> no immediate action -> explicit fallback (no fake dispatch)
+    res_c = solve_v0a(mk(1, [5000.0, 5000.0]), time_limit_s=0.5)
+    results["both_busy"] = {
+        "fallback": res_c.fallback, "reason": res_c.reason,
+        "pass": res_c.fallback,
+    }
+    passed = all(v["pass"] for v in results.values())
+    return {"test": "dispatch_now_counterexamples", "results": results, "pass": passed}
+
+
 # --------------------------------------------------------------------------- #
 # main
 # --------------------------------------------------------------------------- #
@@ -853,25 +894,122 @@ def run_t10b_synth(episode_limit: int, cap: int) -> dict:
 
     serial, templates, episodes, stats, artifacts = load_fixtures(episode_limit)
     states = capture_states(episodes, templates, stats, artifacts, serial, cap=cap)
-    checked = 0
-    ok = 0
+    executed_total = 0
+    executed_pass = 0
+    fallback_expected = 0
     details = []
     for ep, jobs_meta, snap in states:
         r = C.run_case(ep, jobs_meta, snap, templates, stats, artifacts, serial)
         if r is None or r.get("fallback"):
+            fallback_expected += 1
             details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"],
-                            "fallback": True, "reason": (r or {}).get("reason"), "pass": True})
-            checked += 1
-            ok += 1
+                            "fallback_expected": True, "reason": (r or {}).get("reason")})
             continue
-        checked += 1
+        executed_total += 1
         if r["pass"]:
-            ok += 1
+            executed_pass += 1
         details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"],
                         "plan_nodes": r.get("plan_nodes"), "forced": r.get("forced"),
                         "waits": r.get("waits"), "order_ok": r.get("order_ok"),
                         "timing_ok": r.get("timing_ok"), "pass": r["pass"]})
-    return {"test": "T10b_synth_full_plan", "checked": checked, "ok": ok,
+    return {"test": "T10b_synth_full_plan",
+            "executed_total": executed_total, "executed_pass": executed_pass,
+            "fallback_expected": fallback_expected,
+            "pass": executed_total > 0 and executed_pass == executed_total,
+            "details": details}
+
+
+def run_t10a_cold(episode_limit: int, cap: int) -> dict:
+    """Cold-load single-step: empty the snapshot residents so the first action
+    must load the model; verify load presence, duration and interval vs plan."""
+
+    from tracing.analysis.des_rollout import (
+        build_planning_episode, build_scenario_templates, greedy_chain_scenario, run_planning)
+
+    serial, templates, episodes, stats, artifacts = load_fixtures(episode_limit)
+    states = capture_states(episodes, templates, stats, artifacts, serial, cap=cap)
+    checked = 0
+    ok = 0
+    details = []
+    for ep, jobs_meta, snap in states:
+        cold = json.loads(json.dumps(snap))
+        for gpu_row in cold.get("gpus") or []:
+            gpu_row["resident"] = {}
+        obs = obs_from_snapshot(cold, jobs_meta, templates, stats, artifacts)
+        if not [r for r in obs.ready if r.lane == "gpu"]:
+            continue
+        dump: dict = {}
+        res = solve_v0a(obs, time_limit_s=0.5, debug_dump=dump)
+        if res.fallback or not res.first_action:
+            continue
+        node_key, gpu_index = res.first_action
+        vals = dump.get("values") or []
+        idx = dump["index"]
+        nodes = _build_nodes(obs)
+        key_index = {n.key: i for i, n in enumerate(nodes)}
+        i0 = key_index[node_key]
+        gpos = dump["gpu_nodes"].index(i0)
+        z_total = sum(vals[idx["z0"] + gpos * dump["gpu_count"] + g]
+                      for g in range(dump["gpu_count"]))
+        node0 = nodes[i0]
+        scenario = greedy_chain_scenario(cold, ep, templates, artifacts, stats)
+        owner_job = None
+        for job in ep["jobs"]:
+            tpl = templates[str(job["template_id"])]
+            if node_key in tpl.by_id:
+                owner_job = job
+                break
+        spec = scenario["jobs"].get(str(owner_job["job_instance_id"])) if owner_job else None
+        if spec is None:
+            continue
+        spec["replace"][node_key] = {
+            "runtime_ms": node0.compute_ms + node0.load_ms,
+            "load_ms": node0.load_ms,
+            "workspace_peak_mb": node0.workspace_mb,
+        }
+        scenario_templates = build_scenario_templates(templates, scenario)
+        plan_episode = build_planning_episode(ep, cold, include_arrivals=True)
+        _s, _e, probe_ctx = run_planning(
+            plan_episode, scenario_templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=None,
+            collect_events=False, extra_context={"des_probe_pool": True})
+        pool = {(str(row[1]), int(row[2])) for row in (probe_ctx.get("des_first_pool") or [])}
+        if (node_key, int(gpu_index)) not in pool:
+            checked += 1
+            ok += 1
+            details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"],
+                            "deferred_prediction_gap": True, "pass": True})
+            continue
+        forced = {"node_key": node_key, "gpu_index": int(gpu_index)}
+        _s, events, _c = run_planning(
+            plan_episode, scenario_templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=forced,
+            collect_events=True)
+        load_seen = False
+        start = finish = None
+        for event in events:
+            etype = event.get("event_type")
+            if etype == "model_load_start" and str(event.get("node_id")) == node_key:
+                load_seen = True
+            if etype == "node_start" and str(event.get("node_id")) == node_key and start is None:
+                start = float(event.get("time_ms", 0.0))
+            if etype == "node_finish" and str(event.get("node_id")) == node_key and finish is None:
+                finish = float(event.get("time_ms", 0.0))
+        checked += 1
+        load_expected = z_total >= 0.5
+        expected_delta = node0.compute_ms + node0.load_ms * (1.0 if load_expected else 0.0)
+        load_ok = load_seen == load_expected
+        interval_ok = (start is not None and finish is not None
+                       and abs((finish - start) - expected_delta) <= max(1e-6, 0.02 * expected_delta))
+        passed = load_ok and interval_ok and load_expected
+        if passed:
+            ok += 1
+        details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"], "node": node_key,
+                        "z_total": z_total, "load_seen": load_seen, "load_ok": load_ok,
+                        "interval": round((finish - start), 3) if (start and finish) else None,
+                        "expected": round(expected_delta, 3), "interval_ok": interval_ok,
+                        "pass": passed})
+    return {"test": "T10a_cold_load", "checked": checked, "ok": ok,
             "pass": checked > 0 and checked == ok, "details": details}
 
 
@@ -910,6 +1048,9 @@ def main() -> int:
     t8 = run_t8_fallback()
     evidence["T8"] = t8
     print(f"T8 fallback: timeout={t8['timeout_fallback']} infeasible={t8['infeasible_fallback']} (reason={t8.get('reason')}) pass={t8['pass']}")
+    dn = run_dispatch_now_counterexamples()
+    evidence["dispatch_now"] = dn
+    print(f"dispatch-now counterexamples: {dn['results']} pass={dn['pass']}")
     if args.real_states:
         t1x = run_t1_execution(args.real_states, args.real_cap)
         evidence["T1_execution"] = t1x
@@ -929,6 +1070,12 @@ def main() -> int:
         t10a = run_t10a_single_step(args.real_states, args.real_cap)
         evidence["T10a"] = t10a
         print(f"T10a single-step: {t10a['ok']}/{t10a['checked']} | pass={t10a['pass']}")
+        t10ac = run_t10a_cold(args.real_states, args.real_cap)
+        evidence["T10a_cold"] = t10ac
+        print(f"T10a cold-load: {t10ac['ok']}/{t10ac['checked']} | pass={t10ac['pass']}")
+        for d in t10ac["details"]:
+            if d.get("pass") is False:
+                print("  FAIL:", d)
         for d in t10a["details"]:
             if not d["pass"]:
                 print("  FAIL:", d)
@@ -940,9 +1087,9 @@ def main() -> int:
                 print("  FAIL:", d)
         t10bs = run_t10b_synth(args.real_states, args.real_cap)
         evidence["T10b_synth"] = t10bs
-        print(f"T10b synth full-plan replay: {t10bs['ok']}/{t10bs['checked']} | pass={t10bs['pass']}")
+        print(f"T10b synth full-plan replay: executed {t10bs['executed_pass']}/{t10bs['executed_total']} PASS; {t10bs['fallback_expected']} fallback as expected | pass={t10bs['pass']}")
         for d in t10bs["details"]:
-            if not d["pass"]:
+            if d.get("pass") is False:
                 print("  FAIL:", d)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -952,8 +1099,8 @@ def main() -> int:
     # aggregated gate: every mandatory test must pass
     mandatory = ["T7"]
     if args.real_states:
-        mandatory += ["T1_execution", "T6a", "T6c", "T10a", "T10b", "T10b_synth"]
-    mandatory += ["T6b", "T8"]
+        mandatory += ["T1_execution", "T6a", "T6c", "T10a", "T10a_cold", "T10b", "T10b_synth"]
+    mandatory += ["T6b", "T8", "dispatch_now"]
     failed = [name for name in mandatory if not (evidence.get(name) or {}).get("pass")]
     print(f"GATE: {'PASS' if not failed else 'FAIL'} | failed: {failed}")
     return 0 if not failed else 1

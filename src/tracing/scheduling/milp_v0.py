@@ -236,7 +236,9 @@ class PlanNode:
 def _build_nodes(obs: MILPObservation) -> list[PlanNode]:
     nodes: list[PlanNode] = []
     for item in obs.ready:
-        compute = max(0.1, item.runtime_p50_ms - item.load_p50_ms)
+        # GPU: load + compute (compute floor 0.1); CPU: raw duration, no load.
+        compute = (max(0.1, item.runtime_p50_ms - item.load_p50_ms)
+                   if item.lane == "gpu" else item.runtime_p50_ms)
         nodes.append(
             PlanNode(
                 key=str(item.node_id),
@@ -254,7 +256,8 @@ def _build_nodes(obs: MILPObservation) -> list[PlanNode]:
         )
         previous_key = str(item.node_id)
         for step_index, step in enumerate(obs.chains.get(item.node_id, ())):
-            compute = max(0.1, step.runtime_ms - step.load_ms)
+            compute = (max(0.1, step.runtime_ms - step.load_ms)
+                       if step.lane == "gpu" else step.runtime_ms)
             node_key = f"pred:{item.node_id}:{step_index + 1}"
             nodes.append(
                 PlanNode(
@@ -544,7 +547,8 @@ def solve_v0a(
     # P0 immediate dispatch: at least one ready GPU node starts at now.
     if fam("immediate") and ready_gpu_nodes:
         for pos, i in enumerate(ready_gpu_nodes):
-            add({A(i): 1.0, D(pos): -big_u}, -math.inf, obs.now_ms)
+            # D=1 -> a_i <= now (immediate); D=0 -> a_i <= now + U (loose)
+            add({A(i): 1.0, D(pos): big_u}, -math.inf, obs.now_ms + big_u)
         add({D(pos): 1.0 for pos in range(len(ready_gpu_nodes))}, 1.0, math.inf)
 
     # C2: same-GPU precedence (conditional) + load-inclusive occupancy

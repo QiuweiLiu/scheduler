@@ -48,10 +48,8 @@ def synth_plan_world(obs, dump, nodes, node_map, ep, templates):
     jobs = []
     for anchor_key, keys in groups.items():
         keys = sorted(keys, key=lambda k: 0 if not k.startswith('pred:') else int(k.rsplit(':', 1)[1]))
-        real_ids = [node_map.get(k) for k in keys]
-        real_ids = [rid for rid in real_ids if rid]
-        step_of = {node_map[k]: (0 if not k.startswith('pred:') else int(k.rsplit(':', 1)[1]))
-                   for k in keys if node_map.get(k)}
+        steps = obs.chains.get(anchor_key) or ()
+        max_step = max((int(k.rsplit(':', 1)[1]) for k in keys if k.startswith('pred:')), default=0)
         owner_job = None
         for job in ep['jobs']:
             tpl = templates[str(job['template_id'])]
@@ -62,24 +60,24 @@ def synth_plan_world(obs, dump, nodes, node_map, ep, templates):
             continue
         base_tpl = templates[str(owner_job['template_id'])]
         new_nodes = []
-        for rid in real_ids:
+        # anchor first
+        anchor_node = base_tpl.by_id[anchor_key]
+        anchor_item = next(r for r in obs.ready if r.node_id == anchor_key)
+        new_nodes.append(replace(anchor_node, runtime_ms=anchor_item.runtime_p50_ms,
+                                 load_ms=anchor_item.load_p50_ms,
+                                 workspace_peak_mb=anchor_item.memory_p95_mb))
+        # full chain positions 1..max_step, CPU steps PRESERVED (GPU->CPU->GPU)
+        for k in range(1, max_step + 1):
+            rid = node_map.get(f'pred:{anchor_key}:{k}')
+            if rid is None:
+                continue
             node = base_tpl.by_id[rid]
-            if rid == anchor_key:
-                item = next(r for r in obs.ready if r.node_id == rid)
-                node = replace(node, runtime_ms=item.runtime_p50_ms, load_ms=item.load_p50_ms,
-                               workspace_peak_mb=item.memory_p95_mb)
-            else:
-                # chain step: use the PLAN's parameters (artifact-aligned) via the
-                # virtual key's step index (CPU steps in between shift positions).
-                step_index = step_of.get(rid, 0)
-                steps = obs.chains.get(anchor_key) or ()
-                if 0 < step_index <= len(steps):
-                    step = steps[step_index - 1]
-                    node = replace(
-                        node, model_id=step.model_id, lane=step.lane,
-                        runtime_ms=step.runtime_ms, load_ms=step.load_ms,
-                        workspace_peak_mb=step.memory_mb,
-                        resident_model_mb=obs.resident_mb_by_model.get(step.model_id))
+            step = steps[k - 1] if k - 1 < len(steps) else None
+            if step is not None:
+                node = replace(node, model_id=step.model_id, lane=step.lane,
+                               runtime_ms=step.runtime_ms, load_ms=step.load_ms,
+                               workspace_peak_mb=step.memory_mb,
+                               resident_model_mb=obs.resident_mb_by_model.get(step.model_id))
             new_nodes.append(node)
         # linear rewire
         wired = []
@@ -179,9 +177,14 @@ def run_case(ep, jobs_meta, snap, templates, stats, artifacts, serial):
         if info is None or start is None or finish is None:
             timing.append({'node': key[-20:], 'ok': False, 'reason': 'missing'})
             continue
-        ok = abs(start - info['a']) <= 1e-6 + 0.02 * max(1.0, abs(info['a'])) and \
-             abs(finish - info['c']) <= 1e-6 + 0.02 * max(1.0, abs(info['c']))
-        timing.append({'node': key[-20:], 'ok': ok, 'start': start, 'plan_a': info['a'],
+        t0 = float(obs.now_ms)
+        tol = 0.01
+        start_ok = abs((start - t0) - (info['a'] - t0)) <= tol
+        finish_ok = abs((finish - t0) - (info['c'] - t0)) <= tol
+        dur_ok = abs((finish - start) - (info['c'] - info['a'])) <= tol
+        ok = start_ok and finish_ok and dur_ok
+        timing.append({'node': key[-20:], 'ok': ok, 'start_ok': start_ok, 'finish_ok': finish_ok,
+                       'dur_ok': dur_ok, 'start': start, 'plan_a': info['a'],
                        'finish': finish, 'plan_c': info['c']})
     timing_ok = all(t.get('ok') for t in timing)
     passed = forced == len(seq) and order_ok and timing_ok and len(seq) > 0
