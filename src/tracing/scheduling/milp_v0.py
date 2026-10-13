@@ -121,6 +121,39 @@ def _chain_steps_from_artifact(
     return tuple(chain)
 
 
+_PROFILE_CACHE: dict[tuple[int, int], tuple[Any, Any, dict[str, float], dict[tuple[str, str], float]]] = {}
+
+
+def _train_profile_index(templates, train_stats, estimate):
+    """Advisor P1: precompute + cache the train-only resource catalog.
+
+    Keyed by object identity of (templates, train_stats) so repeated decisions
+    in one episode/simulation reuse the same catalog instead of rescanning all
+    templates.  Rebuilt only when a different experiment load is passed in.
+    """
+
+    key = (id(templates), id(train_stats))
+    hit = _PROFILE_CACHE.get(key)
+    if hit is not None and hit[0] is templates and hit[1] is train_stats:
+        return hit[2], hit[3]
+    resident_index: dict[str, float] = {}
+    memory_by: dict[tuple[str, str], float] = {}
+    for template in templates.values():
+        if getattr(template, "split", "") != "train":
+            continue
+        for node in template.nodes:
+            if node.resident_model_mb is not None and node.model_id not in resident_index:
+                resident_index[str(node.model_id)] = float(node.resident_model_mb)
+            mk = (str(node.model_id), str(node.lane))
+            if mk not in memory_by:
+                try:
+                    memory_by[mk] = float(estimate(node, train_stats)["memory_p95_mb"] or 0.0)
+                except Exception:
+                    continue
+    _PROFILE_CACHE[key] = (templates, train_stats, resident_index, memory_by)
+    return resident_index, memory_by
+
+
 def build_milpo_observation(
     snapshot: Mapping[str, Any],
     *,
@@ -162,26 +195,12 @@ def build_milpo_observation(
         )
 
     # Frozen train-only model profile (advisor P1): never complete unknown
-    # models from non-train templates (hidden suffixes).
-    resident_index: dict[str, float] = {}
-    for template in templates.values():
-        if getattr(template, "split", "") != "train":
-            continue
-        for node in template.nodes:
-            if node.resident_model_mb is not None and node.model_id not in resident_index:
-                resident_index[str(node.model_id)] = float(node.resident_model_mb)
+    # models from non-train templates (hidden suffixes).  Precomputed + cached
+    # per (templates, train_stats) identity (advisor P1 cost optimization).
+    resident_index, memory_by = _train_profile_index(templates, train_stats, estimate)
 
     def estimate_lookup(model_id: str, role: str, lane: str):
-        for template in templates.values():
-            if getattr(template, "split", "") != "train":
-                continue
-            for node in template.nodes:
-                if node.model_id == model_id and node.lane == lane:
-                    try:
-                        return float(estimate(node, train_stats)["memory_p95_mb"] or 0.0)
-                    except Exception:
-                        return None
-        return None
+        return memory_by.get((str(model_id), str(lane)))
 
     gpus: list[ObsGpu] = []
     for gpu_row in snapshot.get("gpus") or []:
@@ -421,6 +440,9 @@ def solve_v0a(
     started = time.perf_counter()
     if obs.resource_missing:
         return _fallback_result(started, f"unknown_model_profile:{','.join(obs.resource_missing[:3])}")
+    if obs.legal_first is not None and not obs.legal_first:
+        # Advisor P1: no currently-legal immediate dispatch -> skip the solve.
+        return _fallback_result(started, "no_legal_action_at_now")
     nodes = _build_nodes(obs)
     if not nodes:
         return _fallback_result(started, "no_ready_nodes")
@@ -443,8 +465,13 @@ def solve_v0a(
 
     gpu_count = len(obs.gpus)
     gpu_nodes = [i for i, n in enumerate(nodes) if n.lane == "gpu"]
+    gpu_pos = {i: k for k, i in enumerate(gpu_nodes)}  # advisor P1: index memoization
     max_op = max(n.compute_ms + n.load_ms for n in nodes)
-    big_u = 2.0 * (reference_makespan + max_op)
+    # Advisor P1: time origin at `now` (times are modeled relative to t0; Big-M
+    # scale shrinks from ~1.6e6 to the planning horizon).  Result fields are
+    # converted back to absolute time before returning.
+    t0 = obs.now_ms
+    big_u = 2.0 * ((reference_makespan - t0) + max_op)
 
     # variable layout
     offset = 0
@@ -452,6 +479,7 @@ def solve_v0a(
     a0 = offset; offset += len(nodes)                            # a_i
     c0 = offset; offset += len(nodes)                            # c_i
     pairs = [(i, k) for i in gpu_nodes for k in gpu_nodes if i < k]
+    pair_pos = {pair: k for k, pair in enumerate(pairs)}  # advisor P1: index memoization
     y0 = offset; offset += len(pairs) * 2 * gpu_count            # y[fwd], y[bwd] per g
     h0 = offset; offset += len(gpu_nodes) * gpu_count            # h[i,g]
     z0 = offset; offset += len(gpu_nodes) * gpu_count            # z[i,g]
@@ -464,13 +492,13 @@ def solve_v0a(
     n_vars = offset
 
     def X(i, g):  # gpu node index in gpu_nodes -> flat
-        return x0 + gpu_nodes.index(i) * gpu_count + g
+        return x0 + gpu_pos[i] * gpu_count + g
     def A(i): return a0 + i
     def C(i): return c0 + i
     def Y(pair_idx, g, reverse):
         return y0 + (pair_idx * gpu_count + g) * 2 + (1 if reverse else 0)
-    def H(i, g): return h0 + gpu_nodes.index(i) * gpu_count + g
-    def Z(i, g): return z0 + gpu_nodes.index(i) * gpu_count + g
+    def H(i, g): return h0 + gpu_pos[i] * gpu_count + g
+    def Z(i, g): return z0 + gpu_pos[i] * gpu_count + g
     def Q(pair_idx, g, reverse):
         return q0 + (pair_idx * gpu_count + g) * 2 + (1 if reverse else 0)
     def D(pos): return d0 + pos
@@ -544,9 +572,9 @@ def solve_v0a(
         if n.lane == "gpu":
             if fam("avail"):
                 for g in range(gpu_count):
-                    add({A(i): 1.0, X(i, g): -obs.gpu_available(g)}, 0.0, math.inf)
+                    add({A(i): 1.0, X(i, g): -(obs.gpu_available(g) - t0)}, 0.0, math.inf)
         else:
-            add({A(i): 1.0}, obs.now_ms, math.inf)
+            add({A(i): 1.0}, 0.0, math.inf)  # CPU release at now (relative origin)
     # time closure: c_i = a_i + load*z_i + compute
     for i, n in enumerate(nodes):
         if not fam("closure"):
@@ -567,7 +595,7 @@ def solve_v0a(
             if upper[D(pos)] <= 0.0:
                 continue  # illegal pair: d fixed to 0, timing row vacuous
             # D=1 -> a_i <= now (immediate); D=0 -> a_i <= now + U (loose)
-            add({A(i): 1.0, D(pos): big_u}, -math.inf, obs.now_ms + big_u)
+            add({A(i): 1.0, D(pos): big_u}, -math.inf, big_u)
             add({D(pos): 1.0, X(i, g): -1.0}, -math.inf, 0.0)
         add({D(pos): 1.0 for pos in range(len(d_pairs))}, 1.0, math.inf)
 
@@ -606,7 +634,7 @@ def solve_v0a(
                 for other in gpu_nodes:
                     if other == i or nodes[other].model_id != nodes[i].model_id:
                         continue
-                    pidx = pairs.index((min(i, other), max(i, other)))
+                    pidx = pair_pos[(min(i, other), max(i, other))]
                     row_h[Y(pidx, g, other > i)] = -1.0
                 add(row_h, -math.inf, 0.0)
 
@@ -636,14 +664,17 @@ def solve_v0a(
             for other in gpu_nodes:
                 if other == i:
                     continue
-                pidx = pairs.index((min(i, other), max(i, other)))
+                pidx = pair_pos[(min(i, other), max(i, other))]
                 reverse = other > i  # q[...] direction: "other before i"
                 lhs[Q(pidx, g, reverse)] = obs.resident_mb_by_model.get(nodes[other].model_id, 0.0)
             # conditional: lhs <= limit + M*(1 - x_ig); M must also cover a
             # negative limit (initial residents may already exceed cap - ws).
+            # 2026-10-13 (P0/P1 memory-alignment fix): the limit uses THIS GPU's
+            # capacity, not the max across GPUs (heterogeneous capacities made
+            # the solver admit placements the DES then had to evict).
             m_cap = cap_max + sum(obs.resident_mb_by_model.values()) + max(0.0, n.workspace_mb) + 1.0
             lhs[X(i, g)] = m_cap
-            add(lhs, -math.inf, (cap_max - const - ws_i) + m_cap)
+            add(lhs, -math.inf, (obs.gpus[g].capacity_mb - const - ws_i) + m_cap)
     # q = AND(z_other, y_other->i), two directions per pair/gpu
     for pair_idx, (i, k) in enumerate(pairs):
         if not fam("q"):
@@ -672,6 +703,7 @@ def solve_v0a(
                 "pairs": list(pairs),
                 "gpu_count": gpu_count,
                 "big_u": big_u,
+                "time_origin": t0,
                 "index": {
                     "x0": x0, "a0": a0, "c0": c0, "y0": y0, "h0": h0, "z0": z0, "q0": q0,
                     "d0": d0,
@@ -718,10 +750,12 @@ def solve_v0a(
             best = (start, n.f0_key, n.key, g)
     if best is None:
         return MilpV0Result(None, f"{status}:NO_READY_ACTION", None, None, None, solve_ms, True, len(nodes), None, "no_ready_action")
-    boundary = max(float(values[C(i)]) for i in boundary_nodes) if boundary_nodes else None
-    objective_value = float(result.fun) if result.fun is not None else None
+    # convert the relative-origin plan values back to absolute time
+    shift = float(len(boundary_nodes)) * t0
+    boundary = (max(float(values[C(i)]) for i in boundary_nodes) + t0) if boundary_nodes else None
+    objective_value = (float(result.fun) + shift) if result.fun is not None else None
     dual_bound = getattr(result, "mip_dual_bound", None)
-    dual_bound = float(dual_bound) if dual_bound is not None else None
+    dual_bound = (float(dual_bound) + shift) if dual_bound is not None else None
     gap = None
     if objective_value is not None and dual_bound is not None and abs(objective_value) > 1e-9:
         gap = abs(objective_value - dual_bound) / abs(objective_value)

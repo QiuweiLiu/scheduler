@@ -1,6 +1,6 @@
-# P0 动作合法性修复(顾问准入审查第 1 优先项)
+# P0+P1 工程修复(顾问准入审查:动作合法性 + 在线成本)
 
-日期:2026-10-13。依据:`docs/research/2026-10-13_milp_v0_admission_ruling.md`(P0:GPU 放置合法性)。
+日期:2026-10-13。依据:`docs/research/2026-10-13_milp_v0_admission_ruling.md`(P0=GPU 放置合法性;P1=在线成本四项优化)。
 
 ## 1. 修复内容
 
@@ -39,7 +39,25 @@
 - 证据:`artifacts/illegal_action_diagnosis.json`;pre-mask 参照:`artifacts/batch_validation_v2_premask.json`。
 - 结论:非法性来源是**观测可用时间的乐观偏差**(对运行中任务),不是求解器约束错误;掩码已从机制上消除非法执行,该偏差的建模改进(如运行中任务的保守剩余上界)留待后续评估。
 
-## 5. 复现
+## 5. C4 显存约束修正(P0 类正确性缺陷,扩大验证发现)
+
+**现象**:T10a/T10b-synth 在扩大状态集(12 集)下发现 2 个失败:被执行的 MILP 首动作在真实 DES 中**需要驱逐**才能准入(违反 v0a"无驱逐"契约)。
+
+**根因**:C4 显存约束的容量上限用了 **`cap_max`(所有 GPU 的最大容量)** 而不是**该 GPU 自己的容量**。测试夹具两卡同容量(32760)所以 T7 从未暴露;真实状态 gpu0=32760 / gpu1=24576,求解器在 gpu1 上多算了 8184MB → 计划"装得下",DES 执行时驱逐。
+**修复**:C4 的 limit 改为 `obs.gpus[g].capacity_mb`(Big-M 项不变,安全性已验证)。
+
+**修复后**:T10a 单步 11/11、T10b-synth 11/11 执行回放(28 预期回退)、T1 执行 11/11、T10b-real 11/11、GATE PASS。被拒绝的放置(需驱逐)正确转为回退。
+
+## 6. P1 在线成本优化(四项)
+
+1. **无合法动作跳过求解**:`legal_first` 为空集时直接回退(reason=`no_legal_action_at_now`),不再调用求解器。
+2. **train-only 资源目录缓存**:按 (templates, train_stats) 身份键缓存常驻表与模型显存表,重复决策不再全表扫描。
+3. **索引记忆化**:`gpu_nodes.index` / `pairs.index` 的 O(n²) 查找改为预计算字典。
+4. **时间原点平移**:模型内部以 `now` 为原点(结果字段换算回绝对时间;`debug_dump.time_origin` 供回放脚本),Big-M 规模从 ~1.6e6 降到规划时域。
+
+**一致性验证**:T7 36/36 与独立穷举一致(枚举器用绝对时间——若平移有误必失败);T10b-synth 时间回放 11/11(回放脚本已按 `time_origin` 换算);T1 首动作执行 11/11。批次求解中位数 p50 14.4ms→3.8ms(尾部仍由 500ms 预算档的难例主导,待 50ms 主预算开发集验证)。
+
+## 7. 复现
 
 ```sh
 PYTHONPATH=src python scripts/milp_v0_tests.py            # GATE PASS(T11 4/4)

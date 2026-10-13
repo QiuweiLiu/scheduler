@@ -28,13 +28,15 @@ def synth_plan_world(obs, dump, nodes, node_map, ep, templates):
 
     vals = dump['values']
     idx = dump['index']
+    origin = float(dump.get('time_origin', 0.0))  # relative time origin (advisor P1)
     plan_info = {}
     for i in dump['gpu_nodes']:
         node = nodes[i]
         for g in range(dump['gpu_count']):
             if vals[idx['x0'] + dump['gpu_nodes'].index(i) * dump['gpu_count'] + g] >= 0.5:
                 plan_info[node.key] = {
-                    'gpu': g, 'a': float(vals[idx['a0'] + i]), 'c': float(vals[idx['c0'] + i]),
+                    'gpu': g, 'a': float(vals[idx['a0'] + i]) + origin,
+                    'c': float(vals[idx['c0'] + i]) + origin,
                     'z': sum(vals[idx['z0'] + dump['gpu_nodes'].index(i) * dump['gpu_count'] + gg]
                              for gg in range(dump['gpu_count'])),
                 }
