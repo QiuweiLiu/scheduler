@@ -17,6 +17,7 @@ import json
 import statistics
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,6 +73,19 @@ def main() -> int:
         obs = T.obs_from_snapshot(snap, jobs_meta, templates, stats, artifacts)
         if not [r for r in obs.ready if r.lane == "gpu"]:
             continue
+        # Advisor P0: the DES probe runs FIRST so its candidate pool becomes the
+        # legality mask for the immediate dispatch; the PDRS baseline first
+        # action is recorded on the same pool for change-type classification.
+        plan_episode = build_planning_episode(ep, snap, include_arrivals=True)
+        _s, _e, pctx = run_planning(
+            plan_episode, templates, future_artifacts=artifacts, train_stats=stats,
+            extension_config=serial, policy="des_rollout", forced_action=None,
+            collect_events=False, extra_context={"des_probe_pool": True})
+        probe_now = float((pctx.get("des_first_state") or {}).get("now_ms", -1.0))
+        pool = {(str(r[1]), int(r[2])) for r in (pctx.get("des_first_pool") or [])}
+        if abs(probe_now - float(snap["now_ms"])) > 1e-6:
+            pool = set()  # no dispatchable moment at the snapshot time
+        obs = replace(obs, legal_first=frozenset(pool))
         nodes = _build_nodes(obs)
         dump: dict = {}
         res = solve_v0a(obs, time_limit_s=args.budget, debug_dump=dump)
@@ -82,18 +96,12 @@ def main() -> int:
             "solve_ms": round(res.solve_ms, 2), "gap": res.gap,
             "objective": res.objective, "first_action": list(res.first_action) if res.first_action else None,
             "planned_nodes": res.planned_nodes,
+            "mask_size": len(pool),
             **strata,
         }
         # per-pair legality of the first action via the DES probe pool
         if not res.fallback and res.first_action:
-            plan_episode = build_planning_episode(ep, snap, include_arrivals=True)
-            _s, _e, pctx = run_planning(
-                plan_episode, templates, future_artifacts=artifacts, train_stats=stats,
-                extension_config=serial, policy="des_rollout", forced_action=None,
-                collect_events=False, extra_context={"des_probe_pool": True})
-            pool = {(str(r[1]), int(r[2])) for r in (pctx.get("des_first_pool") or [])}
             row["first_in_des_pool"] = tuple(res.first_action) in pool
-            # review-4 record list: action-change type vs the PDRS baseline choice
             baseline = pctx.get("des_first_baseline")
             if baseline:
                 milp_node, milp_gpu = str(res.first_action[0]), int(res.first_action[1])
@@ -160,8 +168,14 @@ def main() -> int:
     for r in executed:
         ct = r.get("change_type", "unclassified")
         change_counts[ct] = change_counts.get(ct, 0) + 1
+    # Advisor release-gate item: separate "no legal action at now" from
+    # "legal action exists but the v0a no-eviction plan is infeasible".
+    infeasible_split = {
+        "no_legal_action_at_now": sum(1 for r in rows if r["fallback"] and r["mask_size"] == 0),
+        "plan_infeasible_with_legal_action": sum(1 for r in rows if r["fallback"] and r["mask_size"] > 0),
+    }
     evidence = {
-        "schema": "milp-v0a-batch-v2", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "schema": "milp-v0a-batch-v3", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "episodes": args.episodes, "cap": args.cap, "budget_s": args.budget,
         "eligible_states": eligible,
         "status_counts": status_counts,
@@ -169,6 +183,7 @@ def main() -> int:
         "executed": len(executed),
         "first_action_illegal": len(illegal),
         "change_type_counts": change_counts,
+        "infeasible_split": infeasible_split,
         "solve_ms_p50": round(solve_p50, 2), "solve_ms_p95": round(solve_p95, 2),
         "strata": strata_summary,
         "batch_a": batch_a,
@@ -182,6 +197,7 @@ def main() -> int:
     print(f"solve ms p50={solve_p50:.1f} p95={solve_p95:.1f}")
     print(f"strata: {strata_summary}")
     print(f"change types: {change_counts}")
+    print(f"infeasible split: {infeasible_split}")
     print(f"batch A selected: {len(batch_a)} | categories: {sorted({r['category'] for r in batch_a})}")
     print(f"evidence: {args.out}")
     return 0

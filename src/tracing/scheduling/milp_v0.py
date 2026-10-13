@@ -66,6 +66,11 @@ class MILPObservation:
     resident_mb_by_model: Mapping[str, float]
     decision_time_ms: float
     resource_missing: tuple[str, ...] = ()  # models without a frozen train-only profile
+    # 2026-10-13 (advisor P0): currently-legal (node_id, gpu_index) pairs for the
+    # IMMEDIATE dispatch.  None = no mask (offline/test default); an empty set
+    # means "no legal immediate action" (solve must fall back).  Only the first
+    # action is masked; future H5 planning is not.
+    legal_first: frozenset[tuple[str, int]] | None = None
 
     # Allowed sources (audited by T6b): ready heap, estimate(), artifact rows,
     # gpu.resident, active-task predicted_work_ms/work_start_ms/slowdown/kind.
@@ -125,11 +130,14 @@ def build_milpo_observation(
     train_stats: Mapping[str, Mapping[str, Any]],
     future_artifacts: Mapping[str, Mapping[str, Any]],
     templates: Mapping[str, Any],
+    legal_first: frozenset[tuple[str, int]] | None = None,
 ) -> MILPObservation:
     """Build the strict observation from an experiment-I state snapshot.
 
     ``jobs_meta``: [{job_instance_id, template_id}] aligned with snapshot jobs.
     ``node_lookup(job_instance_id, node_id) -> Node`` resolves ready nodes.
+    ``legal_first``: currently-legal (node_id, gpu_index) pairs for the first
+    action (advisor P0 action mask); None keeps the offline/test default.
     Only the allowed fields below are read from the snapshot.
     """
 
@@ -210,6 +218,7 @@ def build_milpo_observation(
         resident_mb_by_model=resident_index,
         decision_time_ms=now,
         resource_missing=tuple(sorted(set(missing))),
+        legal_first=legal_first,
     )
 
 
@@ -448,7 +457,10 @@ def solve_v0a(
     z0 = offset; offset += len(gpu_nodes) * gpu_count            # z[i,g]
     q0 = offset; offset += len(pairs) * gpu_count * 2            # q[pair,g,dir]
     ready_gpu_nodes = [i for i in gpu_nodes if nodes[i].is_ready]
-    d0 = offset; offset += len(ready_gpu_nodes)                  # dispatch-now bins
+    # 2026-10-13 (advisor P0): immediate-dispatch bins are per (node, gpu) pair so
+    # the legality mask d_ig <= A_ig^0 can be applied directly.
+    d_pairs = [(i, g) for i in ready_gpu_nodes for g in range(gpu_count)]
+    d0 = offset; offset += len(d_pairs)                          # dispatch-now bins
     n_vars = offset
 
     def X(i, g):  # gpu node index in gpu_nodes -> flat
@@ -486,9 +498,12 @@ def solve_v0a(
             for reverse in (False, True):
                 upper[Q(pair_idx, g, reverse)] = 1.0
                 integrality[Q(pair_idx, g, reverse)] = 1
-    for pos in range(len(ready_gpu_nodes)):
+    mask = obs.legal_first
+    for pos, (i, g) in enumerate(d_pairs):
         upper[D(pos)] = 1.0
         integrality[D(pos)] = 1
+        if mask is not None and (nodes[i].key, int(g)) not in mask:
+            upper[D(pos)] = 0.0  # d_ig <= A_ig^0 (illegal pair: forced 0)
 
     # objective: sum of boundary completions (w=1)
     boundary_nodes = []
@@ -544,12 +559,17 @@ def solve_v0a(
         else:
             add({C(i): 1.0, A(i): -1.0}, n.compute_ms, n.compute_ms)
 
-    # P0 immediate dispatch: at least one ready GPU node starts at now.
-    if fam("immediate") and ready_gpu_nodes:
-        for pos, i in enumerate(ready_gpu_nodes):
+    # P0 immediate dispatch (advisor): at least one currently-legal (node, gpu)
+    # pair starts at now.  d_ig <= A_ig^0 (mask) and d_ig <= x_ig (assignment);
+    # an empty mask makes the model infeasible -> explicit fallback upstream.
+    if fam("immediate") and d_pairs:
+        for pos, (i, g) in enumerate(d_pairs):
+            if upper[D(pos)] <= 0.0:
+                continue  # illegal pair: d fixed to 0, timing row vacuous
             # D=1 -> a_i <= now (immediate); D=0 -> a_i <= now + U (loose)
             add({A(i): 1.0, D(pos): big_u}, -math.inf, obs.now_ms + big_u)
-        add({D(pos): 1.0 for pos in range(len(ready_gpu_nodes))}, 1.0, math.inf)
+            add({D(pos): 1.0, X(i, g): -1.0}, -math.inf, 0.0)
+        add({D(pos): 1.0 for pos in range(len(d_pairs))}, 1.0, math.inf)
 
     # C2: same-GPU precedence (conditional) + load-inclusive occupancy
     for pair_idx, (i, k) in enumerate(pairs):
@@ -654,6 +674,7 @@ def solve_v0a(
                 "big_u": big_u,
                 "index": {
                     "x0": x0, "a0": a0, "c0": c0, "y0": y0, "h0": h0, "z0": z0, "q0": q0,
+                    "d0": d0,
                 },
             }
         )
@@ -680,20 +701,21 @@ def solve_v0a(
         if reference_failed and status == "INFEASIBLE":
             reason = "infeasible_after_reference_failure"
         return MilpV0Result(None, status, None, None, None, solve_ms, True, len(nodes), None, reason)
-    # first action: earliest real ready GPU node that starts at NOW
-    # (the immediate-dispatch constraint guarantees at least one exists).
+    # first action: the best currently-legal (node, gpu) pair dispatched at NOW.
+    # d_ig <= A_ig^0 (mask) and d_ig <= x_ig guarantee legality by construction;
+    # the mask check below is a safety net only.
     best = None
-    for i in gpu_nodes:
+    for pos, (i, g) in enumerate(d_pairs):
+        if float(values[D(pos)]) < 0.5:
+            continue
         n = nodes[i]
-        if not n.is_ready:
+        if obs.legal_first is not None and (n.key, int(g)) not in obs.legal_first:
+            continue
+        if float(values[X(i, g)]) < 0.5:
             continue
         start = float(values[A(i)])
-        if start > obs.now_ms + 1e-6:
-            continue
-        for g in range(gpu_count):
-            if values[X(i, g)] >= 0.5:
-                if best is None or (start, n.f0_key) < (best[0], best[1]):
-                    best = (start, n.f0_key, n.key, g)
+        if best is None or (start, n.f0_key) < (best[0], best[1]):
+            best = (start, n.f0_key, n.key, g)
     if best is None:
         return MilpV0Result(None, f"{status}:NO_READY_ACTION", None, None, None, solve_ms, True, len(nodes), None, "no_ready_action")
     boundary = max(float(values[C(i)]) for i in boundary_nodes) if boundary_nodes else None

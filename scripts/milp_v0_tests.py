@@ -591,6 +591,58 @@ def run_dispatch_now_counterexamples() -> dict:
     return {"test": "dispatch_now_counterexamples", "results": results, "pass": passed}
 
 
+def run_t11_action_mask() -> dict:
+    """Advisor P0: the immediate dispatch must respect the legality mask."""
+
+    from dataclasses import replace
+
+    resident_mb = {"M1": 8000.0}
+    cap = 32760.0
+
+    def mk(ready_count):
+        ready = tuple(
+            ObsReadyNode(job_index=j, node_id=f"J{j}", priority=float(j), ready_since_ms=0.0,
+                         model_id="M1", lane="gpu", runtime_p50_ms=100.0, load_p50_ms=10.0,
+                         memory_p95_mb=6000.0) for j in range(ready_count))
+        gpus = tuple(ObsGpu(index=g, capacity_mb=cap, available_at_ms=0.0, resident={})
+                     for g in range(2))
+        return MILPObservation(now_ms=0.0, ready=ready, chains={}, gpus=gpus,
+                               resident_mb_by_model=resident_mb, decision_time_ms=0.0)
+
+    results = {}
+    # (a) only the F0-inferior node is legal -> it must become the first action
+    obs_a = replace(mk(2), legal_first=frozenset({("J1", 0)}))
+    res_a = solve_v0a(obs_a, time_limit_s=0.5)
+    results["mask_restricts_to_inferior"] = {
+        "fallback": res_a.fallback, "first": res_a.first_action,
+        "pass": (not res_a.fallback) and res_a.first_action == ("J1", 0),
+    }
+    # (b) mask excludes the natural placement -> first action stays inside the mask
+    obs_b = replace(mk(2), legal_first=frozenset({("J0", 1), ("J1", 0)}))
+    res_b = solve_v0a(obs_b, time_limit_s=0.5)
+    results["mask_excludes_natural_pair"] = {
+        "fallback": res_b.fallback, "first": res_b.first_action,
+        "pass": (not res_b.fallback) and res_b.first_action in {("J0", 1), ("J1", 0)},
+    }
+    # (c) empty mask -> no legal immediate action -> explicit fallback
+    obs_c = replace(mk(1), legal_first=frozenset())
+    res_c = solve_v0a(obs_c, time_limit_s=0.5)
+    results["empty_mask_fallback"] = {
+        "fallback": res_c.fallback, "reason": res_c.reason,
+        "pass": res_c.fallback,
+    }
+    # (d) no mask (None) -> unchanged default: the ready node dispatches at now
+    obs_d = mk(1)
+    res_d = solve_v0a(obs_d, time_limit_s=0.5)
+    results["no_mask_default"] = {
+        "fallback": res_d.fallback, "first": res_d.first_action,
+        "pass": (not res_d.fallback) and res_d.first_action is not None
+                and res_d.first_action[0] == "J0",
+    }
+    passed = all(v["pass"] for v in results.values())
+    return {"test": "action_mask", "results": results, "pass": passed}
+
+
 # --------------------------------------------------------------------------- #
 # main
 # --------------------------------------------------------------------------- #
@@ -1051,6 +1103,9 @@ def main() -> int:
     dn = run_dispatch_now_counterexamples()
     evidence["dispatch_now"] = dn
     print(f"dispatch-now counterexamples: {dn['results']} pass={dn['pass']}")
+    t11 = run_t11_action_mask()
+    evidence["action_mask"] = t11
+    print(f"T11 action mask: {t11['results']} pass={t11['pass']}")
     if args.real_states:
         t1x = run_t1_execution(args.real_states, args.real_cap)
         evidence["T1_execution"] = t1x
@@ -1100,7 +1155,7 @@ def main() -> int:
     mandatory = ["T7"]
     if args.real_states:
         mandatory += ["T1_execution", "T6a", "T6c", "T10a", "T10a_cold", "T10b", "T10b_synth"]
-    mandatory += ["T6b", "T8", "dispatch_now"]
+    mandatory += ["T6b", "T8", "dispatch_now", "action_mask"]
     failed = [name for name in mandatory if not (evidence.get(name) or {}).get("pass")]
     print(f"GATE: {'PASS' if not failed else 'FAIL'} | failed: {failed}")
     return 0 if not failed else 1

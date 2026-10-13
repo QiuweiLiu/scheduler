@@ -1,6 +1,6 @@
 {
  "schema": "milp-v0a-tests-v1",
- "timestamp": "2026-10-13T09:22:56+0800",
+ "timestamp": "2026-10-13T16:12:46+0800",
  "T7": {
   "test": "T7_exhaustive_optimality",
   "instances": 36,
@@ -34,7 +34,7 @@
     "kind": "random",
     "enum": 600.0,
     "milp": 600.0,
-    "diff": 0.0,
+    "diff": 1e-06,
     "ok": true,
     "status": "OPTIMAL"
    },
@@ -178,7 +178,7 @@
     "kind": "random",
     "enum": 225.0,
     "milp": 225.0,
-    "diff": 0.0,
+    "diff": 1e-06,
     "ok": true,
     "status": "OPTIMAL"
    },
@@ -196,7 +196,7 @@
     "kind": "random",
     "enum": 1105.0,
     "milp": 1105.0,
-    "diff": 1e-06,
+    "diff": 0.0,
     "ok": true,
     "status": "OPTIMAL"
    },
@@ -223,7 +223,7 @@
     "kind": "random",
     "enum": 455.0,
     "milp": 455.0,
-    "diff": 0.0,
+    "diff": 1e-06,
     "ok": true,
     "status": "OPTIMAL"
    },
@@ -295,7 +295,7 @@
     "kind": "counterexample",
     "enum": 370.0,
     "milp": 370.0,
-    "diff": 0.0,
+    "diff": 1e-06,
     "ok": true,
     "status": "OPTIMAL"
    },
@@ -371,6 +371,41 @@
    "both_busy": {
     "fallback": true,
     "reason": "infeasible",
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "action_mask": {
+  "test": "action_mask",
+  "results": {
+   "mask_restricts_to_inferior": {
+    "fallback": false,
+    "first": [
+     "J1",
+     0
+    ],
+    "pass": true
+   },
+   "mask_excludes_natural_pair": {
+    "fallback": false,
+    "first": [
+     "J0",
+     1
+    ],
+    "pass": true
+   },
+   "empty_mask_fallback": {
+    "fallback": true,
+    "reason": "infeasible",
+    "pass": true
+   },
+   "no_mask_default": {
+    "fallback": false,
+    "first": [
+     "J0",
+     1
+    ],
     "pass": true
    }
   },

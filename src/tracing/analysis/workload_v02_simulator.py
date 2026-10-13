@@ -5513,14 +5513,17 @@ def choose_action(
                     return job.template.by_id[node_id]
             raise KeyError(node_id)
 
-        ready_seen = set()
-        ready_items_snap = []
-        for candidate in pool:
-            item, job_index, node_id = candidate[0], candidate[1], candidate[2]
-            if str(node_id) in ready_seen:
-                continue
-            ready_seen.add(str(node_id))
-            ready_items_snap.append([float(item[0]), float(item[1]), int(job_index), str(node_id)])
+        # Advisor P0: ALL observed ready nodes participate in planning (the old
+        # filtered-pool construction dropped waiting nodes and shrank the H5
+        # objective); only currently-legal (node, gpu) pairs can be the first
+        # action via the legality mask.
+        ready_items_snap = [
+            [float(item[0]), float(item[1]), int(item[2]), str(item[3])]
+            for item in ready_items
+        ]
+        legal_first = frozenset(
+            (str(candidate[2]), int(candidate[4].index)) for candidate in pool
+        )
         gpus_snap = []
         for gpu in _gpus_all:
             tasks = []
@@ -5548,6 +5551,7 @@ def choose_action(
                 snapshot, jobs_meta=jobs_meta, node_lookup=node_lookup, estimate=estimate,
                 train_stats=train_stats, future_artifacts=future_artifacts or {},
                 templates=_templates_all,
+                legal_first=legal_first,
             )
             result = solve_v0a(obs, time_limit_s=float(context.get("milp_budget_s", 0.5)))
         except Exception:
@@ -5670,6 +5674,39 @@ def choose_action(
                 context["des_first_baseline"] = [str(_b_item[3]), int(_b_gpu)]
             except Exception as _baseline_exc:  # never break the pool probe
                 context["des_first_baseline_error"] = repr(_baseline_exc)
+            # Advisor P0 diagnosis: per-pair evaluation (GPU state / free-set
+            # membership / dispatch rule / admission) for the illegal-action
+            # root-cause report.  Probe-only; no scheduler behavior change.
+            _all_gpus = (policy_context or {}).get("_gpus") or list(free_gpus)
+            _free_idx = {int(g.index) for g in free_gpus}
+            _pair_eval = []
+            for _item in ready_items:
+                _p, _rt, _ji, _nid = _item
+                _job = jobs[_ji]
+                _node = _job.template.by_id[_nid]
+                if _node.lane != "gpu" or _job.node_state.get(_nid) != "ready":
+                    continue
+                _row = estimate(_node, train_stats)
+                for _gpu in _all_gpus:
+                    _entry = {
+                        "job_index": int(_ji), "node_id": str(_nid), "gpu": int(_gpu.index),
+                        "in_free_gpus": int(_gpu.index) in _free_idx,
+                        "busy_until": float(_gpu.busy_until),
+                        "has_active": _gpu.active_node is not None,
+                        "resident_models": sorted(str(m) for m in _gpu.resident),
+                    }
+                    if _entry["in_free_gpus"]:
+                        _entry["can_dispatch"] = bool(gpu_can_dispatch_node(
+                            _gpu, _node, _row, extension_config, decision_time_ms))
+                        try:
+                            _adm, _ev, _mm, _ws, _pj = plan_gpu_admission(_gpu, _node, _row)
+                            _entry["admitted"] = bool(_adm)
+                            _entry["evicted"] = sorted(str(m) for m in _ev)
+                        except Exception as _adm_exc:
+                            _entry["admitted"] = None
+                            _entry["admission_error"] = repr(_adm_exc)
+                    _pair_eval.append(_entry)
+            context["des_pair_eval"] = _pair_eval
         if not context.get("des_first_pending"):
             if not context.get("des_keep_stash"):
                 context["joint_prefetch"] = None

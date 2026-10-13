@@ -1,0 +1,659 @@
+{
+ "schema": "milp-v0a-illegal-diag-v1",
+ "timestamp": "2026-10-13T16:23:15+0800",
+ "cases": 11,
+ "reason_counts": {
+  "device_busy_prediction_mismatch": 10,
+  "other": 1
+ },
+ "details": [
+  {
+   "episode": "train_000001",
+   "now_ms": 1609574.9370000002,
+   "change_type": "ordering",
+   "milp_action": [
+    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "hjNX33W-99I_star_1786909784154:api_call:4",
+    1
+   ],
+   "probe_now": 1609574.9370000002,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+     1
+    ],
+    [
+     "hjNX33W-99I_star_1786909784154:api_call:4",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 10,
+    "node_id": "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 1610191.115,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 1609574.9370000002,
+    "1": 1609624.158
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 1610191.115
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "yolo11x.pt": 512.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000019",
+   "now_ms": 143478.093,
+   "change_type": "placement",
+   "milp_action": [
+    "PXxscnWG8QA_langgraph_react_1786929892946:api_call:6",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "PXxscnWG8QA_langgraph_react_1786929892946:api_call:6",
+    1
+   ],
+   "probe_now": 143478.093,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "PXxscnWG8QA_langgraph_react_1786929892946:api_call:6",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 2,
+    "node_id": "PXxscnWG8QA_langgraph_react_1786929892946:api_call:6",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 143972.299,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 143478.093,
+    "1": 146177.561
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 143972.299
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000020",
+   "now_ms": 26475.029,
+   "change_type": "placement",
+   "milp_action": [
+    "Gh_GtYtQoVI_langgraph_react_1786915192627:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "Gh_GtYtQoVI_langgraph_react_1786915192627:api_call:2",
+    1
+   ],
+   "probe_now": 26475.029,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "Gh_GtYtQoVI_langgraph_react_1786915192627:api_call:2",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 2,
+    "node_id": "Gh_GtYtQoVI_langgraph_react_1786915192627:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 28561.214,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 26475.029,
+    "1": 26733.2635
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0
+     },
+     "busy_until": 28561.214
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000025",
+   "now_ms": 996245.9189999999,
+   "change_type": "ordering",
+   "milp_action": [
+    "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "YPvxuoNLgPE_star_1786922615799:api_call:7",
+    1
+   ],
+   "probe_now": 996245.9189999999,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "XoaWHHNiw1w_star_1786907317248:api_call:2",
+     1
+    ],
+    [
+     "YPvxuoNLgPE_star_1786922615799:api_call:7",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 13,
+    "node_id": "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 997622.7109999999,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 996245.9189999999,
+    "1": 996245.9189999999
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 997622.7109999999
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000025",
+   "now_ms": 999916.3369999998,
+   "change_type": "placement",
+   "milp_action": [
+    "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    1
+   ],
+   "probe_now": 999916.3369999998,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "XoaWHHNiw1w_star_1786907317248:api_call:2",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 13,
+    "node_id": "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 1005149.8789999998,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 999916.3369999998,
+    "1": 1001849.5029999999
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 1005149.8789999998
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000032",
+   "now_ms": 850051.502,
+   "change_type": "placement",
+   "milp_action": [
+    "bBazRZOxl-k_star_1786908845951:api_call:2",
+    1
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "bBazRZOxl-k_star_1786908845951:api_call:2",
+    0
+   ],
+   "probe_now": 850051.502,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "bBazRZOxl-k_star_1786908845951:api_call:2",
+     0
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 13,
+    "node_id": "bBazRZOxl-k_star_1786908845951:api_call:2",
+    "gpu": 1,
+    "in_free_gpus": false,
+    "busy_until": 850880.021,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 853023.6515,
+    "1": 850051.502
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "yolo11x.pt": 512.0,
+      "Qwen3-4B": 7600.0,
+      "Qwen2.5-VL-3B-Instruct": 7100.0
+     },
+     "busy_until": 0.0
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0
+     },
+     "busy_until": 850880.021
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000036",
+   "now_ms": 730060.566,
+   "change_type": "ordering",
+   "milp_action": [
+    "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "Tn70NxIMk2Q_star_1786923893484:api_call:6",
+    1
+   ],
+   "probe_now": 730060.566,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+     1
+    ],
+    [
+     "Tn70NxIMk2Q_star_1786923893484:api_call:6",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 14,
+    "node_id": "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 730517.5030000001,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 730060.566,
+    "1": 730060.566
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 730517.5030000001
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000036",
+   "now_ms": 730433.547,
+   "change_type": "placement",
+   "milp_action": [
+    "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    1
+   ],
+   "probe_now": 730433.547,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 14,
+    "node_id": "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 730517.5030000001,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 730433.547,
+    "1": 732824.6465
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 730517.5030000001
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000036",
+   "now_ms": 749709.245,
+   "change_type": "placement",
+   "milp_action": [
+    "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+    1
+   ],
+   "reproduced_v2": false,
+   "baseline_action": [
+    "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+    1
+   ],
+   "probe_now": 749709.245,
+   "moment_match": true,
+   "in_same_moment_pool": true,
+   "pool_pairs": [
+    [
+     "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 12,
+    "node_id": "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+    "gpu": 1,
+    "in_free_gpus": true,
+    "busy_until": 0.0,
+    "has_active": false,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct"
+    ],
+    "can_dispatch": true,
+    "admitted": true,
+    "evicted": []
+   },
+   "obs_predicted_available": {
+    "0": 749709.245,
+    "1": 749709.245
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 749797.1538378907
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "other"
+  },
+  {
+   "episode": "train_000047",
+   "now_ms": 1196298.883,
+   "change_type": "placement",
+   "milp_action": [
+    "HqAfzcJurMM_langgraph_react_1786910626990:api_call:2",
+    0
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "HqAfzcJurMM_langgraph_react_1786910626990:api_call:2",
+    1
+   ],
+   "probe_now": 1196298.883,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "HqAfzcJurMM_langgraph_react_1786910626990:api_call:2",
+     1
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 12,
+    "node_id": "HqAfzcJurMM_langgraph_react_1786910626990:api_call:2",
+    "gpu": 0,
+    "in_free_gpus": false,
+    "busy_until": 1196463.4479999999,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct",
+     "yolo11x.pt"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 1196298.883,
+    "1": 1198561.592
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0,
+      "yolo11x.pt": 512.0
+     },
+     "busy_until": 1196463.4479999999
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0,
+      "Qwen2.5-VL-3B-Instruct": 7100.0
+     },
+     "busy_until": 0.0
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  },
+  {
+   "episode": "train_000051",
+   "now_ms": 196729.39,
+   "change_type": "placement",
+   "milp_action": [
+    "Tn70NxIMk2Q_star_1786924000304:api_call:4",
+    1
+   ],
+   "reproduced_v2": true,
+   "baseline_action": [
+    "Tn70NxIMk2Q_star_1786924000304:api_call:4",
+    0
+   ],
+   "probe_now": 196729.39,
+   "moment_match": true,
+   "in_same_moment_pool": false,
+   "pool_pairs": [
+    [
+     "Tn70NxIMk2Q_star_1786924000304:api_call:4",
+     0
+    ]
+   ],
+   "chosen_pair_eval": {
+    "job_index": 3,
+    "node_id": "Tn70NxIMk2Q_star_1786924000304:api_call:4",
+    "gpu": 1,
+    "in_free_gpus": false,
+    "busy_until": 196775.555,
+    "has_active": true,
+    "resident_models": [
+     "Qwen3-4B"
+    ]
+   },
+   "obs_predicted_available": {
+    "0": 196729.39,
+    "1": 196729.39
+   },
+   "real_gpus": [
+    {
+     "index": 0,
+     "resident": {
+      "Qwen3-VL-8B-Instruct": 17000.0,
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 0.0
+    },
+    {
+     "index": 1,
+     "resident": {
+      "Qwen3-4B": 7600.0
+     },
+     "busy_until": 196775.555
+    }
+   ],
+   "reason": "device_busy_prediction_mismatch"
+  }
+ ]
+}
