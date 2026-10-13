@@ -4,10 +4,15 @@
 Arms: M0 = F0 reference (sameshape_h5_p95), M1 = PDRS (pdrs_resident),
 M2 = milp_v0a (online MILP, first action if legal else PDRS fallback).
 
-Metrics per arm: mean/p95 completion, makespan, cold loads, evictions.
-M2 additionally: decisions, executed/fallback/prediction-gap counts, solve-time
-P50/P95 and EXPOSED latency (decisions where the chosen device was idle at the
-decision moment), reported separately per the review.
+Splits: --split train (dev pool, seen during tuning) or confirm (frozen
+confirm300, workflow-source isolated; loaded via
+data/manifests/validation_split_dev700_confirm300.json).
+
+Reporting split (advisor ruling 2026-10-13): zero-overhead algorithm gain
+(mean, pooled P95, mean-of-episode-P95, makespan) and independent online cost
+(per-decision end-to-end wall time P50/P95, solve statuses, fallback rates,
+exposed latency) are reported SEPARATELY; net JCT is NOT measured (no
+event-level latency injection yet) and must not be claimed.
 """
 
 from __future__ import annotations
@@ -32,6 +37,36 @@ ARMS = {
     "M2_milp": "milp_v0a",
 }
 EVIDENCE = ROOT / "experiments/EXP-20261012_milp_v0/artifacts/performance_eval.json"
+CONFIRM_SPLIT = ROOT / "data/manifests/validation_split_dev700_confirm300.json"
+CONFIRM_EPISODES = (ROOT / "results/processed/r7_workload_v03_no_run_container"
+                    / "episodes/workload_validation_r7_v03.jsonl")
+TRAIN_EPISODES = (ROOT / "results/processed/r7_workload_20260817"
+                  / "episodes/workload_train_r7.jsonl")
+
+
+def load_split(split: str, episode_limit: int):
+    from tracing.analysis.profile_contract import apply_real_workload_profile_contract
+    from tracing.analysis.workload_v02_simulator import (
+        load_resource_v2_overlay, load_templates, read_jsonl, train_resource_stats)
+
+    serial = json.loads(T.SERIAL.read_text(encoding="utf-8"))
+    templates = load_templates(
+        ROOT / "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+        topology_view="causal_v3")
+    if split == "confirm":
+        manifest = json.loads(CONFIRM_SPLIT.read_text(encoding="utf-8"))
+        wanted = set(manifest["confirm"])
+        by_id = {str(e.get("episode_id")): e for e in read_jsonl(CONFIRM_EPISODES)}
+        episodes = [by_id[eid] for eid in sorted(wanted) if eid in by_id]
+    else:
+        episodes = read_jsonl(TRAIN_EPISODES)
+    episodes = episodes[:episode_limit]
+    templates, episodes = apply_real_workload_profile_contract(templates, episodes, serial)
+    stats = train_resource_stats({k: v for k, v in templates.items() if v.split == "train"})
+    artifacts, _ = load_resource_v2_overlay(
+        ROOT / "outputs/sstar_predictor_artifacts_dist_sched/prediction_artifacts",
+        ROOT / "outputs/resource_v2_artifacts/f0_seed11")
+    return serial, templates, episodes, stats, artifacts
 
 
 def bootstrap_ci(values, seed=11, b=2000):
@@ -49,26 +84,38 @@ def bootstrap_ci(values, seed=11, b=2000):
     return (lo, hi)
 
 
+def quantile(values, q):
+    ordered = sorted(values)
+    if not ordered:
+        return 0.0
+    return ordered[min(len(ordered) - 1, int(q * (len(ordered) - 1)))]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--episodes", type=int, default=30)
     parser.add_argument("--budget", type=float, default=0.5)
+    parser.add_argument("--split", choices=("train", "confirm"), default="train")
     parser.add_argument("--out", type=Path, default=EVIDENCE)
     args = parser.parse_args()
 
-    serial, templates, episodes, stats, artifacts = T.load_fixtures(args.episodes)
-    per_arm: dict = {name: {"mean": [], "p95": [], "makespan": [], "cold": [], "evict": [], "wall": []} for name in ARMS}
+    serial, templates, episodes, stats, artifacts = load_split(args.split, args.episodes)
+    per_arm: dict = {name: {"mean": [], "p95": [], "makespan": [], "cold": [], "evict": [],
+                            "wall": [], "dur_pool": []} for name in ARMS}
     milp_totals: dict = {}
+    milp_solve_list: list = []
     for ep in episodes:
+        arrivals = {str(row["job_instance_id"]): float(row["arrival_ms"])
+                    for row in (ep.get("jobs") or [])}
         for name, policy in ARMS.items():
             ctx = {"activation": {}}
             if policy == "milp_v0a":
                 ctx["milp_budget_s"] = args.budget
             t0 = time.perf_counter()
-            summary, _events = simulate_episode(
+            summary, events = simulate_episode(
                 ep, templates, policy, train_stats=stats, future_artifacts=artifacts,
                 future_horizon=5, extension_config=serial, policy_context=ctx,
-                collect_events=False)
+                collect_events=True)
             wall = time.perf_counter() - t0
             row = per_arm[name]
             row["mean"].append(float(summary["mean_completion_ms"]))
@@ -77,18 +124,32 @@ def main() -> int:
             row["cold"].append(float(summary["cold_loads_on_demand"]))
             row["evict"].append(float(summary["gpu_evictions"]))
             row["wall"].append(wall)
+            for event in events or []:
+                if event.get("event_type") == "job_finish":
+                    jid = str(event.get("job_instance_id"))
+                    if jid in arrivals:
+                        row["dur_pool"].append(float(event["time_ms"]) - arrivals[jid])
             if policy == "milp_v0a":
                 act = ctx.get("activation") or {}
                 for key in ("milp_decisions", "milp_executed", "milp_fallback", "milp_gap_fallback",
-                            "milp_solve_ms", "milp_exposed_ms"):
+                            "milp_solve_ms", "milp_exposed_ms", "milp_time_limit", "milp_optimal"):
                     milp_totals[key] = float(milp_totals.get(key, 0.0)) + float(act.get(key, 0.0))
+                milp_solve_list.extend(act.get("milp_solve_ms_list") or [])
 
-    report: dict = {"schema": "milp-v0a-performance-v1", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    "episodes": len(episodes), "budget_s": args.budget, "arms": {}}
+    report: dict = {
+        "schema": "milp-v0a-performance-v2",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "episodes": len(episodes), "budget_s": args.budget, "split": args.split,
+        "net_jct_note": ("net JCT NOT measured: zero-overhead gain and independent online "
+                         "cost are reported separately (advisor ruling 2026-10-13); no "
+                         "event-level latency injection in this run"),
+        "arms": {},
+    }
     for name, row in per_arm.items():
         report["arms"][name] = {
             "mean": round(statistics.fmean(row["mean"]), 2),
-            "p95": round(statistics.fmean(row["p95"]), 2),
+            "p95_pooled": round(quantile(row["dur_pool"], 0.95), 2),
+            "p95_mean_of_episodes": round(statistics.fmean(row["p95"]), 2),
             "makespan": round(statistics.fmean(row["makespan"]), 2),
             "cold_loads": round(statistics.fmean(row["cold"]), 3),
             "evictions": round(statistics.fmean(row["evict"]), 3),
@@ -101,18 +162,23 @@ def main() -> int:
         deltas[f"{a}_minus_{b}"] = {
             "mean_delta": round(statistics.fmean(diffs), 2),
             "mean_ci95": [round(v, 2) for v in bootstrap_ci(diffs)],
-            "p95_delta": round(statistics.fmean(p95_diffs), 2),
-            "p95_ci95": [round(v, 2) for v in bootstrap_ci(p95_diffs)],
+            "p95_delta_mean_of_episodes": round(statistics.fmean(p95_diffs), 2),
+            "p95_ci95_mean_of_episodes": [round(v, 2) for v in bootstrap_ci(p95_diffs)],
         }
     report["deltas"] = deltas
     decisions = max(1.0, milp_totals.get("milp_decisions", 0.0))
-    report["milp_online"] = {
+    report["milp_online_cost"] = {
         "decisions": int(milp_totals.get("milp_decisions", 0)),
         "executed": int(milp_totals.get("milp_executed", 0)),
         "fallback": int(milp_totals.get("milp_fallback", 0)),
         "prediction_gap_fallback": int(milp_totals.get("milp_gap_fallback", 0)),
+        "time_limit": int(milp_totals.get("milp_time_limit", 0)),
+        "optimal": int(milp_totals.get("milp_optimal", 0)),
+        "decision_wall_ms_p50": round(quantile(milp_solve_list, 0.5), 2) if milp_solve_list else None,
+        "decision_wall_ms_p95": round(quantile(milp_solve_list, 0.95), 2) if milp_solve_list else None,
+        "decision_wall_ms_mean": round(statistics.fmean(milp_solve_list), 2) if milp_solve_list else None,
+        "decision_wall_ms_max": round(max(milp_solve_list), 2) if milp_solve_list else None,
         "solve_ms_total": round(milp_totals.get("milp_solve_ms", 0.0), 1),
-        "solve_ms_per_decision": round(milp_totals.get("milp_solve_ms", 0.0) / decisions, 2),
         "exposed_ms_total": round(milp_totals.get("milp_exposed_ms", 0.0), 1),
         "exposed_ms_per_episode": round(milp_totals.get("milp_exposed_ms", 0.0) / max(1, len(episodes)), 2),
     }

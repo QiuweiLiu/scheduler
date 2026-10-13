@@ -5560,6 +5560,12 @@ def choose_action(
         activation = context.setdefault("activation", {})
         activation["milp_decisions"] = int(activation.get("milp_decisions", 0)) + 1
         activation["milp_solve_ms"] = float(activation.get("milp_solve_ms", 0.0)) + solve_ms
+        activation.setdefault("milp_solve_ms_list", []).append(float(solve_ms))
+        if result is not None:
+            if str(result.status).startswith("TIME_LIMIT"):
+                activation["milp_time_limit"] = int(activation.get("milp_time_limit", 0)) + 1
+            elif str(result.status) == "OPTIMAL":
+                activation["milp_optimal"] = int(activation.get("milp_optimal", 0)) + 1
         chosen = None
         if result is not None and not result.fallback and result.first_action:
             target_node, target_gpu = result.first_action
