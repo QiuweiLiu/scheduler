@@ -5655,6 +5655,21 @@ def choose_action(
                 ],
                 "now_ms": float(decision_time_ms),
             }
+            # 2026-10-13 (review-4 gap fill): record the PDRS baseline first action
+            # on the same candidate pool so batch validation can classify action
+            # changes (ordering / placement / same) against the main line.
+            _baseline_ctx = dict(policy_context or {})
+            _baseline_ctx.pop("des_probe_pool", None)
+            _baseline_ctx["des_pool_recorded"] = True
+            try:
+                _b_item, _b_gpu, _b_row, _b_cnt, _b_feas = choose_action(
+                    "pdrs_resident", ready_items, jobs, free_gpus, train_stats,
+                    round_robin_cursor, future_artifacts, rl_context,
+                    _baseline_ctx, decision_time_ms, extension_config,
+                )
+                context["des_first_baseline"] = [str(_b_item[3]), int(_b_gpu)]
+            except Exception as _baseline_exc:  # never break the pool probe
+                context["des_first_baseline_error"] = repr(_baseline_exc)
         if not context.get("des_first_pending"):
             if not context.get("des_keep_stash"):
                 context["joint_prefetch"] = None

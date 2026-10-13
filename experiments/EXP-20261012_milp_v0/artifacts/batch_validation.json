@@ -1,6 +1,6 @@
 {
- "schema": "milp-v0a-batch-v1",
- "timestamp": "2026-10-12T23:35:54+0800",
+ "schema": "milp-v0a-batch-v2",
+ "timestamp": "2026-10-13T09:20:30+0800",
  "episodes": 60,
  "cap": 4,
  "budget_s": 0.5,
@@ -11,21 +11,26 @@
   "TIME_LIMIT": 16,
   "NOT_APPLICABLE:unknown_model_profile:finish_argument": 3
  },
- "fallback_counts": 122,
+ "fallback_counts": 123,
  "fallback_reasons": {
   "infeasible": 81,
   "infeasible_after_reference_failure": 25,
-  "no_solution": 13,
+  "no_solution": 14,
   "unknown_model_profile:finish_argument": 3
  },
- "executed": 61,
+ "executed": 60,
  "first_action_illegal": 11,
- "solve_ms_p50": 10.85,
- "solve_ms_p95": 534.33,
+ "change_type_counts": {
+  "same": 31,
+  "ordering": 21,
+  "placement": 8
+ },
+ "solve_ms_p50": 14.36,
+ "solve_ms_p95": 541.0,
  "strata": {
   "ready_gpu": 1.4043715846994536,
   "free_gpus_now_mean": 0.5737704918032787,
-  "cold_load_rate": 0.04371584699453552,
+  "cold_load_rate": 0.03825136612021858,
   "cpu_chain_rate": 0.45901639344262296,
   "h5_len_mean": 4.5683060109289615,
   "mem_pressure_p95": 0.973
@@ -38,7 +43,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1637.83,
+   "solve_ms": 1271.01,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -49,82 +54,6 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751
-  },
-  {
-   "category": "both_busy",
-   "episode": "train_000000",
-   "now_ms": 1377110.2820000001,
-   "status": "INFEASIBLE",
-   "fallback": true,
-   "reason": "infeasible",
-   "solve_ms": 1.9,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 1,
-   "ready_gpu": 1,
-   "free_gpus_now": 0,
-   "cold_load": null,
-   "chain_has_cpu": false,
-   "h5_len": 0,
-   "mem_pressure": 0.751
-  },
-  {
-   "category": "both_busy",
-   "episode": "train_000000",
-   "now_ms": 1378749.416,
-   "status": "INFEASIBLE",
-   "fallback": true,
-   "reason": "infeasible",
-   "solve_ms": 2.48,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 0,
-   "cold_load": null,
-   "chain_has_cpu": true,
-   "h5_len": 5,
-   "mem_pressure": 0.751
-  },
-  {
-   "category": "both_busy",
-   "episode": "train_000001",
-   "now_ms": 1602263.857,
-   "status": "INFEASIBLE",
-   "fallback": true,
-   "reason": "infeasible",
-   "solve_ms": 10.29,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 0,
-   "cold_load": null,
-   "chain_has_cpu": false,
-   "h5_len": 5,
-   "mem_pressure": 0.751
-  },
-  {
-   "category": "both_busy",
-   "episode": "train_000003",
-   "now_ms": 1436515.402,
-   "status": "INFEASIBLE",
-   "fallback": true,
-   "reason": "infeasible_after_reference_failure",
-   "solve_ms": 29.18,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 12,
-   "ready_gpu": 2,
-   "free_gpus_now": 0,
-   "cold_load": null,
-   "chain_has_cpu": true,
-   "h5_len": 5,
-   "mem_pressure": 0.692
   },
   {
    "category": "one_free",
@@ -133,7 +62,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.08,
+   "solve_ms": 16.35,
    "gap": 0.0,
    "objective": 1387193.6620728846,
    "first_action": [
@@ -147,99 +76,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
-  },
-  {
-   "category": "one_free",
-   "episode": "train_000001",
-   "now_ms": 1597875.365,
-   "status": "OPTIMAL",
-   "fallback": false,
-   "reason": "",
-   "solve_ms": 20.84,
-   "gap": 0.0,
-   "objective": 1632214.0719913437,
-   "first_action": [
-    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "Fqptx5fNXR4_star_1786905929130:api_call:6",
     0
-   ],
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 1,
-   "cold_load": false,
-   "chain_has_cpu": false,
-   "h5_len": 5,
-   "mem_pressure": 0.751,
-   "first_in_des_pool": true
-  },
-  {
-   "category": "one_free",
-   "episode": "train_000001",
-   "now_ms": 1605618.8159999999,
-   "status": "OPTIMAL",
-   "fallback": false,
-   "reason": "",
-   "solve_ms": 53.85,
-   "gap": 0.0,
-   "objective": 1639957.5229913432,
-   "first_action": [
-    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
-    0
-   ],
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 1,
-   "cold_load": false,
-   "chain_has_cpu": false,
-   "h5_len": 5,
-   "mem_pressure": 0.751,
-   "first_in_des_pool": true
-  },
-  {
-   "category": "one_free",
-   "episode": "train_000001",
-   "now_ms": 1609574.9370000002,
-   "status": "OPTIMAL",
-   "fallback": false,
-   "reason": "",
-   "solve_ms": 25.47,
-   "gap": 0.0,
-   "objective": 1643913.6439913434,
-   "first_action": [
-    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
-    0
-   ],
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 1,
-   "cold_load": false,
-   "chain_has_cpu": false,
-   "h5_len": 5,
-   "mem_pressure": 0.751,
-   "first_in_des_pool": false
-  },
-  {
-   "category": "one_free",
-   "episode": "train_000003",
-   "now_ms": 1371923.8409999998,
-   "status": "OPTIMAL",
-   "fallback": false,
-   "reason": "",
-   "solve_ms": 4.13,
-   "gap": 0.0,
-   "objective": 1401106.6390260372,
-   "first_action": [
-    "GLW9omJfAdk_star_1786930492391:api_call:2",
-    0
-   ],
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 1,
-   "cold_load": false,
-   "chain_has_cpu": true,
-   "h5_len": 5,
-   "mem_pressure": 0.598,
-   "first_in_des_pool": true
+   ]
   },
   {
    "category": "both_free",
@@ -248,7 +90,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 534.33,
+   "solve_ms": 541.0,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -261,93 +103,13 @@
    "mem_pressure": 0.519
   },
   {
-   "category": "both_free",
-   "episode": "train_000024",
-   "now_ms": 15453.98,
-   "status": "TIME_LIMIT",
-   "fallback": true,
-   "reason": "no_solution",
-   "solve_ms": 569.99,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 18,
-   "ready_gpu": 3,
-   "free_gpus_now": 2,
-   "cold_load": null,
-   "chain_has_cpu": true,
-   "h5_len": 5,
-   "mem_pressure": 0.692
-  },
-  {
-   "category": "both_free",
-   "episode": "train_000025",
-   "now_ms": 996245.9189999999,
-   "status": "OPTIMAL",
-   "fallback": false,
-   "reason": "",
-   "solve_ms": 23.17,
-   "gap": 0.0,
-   "objective": 1006982.2061996345,
-   "first_action": [
-    "XoaWHHNiw1w_star_1786907317248:api_call:2",
-    0
-   ],
-   "planned_nodes": 6,
-   "ready_gpu": 1,
-   "free_gpus_now": 2,
-   "cold_load": false,
-   "chain_has_cpu": false,
-   "h5_len": 5,
-   "mem_pressure": 0.751,
-   "first_in_des_pool": false
-  },
-  {
-   "category": "both_free",
-   "episode": "train_000026",
-   "now_ms": 56238.091779296876,
-   "status": "TIME_LIMIT",
-   "fallback": true,
-   "reason": "no_solution",
-   "solve_ms": 563.33,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 12,
-   "ready_gpu": 2,
-   "free_gpus_now": 2,
-   "cold_load": null,
-   "chain_has_cpu": true,
-   "h5_len": 5,
-   "mem_pressure": 0.692
-  },
-  {
-   "category": "both_free",
-   "episode": "train_000034",
-   "now_ms": 8527.087,
-   "status": "TIME_LIMIT",
-   "fallback": true,
-   "reason": "no_solution",
-   "solve_ms": 581.49,
-   "gap": null,
-   "objective": null,
-   "first_action": null,
-   "planned_nodes": 24,
-   "ready_gpu": 4,
-   "free_gpus_now": 2,
-   "cold_load": null,
-   "chain_has_cpu": true,
-   "h5_len": 5,
-   "mem_pressure": 0.692
-  },
-  {
    "category": "cold_load",
    "episode": "train_000015",
    "now_ms": 38468.945,
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.85,
+   "solve_ms": 31.01,
    "gap": 0.0,
    "objective": 76817.34999134357,
    "first_action": [
@@ -361,7 +123,78 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "URUJD5NEXC8_langgraph_react_1786931560939:action:9",
+    0
+   ]
+  },
+  {
+   "category": "both_busy",
+   "episode": "train_000000",
+   "now_ms": 1377110.2820000001,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 1.5,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 1,
+   "ready_gpu": 1,
+   "free_gpus_now": 0,
+   "cold_load": null,
+   "chain_has_cpu": false,
+   "h5_len": 0,
+   "mem_pressure": 0.751
+  },
+  {
+   "category": "one_free",
+   "episode": "train_000001",
+   "now_ms": 1597875.365,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 20.24,
+   "gap": 0.0,
+   "objective": 1632214.0719913437,
+   "first_action": [
+    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": false,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.751,
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "6Cr_8tvvQ0k_langgraph_react_1786919379876:action:5",
+    0
+   ]
+  },
+  {
+   "category": "both_free",
+   "episode": "train_000024",
+   "now_ms": 15453.98,
+   "status": "TIME_LIMIT",
+   "fallback": true,
+   "reason": "no_solution",
+   "solve_ms": 538.31,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 18,
+   "ready_gpu": 3,
+   "free_gpus_now": 2,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.692
   },
   {
    "category": "cold_load",
@@ -370,8 +203,8 @@
    "status": "TIME_LIMIT",
    "fallback": false,
    "reason": "",
-   "solve_ms": 517.53,
-   "gap": 0.19588625164105553,
+   "solve_ms": 513.51,
+   "gap": 0.11828900310989093,
    "objective": 121665.95051638075,
    "first_action": [
     "NjxJY7P-Qpo_langgraph_react_1786908143900:api_call:2",
@@ -384,7 +217,87 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.519,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "HdBsD5VspVM_langgraph_react_1786924184372:api_call:4",
+    1
+   ]
+  },
+  {
+   "category": "cpu_chain",
+   "episode": "train_000000",
+   "now_ms": 1378749.416,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 2.22,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 0,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.751
+  },
+  {
+   "category": "one_free",
+   "episode": "train_000001",
+   "now_ms": 1605618.8159999999,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 19.45,
+   "gap": 0.0,
+   "objective": 1639957.5229913432,
+   "first_action": [
+    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": false,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.751,
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "6Cr_8tvvQ0k_langgraph_react_1786919379876:api_call:6",
+    0
+   ]
+  },
+  {
+   "category": "both_free",
+   "episode": "train_000025",
+   "now_ms": 996245.9189999999,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 26.34,
+   "gap": 0.0,
+   "objective": 1006982.2061996345,
+   "first_action": [
+    "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 2,
+   "cold_load": false,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.751,
+   "first_in_des_pool": false,
+   "change_type": "ordering",
+   "baseline_action": [
+    "YPvxuoNLgPE_star_1786922615799:api_call:7",
+    1
+   ]
   },
   {
    "category": "cold_load",
@@ -393,7 +306,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.4,
+   "solve_ms": 23.53,
    "gap": 0.0,
    "objective": 64823.43399134356,
    "first_action": [
@@ -407,30 +320,106 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.519,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "Gh_GtYtQoVI_langgraph_react_1786915192627:api_call:2",
+    1
+   ]
   },
   {
-   "category": "cold_load",
-   "episode": "train_000024",
-   "now_ms": 15454.072,
-   "status": "TIME_LIMIT",
+   "category": "cpu_chain",
+   "episode": "train_000003",
+   "now_ms": 1371923.8409999998,
+   "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 512.82,
-   "gap": 0.24684226524497985,
-   "objective": 129420.49190942213,
+   "solve_ms": 4.02,
+   "gap": 0.0,
+   "objective": 1401106.6390260372,
    "first_action": [
-    "MZEdnBcLcfg_star_1786917622972:api_call:2",
+    "GLW9omJfAdk_star_1786930492391:api_call:2",
     0
    ],
-   "planned_nodes": 12,
-   "ready_gpu": 2,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
    "free_gpus_now": 1,
-   "cold_load": true,
+   "cold_load": false,
    "chain_has_cpu": true,
    "h5_len": 5,
-   "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "mem_pressure": 0.598,
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "GLW9omJfAdk_star_1786930492391:api_call:2",
+    0
+   ]
+  },
+  {
+   "category": "both_busy",
+   "episode": "train_000001",
+   "now_ms": 1602263.857,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 6.22,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 0,
+   "cold_load": null,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.751
+  },
+  {
+   "category": "one_free",
+   "episode": "train_000001",
+   "now_ms": 1609574.9370000002,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 21.95,
+   "gap": 0.0,
+   "objective": 1643913.6439913434,
+   "first_action": [
+    "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": false,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.751,
+   "first_in_des_pool": false,
+   "change_type": "ordering",
+   "baseline_action": [
+    "hjNX33W-99I_star_1786909784154:api_call:4",
+    1
+   ]
+  },
+  {
+   "category": "both_free",
+   "episode": "train_000026",
+   "now_ms": 56238.091779296876,
+   "status": "TIME_LIMIT",
+   "fallback": true,
+   "reason": "no_solution",
+   "solve_ms": 515.57,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 12,
+   "ready_gpu": 2,
+   "free_gpus_now": 2,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.692
   },
   {
    "category": "cold_load",
@@ -439,7 +428,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.41,
+   "solve_ms": 26.3,
    "gap": 1.1321953240404426e-11,
    "objective": 88323.36977064051,
    "first_action": [
@@ -453,7 +442,78 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "7tLtu3QT2OI_langgraph_react_1786921629808:api_call:14",
+    0
+   ]
+  },
+  {
+   "category": "cpu_chain",
+   "episode": "train_000003",
+   "now_ms": 1436515.402,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible_after_reference_failure",
+   "solve_ms": 25.89,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 12,
+   "ready_gpu": 2,
+   "free_gpus_now": 0,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.692
+  },
+  {
+   "category": "both_free",
+   "episode": "train_000034",
+   "now_ms": 8527.087,
+   "status": "TIME_LIMIT",
+   "fallback": true,
+   "reason": "no_solution",
+   "solve_ms": 601.25,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 24,
+   "ready_gpu": 4,
+   "free_gpus_now": 2,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.692
+  },
+  {
+   "category": "cold_load",
+   "episode": "train_000026",
+   "now_ms": 52610.955,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 30.52,
+   "gap": 1.0993844533133351e-11,
+   "objective": 90959.35999134363,
+   "first_action": [
+    "ad_higXixRA_langgraph_react_1786926020036:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": true,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.692,
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "7tLtu3QT2OI_langgraph_react_1786921629808:action:15",
+    0
+   ]
   },
   {
    "category": "cpu_chain",
@@ -462,7 +522,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 32.93,
+   "solve_ms": 28.54,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -473,6 +533,213 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.692
+  },
+  {
+   "category": "both_busy",
+   "episode": "train_000003",
+   "now_ms": 1438658.001,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 6.47,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 0,
+   "cold_load": null,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.692
+  },
+  {
+   "category": "both_free",
+   "episode": "train_000036",
+   "now_ms": 730060.566,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 19.1,
+   "gap": 0.0,
+   "objective": 764399.2729913436,
+   "first_action": [
+    "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 2,
+   "cold_load": false,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.751,
+   "first_in_des_pool": false,
+   "change_type": "ordering",
+   "baseline_action": [
+    "Tn70NxIMk2Q_star_1786923893484:api_call:6",
+    1
+   ]
+  },
+  {
+   "category": "cold_load",
+   "episode": "train_000026",
+   "now_ms": 60065.77100000001,
+   "status": "TIME_LIMIT",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 527.84,
+   "gap": 0.12617285348313342,
+   "objective": 210170.9105163808,
+   "first_action": [
+    "ad_higXixRA_langgraph_react_1786926020036:api_call:2",
+    1
+   ],
+   "planned_nodes": 12,
+   "ready_gpu": 2,
+   "free_gpus_now": 1,
+   "cold_load": true,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.692,
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "GsYi-l5PEEs_star_1786924803071:api_call:10",
+    1
+   ]
+  },
+  {
+   "category": "cpu_chain",
+   "episode": "train_000005",
+   "now_ms": 1614993.2430000005,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 2.84,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.713
+  },
+  {
+   "category": "both_busy",
+   "episode": "train_000004",
+   "now_ms": 701985.3979999999,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 7.01,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 0,
+   "cold_load": null,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.692
+  },
+  {
+   "category": "one_free",
+   "episode": "train_000004",
+   "now_ms": 706531.453,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 9.05,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": null,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.692
+  },
+  {
+   "category": "both_free",
+   "episode": "train_000036",
+   "now_ms": 749709.245,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 1.89,
+   "gap": 0.0,
+   "objective": 749935.6904999999,
+   "first_action": [
+    "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+    0
+   ],
+   "planned_nodes": 1,
+   "ready_gpu": 1,
+   "free_gpus_now": 2,
+   "cold_load": false,
+   "chain_has_cpu": false,
+   "h5_len": 0,
+   "mem_pressure": 0.751,
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+    1
+   ]
+  },
+  {
+   "category": "cold_load",
+   "episode": "train_000033",
+   "now_ms": 41107.536,
+   "status": "OPTIMAL",
+   "fallback": false,
+   "reason": "",
+   "solve_ms": 26.9,
+   "gap": 1.2585503992547104e-11,
+   "objective": 79455.94099134358,
+   "first_action": [
+    "FjS2LzrHEO8_langgraph_react_1786914279725:api_call:2",
+    0
+   ],
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": true,
+   "chain_has_cpu": false,
+   "h5_len": 5,
+   "mem_pressure": 0.519,
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "FjS2LzrHEO8_langgraph_react_1786914279725:api_call:2",
+    0
+   ]
+  },
+  {
+   "category": "cpu_chain",
+   "episode": "train_000005",
+   "now_ms": 1615246.3420000004,
+   "status": "INFEASIBLE",
+   "fallback": true,
+   "reason": "infeasible",
+   "solve_ms": 3.72,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
+   "planned_nodes": 6,
+   "ready_gpu": 1,
+   "free_gpus_now": 1,
+   "cold_load": null,
+   "chain_has_cpu": true,
+   "h5_len": 5,
+   "mem_pressure": 0.713
   }
  ],
  "rows": [
@@ -482,7 +749,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1637.83,
+   "solve_ms": 1271.01,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -500,7 +767,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.08,
+   "solve_ms": 16.35,
    "gap": 0.0,
    "objective": 1387193.6620728846,
    "first_action": [
@@ -514,7 +781,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "Fqptx5fNXR4_star_1786905929130:api_call:6",
+    0
+   ]
   },
   {
    "episode": "train_000000",
@@ -522,7 +794,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.9,
+   "solve_ms": 1.5,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -540,7 +812,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.48,
+   "solve_ms": 2.22,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -558,7 +830,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 20.84,
+   "solve_ms": 20.24,
    "gap": 0.0,
    "objective": 1632214.0719913437,
    "first_action": [
@@ -572,7 +844,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "6Cr_8tvvQ0k_langgraph_react_1786919379876:action:5",
+    0
+   ]
   },
   {
    "episode": "train_000001",
@@ -580,7 +857,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 10.29,
+   "solve_ms": 6.22,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -598,7 +875,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 53.85,
+   "solve_ms": 19.45,
    "gap": 0.0,
    "objective": 1639957.5229913432,
    "first_action": [
@@ -612,7 +889,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "6Cr_8tvvQ0k_langgraph_react_1786919379876:api_call:6",
+    0
+   ]
   },
   {
    "episode": "train_000001",
@@ -620,7 +902,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 25.47,
+   "solve_ms": 21.95,
    "gap": 0.0,
    "objective": 1643913.6439913434,
    "first_action": [
@@ -634,7 +916,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "ordering",
+   "baseline_action": [
+    "hjNX33W-99I_star_1786909784154:api_call:4",
+    1
+   ]
   },
   {
    "episode": "train_000003",
@@ -642,7 +929,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 4.13,
+   "solve_ms": 4.02,
    "gap": 0.0,
    "objective": 1401106.6390260372,
    "first_action": [
@@ -656,7 +943,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.598,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "GLW9omJfAdk_star_1786930492391:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000003",
@@ -664,7 +956,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 29.18,
+   "solve_ms": 25.89,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -682,7 +974,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 32.93,
+   "solve_ms": 28.54,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -700,7 +992,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 7.5,
+   "solve_ms": 6.47,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -718,7 +1010,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 8.46,
+   "solve_ms": 7.01,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -736,7 +1028,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 10.85,
+   "solve_ms": 9.05,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -754,7 +1046,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 7.21,
+   "solve_ms": 6.3,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -772,7 +1064,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 7.59,
+   "solve_ms": 5.65,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -790,7 +1082,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 3.4,
+   "solve_ms": 2.84,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -808,7 +1100,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 3.16,
+   "solve_ms": 3.72,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -826,7 +1118,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 7.65,
+   "solve_ms": 6.33,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -844,7 +1136,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.51,
+   "solve_ms": 16.21,
    "gap": 0.0,
    "objective": 853747.326072884,
    "first_action": [
@@ -858,7 +1150,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "RBTiTcHm_ac_star_1786930740323:api_call:4",
+    0
+   ]
   },
   {
    "episode": "train_000006",
@@ -866,7 +1163,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.75,
+   "solve_ms": 1.62,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -902,7 +1199,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 23.03,
+   "solve_ms": 24.17,
    "gap": 0.0,
    "objective": 153561.28931012526,
    "first_action": [
@@ -916,7 +1213,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.767,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "IN8t1d3pRMY_langgraph_react_1786922795671:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000007",
@@ -924,7 +1226,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 21.92,
+   "solve_ms": 21.9,
    "gap": 0.0,
    "objective": 1705276.4509913435,
    "first_action": [
@@ -938,7 +1240,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "Q8AZ16uBhr8_langgraph_react_1786926907776:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000007",
@@ -946,7 +1253,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.53,
+   "solve_ms": 7.14,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -964,7 +1271,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.02,
+   "solve_ms": 6.21,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -982,7 +1289,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 4.32,
+   "solve_ms": 3.68,
    "gap": 0.0,
    "objective": 136019.98339322465,
    "first_action": [
@@ -996,7 +1303,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.973,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "FjS2LzrHEO8_star_1786914222337:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000008",
@@ -1004,7 +1316,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.07,
+   "solve_ms": 2.75,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1022,7 +1334,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 2.04,
+   "solve_ms": 2.15,
    "gap": 0.0,
    "objective": 131888.55668625623,
    "first_action": [
@@ -1036,7 +1348,12 @@
    "chain_has_cpu": true,
    "h5_len": 2,
    "mem_pressure": 0.973,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "IN8t1d3pRMY_langgraph_react_1786922795671:action:3",
+    1
+   ]
   },
   {
    "episode": "train_000008",
@@ -1044,7 +1361,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 2.11,
+   "solve_ms": 2.36,
    "gap": 0.0,
    "objective": 137218.77972648822,
    "first_action": [
@@ -1058,7 +1375,12 @@
    "chain_has_cpu": true,
    "h5_len": 2,
    "mem_pressure": 0.973,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "IN8t1d3pRMY_langgraph_react_1786922795671:api_call:4",
+    1
+   ]
   },
   {
    "episode": "train_000009",
@@ -1066,7 +1388,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.94,
+   "solve_ms": 6.64,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1084,7 +1406,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.64,
+   "solve_ms": 19.67,
    "gap": 0.0,
    "objective": 1089728.3331996344,
    "first_action": [
@@ -1098,7 +1420,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "I4yye8mUzWg_star_1786926981872:api_call:2",
+    1
+   ]
   },
   {
    "episode": "train_000010",
@@ -1106,7 +1433,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 7.71,
+   "solve_ms": 6.32,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1124,7 +1451,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.77,
+   "solve_ms": 20.22,
    "gap": 0.0,
    "objective": 1094493.2430728846,
    "first_action": [
@@ -1138,7 +1465,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "8IZvEF4Ui10_star_1786912521634:api_call:4",
+    0
+   ]
   },
   {
    "episode": "train_000010",
@@ -1146,7 +1478,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.12,
+   "solve_ms": 6.44,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1164,7 +1496,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.29,
+   "solve_ms": 7.13,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1182,7 +1514,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 13.5,
+   "solve_ms": 16.07,
    "gap": 0.0,
    "objective": 552026.8642564865,
    "first_action": [
@@ -1196,7 +1528,12 @@
    "chain_has_cpu": true,
    "h5_len": 4,
    "mem_pressure": 0.973,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "D61jenC5oBA_star_1786907681241:api_call:10",
+    0
+   ]
   },
   {
    "episode": "train_000011",
@@ -1204,7 +1541,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 3.02,
+   "solve_ms": 3.12,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1222,7 +1559,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.41,
+   "solve_ms": 2.64,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1240,7 +1577,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 24.55,
+   "solve_ms": 30.19,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1258,7 +1595,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 21.87,
+   "solve_ms": 24.16,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1276,7 +1613,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 21.2,
+   "solve_ms": 24.92,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1294,7 +1631,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.67,
+   "solve_ms": 6.47,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1312,7 +1649,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 84.92,
+   "solve_ms": 85.49,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1330,7 +1667,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 66.53,
+   "solve_ms": 73.31,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1348,7 +1685,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 31.92,
+   "solve_ms": 36.77,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1366,7 +1703,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 56.48,
+   "solve_ms": 695.15,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1384,7 +1721,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.24,
+   "solve_ms": 9.52,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1402,7 +1739,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.52,
+   "solve_ms": 9.01,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1420,7 +1757,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.85,
+   "solve_ms": 31.01,
    "gap": 0.0,
    "objective": 76817.34999134357,
    "first_action": [
@@ -1434,7 +1771,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "URUJD5NEXC8_langgraph_react_1786931560939:action:9",
+    0
+   ]
   },
   {
    "episode": "train_000015",
@@ -1442,7 +1784,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.52,
+   "solve_ms": 8.11,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1460,7 +1802,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 5.71,
+   "solve_ms": 7.5,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1478,7 +1820,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 1.7,
+   "solve_ms": 1.73,
    "gap": 0.0,
    "objective": 194266.91349999994,
    "first_action": [
@@ -1492,7 +1834,12 @@
    "chain_has_cpu": false,
    "h5_len": 0,
    "mem_pressure": 0.983,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "PXxscnWG8QA_star_1786929844922:api_call:14",
+    0
+   ]
   },
   {
    "episode": "train_000016",
@@ -1500,7 +1847,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 1.78,
+   "solve_ms": 2.0,
    "gap": 0.0,
    "objective": 194870.39650000006,
    "first_action": [
@@ -1514,7 +1861,12 @@
    "chain_has_cpu": false,
    "h5_len": 0,
    "mem_pressure": 0.983,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "PXxscnWG8QA_star_1786929844922:api_call:14",
+    0
+   ]
   },
   {
    "episode": "train_000016",
@@ -1522,7 +1874,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 1.75,
+   "solve_ms": 3.66,
    "gap": 0.0,
    "objective": 201373.0205,
    "first_action": [
@@ -1536,7 +1888,12 @@
    "chain_has_cpu": false,
    "h5_len": 0,
    "mem_pressure": 0.983,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "MZEdnBcLcfg_langgraph_react_1786917680878:api_call:14",
+    0
+   ]
   },
   {
    "episode": "train_000017",
@@ -1544,7 +1901,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 533.32,
+   "solve_ms": 550.68,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1562,7 +1919,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 619.04,
+   "solve_ms": 70.1,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1580,7 +1937,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 43.96,
+   "solve_ms": 69.98,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1598,7 +1955,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 539.18,
+   "solve_ms": 549.6,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1616,7 +1973,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 124.82,
+   "solve_ms": 133.75,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1634,7 +1991,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 111.58,
+   "solve_ms": 113.08,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1652,7 +2009,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 534.33,
+   "solve_ms": 541.0,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1670,8 +2027,8 @@
    "status": "TIME_LIMIT",
    "fallback": false,
    "reason": "",
-   "solve_ms": 517.53,
-   "gap": 0.19588625164105553,
+   "solve_ms": 513.51,
+   "gap": 0.11828900310989093,
    "objective": 121665.95051638075,
    "first_action": [
     "NjxJY7P-Qpo_langgraph_react_1786908143900:api_call:2",
@@ -1684,7 +2041,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.519,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "HdBsD5VspVM_langgraph_react_1786924184372:api_call:4",
+    1
+   ]
   },
   {
    "episode": "train_000019",
@@ -1692,7 +2054,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.32,
+   "solve_ms": 17.3,
    "gap": 0.0,
    "objective": 150857.42831012528,
    "first_action": [
@@ -1706,7 +2068,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "H54zMD-9Q-8_langgraph_react_1786923265193:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000019",
@@ -1714,7 +2081,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.85,
+   "solve_ms": 18.96,
    "gap": 0.0,
    "objective": 160130.21323818486,
    "first_action": [
@@ -1728,7 +2095,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "DoFmXBjRGmk_star_1786920320210:api_call:7",
+    1
+   ]
   },
   {
    "episode": "train_000019",
@@ -1736,7 +2108,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.32,
+   "solve_ms": 16.97,
    "gap": 0.0,
    "objective": 163034.3292381849,
    "first_action": [
@@ -1750,7 +2122,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "PXxscnWG8QA_langgraph_react_1786929892946:api_call:6",
+    1
+   ]
   },
   {
    "episode": "train_000019",
@@ -1758,7 +2135,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.31,
+   "solve_ms": 17.72,
    "gap": 0.0,
    "objective": 156604.9920728846,
    "first_action": [
@@ -1772,7 +2149,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "H54zMD-9Q-8_langgraph_react_1786923265193:action:3",
+    0
+   ]
   },
   {
    "episode": "train_000020",
@@ -1780,7 +2162,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.4,
+   "solve_ms": 23.53,
    "gap": 0.0,
    "objective": 64823.43399134356,
    "first_action": [
@@ -1794,7 +2176,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.519,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "Gh_GtYtQoVI_langgraph_react_1786915192627:api_call:2",
+    1
+   ]
   },
   {
    "episode": "train_000020",
@@ -1802,7 +2189,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.03,
+   "solve_ms": 16.53,
    "gap": 0.0,
    "objective": 33600.43669963454,
    "first_action": [
@@ -1816,7 +2203,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.519,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "hjNX33W-99I_langgraph_react_1786909859426:action:9",
+    0
+   ]
   },
   {
    "episode": "train_000020",
@@ -1824,7 +2216,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.61,
+   "solve_ms": 5.72,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1842,7 +2234,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.04,
+   "solve_ms": 16.14,
    "gap": 0.0,
    "objective": 41162.770699634544,
    "first_action": [
@@ -1856,7 +2248,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "hjNX33W-99I_langgraph_react_1786909859426:api_call:10",
+    0
+   ]
   },
   {
    "episode": "train_000022",
@@ -1864,7 +2261,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 6.71,
+   "solve_ms": 5.81,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1882,7 +2279,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 10.7,
+   "solve_ms": 10.83,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1900,7 +2297,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.36,
+   "solve_ms": 5.75,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1918,7 +2315,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.61,
+   "solve_ms": 5.88,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1936,7 +2333,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 125.04,
+   "solve_ms": 131.36,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1954,7 +2351,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 112.57,
+   "solve_ms": 128.72,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1972,7 +2369,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 569.99,
+   "solve_ms": 538.31,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -1988,23 +2385,19 @@
    "episode": "train_000024",
    "now_ms": 15454.072,
    "status": "TIME_LIMIT",
-   "fallback": false,
-   "reason": "",
-   "solve_ms": 512.82,
-   "gap": 0.24684226524497985,
-   "objective": 129420.49190942213,
-   "first_action": [
-    "MZEdnBcLcfg_star_1786917622972:api_call:2",
-    0
-   ],
+   "fallback": true,
+   "reason": "no_solution",
+   "solve_ms": 519.66,
+   "gap": null,
+   "objective": null,
+   "first_action": null,
    "planned_nodes": 12,
    "ready_gpu": 2,
    "free_gpus_now": 1,
-   "cold_load": true,
+   "cold_load": null,
    "chain_has_cpu": true,
    "h5_len": 5,
-   "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "mem_pressure": 0.692
   },
   {
    "episode": "train_000025",
@@ -2012,7 +2405,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 23.17,
+   "solve_ms": 26.34,
    "gap": 0.0,
    "objective": 1006982.2061996345,
    "first_action": [
@@ -2026,7 +2419,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "ordering",
+   "baseline_action": [
+    "YPvxuoNLgPE_star_1786922615799:api_call:7",
+    1
+   ]
   },
   {
    "episode": "train_000025",
@@ -2034,7 +2432,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 19.35,
+   "solve_ms": 23.1,
    "gap": 0.0,
    "objective": 1008358.9981996346,
    "first_action": [
@@ -2048,7 +2446,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "EhLOdDfaC7Y_langgraph_react_1786915745101:api_call:8",
+    0
+   ]
   },
   {
    "episode": "train_000025",
@@ -2056,7 +2459,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 19.6,
+   "solve_ms": 22.64,
    "gap": 0.0,
    "objective": 1010652.6241996343,
    "first_action": [
@@ -2070,7 +2473,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "XoaWHHNiw1w_star_1786907317248:api_call:2",
+    1
+   ]
   },
   {
    "episode": "train_000025",
@@ -2078,7 +2486,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 14.45,
+   "solve_ms": 16.05,
    "gap": 0.0,
    "objective": 1017782.5720728845,
    "first_action": [
@@ -2092,7 +2500,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "EhLOdDfaC7Y_langgraph_react_1786915745101:action:9",
+    0
+   ]
   },
   {
    "episode": "train_000026",
@@ -2100,7 +2513,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.41,
+   "solve_ms": 26.3,
    "gap": 1.1321953240404426e-11,
    "objective": 88323.36977064051,
    "first_action": [
@@ -2114,7 +2527,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "7tLtu3QT2OI_langgraph_react_1786921629808:api_call:14",
+    0
+   ]
   },
   {
    "episode": "train_000026",
@@ -2122,7 +2540,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.55,
+   "solve_ms": 30.52,
    "gap": 1.0993844533133351e-11,
    "objective": 90959.35999134363,
    "first_action": [
@@ -2136,7 +2554,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "7tLtu3QT2OI_langgraph_react_1786921629808:action:15",
+    0
+   ]
   },
   {
    "episode": "train_000026",
@@ -2144,7 +2567,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 563.33,
+   "solve_ms": 515.57,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2162,8 +2585,8 @@
    "status": "TIME_LIMIT",
    "fallback": false,
    "reason": "",
-   "solve_ms": 511.19,
-   "gap": 0.1070945805187691,
+   "solve_ms": 527.84,
+   "gap": 0.12617285348313342,
    "objective": 210170.9105163808,
    "first_action": [
     "ad_higXixRA_langgraph_react_1786926020036:api_call:2",
@@ -2176,7 +2599,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "GsYi-l5PEEs_star_1786924803071:api_call:10",
+    1
+   ]
   },
   {
    "episode": "train_000027",
@@ -2184,7 +2612,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.48,
+   "solve_ms": 19.74,
    "gap": 0.0,
    "objective": 194183.48202603718,
    "first_action": [
@@ -2198,7 +2626,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.535,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "Ij-FYOrklFE_star_1786929207369:api_call:2",
+    1
+   ]
   },
   {
    "episode": "train_000027",
@@ -2206,7 +2639,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.54,
+   "solve_ms": 3.04,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2224,7 +2657,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 14.0,
+   "solve_ms": 16.92,
    "gap": 0.0,
    "objective": 187060.47223818494,
    "first_action": [
@@ -2238,7 +2671,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.535,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "Ij-FYOrklFE_star_1786929068588:action:11",
+    0
+   ]
   },
   {
    "episode": "train_000027",
@@ -2246,7 +2684,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 14.25,
+   "solve_ms": 17.02,
    "gap": 0.0,
    "objective": 193830.6932381849,
    "first_action": [
@@ -2260,7 +2698,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.535,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "Ij-FYOrklFE_star_1786929068588:api_call:12",
+    0
+   ]
   },
   {
    "episode": "train_000029",
@@ -2268,7 +2711,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.26,
+   "solve_ms": 7.55,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2286,7 +2729,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.27,
+   "solve_ms": 7.81,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2304,7 +2747,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.11,
+   "solve_ms": 21.67,
    "gap": 0.0,
    "objective": 503134.9099913435,
    "first_action": [
@@ -2318,7 +2761,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "ordering",
+   "baseline_action": [
+    "I5cFBi02O34_star_1786909274288:api_call:4",
+    0
+   ]
   },
   {
    "episode": "train_000029",
@@ -2326,7 +2774,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.72,
+   "solve_ms": 7.44,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2344,7 +2792,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 5.64,
+   "solve_ms": 7.87,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2362,7 +2810,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 10.81,
+   "solve_ms": 14.36,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2380,7 +2828,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 10.64,
+   "solve_ms": 13.63,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2398,7 +2846,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 10.19,
+   "solve_ms": 13.68,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2416,7 +2864,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 5.78,
+   "solve_ms": 7.95,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2434,7 +2882,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 13.73,
+   "solve_ms": 17.46,
    "gap": 0.0,
    "objective": 407045.19407288457,
    "first_action": [
@@ -2448,7 +2896,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.309,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "HdBsD5VspVM_star_1786924234779:api_call:6",
+    0
+   ]
   },
   {
    "episode": "train_000031",
@@ -2456,7 +2909,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.48,
+   "solve_ms": 2.87,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2474,7 +2927,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.18,
+   "solve_ms": 2.54,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2492,7 +2945,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.63,
+   "solve_ms": 21.36,
    "gap": 0.0,
    "objective": 860787.7891996346,
    "first_action": [
@@ -2506,7 +2959,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "bBazRZOxl-k_star_1786908845951:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000032",
@@ -2514,7 +2972,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.72,
+   "solve_ms": 3.11,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2532,7 +2990,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.52,
+   "solve_ms": 7.17,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2550,7 +3008,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.49,
+   "solve_ms": 2.94,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2568,7 +3026,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 22.78,
+   "solve_ms": 26.9,
    "gap": 1.2585503992547104e-11,
    "objective": 79455.94099134358,
    "first_action": [
@@ -2582,7 +3040,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.519,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "FjS2LzrHEO8_langgraph_react_1786914279725:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000033",
@@ -2590,7 +3053,7 @@
    "status": "NOT_APPLICABLE:unknown_model_profile:finish_argument",
    "fallback": true,
    "reason": "unknown_model_profile:finish_argument",
-   "solve_ms": 0.0,
+   "solve_ms": 0.01,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2644,7 +3107,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 581.49,
+   "solve_ms": 601.25,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2662,7 +3125,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 529.24,
+   "solve_ms": 534.3,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2680,7 +3143,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 555.01,
+   "solve_ms": 566.24,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2698,7 +3161,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 99.5,
+   "solve_ms": 144.01,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2716,7 +3179,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 19.39,
+   "solve_ms": 25.8,
    "gap": 0.0,
    "objective": 775105.8793101248,
    "first_action": [
@@ -2730,7 +3193,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "IN8t1d3pRMY_langgraph_react_1786922795671:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000035",
@@ -2738,7 +3206,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.97,
+   "solve_ms": 2.11,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2756,7 +3224,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.82,
+   "solve_ms": 18.4,
    "gap": 0.0,
    "objective": 776662.9300728847,
    "first_action": [
@@ -2770,7 +3238,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "C8Rk__S06_M_star_1786905481598:api_call:7",
+    1
+   ]
   },
   {
    "episode": "train_000035",
@@ -2778,7 +3251,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 213.14,
+   "solve_ms": 249.8,
    "gap": 5.042851136247968e-05,
    "objective": 1554676.6968039887,
    "first_action": [
@@ -2792,7 +3265,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "C8Rk__S06_M_star_1786905481598:api_call:7",
+    1
+   ]
   },
   {
    "episode": "train_000036",
@@ -2800,7 +3278,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.31,
+   "solve_ms": 19.1,
    "gap": 0.0,
    "objective": 764399.2729913436,
    "first_action": [
@@ -2814,7 +3292,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "ordering",
+   "baseline_action": [
+    "Tn70NxIMk2Q_star_1786923893484:api_call:6",
+    1
+   ]
   },
   {
    "episode": "train_000036",
@@ -2822,7 +3305,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.3,
+   "solve_ms": 18.95,
    "gap": 0.0,
    "objective": 764772.2539913435,
    "first_action": [
@@ -2836,7 +3319,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "NXeHeEHj9Xc_langgraph_react_1786919006490:api_call:2",
+    1
+   ]
   },
   {
    "episode": "train_000036",
@@ -2844,7 +3332,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 15.91,
+   "solve_ms": 18.51,
    "gap": 0.0,
    "objective": 746718.5726719075,
    "first_action": [
@@ -2858,7 +3346,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "Tn70NxIMk2Q_star_1786923893484:action:10",
+    0
+   ]
   },
   {
    "episode": "train_000036",
@@ -2866,7 +3359,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 1.61,
+   "solve_ms": 1.89,
    "gap": 0.0,
    "objective": 749935.6904999999,
    "first_action": [
@@ -2880,7 +3373,12 @@
    "chain_has_cpu": false,
    "h5_len": 0,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "Jm0MLlE4x0U_langgraph_react_1786927760015:api_call:15",
+    1
+   ]
   },
   {
    "episode": "train_000037",
@@ -2888,7 +3386,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.94,
+   "solve_ms": 7.65,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2906,7 +3404,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.23,
+   "solve_ms": 6.44,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2924,7 +3422,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.61,
+   "solve_ms": 7.26,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2942,7 +3440,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.36,
+   "solve_ms": 6.17,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -2960,7 +3458,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.07,
+   "solve_ms": 16.71,
    "gap": 0.0,
    "objective": 273346.71131012525,
    "first_action": [
@@ -2974,7 +3472,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "C8Rk__S06_M_langgraph_react_1786905426460:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000038",
@@ -2982,7 +3485,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.47,
+   "solve_ms": 17.44,
    "gap": 0.0,
    "objective": 277558.76031012525,
    "first_action": [
@@ -2996,7 +3499,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "C8Rk__S06_M_langgraph_react_1786905426460:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000038",
@@ -3004,7 +3512,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.46,
+   "solve_ms": 19.71,
    "gap": 0.0,
    "objective": 289451.8272381848,
    "first_action": [
@@ -3018,7 +3526,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "PXxscnWG8QA_langgraph_react_1786929892946:api_call:5",
+    0
+   ]
   },
   {
    "episode": "train_000038",
@@ -3026,7 +3539,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 17.34,
+   "solve_ms": 27.14,
    "gap": 0.0,
    "objective": 294630.58394786157,
    "first_action": [
@@ -3040,7 +3553,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "C8Rk__S06_M_langgraph_react_1786905426460:api_call:4",
+    1
+   ]
   },
   {
    "episode": "train_000039",
@@ -3048,7 +3566,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 9.49,
+   "solve_ms": 12.59,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3066,7 +3584,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.69,
+   "solve_ms": 2.22,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3084,7 +3602,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.81,
+   "solve_ms": 3.45,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3102,7 +3620,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.41,
+   "solve_ms": 3.04,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3120,7 +3638,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 21.03,
+   "solve_ms": 29.95,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3138,7 +3656,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.15,
+   "solve_ms": 7.48,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3156,7 +3674,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 526.37,
+   "solve_ms": 525.44,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3174,7 +3692,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 28.6,
+   "solve_ms": 33.16,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3192,7 +3710,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 9.8,
+   "solve_ms": 11.62,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3210,7 +3728,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 9.42,
+   "solve_ms": 10.71,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3228,7 +3746,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 10.25,
+   "solve_ms": 10.72,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3246,7 +3764,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.48,
+   "solve_ms": 1.45,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3264,7 +3782,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 107.5,
+   "solve_ms": 43.61,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3282,7 +3800,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 45.01,
+   "solve_ms": 43.44,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3300,7 +3818,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 39.29,
+   "solve_ms": 43.99,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3318,7 +3836,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.05,
+   "solve_ms": 6.63,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3336,7 +3854,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 102.12,
+   "solve_ms": 115.54,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3354,7 +3872,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 38.7,
+   "solve_ms": 42.21,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3372,7 +3890,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 530.82,
+   "solve_ms": 534.56,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3390,7 +3908,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 39.16,
+   "solve_ms": 44.74,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3408,7 +3926,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 590.46,
+   "solve_ms": 588.99,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3426,7 +3944,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 547.45,
+   "solve_ms": 569.75,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3444,7 +3962,7 @@
    "status": "TIME_LIMIT",
    "fallback": true,
    "reason": "no_solution",
-   "solve_ms": 578.52,
+   "solve_ms": 615.66,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3462,7 +3980,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 98.05,
+   "solve_ms": 205.24,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3480,7 +3998,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.51,
+   "solve_ms": 9.41,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3498,7 +4016,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.6,
+   "solve_ms": 24.81,
    "gap": 0.0,
    "objective": 1208961.6730728843,
    "first_action": [
@@ -3512,7 +4030,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "FYJJbwG_i8U_star_1786916915951:api_call:4",
+    0
+   ]
   },
   {
    "episode": "train_000045",
@@ -3520,7 +4043,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.47,
+   "solve_ms": 2.8,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3538,7 +4061,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 16.54,
+   "solve_ms": 18.48,
    "gap": 0.0,
    "objective": 1216011.238072885,
    "first_action": [
@@ -3552,7 +4075,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "FYJJbwG_i8U_star_1786916915951:api_call:6",
+    1
+   ]
   },
   {
    "episode": "train_000047",
@@ -3560,7 +4088,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 15.87,
+   "solve_ms": 18.31,
    "gap": 0.0,
    "objective": 1212793.4933101255,
    "first_action": [
@@ -3574,7 +4102,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.968,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "HqAfzcJurMM_langgraph_react_1786910626990:api_call:2",
+    1
+   ]
   },
   {
    "episode": "train_000047",
@@ -3582,7 +4115,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 2.07,
+   "solve_ms": 2.4,
    "gap": 0.0,
    "objective": 1210903.8956276625,
    "first_action": [
@@ -3596,7 +4129,12 @@
    "chain_has_cpu": true,
    "h5_len": 2,
    "mem_pressure": 0.767,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "8TNPeimqOO0_star_1786915388452:api_call:12",
+    0
+   ]
   },
   {
    "episode": "train_000047",
@@ -3604,7 +4142,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.53,
+   "solve_ms": 2.94,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3622,7 +4160,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.23,
+   "solve_ms": 1.36,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3640,7 +4178,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 10.28,
+   "solve_ms": 10.95,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3658,7 +4196,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.73,
+   "solve_ms": 7.18,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3676,7 +4214,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 9.87,
+   "solve_ms": 10.42,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3694,7 +4232,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 9.84,
+   "solve_ms": 10.46,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3712,7 +4250,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.98,
+   "solve_ms": 642.84,
    "gap": 0.0,
    "objective": 204402.97231012522,
    "first_action": [
@@ -3726,7 +4264,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "6dmTmP4Dsw8_langgraph_react_1786905647864:api_call:2",
+    0
+   ]
   },
   {
    "episode": "train_000051",
@@ -3734,7 +4277,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.45,
+   "solve_ms": 4.08,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3752,7 +4295,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 15.0,
+   "solve_ms": 22.87,
    "gap": 0.0,
    "objective": 209178.82407288454,
    "first_action": [
@@ -3766,7 +4309,12 @@
    "chain_has_cpu": true,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": false
+   "first_in_des_pool": false,
+   "change_type": "placement",
+   "baseline_action": [
+    "Tn70NxIMk2Q_star_1786924000304:api_call:4",
+    0
+   ]
   },
   {
    "episode": "train_000051",
@@ -3774,7 +4322,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 19.89,
+   "solve_ms": 25.92,
    "gap": 0.0,
    "objective": 215634.3929478616,
    "first_action": [
@@ -3788,7 +4336,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.751,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "6dmTmP4Dsw8_langgraph_react_1786905647864:api_call:4",
+    1
+   ]
   },
   {
    "episode": "train_000055",
@@ -3796,7 +4349,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.98,
+   "solve_ms": 3.33,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3814,7 +4367,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.66,
+   "solve_ms": 7.68,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3832,7 +4385,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 2.24,
+   "solve_ms": 3.4,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3850,7 +4403,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.87,
+   "solve_ms": 7.05,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3868,7 +4421,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 10.35,
+   "solve_ms": 14.07,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3886,7 +4439,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 20.85,
+   "solve_ms": 23.84,
    "gap": 0.0,
    "objective": 46538.47968596266,
    "first_action": [
@@ -3900,7 +4453,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "G267g0DpCVg_star_1786929533315:api_call:4",
+    0
+   ]
   },
   {
    "episode": "train_000057",
@@ -3908,7 +4466,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 1.47,
+   "solve_ms": 1.67,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3926,7 +4484,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 6.36,
+   "solve_ms": 6.82,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3944,7 +4502,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 1.59,
+   "solve_ms": 1.99,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3962,7 +4520,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible_after_reference_failure",
-   "solve_ms": 1.55,
+   "solve_ms": 1.74,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3980,7 +4538,7 @@
    "status": "INFEASIBLE",
    "fallback": true,
    "reason": "infeasible",
-   "solve_ms": 5.79,
+   "solve_ms": 6.17,
    "gap": null,
    "objective": null,
    "first_action": null,
@@ -3998,7 +4556,7 @@
    "status": "OPTIMAL",
    "fallback": false,
    "reason": "",
-   "solve_ms": 18.6,
+   "solve_ms": 22.41,
    "gap": 0.0,
    "objective": 526872.681480846,
    "first_action": [
@@ -4012,7 +4570,12 @@
    "chain_has_cpu": false,
    "h5_len": 5,
    "mem_pressure": 0.692,
-   "first_in_des_pool": true
+   "first_in_des_pool": true,
+   "change_type": "same",
+   "baseline_action": [
+    "I5cFBi02O34_star_1786909274288:api_call:4",
+    0
+   ]
   }
  ]
 }

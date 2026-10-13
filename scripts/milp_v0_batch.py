@@ -93,6 +93,18 @@ def main() -> int:
                 collect_events=False, extra_context={"des_probe_pool": True})
             pool = {(str(r[1]), int(r[2])) for r in (pctx.get("des_first_pool") or [])}
             row["first_in_des_pool"] = tuple(res.first_action) in pool
+            # review-4 record list: action-change type vs the PDRS baseline choice
+            baseline = pctx.get("des_first_baseline")
+            if baseline:
+                milp_node, milp_gpu = str(res.first_action[0]), int(res.first_action[1])
+                base_node, base_gpu = str(baseline[0]), int(baseline[1])
+                if milp_node != base_node:
+                    row["change_type"] = "ordering"
+                elif milp_gpu != base_gpu:
+                    row["change_type"] = "placement"
+                else:
+                    row["change_type"] = "same"
+                row["baseline_action"] = [base_node, base_gpu]
         rows.append(row)
 
     # batch A: targeted selection (cover strata)
@@ -106,15 +118,21 @@ def main() -> int:
     }
     batch_a = []
     seen = set()
-    per_cat = max(1, args.batch_a // max(1, len(categories)))
-    for name, cat_rows in categories.items():
-        for row in cat_rows[:per_cat]:
+    cat_iters = {name: iter(cat_rows) for name, cat_rows in categories.items()}
+    remaining = list(categories)
+    while len(batch_a) < args.batch_a and remaining:
+        for name in list(remaining):
+            row = next(cat_iters[name], None)
+            if row is None:
+                remaining.remove(name)
+                continue
             key = (row["episode"], row["now_ms"])
             if key in seen:
                 continue
             seen.add(key)
             batch_a.append({"category": name, **row})
-    batch_a = batch_a[: args.batch_a]
+            if len(batch_a) >= args.batch_a:
+                break
 
     # aggregate stats
     eligible = len(rows)
@@ -138,14 +156,19 @@ def main() -> int:
     }
     solve_p50 = statistics.median(solve_times) if solve_times else 0.0
     solve_p95 = (sorted(solve_times)[int(0.95 * (len(solve_times) - 1))] if solve_times else 0.0)
+    change_counts: dict = {}
+    for r in executed:
+        ct = r.get("change_type", "unclassified")
+        change_counts[ct] = change_counts.get(ct, 0) + 1
     evidence = {
-        "schema": "milp-v0a-batch-v1", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "schema": "milp-v0a-batch-v2", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "episodes": args.episodes, "cap": args.cap, "budget_s": args.budget,
         "eligible_states": eligible,
         "status_counts": status_counts,
         "fallback_counts": len(fallbacks), "fallback_reasons": reason_counts,
         "executed": len(executed),
         "first_action_illegal": len(illegal),
+        "change_type_counts": change_counts,
         "solve_ms_p50": round(solve_p50, 2), "solve_ms_p95": round(solve_p95, 2),
         "strata": strata_summary,
         "batch_a": batch_a,
@@ -158,6 +181,7 @@ def main() -> int:
     print(f"fallback reasons: {reason_counts}")
     print(f"solve ms p50={solve_p50:.1f} p95={solve_p95:.1f}")
     print(f"strata: {strata_summary}")
+    print(f"change types: {change_counts}")
     print(f"batch A selected: {len(batch_a)} | categories: {sorted({r['category'] for r in batch_a})}")
     print(f"evidence: {args.out}")
     return 0
