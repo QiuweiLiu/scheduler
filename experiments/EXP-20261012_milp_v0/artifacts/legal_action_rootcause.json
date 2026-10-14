@@ -1,0 +1,92 @@
+{
+ "schema": "legal-action-rootcause-v1",
+ "timestamp": "2026-10-14T16:16:50+0800",
+ "split": "confirm",
+ "serial_v0": {
+  "environment": "serial_v0",
+  "episodes": 15,
+  "decisions": 2011,
+  "ready_gpu_nodes_mean": 2.18,
+  "ready_gpu_nodes_dist": {
+   "1": 1095,
+   "2": 361,
+   "3": 191,
+   "4": 149,
+   "5": 83,
+   "6": 45,
+   "7": 43,
+   "8": 14,
+   "9": 10,
+   "10": 16,
+   "11": 4
+  },
+  "free_gpus_mean": 1.18,
+  "free_gpus_dist": {
+   "1": 1645,
+   "2": 366
+  },
+  "raw_candidates_mean": 2.37,
+  "fitting_mean": 2.37,
+  "pool_mean": 2.37,
+  "pool_dist": {
+   "1": 742,
+   "2": 707,
+   "3": 188,
+   "4": 155,
+   "5": 83,
+   "6": 48,
+   "7": 41,
+   "8": 15,
+   "9": 10,
+   "10": 16,
+   "11": 4,
+   "14": 2
+  },
+  "pool_single_frac": 0.369,
+  "fitting_zero_frac": 0.0,
+  "gpu_busy_fraction_mean": null
+ },
+ "v7_full": {
+  "environment": "v7_full",
+  "episodes": 15,
+  "decisions": 2011,
+  "ready_gpu_nodes_mean": 1.88,
+  "ready_gpu_nodes_dist": {
+   "1": 1344,
+   "2": 268,
+   "3": 123,
+   "4": 101,
+   "5": 62,
+   "6": 27,
+   "7": 51,
+   "8": 22,
+   "9": 10,
+   "10": 3
+  },
+  "free_gpus_mean": 1.35,
+  "free_gpus_dist": {
+   "1": 1316,
+   "2": 695
+  },
+  "raw_candidates_mean": 1.89,
+  "fitting_mean": 1.89,
+  "pool_mean": 1.89,
+  "pool_dist": {
+   "1": 901,
+   "2": 836,
+   "3": 95,
+   "4": 79,
+   "5": 43,
+   "6": 27,
+   "7": 13,
+   "8": 9,
+   "9": 4,
+   "10": 1,
+   "12": 1,
+   "14": 2
+  },
+  "pool_single_frac": 0.448,
+  "fitting_zero_frac": 0.0,
+  "gpu_busy_fraction_mean": null
+ }
+}
