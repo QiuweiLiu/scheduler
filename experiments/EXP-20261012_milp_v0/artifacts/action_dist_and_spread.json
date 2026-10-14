@@ -1,0 +1,419 @@
+{
+ "schema": "legal-action-dist-and-spread-v1",
+ "episodes_per_pass": 20,
+ "cap": 4,
+ "serial_v0": {
+  "environment": "serial_v0",
+  "states_checked": 51,
+  "dist": {
+   "1": 24,
+   "2": 17,
+   "gt2": 10,
+   "frac_1": 0.471,
+   "frac_2": 0.333,
+   "frac_gt2": 0.196
+  },
+  "rollout_states": 27,
+  "spread_mean": 2329.2,
+  "spread_median": 886.9,
+  "spread_p90": 5892.4,
+  "spread_zero_states": 0,
+  "details": [
+   {
+    "episode": "validation_000001",
+    "now_ms": 31840.918,
+    "actions": 2,
+    "jct_best": 73102.8,
+    "jct_worst": 73964.2,
+    "spread": 861.4
+   },
+   {
+    "episode": "validation_000001",
+    "now_ms": 42340.132,
+    "actions": 2,
+    "jct_best": 73102.8,
+    "jct_worst": 73172.9,
+    "spread": 70.1
+   },
+   {
+    "episode": "validation_000001",
+    "now_ms": 47865.549,
+    "actions": 2,
+    "jct_best": 73051.5,
+    "jct_worst": 73102.8,
+    "spread": 51.3
+   },
+   {
+    "episode": "validation_000013",
+    "now_ms": 90330.27300000002,
+    "actions": 2,
+    "jct_best": 71585.0,
+    "jct_worst": 71733.9,
+    "spread": 149.0
+   },
+   {
+    "episode": "validation_000018",
+    "now_ms": 442013.02800000005,
+    "actions": 3,
+    "jct_best": 125341.6,
+    "jct_worst": 129545.5,
+    "spread": 4204.0
+   },
+   {
+    "episode": "validation_000018",
+    "now_ms": 445264.96699999995,
+    "actions": 2,
+    "jct_best": 127939.5,
+    "jct_worst": 132954.1,
+    "spread": 5014.6
+   },
+   {
+    "episode": "validation_000018",
+    "now_ms": 446186.26900000003,
+    "actions": 3,
+    "jct_best": 127939.5,
+    "jct_worst": 135281.2,
+    "spread": 7341.7
+   },
+   {
+    "episode": "validation_000023",
+    "now_ms": 40973.409,
+    "actions": 3,
+    "jct_best": 93439.8,
+    "jct_worst": 98022.9,
+    "spread": 4583.1
+   },
+   {
+    "episode": "validation_000023",
+    "now_ms": 42882.046,
+    "actions": 4,
+    "jct_best": 93615.6,
+    "jct_worst": 98734.6,
+    "spread": 5119.0
+   },
+   {
+    "episode": "validation_000023",
+    "now_ms": 43110.267,
+    "actions": 3,
+    "jct_best": 94172.9,
+    "jct_worst": 100488.0,
+    "spread": 6315.1
+   },
+   {
+    "episode": "validation_000025",
+    "now_ms": 416426.00899999996,
+    "actions": 3,
+    "jct_best": 76195.7,
+    "jct_worst": 78958.4,
+    "spread": 2762.7
+   },
+   {
+    "episode": "validation_000031",
+    "now_ms": 52431.136,
+    "actions": 2,
+    "jct_best": 87113.8,
+    "jct_worst": 87400.5,
+    "spread": 286.7
+   },
+   {
+    "episode": "validation_000031",
+    "now_ms": 53010.036,
+    "actions": 2,
+    "jct_best": 87113.7,
+    "jct_worst": 87113.8,
+    "spread": 0.1
+   },
+   {
+    "episode": "validation_000032",
+    "now_ms": 227504.18300000002,
+    "actions": 5,
+    "jct_best": 99616.9,
+    "jct_worst": 103346.1,
+    "spread": 3729.2
+   },
+   {
+    "episode": "validation_000033",
+    "now_ms": 14729.098,
+    "actions": 3,
+    "jct_best": 85935.4,
+    "jct_worst": 86822.2,
+    "spread": 886.9
+   },
+   {
+    "episode": "validation_000033",
+    "now_ms": 16760.198,
+    "actions": 2,
+    "jct_best": 85935.4,
+    "jct_worst": 86974.8,
+    "spread": 1039.5
+   },
+   {
+    "episode": "validation_000036",
+    "now_ms": 37421.007,
+    "actions": 2,
+    "jct_best": 75353.3,
+    "jct_worst": 75945.1,
+    "spread": 591.8
+   },
+   {
+    "episode": "validation_000037",
+    "now_ms": 214351.635,
+    "actions": 4,
+    "jct_best": 95254.3,
+    "jct_worst": 97169.8,
+    "spread": 1915.6
+   },
+   {
+    "episode": "validation_000037",
+    "now_ms": 217399.035,
+    "actions": 4,
+    "jct_best": 92865.6,
+    "jct_worst": 101050.7,
+    "spread": 8185.2
+   },
+   {
+    "episode": "validation_000042",
+    "now_ms": 15503.864,
+    "actions": 2,
+    "jct_best": 75477.1,
+    "jct_worst": 81369.5,
+    "spread": 5892.4
+   },
+   {
+    "episode": "validation_000042",
+    "now_ms": 19545.826999999997,
+    "actions": 2,
+    "jct_best": 81369.5,
+    "jct_worst": 81882.7,
+    "spread": 513.1
+   },
+   {
+    "episode": "validation_000053",
+    "now_ms": 39814.254,
+    "actions": 2,
+    "jct_best": 48423.2,
+    "jct_worst": 48444.4,
+    "spread": 21.2
+   },
+   {
+    "episode": "validation_000053",
+    "now_ms": 43279.600999999995,
+    "actions": 2,
+    "jct_best": 48423.2,
+    "jct_worst": 48444.7,
+    "spread": 21.6
+   },
+   {
+    "episode": "validation_000055",
+    "now_ms": 190489.563,
+    "actions": 2,
+    "jct_best": 54894.5,
+    "jct_worst": 55477.3,
+    "spread": 582.8
+   },
+   {
+    "episode": "validation_000055",
+    "now_ms": 194300.407,
+    "actions": 2,
+    "jct_best": 54894.5,
+    "jct_worst": 55001.0,
+    "spread": 106.5
+   },
+   {
+    "episode": "validation_000062",
+    "now_ms": 205540.71399999998,
+    "actions": 2,
+    "jct_best": 61072.4,
+    "jct_worst": 61252.3,
+    "spread": 179.8
+   },
+   {
+    "episode": "validation_000066",
+    "now_ms": 87280.88491796874,
+    "actions": 2,
+    "jct_best": 64496.0,
+    "jct_worst": 66960.6,
+    "spread": 2464.6
+   }
+  ]
+ },
+ "v7_full": {
+  "environment": "v7_full",
+  "states_checked": 54,
+  "dist": {
+   "1": 34,
+   "2": 17,
+   "gt2": 3,
+   "frac_1": 0.63,
+   "frac_2": 0.315,
+   "frac_gt2": 0.056
+  },
+  "rollout_states": 20,
+  "spread_mean": 1513.2,
+  "spread_median": 11.1,
+  "spread_p90": 4061.5,
+  "spread_zero_states": 4,
+  "details": [
+   {
+    "episode": "validation_000011",
+    "now_ms": 272417.04135959997,
+    "actions": 2,
+    "jct_best": 46603.5,
+    "jct_worst": 46609.2,
+    "spread": 5.7
+   },
+   {
+    "episode": "validation_000011",
+    "now_ms": 274971.7363596,
+    "actions": 2,
+    "jct_best": 46603.5,
+    "jct_worst": 46609.2,
+    "spread": 5.7
+   },
+   {
+    "episode": "validation_000018",
+    "now_ms": 442768.934438,
+    "actions": 2,
+    "jct_best": 102583.6,
+    "jct_worst": 118761.7,
+    "spread": 16178.1
+   },
+   {
+    "episode": "validation_000018",
+    "now_ms": 447506.81494530005,
+    "actions": 2,
+    "jct_best": 113581.5,
+    "jct_worst": 118761.7,
+    "spread": 5180.2
+   },
+   {
+    "episode": "validation_000023",
+    "now_ms": 41252.9796836,
+    "actions": 2,
+    "jct_best": 76012.2,
+    "jct_worst": 76015.4,
+    "spread": 3.2
+   },
+   {
+    "episode": "validation_000023",
+    "now_ms": 46486.263,
+    "actions": 2,
+    "jct_best": 76015.4,
+    "jct_worst": 76721.4,
+    "spread": 706.1
+   },
+   {
+    "episode": "validation_000031",
+    "now_ms": 52438.16673879999,
+    "actions": 3,
+    "jct_best": 71369.1,
+    "jct_worst": 71728.8,
+    "spread": 359.7
+   },
+   {
+    "episode": "validation_000031",
+    "now_ms": 60916.357258799995,
+    "actions": 2,
+    "jct_best": 71369.1,
+    "jct_worst": 71369.1,
+    "spread": 0.0
+   },
+   {
+    "episode": "validation_000032",
+    "now_ms": 225758.34095410001,
+    "actions": 5,
+    "jct_best": 80105.3,
+    "jct_worst": 84166.8,
+    "spread": 4061.5
+   },
+   {
+    "episode": "validation_000032",
+    "now_ms": 227344.361,
+    "actions": 2,
+    "jct_best": 84166.8,
+    "jct_worst": 84166.8,
+    "spread": 0.0
+   },
+   {
+    "episode": "validation_000033",
+    "now_ms": 14729.098,
+    "actions": 3,
+    "jct_best": 66441.1,
+    "jct_worst": 66456.2,
+    "spread": 15.0
+   },
+   {
+    "episode": "validation_000036",
+    "now_ms": 41650.9414436,
+    "actions": 2,
+    "jct_best": 55589.6,
+    "jct_worst": 55596.8,
+    "spread": 7.2
+   },
+   {
+    "episode": "validation_000036",
+    "now_ms": 49899.194443600005,
+    "actions": 2,
+    "jct_best": 55589.6,
+    "jct_worst": 55596.8,
+    "spread": 7.2
+   },
+   {
+    "episode": "validation_000037",
+    "now_ms": 211499.932232,
+    "actions": 2,
+    "jct_best": 67102.4,
+    "jct_worst": 67552.6,
+    "spread": 450.2
+   },
+   {
+    "episode": "validation_000037",
+    "now_ms": 212501.2193408,
+    "actions": 2,
+    "jct_best": 67552.6,
+    "jct_worst": 68781.9,
+    "spread": 1229.3
+   },
+   {
+    "episode": "validation_000042",
+    "now_ms": 19513.561999999998,
+    "actions": 2,
+    "jct_best": 63499.2,
+    "jct_worst": 63499.2,
+    "spread": 0.0
+   },
+   {
+    "episode": "validation_000053",
+    "now_ms": 39814.254,
+    "actions": 2,
+    "jct_best": 47966.6,
+    "jct_worst": 47968.0,
+    "spread": 1.4
+   },
+   {
+    "episode": "validation_000053",
+    "now_ms": 43279.600999999995,
+    "actions": 2,
+    "jct_best": 47966.6,
+    "jct_worst": 47966.6,
+    "spread": 0.0
+   },
+   {
+    "episode": "validation_000062",
+    "now_ms": 199086.59999999998,
+    "actions": 2,
+    "jct_best": 53195.5,
+    "jct_worst": 53399.3,
+    "spread": 203.9
+   },
+   {
+    "episode": "validation_000064",
+    "now_ms": 152796.76624630005,
+    "actions": 2,
+    "jct_best": 51346.0,
+    "jct_worst": 53194.7,
+    "spread": 1848.7
+   }
+  ]
+ }
+}

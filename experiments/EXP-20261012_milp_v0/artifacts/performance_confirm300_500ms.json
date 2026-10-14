@@ -1,0 +1,90 @@
+{
+ "schema": "milp-v0a-performance-v2",
+ "timestamp": "2026-10-14T05:42:04+0800",
+ "episodes": 300,
+ "budget_s": 0.5,
+ "split": "confirm",
+ "net_jct_note": "net JCT NOT measured: zero-overhead gain and independent online cost are reported separately (advisor ruling 2026-10-13); no event-level latency injection in this run",
+ "arms": {
+  "M0_f0": {
+   "mean": 99833.06,
+   "p95_pooled": 357407.45,
+   "p95_mean_of_episodes": 232642.61,
+   "makespan": 1105073.74,
+   "cold_loads": 49.24,
+   "evictions": 47.59,
+   "wall_s_per_episode": 0.313
+  },
+  "M1_pdrs": {
+   "mean": 98460.64,
+   "p95_pooled": 347419.58,
+   "p95_mean_of_episodes": 228735.1,
+   "makespan": 1102651.58,
+   "cold_loads": 44.043,
+   "evictions": 41.67,
+   "wall_s_per_episode": 0.366
+  },
+  "M2_milp": {
+   "mean": 100060.77,
+   "p95_pooled": 350864.98,
+   "p95_mean_of_episodes": 231778.62,
+   "makespan": 1099650.41,
+   "cold_loads": 39.8,
+   "evictions": 37.237,
+   "wall_s_per_episode": 70.847
+  }
+ },
+ "deltas": {
+  "M2_milp_minus_M1_pdrs": {
+   "mean_delta": 1600.13,
+   "mean_ci95": [
+    1231.16,
+    1982.82
+   ],
+   "p95_delta_mean_of_episodes": 3043.52,
+   "p95_ci95_mean_of_episodes": [
+    997.94,
+    5233.24
+   ]
+  },
+  "M2_milp_minus_M0_f0": {
+   "mean_delta": 227.71,
+   "mean_ci95": [
+    -181.2,
+    616.66
+   ],
+   "p95_delta_mean_of_episodes": -863.99,
+   "p95_ci95_mean_of_episodes": [
+    -3156.13,
+    1346.0
+   ]
+  },
+  "M1_pdrs_minus_M0_f0": {
+   "mean_delta": -1372.42,
+   "mean_ci95": [
+    -1636.11,
+    -1135.87
+   ],
+   "p95_delta_mean_of_episodes": -3907.51,
+   "p95_ci95_mean_of_episodes": [
+    -5367.46,
+    -2572.79
+   ]
+  }
+ },
+ "milp_online_cost": {
+  "decisions": 85122,
+  "executed": 39047,
+  "fallback": 46075,
+  "prediction_gap_fallback": 0,
+  "time_limit": 27666,
+  "optimal": 35895,
+  "decision_wall_ms_p50": 11.52,
+  "decision_wall_ms_p95": 1048.61,
+  "decision_wall_ms_mean": 248.38,
+  "decision_wall_ms_max": 3364.2,
+  "solve_ms_total": 21142234.4,
+  "exposed_ms_total": 2887246.3,
+  "exposed_ms_per_episode": 9624.15
+ }
+}

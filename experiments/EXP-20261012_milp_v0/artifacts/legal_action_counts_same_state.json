@@ -1,0 +1,36 @@
+{
+ "schema": "legal-actions-same-state-control-v1",
+ "note": "Same 26 confirm states (captured under serial dynamics); candidate pool counted under serial rules vs full v7 rules. Shows the RULE difference isolated from dynamics.",
+ "states": 26,
+ "serial_rules": {
+  "mean": 2.04,
+  "dist": {
+   "1": 10,
+   "2": 8,
+   "3": 6,
+   "4": 1,
+   "5": 1
+  }
+ },
+ "v7_rules": {
+  "mean": 2.65,
+  "dist": {
+   "1": 5,
+   "2": 9,
+   "3": 6,
+   "4": 5,
+   "8": 1
+  }
+ },
+ "v7_dynamics_own_states": {
+  "mean": 1.62,
+  "dist": {
+   "1": 15,
+   "2": 8,
+   "3": 2,
+   "5": 1
+  },
+  "free_gpus_mean": 1.04,
+  "colocation_pairs_mean": 0.46
+ }
+}
