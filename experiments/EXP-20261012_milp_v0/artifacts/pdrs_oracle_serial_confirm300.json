@@ -1,0 +1,39 @@
+{
+ "schema": "pdrs-oracle-ceiling-v1",
+ "timestamp": "2026-10-14T15:41:49+0800",
+ "episodes": 300,
+ "split": "confirm",
+ "config": "serial_v0_extension.json",
+ "arms": {
+  "pdrs_pred": {
+   "mean": 98460.64,
+   "p95_pooled": 347419.58,
+   "p95_mean_of_episodes": 228735.1,
+   "cold_loads": 44.04,
+   "evictions": 41.67,
+   "prefetch_count": 0.0
+  },
+  "pdrs_oracle": {
+   "mean": 98455.05,
+   "p95_pooled": 348103.19,
+   "p95_mean_of_episodes": 228693.08,
+   "cold_loads": 43.88,
+   "evictions": 41.51,
+   "prefetch_count": 0.0
+  }
+ },
+ "oracle_minus_pred": {
+  "mean_delta": -5.59,
+  "mean_ci95": [
+   -74.41,
+   62.13
+  ],
+  "p95_delta_mean_of_episodes": -42.03,
+  "p95_ci95": [
+   -675.55,
+   551.1
+  ],
+  "episodes_oracle_better": 31,
+  "episodes_pred_better": 37
+ }
+}

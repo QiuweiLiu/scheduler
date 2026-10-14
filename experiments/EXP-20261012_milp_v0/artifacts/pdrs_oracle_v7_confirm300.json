@@ -1,0 +1,39 @@
+{
+ "schema": "pdrs-oracle-ceiling-v1",
+ "timestamp": "2026-10-14T15:34:19+0800",
+ "episodes": 300,
+ "split": "confirm",
+ "config": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/substrate_extension_v7.json",
+ "arms": {
+  "pdrs_pred": {
+   "mean": 68947.48,
+   "p95_pooled": 178454.55,
+   "p95_mean_of_episodes": 128331.89,
+   "cold_loads": 24.77,
+   "evictions": 26.72,
+   "prefetch_count": 4.77
+  },
+  "pdrs_oracle": {
+   "mean": 68905.2,
+   "p95_pooled": 177580.78,
+   "p95_mean_of_episodes": 128832.15,
+   "cold_loads": 23.89,
+   "evictions": 26.78,
+   "prefetch_count": 5.84
+  }
+ },
+ "oracle_minus_pred": {
+  "mean_delta": -42.29,
+  "mean_ci95": [
+   -328.09,
+   224.06
+  ],
+  "p95_delta_mean_of_episodes": 500.25,
+  "p95_ci95": [
+   -575.3,
+   1762.34
+  ],
+  "episodes_oracle_better": 123,
+  "episodes_pred_better": 136
+ }
+}

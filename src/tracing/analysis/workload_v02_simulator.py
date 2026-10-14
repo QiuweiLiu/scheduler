@@ -5685,6 +5685,21 @@ def choose_action(
                 context["des_first_baseline"] = [str(_b_item[3]), int(_b_gpu)]
             except Exception as _baseline_exc:  # never break the pool probe
                 context["des_first_baseline_error"] = repr(_baseline_exc)
+            # Audit (2026-10-14): the historical-prior arm's first action on the
+            # same pool, for per-state chooser-regret attribution.
+            try:
+                _prior_ctx = dict(_baseline_ctx)
+                _seeded = (policy_context or {}).get("_residency_prior_pack")
+                if _seeded is not None:
+                    _prior_ctx["_residency_prior_pack"] = _seeded
+                _p_item, _p_gpu, _p_row, _p_cnt, _p_feas = choose_action(
+                    "pdrs_resident_prior", ready_items, jobs, free_gpus, train_stats,
+                    round_robin_cursor, future_artifacts, rl_context, _prior_ctx,
+                    decision_time_ms, extension_config,
+                )
+                context["des_first_baseline_prior"] = [str(_p_item[3]), int(_p_gpu)]
+            except Exception as _prior_exc:
+                context["des_first_baseline_prior_error"] = repr(_prior_exc)
             # Advisor P0 diagnosis: per-pair evaluation (GPU state / free-set
             # membership / dispatch rule / admission) for the illegal-action
             # root-cause report.  Probe-only; no scheduler behavior change.
