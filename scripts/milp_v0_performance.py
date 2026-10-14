@@ -98,10 +98,36 @@ def main() -> int:
     parser.add_argument("--split", choices=("train", "confirm"), default="train")
     parser.add_argument("--config", type=Path, default=None,
                         help="extension config path (default: serial_v0_extension.json)")
+    parser.add_argument("--burst64", action="store_true",
+                        help="load Burst64-v1 episodes (mixed-source; in-memory split override)")
+    parser.add_argument("--burst-limit", type=int, default=0, help="cap episodes in burst64 mode (0=all)")
     parser.add_argument("--out", type=Path, default=EVIDENCE)
     args = parser.parse_args()
 
-    serial, templates, episodes, stats, artifacts = load_split(args.split, args.episodes, args.config)
+    if args.burst64:
+        from dataclasses import replace as _replace
+        from tracing.analysis.workload_v02_simulator import read_jsonl as _read_jsonl
+        burst_dir = ROOT / "experiments/EXP-20261014_burst64_v1/artifacts"
+        config_path = args.config or (ROOT / "experiments/EXP-20261012_milp_v0/artifacts"
+                                      / "serial_prefetch_v1_extension.json")
+        serial, templates, _nat, stats, artifacts = load_split("confirm", 1, config_path)
+        # Diagnostic-only relabel: the simulator guards source isolation and the
+        # MILP reads the train-only resource catalog by split; both sides are
+        # relabeled to "train" for the Burst64 structural runs.  Provenance is
+        # preserved in the workload files/manifest.
+        templates = {k: _replace(v, split="train") for k, v in templates.items()}
+        episodes = []
+        for tag in ("r085_b10", "r110_b10", "r085_b15", "r110_b15"):
+            episodes.extend(_read_jsonl(burst_dir / f"workload_burst64_{tag}.jsonl"))
+        for episode in episodes:
+            episode["split"] = "train"
+        from tracing.analysis.profile_contract import apply_real_workload_profile_contract
+        templates, episodes = apply_real_workload_profile_contract(templates, episodes, serial)
+        if args.burst_limit:
+            episodes = episodes[: args.burst_limit]
+        print(f"burst64: {len(episodes)} episodes, config={config_path.name}")
+    else:
+        serial, templates, episodes, stats, artifacts = load_split(args.split, args.episodes, args.config)
     per_arm: dict = {name: {"mean": [], "p95": [], "makespan": [], "cold": [], "evict": [],
                             "wall": [], "dur_pool": []} for name in ARMS}
     milp_totals: dict = {}
@@ -126,6 +152,9 @@ def main() -> int:
             row["cold"].append(float(summary["cold_loads_on_demand"]))
             row["evict"].append(float(summary["gpu_evictions"]))
             row["wall"].append(wall)
+            cond = str(ep.get("episode_id", "")).split("_ep")[0]
+            per_arm[name].setdefault("by_cond", {}).setdefault(cond, []).append(
+                float(summary["mean_completion_ms"]))
             for event in events or []:
                 if event.get("event_type") == "job_finish":
                     jid = str(event.get("job_instance_id"))
@@ -168,6 +197,16 @@ def main() -> int:
             "p95_ci95_mean_of_episodes": [round(v, 2) for v in bootstrap_ci(p95_diffs)],
         }
     report["deltas"] = deltas
+    if args.burst64:
+        report["by_condition"] = {}
+        for cond in sorted(per_arm["M0_f0"]["by_cond"]):
+            entry = {}
+            for name in ARMS:
+                entry[name] = round(statistics.fmean(per_arm[name]["by_cond"][cond]), 1)
+            entry["M2_minus_M1"] = round(entry["M2_milp"] - entry["M1_pdrs"], 1)
+            entry["M2_minus_M0"] = round(entry["M2_milp"] - entry["M0_f0"], 1)
+            entry["M1_minus_M0"] = round(entry["M1_pdrs"] - entry["M0_f0"], 1)
+            report["by_condition"][cond] = entry
     decisions = max(1.0, milp_totals.get("milp_decisions", 0.0))
     report["milp_online_cost"] = {
         "decisions": int(milp_totals.get("milp_decisions", 0)),

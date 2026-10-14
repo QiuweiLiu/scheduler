@@ -1,0 +1,124 @@
+{
+ "schema": "milp-v0a-performance-v2",
+ "timestamp": "2026-10-15T03:32:21+0800",
+ "episodes": 40,
+ "budget_s": 0.05,
+ "split": "train",
+ "net_jct_note": "net JCT NOT measured: zero-overhead gain and independent online cost are reported separately (advisor ruling 2026-10-13); no event-level latency injection in this run",
+ "arms": {
+  "M0_f0": {
+   "mean": 200704.45,
+   "p95_pooled": 726080.58,
+   "p95_mean_of_episodes": 547369.31,
+   "makespan": 1972389.34,
+   "cold_loads": 41.325,
+   "evictions": 38.125,
+   "wall_s_per_episode": 1.661
+  },
+  "M1_pdrs": {
+   "mean": 197183.05,
+   "p95_pooled": 713799.97,
+   "p95_mean_of_episodes": 532793.9,
+   "makespan": 1968798.18,
+   "cold_loads": 25.075,
+   "evictions": 26.775,
+   "wall_s_per_episode": 3.058
+  },
+  "M2_milp": {
+   "mean": 198335.92,
+   "p95_pooled": 718172.17,
+   "p95_mean_of_episodes": 535483.53,
+   "makespan": 1967474.08,
+   "cold_loads": 28.475,
+   "evictions": 27.825,
+   "wall_s_per_episode": 268.122
+  }
+ },
+ "deltas": {
+  "M2_milp_minus_M1_pdrs": {
+   "mean_delta": 1152.87,
+   "mean_ci95": [
+    151.3,
+    2177.45
+   ],
+   "p95_delta_mean_of_episodes": 2689.63,
+   "p95_ci95_mean_of_episodes": [
+    -1393.68,
+    7621.7
+   ]
+  },
+  "M2_milp_minus_M0_f0": {
+   "mean_delta": -2368.54,
+   "mean_ci95": [
+    -3727.1,
+    -907.05
+   ],
+   "p95_delta_mean_of_episodes": -11885.78,
+   "p95_ci95_mean_of_episodes": [
+    -16014.28,
+    -7734.26
+   ]
+  },
+  "M1_pdrs_minus_M0_f0": {
+   "mean_delta": -3521.4,
+   "mean_ci95": [
+    -5172.86,
+    -1714.16
+   ],
+   "p95_delta_mean_of_episodes": -14575.41,
+   "p95_ci95_mean_of_episodes": [
+    -21370.51,
+    -9291.06
+   ]
+  }
+ },
+ "by_condition": {
+  "burst64_r085_b10": {
+   "M0_f0": 144872.1,
+   "M1_pdrs": 140529.8,
+   "M2_milp": 141355.4,
+   "M2_minus_M1": 825.6,
+   "M2_minus_M0": -3516.7,
+   "M1_minus_M0": -4342.3
+  },
+  "burst64_r085_b15": {
+   "M0_f0": 203638.6,
+   "M1_pdrs": 201502.4,
+   "M2_milp": 202263.7,
+   "M2_minus_M1": 761.3,
+   "M2_minus_M0": -1374.9,
+   "M1_minus_M0": -2136.2
+  },
+  "burst64_r110_b10": {
+   "M0_f0": 201291.0,
+   "M1_pdrs": 194605.8,
+   "M2_milp": 196591.2,
+   "M2_minus_M1": 1985.4,
+   "M2_minus_M0": -4699.8,
+   "M1_minus_M0": -6685.2
+  },
+  "burst64_r110_b15": {
+   "M0_f0": 253016.2,
+   "M1_pdrs": 252094.2,
+   "M2_milp": 253133.4,
+   "M2_minus_M1": 1039.2,
+   "M2_minus_M0": 117.2,
+   "M1_minus_M0": -922.0
+  }
+ },
+ "milp_online_cost": {
+  "decisions": 21748,
+  "executed": 5120,
+  "fallback": 16628,
+  "prediction_gap_fallback": 0,
+  "time_limit": 13187,
+  "optimal": 4892,
+  "decision_wall_ms_p50": 93.57,
+  "decision_wall_ms_p95": 2287.1,
+  "decision_wall_ms_mean": 489.25,
+  "decision_wall_ms_max": 14172.74,
+  "solve_ms_total": 10640289.4,
+  "exposed_ms_total": 100412.6,
+  "exposed_ms_per_episode": 2510.32
+ }
+}
