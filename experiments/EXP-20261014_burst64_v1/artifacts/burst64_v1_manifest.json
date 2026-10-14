@@ -1,0 +1,141 @@
+{
+ "schema": "burst64-v1-manifest",
+ "purpose": "structural diagnostics only; not for predictor generalization",
+ "templates": {
+  "path": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+  "sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+  "count": 640
+ },
+ "alibaba": {
+  "path": "data/public/arrivals/alibaba_v2020/pai_job_table.csv",
+  "sha256": "379ecb3becaba347f44a53bf7eb53e54b185221b2a0338a3f828828d269ba96c",
+  "gap_split": "train",
+  "gap_count": 631102
+ },
+ "episodes": 10,
+ "jobs_per_episode": 64,
+ "stratification": {
+  "keys": [
+   "split",
+   "model_stack_id",
+   "gpu_cost_tercile"
+  ],
+  "terciles_ms": [
+   40662.663,
+   61713.514
+  ]
+ },
+ "segments": [
+  {
+   "episode": 0,
+   "gap_start": 94829,
+   "gap_end": 94892
+  },
+  {
+   "episode": 1,
+   "gap_start": 312535,
+   "gap_end": 312598
+  },
+  {
+   "episode": 2,
+   "gap_start": 221309,
+   "gap_end": 221372
+  },
+  {
+   "episode": 3,
+   "gap_start": 261683,
+   "gap_end": 261746
+  },
+  {
+   "episode": 4,
+   "gap_start": 379746,
+   "gap_end": 379809
+  },
+  {
+   "episode": 5,
+   "gap_start": 111654,
+   "gap_end": 111717
+  },
+  {
+   "episode": 6,
+   "gap_start": 146092,
+   "gap_end": 146155
+  },
+  {
+   "episode": 7,
+   "gap_start": 412306,
+   "gap_end": 412369
+  },
+  {
+   "episode": 8,
+   "gap_start": 339506,
+   "gap_end": 339569
+  },
+  {
+   "episode": 9,
+   "gap_start": 363263,
+   "gap_end": 363326
+  }
+ ],
+ "conditions": [
+  {
+   "tag": "r085_b10",
+   "rho": 0.85,
+   "beta": 1.0,
+   "beta_synthetic_burst": false
+  },
+  {
+   "tag": "r110_b10",
+   "rho": 1.1,
+   "beta": 1.0,
+   "beta_synthetic_burst": false
+  },
+  {
+   "tag": "r085_b15",
+   "rho": 0.85,
+   "beta": 1.5,
+   "beta_synthetic_burst": true
+  },
+  {
+   "tag": "r110_b15",
+   "rho": 1.1,
+   "beta": 1.5,
+   "beta_synthetic_burst": true
+  }
+ ],
+ "priority_mode": "all_normal",
+ "checks": {
+  "template_uniqueness": "640 unique templates across 10 episodes",
+  "monotone_arrivals_and_rho": "ok (tolerance 0.02)",
+  "deadline_budget_preserved": "ok",
+  "cross_condition_invariance": "ok (identities, budgets, segments)",
+  "memory_legality": "ok (max node memory 19502.0 <= 32760)",
+  "ground_truth_leakage": "none (only natural episode/job fields + burst metadata)"
+ },
+ "outputs": {
+  "r085_b10": {
+   "path": "experiments/EXP-20261014_burst64_v1/artifacts/workload_burst64_r085_b10.jsonl",
+   "sha256": "94c75cd7c2b87f615cccff754f8cca0d61f20efd49e39fa256927f7a0fffa12d",
+   "rho": 0.85,
+   "beta": 1.0
+  },
+  "r110_b10": {
+   "path": "experiments/EXP-20261014_burst64_v1/artifacts/workload_burst64_r110_b10.jsonl",
+   "sha256": "f0e164abcba5ba2d309dc7164f3f0d273d7740d1aec861a31aa98b1b6b5d2aa7",
+   "rho": 1.1,
+   "beta": 1.0
+  },
+  "r085_b15": {
+   "path": "experiments/EXP-20261014_burst64_v1/artifacts/workload_burst64_r085_b15.jsonl",
+   "sha256": "7144779663c6b8f82f3a759e3ece31665155996efaa5269b9901c0e24f95733d",
+   "rho": 0.85,
+   "beta": 1.5
+  },
+  "r110_b15": {
+   "path": "experiments/EXP-20261014_burst64_v1/artifacts/workload_burst64_r110_b15.jsonl",
+   "sha256": "c09218cb7711f87a26827a904eb022e01561b090a00f8af57a2f43fc86855d5c",
+   "rho": 1.1,
+   "beta": 1.5
+  }
+ }
+}
