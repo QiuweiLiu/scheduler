@@ -408,7 +408,9 @@ class MilpV0Result:
     fallback: bool
     planned_nodes: int
     boundary_completion_ms: float | None
-    reason: str = ""
+    reason: str
+    # 2026-10-14 (v0c): optional prefetch first action — (model_id, gpu_index).
+    first_prefetch: tuple[str, int] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -490,6 +492,37 @@ def solve_v0a(
     t0 = obs.now_ms
     big_u = 2.0 * ((reference_makespan - t0) + max_op)
 
+    # v0c prefetch candidates (2026-10-14): H5 chain-step models that are not
+    # resident on the target GPU and fit the CURRENT free memory (the DES
+    # prefetch skips on capacity, never evicts).  The overlap assumption hides
+    # the load behind the current active work; only the uncovered remainder
+    # shifts the GPU availability (documented approximation of the measured
+    # overlap/interference semantics).
+    model_load: dict[str, float] = {}
+    for steps in obs.chains.values():
+        for step in steps:
+            if step.model_id:
+                model_load[str(step.model_id)] = max(
+                    model_load.get(str(step.model_id), 0.0), float(step.load_ms))
+    prefetch_pairs: list[tuple[str, int]] = []
+    prefetch_shift: dict[tuple[str, int], float] = {}
+    for m in sorted(model_load):
+        load_m = model_load[m]
+        if load_m <= 0.0:
+            continue
+        mb = obs.resident_mb_by_model.get(m)
+        if mb is None:
+            continue
+        for g in range(gpu_count):
+            if m in obs.gpus[g].resident:
+                continue
+            if sum(obs.gpus[g].resident.values()) + float(mb) > obs.gpus[g].capacity_mb + 1e-9:
+                continue
+            remaining = max(0.0, obs.gpu_available(g) - t0)
+            prefetch_pairs.append((m, g))
+            prefetch_shift[(m, g)] = max(0.0, load_m - remaining)
+    prefetch_index = {pair: idx for idx, pair in enumerate(prefetch_pairs)}
+
     # variable layout
     offset = 0
     x0 = offset; offset += len(gpu_nodes) * gpu_count            # x[i,g]
@@ -506,6 +539,7 @@ def solve_v0a(
     # the legality mask d_ig <= A_ig^0 can be applied directly.
     d_pairs = [(i, g) for i in ready_gpu_nodes for g in range(gpu_count)]
     d0 = offset; offset += len(d_pairs)                          # dispatch-now bins
+    p0 = offset; offset += len(prefetch_pairs)                   # prefetch bins
     n_vars = offset
 
     def X(i, g):  # gpu node index in gpu_nodes -> flat
@@ -549,6 +583,10 @@ def solve_v0a(
         integrality[D(pos)] = 1
         if mask is not None and (nodes[i].key, int(g)) not in mask:
             upper[D(pos)] = 0.0  # d_ig <= A_ig^0 (illegal pair: forced 0)
+    for idx in range(len(prefetch_pairs)):
+        upper[p0 + idx] = 1.0
+        integrality[p0 + idx] = 1
+        objective[p0 + idx] = 1e-3  # tie-break: avoid gratuitous prefetches
 
     # objective: sum of boundary completions (w=1)
     boundary_nodes = []
@@ -616,6 +654,33 @@ def solve_v0a(
             add({D(pos): 1.0, X(i, g): -1.0}, -math.inf, 0.0)
         add({D(pos): 1.0 for pos in range(len(d_pairs))}, 1.0, math.inf)
 
+    # v0c prefetch constraints: at most one prefetch; the uncovered load shifts
+    # the availability of every non-immediate placement on that GPU; a
+    # prefetched model removes the cold-load at its point of use.
+    if fam("prefetch") and prefetch_pairs:
+        add({p0 + idx: 1.0 for idx in range(len(prefetch_pairs))}, -math.inf, 1.0)
+        for idx, (m, g) in enumerate(prefetch_pairs):
+            shift = prefetch_shift[(m, g)]
+            if shift > 0.0:
+                for i in gpu_nodes:
+                    # a_i >= avail(g) + shift*p when placed on g and NOT the
+                    # immediate dispatch; loose when x_ig=0 or D_ig=1:
+                    #   a_i + shift*D_ig - shift*p >= avail(g) - U*(1 - x_ig)
+                    row: dict[int, float] = {A(i): 1.0, X(i, g): -big_u, p0 + idx: -shift}
+                    lo = obs.gpu_available(g) - t0 - big_u
+                    d_pos = next((pos for pos, (ii, gg) in enumerate(d_pairs)
+                                  if ii == i and gg == g), None)
+                    if d_pos is not None:
+                        row[D(d_pos)] = shift  # immediate dispatch not delayed
+                    add(row, lo, math.inf)
+        for i in gpu_nodes:
+            key = (str(nodes[i].model_id), None)
+            for g in range(gpu_count):
+                pidx = prefetch_index.get((str(nodes[i].model_id), g))
+                if pidx is None:
+                    continue
+                add({Z(i, g): 1.0, p0 + pidx: 1.0}, -math.inf, 1.0)
+
     # C2: same-GPU precedence (conditional) + load-inclusive occupancy
     for pair_idx, (i, k) in enumerate(pairs):
         if not (fam("prec") or fam("h")):
@@ -655,16 +720,22 @@ def solve_v0a(
                     row_h[Y(pidx, g, other > i)] = -1.0
                 add(row_h, -math.inf, 0.0)
 
-    # C3: GPU-conditional cold load z_ig = AND(x_ig, 1-rho, 1-h_ig)
+    # C3: GPU-conditional cold load z_ig = AND(x_ig, 1-rho, 1-h_ig, 1-prefetch)
     for i in gpu_nodes:
         if not fam("z"):
             break
         for g in range(gpu_count):
             rho = resident_flag.get((g, nodes[i].model_id), 0.0)
+            pidx = prefetch_index.get((str(nodes[i].model_id), g))
             add({Z(i, g): 1.0, X(i, g): -1.0}, -math.inf, 0.0)
             add({Z(i, g): 1.0}, -math.inf, 1.0 - rho)
             add({Z(i, g): 1.0, H(i, g): 1.0}, -math.inf, 1.0)
-            add({Z(i, g): 1.0, X(i, g): -1.0, H(i, g): 1.0}, -rho, math.inf)
+            row_lb: dict[int, float] = {Z(i, g): 1.0, X(i, g): -1.0, H(i, g): 1.0}
+            if pidx is not None:
+                # v0c: a prefetched model removes the load -> z may drop to 0
+                # (z >= x - rho - h - p)
+                row_lb[p0 + pidx] = 1.0
+            add(row_lb, -rho, math.inf)
 
     # C4: event-level memory, conditional on assignment (v3)
     cap_max = max(gpu.capacity_mb for gpu in obs.gpus)
@@ -732,7 +803,7 @@ def solve_v0a(
                 "time_origin": t0,
                 "index": {
                     "x0": x0, "a0": a0, "c0": c0, "y0": y0, "h0": h0, "z0": z0, "q0": q0,
-                    "d0": d0,
+                    "d0": d0, "p0": p0,
                 },
             }
         )
@@ -776,6 +847,11 @@ def solve_v0a(
             best = (start, n.f0_key, n.key, g)
     if best is None:
         return MilpV0Result(None, f"{status}:NO_READY_ACTION", None, None, None, solve_ms, True, len(nodes), None, "no_ready_action")
+    prefetch_choice = None
+    for idx, (m, g) in enumerate(prefetch_pairs):
+        if float(values[p0 + idx]) >= 0.5:
+            prefetch_choice = (str(m), int(g))
+            break
     # convert the relative-origin plan values back to absolute time
     shift = float(len(boundary_nodes)) * t0
     boundary = (max(float(values[C(i)]) for i in boundary_nodes) + t0) if boundary_nodes else None
@@ -796,4 +872,5 @@ def solve_v0a(
         planned_nodes=len(nodes),
         boundary_completion_ms=boundary,
         reason=("reference_failed_milp_ok" if reference_failed else ""),
+        first_prefetch=prefetch_choice,
     )

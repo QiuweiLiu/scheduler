@@ -102,8 +102,13 @@ def make_tiny_instance(rng: random.Random) -> TinyInstance:
     return TinyInstance(obs=obs, boundary_of={})
 
 
-def exhaustive_optimum(obs: MILPObservation) -> float | None:
-    """Independent pure-Python enumeration (no MILP code reused)."""
+def exhaustive_optimum(obs: MILPObservation, record: dict | None = None) -> float | None:
+    """Independent pure-Python enumeration (no MILP code reused).
+
+    v0c: the prefetch dimension is enumerated with the same semantics as
+    solve_v0a (overlap-hidden load; non-immediate placements on that GPU wait
+    for the uncovered remainder; a prefetched model needs no cold load).
+    """
 
     nodes = []
     for item in obs.ready:
@@ -139,6 +144,28 @@ def exhaustive_optimum(obs: MILPObservation) -> float | None:
     for item in obs.ready:
         chain = [n for n in nodes if n["anchor"] == item.node_id]
         boundaries.append((chain[-1]["key"] if chain else item.node_id))
+
+    # v0c prefetch candidates: same filter as solve_v0a
+    model_load: dict[str, float] = {}
+    for item in obs.ready:
+        for step in obs.chains.get(item.node_id, ()):
+            if step.model_id:
+                model_load[str(step.model_id)] = max(
+                    model_load.get(str(step.model_id), 0.0), float(step.load_ms))
+    prefetch_options: list = [None]
+    for m in sorted(model_load):
+        if model_load[m] <= 0.0:
+            continue
+        mb = obs.resident_mb_by_model.get(m)
+        if mb is None:
+            continue
+        for g in range(G):
+            if m in obs.gpus[g].resident:
+                continue
+            if sum(obs.gpus[g].resident.values()) + float(mb) > caps[g] + 1e-9:
+                continue
+            prefetch_options.append((m, g))
+
     best = None
     # enumerate assignments (gpu nodes only; CPU nodes are time-only)
     for assign in itertools.product(range(G), repeat=len(gpu_nodes)):
@@ -157,71 +184,86 @@ def exhaustive_optimum(obs: MILPObservation) -> float | None:
         if not ok:
             continue
         for combo in itertools.product(*seq_options):
-            # simulate
-            gpu_time = list(avail0)
-            residents = [dict(r) for r in resident0]
-            finish: dict[str, float] = {}
-            valid = True
-            # order: process each GPU's sequence; cross-GPU chain releases via finish
-            progress = True
-            pending = {g: list(combo[g]) for g in range(G)}
-            guard = 0
-            while progress and valid and guard < 200:
-                guard += 1
-                progress = False
-                # CPU chain nodes: complete as soon as their predecessor is done
-                # (they never consume a GPU, but GPU steps may wait on them).
+            for pf in prefetch_options:
+                gpu_time = list(avail0)
+                residents = [dict(r) for r in resident0]
+                pf_done = None
+                if pf is not None:
+                    m_pf, g_pf = pf
+                    remaining = max(0.0, avail0[g_pf] - obs.now_ms)
+                    shift = max(0.0, model_load[m_pf] - remaining)
+                    pf_done = max(obs.now_ms + model_load[m_pf], avail0[g_pf] + shift)
+                    residents[g_pf] = {**residents[g_pf], m_pf: obs.resident_mb_by_model.get(m_pf, 0.0)}
+                finish: dict[str, float] = {}
+                valid = True
+                # order: process each GPU's sequence; cross-GPU chain releases via finish
+                progress = True
+                pending = {g: list(combo[g]) for g in range(G)}
+                guard = 0
+                while progress and valid and guard < 200:
+                    guard += 1
+                    progress = False
+                    # CPU chain nodes: complete as soon as their predecessor is done
+                    for node in nodes:
+                        if node["lane"] == "gpu" or node["key"] in finish:
+                            continue
+                        pred = node.get("pred")
+                        if pred is None or pred in finish:
+                            release = obs.now_ms if pred is None else max(obs.now_ms, finish[pred])
+                            finish[node["key"]] = release + node["compute"]
+                            progress = True
+                    for g in range(G):
+                        if not pending[g]:
+                            continue
+                        node_i = pending[g][0]
+                        node = nodes[node_i]
+                        release = gpu_time[g]
+                        if node.get("pred") is not None:
+                            if node["pred"] not in finish:
+                                continue  # immediate predecessor not done yet
+                            release = max(release, finish[node["pred"]])
+                        # place
+                        u = obs.resident_mb_by_model.get(node["model"], 0.0)
+                        ws = max(0.0, node["ws"] - u)
+                        resident_here = residents[g]
+                        start = max(release, gpu_time[g])
+                        if pf is not None and g == pf[1] and start > avail0[g] + 1e-9:
+                            # non-immediate placement waits for the prefetch
+                            start = max(start, pf_done)
+                        if node["model"] not in resident_here:
+                            if sum(resident_here.values()) + u + ws > caps[g]:
+                                valid = False
+                                break
+                            start += node["load"]
+                            resident_here = {**resident_here, node["model"]: u}
+                            residents[g] = resident_here
+                        else:
+                            if sum(resident_here.values()) + ws > caps[g]:
+                                valid = False
+                                break
+                        finish[node["key"]] = start + node["compute"]
+                        gpu_time[g] = finish[node["key"]]
+                        pending[g].pop(0)
+                        progress = True
+                    if not any(pending[g] for g in range(G)):
+                        break
+                if not valid or any(pending[g] for g in range(G)):
+                    continue
+                # any remaining CPU node with an unfinished predecessor -> invalid
                 for node in nodes:
                     if node["lane"] == "gpu" or node["key"] in finish:
                         continue
-                    pred = node.get("pred")
-                    if pred is None or pred in finish:
-                        release = obs.now_ms if pred is None else max(obs.now_ms, finish[pred])
-                        finish[node["key"]] = release + node["compute"]
-                        progress = True
-                for g in range(G):
-                    if not pending[g]:
-                        continue
-                    node_i = pending[g][0]
-                    node = nodes[node_i]
-                    release = gpu_time[g]
-                    if node.get("pred") is not None:
-                        if node["pred"] not in finish:
-                            continue  # immediate predecessor not done yet
-                        release = max(release, finish[node["pred"]])
-                    # place
-                    u = obs.resident_mb_by_model.get(node["model"], 0.0)
-                    ws = max(0.0, node["ws"] - u)
-                    resident_here = residents[g]
-                    start = max(release, gpu_time[g])
-                    if node["model"] not in resident_here:
-                        if sum(resident_here.values()) + u + ws > caps[g]:
-                            valid = False
-                            break
-                        start += node["load"]
-                        resident_here = {**resident_here, node["model"]: u}
-                        residents[g] = resident_here
-                    else:
-                        if sum(resident_here.values()) + ws > caps[g]:
-                            valid = False
-                            break
-                    finish[node["key"]] = start + node["compute"]
-                    gpu_time[g] = finish[node["key"]]
-                    pending[g].pop(0)
-                    progress = True
-                if not any(pending[g] for g in range(G)):
+                    valid = False
                     break
-            if not valid or any(pending[g] for g in range(G)):
-                continue
-            # any remaining CPU node with an unfinished predecessor -> invalid
-            for node in nodes:
-                if node["lane"] == "gpu" or node["key"] in finish:
-                    continue
-                valid = False
-                break
-            obj = sum(finish[b] for b in boundaries if b in finish)
-            if best is None or obj < best:
-                best = obj
+                obj = sum(finish[b] for b in boundaries if b in finish)
+                if pf is not None:
+                    obj += 1e-3  # same tie-break penalty as solve_v0a
+                if best is None or obj < best:
+                    best = obj
+                    if record is not None:
+                        record.clear()
+                        record.update({"assign": assign, "combo": combo, "pf": pf,
+                                       "finish": dict(finish), "gpu_nodes": list(gpu_nodes)})
     return best
 
 
@@ -641,6 +683,56 @@ def run_t11_action_mask() -> dict:
     }
     passed = all(v["pass"] for v in results.values())
     return {"test": "action_mask", "results": results, "pass": passed}
+
+
+def run_t13_prefetch() -> dict:
+    """v0c prefetch dimension: overlap-hidden load removes the future cold load;
+    capacity-infeasible prefetches are never chosen (DES skips, never evicts)."""
+
+    def mk(g0_resident, g1_resident, m2_mb):
+        resident_mb = {"M1": 8000.0, "M2": float(m2_mb)}
+        ready = (
+            ObsReadyNode(job_index=0, node_id="J0", priority=0.0, ready_since_ms=0.0,
+                         model_id="M1", lane="gpu", runtime_p50_ms=100.0, load_p50_ms=0.0,
+                         memory_p95_mb=6000.0),
+        )
+        chains = {"J0": (ObsChainStep(model_id="M2", lane="gpu", runtime_ms=1100.0,
+                                      load_ms=1000.0, memory_mb=float(m2_mb)),)}
+        gpus = (
+            ObsGpu(index=0, capacity_mb=32760.0, available_at_ms=0.0, resident=dict(g0_resident)),
+            ObsGpu(index=1, capacity_mb=32760.0, available_at_ms=2000.0, resident=dict(g1_resident)),
+        )
+        return MILPObservation(now_ms=0.0, ready=ready, chains=chains, gpus=gpus,
+                               resident_mb_by_model=resident_mb, decision_time_ms=0.0)
+
+    results = {}
+    # (a) the only viable home for the chain step is the busy GPU; the prefetch
+    # load hides behind its remaining work (1000 <= 2000) -> boundary improves
+    obs_a = mk({"M1": 28000.0}, {}, 6000.0)
+    res_a = solve_v0a(obs_a, time_limit_s=0.5)
+    results["prefetch_hidden_behind_active"] = {
+        "fallback": res_a.fallback, "first": res_a.first_action,
+        "first_prefetch": res_a.first_prefetch,
+        "boundary": round(res_a.boundary_completion_ms, 1) if res_a.boundary_completion_ms else None,
+        "pass": (not res_a.fallback) and res_a.first_action == ("J0", 0)
+                and res_a.first_prefetch == ("M2", 1)
+                and (res_a.boundary_completion_ms or 1e9) <= 2200.0,
+    }
+    # (b) the prefetch cannot fit without eviction (DES prefetch never evicts),
+    # while the chain step itself can be admitted via eviction -> no prefetch
+    from dataclasses import replace as _replace
+
+    obs_b = _replace(mk({"M1": 28000.0}, {"M3": 30000.0}, 6000.0),
+                     resident_mb_by_model={"M1": 8000.0, "M2": 6000.0, "M3": 30000.0},
+                     evictable_by_gpu={1: ("M3",)})
+    res_b = solve_v0a(obs_b, time_limit_s=0.5)
+    results["prefetch_capacity_forbidden"] = {
+        "fallback": res_b.fallback, "first": res_b.first_action,
+        "first_prefetch": res_b.first_prefetch,
+        "pass": (not res_b.fallback) and res_b.first_prefetch is None,
+    }
+    passed = all(v["pass"] for v in results.values())
+    return {"test": "prefetch_dimension", "results": results, "pass": passed}
 
 
 # --------------------------------------------------------------------------- #
@@ -1116,6 +1208,9 @@ def main() -> int:
     t11 = run_t11_action_mask()
     evidence["action_mask"] = t11
     print(f"T11 action mask: {t11['results']} pass={t11['pass']}")
+    t13 = run_t13_prefetch()
+    evidence["prefetch"] = t13
+    print(f"T13 prefetch: {t13['results']} pass={t13['pass']}")
     if args.real_states:
         t1x = run_t1_execution(args.real_states, args.real_cap)
         evidence["T1_execution"] = t1x
@@ -1165,7 +1260,7 @@ def main() -> int:
     mandatory = ["T7"]
     if args.real_states:
         mandatory += ["T1_execution", "T6a", "T6c", "T10a", "T10a_cold", "T10b", "T10b_synth"]
-    mandatory += ["T6b", "T8", "dispatch_now", "action_mask"]
+    mandatory += ["T6b", "T8", "dispatch_now", "action_mask", "prefetch"]
     failed = [name for name in mandatory if not (evidence.get(name) or {}).get("pass")]
     print(f"GATE: {'PASS' if not failed else 'FAIL'} | failed: {failed}")
     return 0 if not failed else 1

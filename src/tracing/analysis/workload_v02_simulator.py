@@ -5586,7 +5586,10 @@ def choose_action(
         else:
             activation["milp_fallback"] = int(activation.get("milp_fallback", 0)) + 1
         if chosen is not None:
-            context["joint_prefetch"] = None
+            # v0c: the MILP's optional prefetch travels in the joint stash and
+            # is enacted by _joint_prefetch_plan at the same decision moment.
+            _prefetch = getattr(result, "first_prefetch", None) if result is not None else None
+            context["joint_prefetch"] = tuple(_prefetch) if _prefetch else None
             context["joint_evict_mode"] = "least_needed"
             return chosen[0], chosen[4].index, chosen[5], len(pool), sum(bool(candidate[6]) for candidate in pool)
         return choose_action(
@@ -8321,6 +8324,8 @@ def simulate_episode(
             plan = _prefetch_plan_probe()
         if not plan and policy in JOINT_POLICIES:
             plan = _joint_prefetch_plan()
+        if not plan and policy == "milp_v0a":
+            plan = _joint_prefetch_plan()
         if not plan and policy in DES_POLICIES:
             _des_ctx = policy_context if policy_context is not None else {}
             if _des_ctx.get("des_first_pending"):
@@ -9856,6 +9861,7 @@ def simulate_episode(
             or policy == "pdrs_resident_probe"
             or policy in JOINT_POLICIES
             or policy in DES_POLICIES
+            or policy == "milp_v0a"
             or policy in RESIDENCY_PREFETCH_POLICIES
         ):
             initialize_prefetch()

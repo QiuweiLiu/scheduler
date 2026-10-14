@@ -44,12 +44,12 @@ TRAIN_EPISODES = (ROOT / "results/processed/r7_workload_20260817"
                   / "episodes/workload_train_r7.jsonl")
 
 
-def load_split(split: str, episode_limit: int):
+def load_split(split: str, episode_limit: int, config_path=None):
     from tracing.analysis.profile_contract import apply_real_workload_profile_contract
     from tracing.analysis.workload_v02_simulator import (
         load_resource_v2_overlay, load_templates, read_jsonl, train_resource_stats)
 
-    serial = json.loads(T.SERIAL.read_text(encoding="utf-8"))
+    serial = json.loads((config_path or T.SERIAL).read_text(encoding="utf-8"))
     templates = load_templates(
         ROOT / "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
         topology_view="causal_v3")
@@ -96,10 +96,12 @@ def main() -> int:
     parser.add_argument("--episodes", type=int, default=30)
     parser.add_argument("--budget", type=float, default=0.5)
     parser.add_argument("--split", choices=("train", "confirm"), default="train")
+    parser.add_argument("--config", type=Path, default=None,
+                        help="extension config path (default: serial_v0_extension.json)")
     parser.add_argument("--out", type=Path, default=EVIDENCE)
     args = parser.parse_args()
 
-    serial, templates, episodes, stats, artifacts = load_split(args.split, args.episodes)
+    serial, templates, episodes, stats, artifacts = load_split(args.split, args.episodes, args.config)
     per_arm: dict = {name: {"mean": [], "p95": [], "makespan": [], "cold": [], "evict": [],
                             "wall": [], "dur_pool": []} for name in ARMS}
     milp_totals: dict = {}
