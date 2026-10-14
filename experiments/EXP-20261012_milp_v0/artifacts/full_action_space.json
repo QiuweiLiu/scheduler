@@ -1,0 +1,27 @@
+{
+ "schema": "full-action-space-v1",
+ "environment": "serial_prefetch_v1",
+ "states_checked": 51,
+ "dispatch_pairs": {
+  "mean": 1.71,
+  "dist": {
+   "1": 29,
+   "2": 13,
+   "3": 5,
+   "4": 3,
+   "5": 1
+  }
+ },
+ "eviction_subsets_per_pair_mean": 0.48,
+ "prefetch_options": {
+  "mean": 0.1,
+  "dist": {
+   "0": 48,
+   "1": 1,
+   "2": 2
+  }
+ },
+ "combined_actions_mean": 2.6,
+ "combined_actions_p90": 5.0,
+ "combined_actions_max": 9.0
+}
