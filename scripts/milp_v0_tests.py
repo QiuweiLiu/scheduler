@@ -806,7 +806,7 @@ def run_t10a_single_step(episode_limit: int, cap: int) -> dict:
         load_seen = False
         start = None
         finish = None
-        evictions_before_start = 0
+        evicted_before_start: list[str] = []
         for event in events:
             etype = event.get("event_type")
             if etype == "model_load_start" and str(event.get("node_id")) == node_key:
@@ -816,7 +816,7 @@ def run_t10a_single_step(episode_limit: int, cap: int) -> dict:
             if etype == "node_finish" and str(event.get("node_id")) == node_key and finish is None:
                 finish = float(event.get("time_ms", 0.0))
             if etype == "model_evict" and start is None:
-                evictions_before_start += 1
+                evicted_before_start.extend(str(m) for m in (event.get("models") or []))
         checked += 1
         load_expected = z_total >= 0.5
         # the DES node interval includes the load: delta = compute + load*z
@@ -824,15 +824,25 @@ def run_t10a_single_step(episode_limit: int, cap: int) -> dict:
         load_ok = load_seen == load_expected
         compute_ok = (start is not None and finish is not None
                       and abs((finish - start) - expected_delta) <= max(1e-6, 0.02 * expected_delta))
-        no_evict_ok = evictions_before_start == 0
-        passed = load_ok and compute_ok and no_evict_ok
+        # v0b (2026-10-14): eviction before start is ALLOWED (the DES admission
+        # evicts the min-V subset); it must only evict models from the evictable
+        # set (residents minus active-task models) and never the node's own model.
+        gpu_row = next((row for row in (snap.get("gpus") or [])
+                        if int(row.get("index", -1)) == int(gpu_index)), {})
+        residents = {str(m) for m in (gpu_row.get("resident") or {})}
+        active_models = {str(t.get("model_id")) for t in (gpu_row.get("active_tasks") or [])
+                         if t.get("model_id")}
+        evictable = residents - active_models - {str(node0.model_id)}
+        evict_ok = all(m in evictable for m in evicted_before_start)
+        passed = load_ok and compute_ok and evict_ok
         if passed:
             ok += 1
         details.append({"episode": ep["episode_id"], "now_ms": snap["now_ms"], "node": node_key,
                         "z_total": z_total, "load_seen": load_seen, "load_ok": load_ok,
                         "interval_delta": round((finish - start), 3) if (start and finish) else None,
                         "expected_delta": round(expected_delta, 3), "compute_ok": compute_ok,
-                        "no_evict_before_start": no_evict_ok, "pass": passed})
+                        "evicted_before_start": sorted(set(evicted_before_start)),
+                        "evict_legal": evict_ok, "pass": passed})
     return {"test": "T10a_single_step", "checked": checked, "ok": ok, "pass": checked > 0 and checked == ok,
             "details": details}
 

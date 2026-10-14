@@ -71,9 +71,14 @@ class MILPObservation:
     # means "no legal immediate action" (solve must fall back).  Only the first
     # action is masked; future H5 planning is not.
     legal_first: frozenset[tuple[str, int]] | None = None
+    # 2026-10-14 (v0b): per-GPU evictable model set (residents minus models of
+    # active tasks).  Empty -> v0a no-eviction accounting; non-empty -> the plan
+    # may assume the DES admission frees the evictable set (min-V execution).
+    evictable_by_gpu: Mapping[int, tuple[str, ...]] = field(default_factory=dict)
 
     # Allowed sources (audited by T6b): ready heap, estimate(), artifact rows,
-    # gpu.resident, active-task predicted_work_ms/work_start_ms/slowdown/kind.
+    # gpu.resident, active-task predicted_work_ms/work_start_ms/slowdown/kind/
+    # model_id.
 
     def gpu_available(self, index: int) -> float:
         return float(self.gpus[index].available_at_ms)
@@ -203,9 +208,20 @@ def build_milpo_observation(
         return memory_by.get((str(model_id), str(lane)))
 
     gpus: list[ObsGpu] = []
+    evictable_by_gpu: dict[int, tuple[str, ...]] = {}
     for gpu_row in snapshot.get("gpus") or []:
-        # Allowed: predicted_work_ms / work_start_ms / slowdown / kind only.
+        # Allowed: predicted_work_ms / work_start_ms / slowdown / kind / model_id.
         remaining = 0.0
+        active_models = {
+            str(task.get("model_id"))
+            for task in (gpu_row.get("active_tasks") or [])
+            if task.get("model_id")
+        }
+        resident_models = {str(m) for m in (gpu_row.get("resident") or {})}
+        if active_models or resident_models:
+            evictable_by_gpu[int(gpu_row["index"])] = tuple(
+                sorted(m for m in resident_models if m not in active_models)
+            )
         for task in gpu_row.get("active_tasks") or []:
             predicted = task.get("predicted_work_ms")
             work_start = task.get("work_start_ms")
@@ -238,6 +254,7 @@ def build_milpo_observation(
         decision_time_ms=now,
         resource_missing=tuple(sorted(set(missing))),
         legal_first=legal_first,
+        evictable_by_gpu=evictable_by_gpu,
     )
 
 
@@ -660,6 +677,15 @@ def solve_v0a(
             const = sum(obs.gpus[g].resident.values())
             u_i = obs.resident_mb_by_model.get(n.model_id, 0.0)
             ws_i = max(0.0, n.workspace_mb - u_i)
+            # v0b: the DES admission may evict the evictable set (residents minus
+            # active-task models), never the admitted node's own model; the plan
+            # accounts for that headroom.  Execution evicts the min-V subset.
+            evictable_mb = sum(
+                float(obs.gpus[g].resident.get(m, 0.0))
+                for m in obs.evictable_by_gpu.get(g, ())
+                if m != n.model_id
+            )
+            const = max(0.0, const - evictable_mb)
             lhs: dict[int, float] = {Z(i, g): u_i}
             for other in gpu_nodes:
                 if other == i:

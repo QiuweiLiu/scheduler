@@ -5535,6 +5535,7 @@ def choose_action(
                     "work_start_ms": getattr(task, "work_start_ms", None),
                     "slowdown": getattr(task, "slowdown", 1.0),
                     "kind": getattr(task, "kind", "node"),
+                    "model_id": str(getattr(task, "model_id", "") or ""),
                 })
             gpus_snap.append({
                 "index": int(gpu.index), "capacity_mb": float(gpu.capacity_mb),
@@ -5656,6 +5657,7 @@ def choose_action(
                         "index": int(gpu.index),
                         "resident": {str(m): float(mb) for m, mb in gpu.resident.items()},
                         "busy_until": float(gpu.busy_until),
+                        "active_models": sorted(str(m) for m in gpu.active_model_ids()),
                     }
                     for gpu in ((policy_context or {}).get("_gpus") or free_gpus)
                 ],

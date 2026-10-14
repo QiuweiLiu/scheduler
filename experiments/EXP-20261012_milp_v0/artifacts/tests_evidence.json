@@ -1,6 +1,6 @@
 {
  "schema": "milp-v0a-tests-v1",
- "timestamp": "2026-10-13T16:48:51+0800",
+ "timestamp": "2026-10-14T10:02:13+0800",
  "T7": {
   "test": "T7_exhaustive_optimality",
   "instances": 36,
@@ -351,21 +351,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 6.05,
+       "solve_ms": 37.24,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.54,
+       "solve_ms": 9.25,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.03,
+       "solve_ms": 8.49,
        "fallback": true,
        "first": null
       }
@@ -387,7 +387,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1387193.6620728846,
-       "solve_ms": 8.39,
+       "solve_ms": 19.95,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -397,7 +397,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1387193.6620728846,
-       "solve_ms": 8.77,
+       "solve_ms": 14.11,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -407,7 +407,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1387193.6620728846,
-       "solve_ms": 8.23,
+       "solve_ms": 14.08,
        "fallback": false,
        "first": [
         "Fqptx5fNXR4_star_1786905929130:api_call:6",
@@ -447,21 +447,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.98,
+       "solve_ms": 1.51,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.85,
+       "solve_ms": 1.33,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.81,
+       "solve_ms": 1.42,
        "fallback": true,
        "first": null
       }
@@ -483,21 +483,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.58,
+       "solve_ms": 2.47,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.55,
+       "solve_ms": 2.48,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.56,
+       "solve_ms": 2.46,
        "fallback": true,
        "first": null
       }
@@ -519,7 +519,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1632214.0719903435,
-       "solve_ms": 15.93,
+       "solve_ms": 25.14,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -529,7 +529,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1632214.0719903435,
-       "solve_ms": 15.5,
+       "solve_ms": 23.66,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -539,7 +539,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1632214.0719903435,
-       "solve_ms": 15.38,
+       "solve_ms": 21.53,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -579,21 +579,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.28,
+       "solve_ms": 8.16,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.41,
+       "solve_ms": 8.66,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.95,
+       "solve_ms": 8.14,
        "fallback": true,
        "first": null
       }
@@ -614,8 +614,8 @@
      "budgets": {
       "0.05": {
        "status": "OPTIMAL",
-       "objective": 1639957.5229903434,
-       "solve_ms": 15.12,
+       "objective": 1639957.5229913434,
+       "solve_ms": 22.08,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -624,8 +624,8 @@
       },
       "0.1": {
        "status": "OPTIMAL",
-       "objective": 1639957.5229903434,
-       "solve_ms": 15.32,
+       "objective": 1639957.5229913434,
+       "solve_ms": 21.61,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -634,8 +634,8 @@
       },
       "0.5": {
        "status": "OPTIMAL",
-       "objective": 1639957.5229903434,
-       "solve_ms": 15.26,
+       "objective": 1639957.5229913434,
+       "solve_ms": 22.33,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -674,8 +674,8 @@
      "budgets": {
       "0.05": {
        "status": "OPTIMAL",
-       "objective": 1643913.6439903437,
-       "solve_ms": 15.51,
+       "objective": 1643913.6439913437,
+       "solve_ms": 21.55,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -684,8 +684,8 @@
       },
       "0.1": {
        "status": "OPTIMAL",
-       "objective": 1643913.6439903437,
-       "solve_ms": 15.35,
+       "objective": 1643913.6439913437,
+       "solve_ms": 21.83,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -694,8 +694,8 @@
       },
       "0.5": {
        "status": "OPTIMAL",
-       "objective": 1643913.6439903437,
-       "solve_ms": 15.44,
+       "objective": 1643913.6439913437,
+       "solve_ms": 29.48,
        "fallback": false,
        "first": [
         "hjNX33W-99I_langgraph_react_1786909989407:api_call:2",
@@ -735,7 +735,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1401106.639026037,
-       "solve_ms": 9.49,
+       "solve_ms": 17.78,
        "fallback": false,
        "first": [
         "GLW9omJfAdk_star_1786930492391:api_call:2",
@@ -745,7 +745,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1401106.639026037,
-       "solve_ms": 10.1,
+       "solve_ms": 16.76,
        "fallback": false,
        "first": [
         "GLW9omJfAdk_star_1786930492391:api_call:2",
@@ -755,7 +755,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1401106.639026037,
-       "solve_ms": 9.58,
+       "solve_ms": 21.93,
        "fallback": false,
        "first": [
         "GLW9omJfAdk_star_1786930492391:api_call:2",
@@ -795,21 +795,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 14.0,
+       "solve_ms": 46.81,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 13.65,
+       "solve_ms": 31.81,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 13.71,
+       "solve_ms": 32.04,
        "fallback": true,
        "first": null
       }
@@ -831,21 +831,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 16.97,
+       "solve_ms": 26.75,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 23.87,
+       "solve_ms": 27.48,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 22.9,
+       "solve_ms": 25.95,
        "fallback": true,
        "first": null
       }
@@ -867,21 +867,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.6,
+       "solve_ms": 8.6,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.34,
+       "solve_ms": 10.32,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.33,
+       "solve_ms": 8.91,
        "fallback": true,
        "first": null
       }
@@ -903,21 +903,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.23,
+       "solve_ms": 8.45,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.37,
+       "solve_ms": 8.69,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.17,
+       "solve_ms": 8.45,
        "fallback": true,
        "first": null
       }
@@ -939,21 +939,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.96,
+       "solve_ms": 8.42,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.98,
+       "solve_ms": 8.04,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.56,
+       "solve_ms": 8.5,
        "fallback": true,
        "first": null
       }
@@ -975,21 +975,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.16,
+       "solve_ms": 7.72,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.87,
+       "solve_ms": 8.18,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.81,
+       "solve_ms": 7.78,
        "fallback": true,
        "first": null
       }
@@ -1011,21 +1011,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.11,
+       "solve_ms": 8.75,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.31,
+       "solve_ms": 8.34,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.22,
+       "solve_ms": 9.01,
        "fallback": true,
        "first": null
       }
@@ -1047,21 +1047,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.95,
+       "solve_ms": 2.91,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.78,
+       "solve_ms": 2.79,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.74,
+       "solve_ms": 2.79,
        "fallback": true,
        "first": null
       }
@@ -1083,21 +1083,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.72,
+       "solve_ms": 2.8,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.73,
+       "solve_ms": 2.76,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.71,
+       "solve_ms": 2.78,
        "fallback": true,
        "first": null
       }
@@ -1119,21 +1119,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.36,
+       "solve_ms": 8.17,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.97,
+       "solve_ms": 8.35,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.16,
+       "solve_ms": 8.17,
        "fallback": true,
        "first": null
       }
@@ -1155,7 +1155,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 853747.3260728844,
-       "solve_ms": 8.59,
+       "solve_ms": 13.86,
        "fallback": false,
        "first": [
         "RBTiTcHm_ac_star_1786930740323:api_call:4",
@@ -1165,7 +1165,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 853747.3260728844,
-       "solve_ms": 18.24,
+       "solve_ms": 13.89,
        "fallback": false,
        "first": [
         "RBTiTcHm_ac_star_1786930740323:api_call:4",
@@ -1175,7 +1175,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 853747.3260728844,
-       "solve_ms": 9.48,
+       "solve_ms": 13.89,
        "fallback": false,
        "first": [
         "RBTiTcHm_ac_star_1786930740323:api_call:4",
@@ -1215,21 +1215,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.97,
+       "solve_ms": 1.44,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.9,
+       "solve_ms": 1.26,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.83,
+       "solve_ms": 1.22,
        "fallback": true,
        "first": null
       }
@@ -1251,21 +1251,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.88,
+       "solve_ms": 3.49,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 2.26,
+       "solve_ms": 2.87,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.86,
+       "solve_ms": 2.78,
        "fallback": true,
        "first": null
       }
@@ -1287,21 +1287,21 @@
       "0.05": {
        "status": "OTHER",
        "objective": null,
-       "solve_ms": 15.89,
+       "solve_ms": 22.94,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "OTHER",
        "objective": null,
-       "solve_ms": 16.3,
+       "solve_ms": 22.33,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "OTHER",
        "objective": null,
-       "solve_ms": 16.14,
+       "solve_ms": 23.03,
        "fallback": true,
        "first": null
       }
@@ -1323,7 +1323,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1705276.4509903435,
-       "solve_ms": 18.38,
+       "solve_ms": 30.03,
        "fallback": false,
        "first": [
         "Q8AZ16uBhr8_langgraph_react_1786926907776:api_call:2",
@@ -1333,7 +1333,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1705276.4509903435,
-       "solve_ms": 18.23,
+       "solve_ms": 30.16,
        "fallback": false,
        "first": [
         "Q8AZ16uBhr8_langgraph_react_1786926907776:api_call:2",
@@ -1343,7 +1343,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1705276.4509903435,
-       "solve_ms": 18.13,
+       "solve_ms": 31.14,
        "fallback": false,
        "first": [
         "Q8AZ16uBhr8_langgraph_react_1786926907776:api_call:2",
@@ -1383,21 +1383,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.84,
+       "solve_ms": 8.78,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.53,
+       "solve_ms": 7.55,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 4.41,
+       "solve_ms": 11.89,
        "fallback": true,
        "first": null
       }
@@ -1419,21 +1419,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.73,
+       "solve_ms": 6.08,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.69,
+       "solve_ms": 6.85,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.71,
+       "solve_ms": 6.46,
        "fallback": true,
        "first": null
       }
@@ -1455,7 +1455,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 136019.98339322468,
-       "solve_ms": 9.47,
+       "solve_ms": 15.83,
        "fallback": false,
        "first": [
         "FjS2LzrHEO8_star_1786914222337:api_call:2",
@@ -1465,7 +1465,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 136019.98339322468,
-       "solve_ms": 9.54,
+       "solve_ms": 16.17,
        "fallback": false,
        "first": [
         "FjS2LzrHEO8_star_1786914222337:api_call:2",
@@ -1475,7 +1475,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 136019.98339322468,
-       "solve_ms": 9.59,
+       "solve_ms": 17.66,
        "fallback": false,
        "first": [
         "FjS2LzrHEO8_star_1786914222337:api_call:2",
@@ -1515,21 +1515,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.26,
+       "solve_ms": 2.32,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.5,
+       "solve_ms": 2.74,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.29,
+       "solve_ms": 2.27,
        "fallback": true,
        "first": null
       }
@@ -1551,21 +1551,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.12,
+       "solve_ms": 1.74,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.11,
+       "solve_ms": 1.72,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.1,
+       "solve_ms": 1.73,
        "fallback": true,
        "first": null
       }
@@ -1587,21 +1587,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.09,
+       "solve_ms": 2.04,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.1,
+       "solve_ms": 2.35,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.1,
+       "solve_ms": 1.8,
        "fallback": true,
        "first": null
       }
@@ -1623,21 +1623,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.35,
+       "solve_ms": 8.85,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.08,
+       "solve_ms": 8.57,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 5.05,
+       "solve_ms": 8.94,
        "fallback": true,
        "first": null
       }
@@ -1659,7 +1659,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1089728.3331996344,
-       "solve_ms": 10.55,
+       "solve_ms": 17.96,
        "fallback": false,
        "first": [
         "I4yye8mUzWg_star_1786926981872:api_call:2",
@@ -1669,7 +1669,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1089728.3331996344,
-       "solve_ms": 10.39,
+       "solve_ms": 17.81,
        "fallback": false,
        "first": [
         "I4yye8mUzWg_star_1786926981872:api_call:2",
@@ -1679,7 +1679,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1089728.3331996344,
-       "solve_ms": 10.6,
+       "solve_ms": 17.75,
        "fallback": false,
        "first": [
         "I4yye8mUzWg_star_1786926981872:api_call:2",
@@ -1719,21 +1719,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.95,
+       "solve_ms": 7.03,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.8,
+       "solve_ms": 6.25,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.86,
+       "solve_ms": 6.87,
        "fallback": true,
        "first": null
       }
@@ -1755,7 +1755,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 1094493.2430728846,
-       "solve_ms": 9.6,
+       "solve_ms": 16.25,
        "fallback": false,
        "first": [
         "8IZvEF4Ui10_star_1786912521634:api_call:4",
@@ -1765,7 +1765,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 1094493.2430728846,
-       "solve_ms": 9.99,
+       "solve_ms": 16.32,
        "fallback": false,
        "first": [
         "8IZvEF4Ui10_star_1786912521634:api_call:4",
@@ -1775,7 +1775,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 1094493.2430728846,
-       "solve_ms": 9.64,
+       "solve_ms": 16.25,
        "fallback": false,
        "first": [
         "8IZvEF4Ui10_star_1786912521634:api_call:4",
@@ -1815,21 +1815,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.9,
+       "solve_ms": 6.81,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.74,
+       "solve_ms": 6.16,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 3.71,
+       "solve_ms": 6.56,
        "fallback": true,
        "first": null
       }
@@ -1849,32 +1849,56 @@
     "T5": {
      "budgets": {
       "0.05": {
-       "status": "INFEASIBLE",
-       "objective": null,
-       "solve_ms": 3.09,
-       "fallback": true,
-       "first": null
+       "status": "OPTIMAL",
+       "objective": 552094.3683101254,
+       "solve_ms": 17.64,
+       "fallback": false,
+       "first": [
+        "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+        0
+       ]
       },
       "0.1": {
-       "status": "INFEASIBLE",
-       "objective": null,
-       "solve_ms": 3.03,
-       "fallback": true,
-       "first": null
+       "status": "OPTIMAL",
+       "objective": 552094.3683101254,
+       "solve_ms": 17.92,
+       "fallback": false,
+       "first": [
+        "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+        0
+       ]
       },
       "0.5": {
-       "status": "INFEASIBLE",
-       "objective": null,
-       "solve_ms": 3.07,
-       "fallback": true,
-       "first": null
+       "status": "OPTIMAL",
+       "objective": 552094.3683101254,
+       "solve_ms": 17.55,
+       "fallback": false,
+       "first": [
+        "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+        0
+       ]
       }
      },
      "deterministic": true
     },
     "T1": {
-     "fallback": true,
-     "reason": "infeasible"
+     "first_action": [
+      "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+      0
+     ],
+     "is_real_ready_node": true
+    },
+    "T2": {
+     "chain_causality": true
+    },
+    "T4": {
+     "first_delta_ms": 8116.517,
+     "expected_ms": 8116.517,
+     "ok": true
+    },
+    "T3a": {
+     "no_eviction_model": true,
+     "reference_feasible": true
     }
    },
    {
@@ -1887,7 +1911,7 @@
       "0.05": {
        "status": "OPTIMAL",
        "objective": 552026.8642564865,
-       "solve_ms": 8.03,
+       "solve_ms": 13.09,
        "fallback": false,
        "first": [
         "D61jenC5oBA_star_1786907681241:api_call:10",
@@ -1897,7 +1921,7 @@
       "0.1": {
        "status": "OPTIMAL",
        "objective": 552026.8642564865,
-       "solve_ms": 8.4,
+       "solve_ms": 13.63,
        "fallback": false,
        "first": [
         "D61jenC5oBA_star_1786907681241:api_call:10",
@@ -1907,7 +1931,7 @@
       "0.5": {
        "status": "OPTIMAL",
        "objective": 552026.8642564865,
-       "solve_ms": 8.14,
+       "solve_ms": 13.73,
        "fallback": false,
        "first": [
         "D61jenC5oBA_star_1786907681241:api_call:10",
@@ -1947,21 +1971,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.86,
+       "solve_ms": 2.9,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.71,
+       "solve_ms": 2.68,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 1.7,
+       "solve_ms": 2.65,
        "fallback": true,
        "first": null
       }
@@ -1983,21 +2007,21 @@
       "0.05": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.81,
+       "solve_ms": 1.39,
        "fallback": true,
        "first": null
       },
       "0.1": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.8,
+       "solve_ms": 1.21,
        "fallback": true,
        "first": null
       },
       "0.5": {
        "status": "INFEASIBLE",
        "objective": null,
-       "solve_ms": 0.77,
+       "solve_ms": 1.18,
        "fallback": true,
        "first": null
       }
@@ -2093,8 +2117,8 @@
  },
  "T1_execution": {
   "test": "T1_execution",
-  "checked": 11,
-  "matched": 11,
+  "checked": 12,
+  "matched": 12,
   "pass": true,
   "details": [
    {
@@ -2227,6 +2251,17 @@
    },
    {
     "episode": "train_000011",
+    "now_ms": 535599.7580000001,
+    "forced": [
+     "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+     0
+    ],
+    "deferred_prediction_gap": true,
+    "pool_size": 1,
+    "ok": true
+   },
+   {
+    "episode": "train_000011",
     "now_ms": 535624.4138925782,
     "forced": [
      "D61jenC5oBA_star_1786907681241:api_call:10",
@@ -2259,7 +2294,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 36.25,
+    "solve_ms": 11.94,
     "status": "INFEASIBLE"
    },
    {
@@ -2274,7 +2309,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 13.32,
+    "solve_ms": 15.63,
     "status": "OPTIMAL"
    },
    {
@@ -2286,7 +2321,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 1.23,
+    "solve_ms": 1.66,
     "status": "INFEASIBLE"
    },
    {
@@ -2298,7 +2333,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 1.86,
+    "solve_ms": 2.85,
     "status": "INFEASIBLE"
    },
    {
@@ -2313,7 +2348,7 @@
      0
     ],
     "change": "ordering",
-    "solve_ms": 19.25,
+    "solve_ms": 23.45,
     "status": "OPTIMAL"
    },
    {
@@ -2325,7 +2360,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 5.27,
+    "solve_ms": 9.27,
     "status": "INFEASIBLE"
    },
    {
@@ -2340,7 +2375,7 @@
      0
     ],
     "change": "ordering",
-    "solve_ms": 15.71,
+    "solve_ms": 21.72,
     "status": "OPTIMAL"
    },
    {
@@ -2355,7 +2390,7 @@
      1
     ],
     "change": "ordering",
-    "solve_ms": 15.95,
+    "solve_ms": 22.61,
     "status": "OPTIMAL"
    },
    {
@@ -2370,7 +2405,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 9.62,
+    "solve_ms": 16.33,
     "status": "OPTIMAL"
    },
    {
@@ -2382,7 +2417,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 13.98,
+    "solve_ms": 23.06,
     "status": "INFEASIBLE"
    },
    {
@@ -2394,7 +2429,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 14.76,
+    "solve_ms": 24.15,
     "status": "INFEASIBLE"
    },
    {
@@ -2406,7 +2441,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 5.39,
+    "solve_ms": 9.08,
     "status": "INFEASIBLE"
    },
    {
@@ -2418,7 +2453,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 5.32,
+    "solve_ms": 9.18,
     "status": "INFEASIBLE"
    },
    {
@@ -2430,7 +2465,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 5.36,
+    "solve_ms": 9.15,
     "status": "INFEASIBLE"
    },
    {
@@ -2442,7 +2477,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 5.06,
+    "solve_ms": 8.63,
     "status": "INFEASIBLE"
    },
    {
@@ -2454,7 +2489,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 6.57,
+    "solve_ms": 9.6,
     "status": "INFEASIBLE"
    },
    {
@@ -2466,7 +2501,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 2.12,
+    "solve_ms": 3.18,
     "status": "INFEASIBLE"
    },
    {
@@ -2478,7 +2513,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 2.19,
+    "solve_ms": 3.52,
     "status": "INFEASIBLE"
    },
    {
@@ -2490,7 +2525,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 5.24,
+    "solve_ms": 8.79,
     "status": "INFEASIBLE"
    },
    {
@@ -2505,7 +2540,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 8.64,
+    "solve_ms": 14.33,
     "status": "OPTIMAL"
    },
    {
@@ -2517,7 +2552,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 1.18,
+    "solve_ms": 1.61,
     "status": "INFEASIBLE"
    },
    {
@@ -2529,7 +2564,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 2.01,
+    "solve_ms": 3.16,
     "status": "INFEASIBLE"
    },
    {
@@ -2541,7 +2576,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 16.17,
+    "solve_ms": 23.09,
     "status": "OTHER"
    },
    {
@@ -2556,7 +2591,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 18.82,
+    "solve_ms": 29.82,
     "status": "OPTIMAL"
    },
    {
@@ -2568,7 +2603,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 4.93,
+    "solve_ms": 8.28,
     "status": "INFEASIBLE"
    },
    {
@@ -2580,7 +2615,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 4.28,
+    "solve_ms": 6.73,
     "status": "INFEASIBLE"
    },
    {
@@ -2595,7 +2630,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 9.79,
+    "solve_ms": 16.23,
     "status": "OPTIMAL"
    },
    {
@@ -2607,7 +2642,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 1.48,
+    "solve_ms": 2.3,
     "status": "INFEASIBLE"
    },
    {
@@ -2619,7 +2654,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 1.4,
+    "solve_ms": 2.14,
     "status": "INFEASIBLE"
    },
    {
@@ -2631,7 +2666,7 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 1.4,
+    "solve_ms": 2.12,
     "status": "INFEASIBLE"
    },
    {
@@ -2643,7 +2678,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 6.16,
+    "solve_ms": 9.25,
     "status": "INFEASIBLE"
    },
    {
@@ -2658,7 +2693,7 @@
      1
     ],
     "change": "same",
-    "solve_ms": 11.22,
+    "solve_ms": 18.03,
     "status": "OPTIMAL"
    },
    {
@@ -2670,7 +2705,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 4.02,
+    "solve_ms": 7.04,
     "status": "INFEASIBLE"
    },
    {
@@ -2685,7 +2720,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 10.07,
+    "solve_ms": 16.19,
     "status": "OPTIMAL"
    },
    {
@@ -2697,20 +2732,23 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 4.05,
+    "solve_ms": 6.41,
     "status": "INFEASIBLE"
    },
    {
     "episode": "train_000011",
     "now_ms": 535599.7580000001,
-    "milp_first": null,
+    "milp_first": [
+     "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+     0
+    ],
     "baseline_first": [
      "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
      1
     ],
-    "change": "fallback",
-    "solve_ms": 3.47,
-    "status": "INFEASIBLE"
+    "change": "placement",
+    "solve_ms": 18.95,
+    "status": "OPTIMAL"
    },
    {
     "episode": "train_000011",
@@ -2724,7 +2762,7 @@
      0
     ],
     "change": "same",
-    "solve_ms": 8.35,
+    "solve_ms": 14.07,
     "status": "OPTIMAL"
    },
    {
@@ -2736,7 +2774,7 @@
      0
     ],
     "change": "fallback",
-    "solve_ms": 1.95,
+    "solve_ms": 3.03,
     "status": "INFEASIBLE"
    },
    {
@@ -2748,15 +2786,15 @@
      1
     ],
     "change": "fallback",
-    "solve_ms": 1.06,
+    "solve_ms": 1.62,
     "status": "INFEASIBLE"
    }
   ]
  },
  "T10a": {
   "test": "T10a_single_step",
-  "checked": 11,
-  "ok": 11,
+  "checked": 12,
+  "ok": 12,
   "pass": true,
   "details": [
    {
@@ -2769,7 +2807,8 @@
     "interval_delta": 5904.856,
     "expected_delta": 5904.856,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2782,7 +2821,8 @@
     "interval_delta": 18498.468,
     "expected_delta": 18498.468,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2795,7 +2835,8 @@
     "interval_delta": 18498.467,
     "expected_delta": 18498.468,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2815,7 +2856,8 @@
     "interval_delta": 18498.467,
     "expected_delta": 18498.468,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2828,7 +2870,8 @@
     "interval_delta": 6187.67,
     "expected_delta": 6187.67,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2841,7 +2884,8 @@
     "interval_delta": 18498.467,
     "expected_delta": 18498.468,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2854,7 +2898,8 @@
     "interval_delta": 18498.468,
     "expected_delta": 18498.468,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2867,7 +2912,8 @@
     "interval_delta": 8116.517,
     "expected_delta": 8116.517,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    },
    {
@@ -2880,7 +2926,15 @@
     "interval_delta": 6187.67,
     "expected_delta": 6187.67,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
+    "pass": true
+   },
+   {
+    "episode": "train_000011",
+    "now_ms": 535599.7580000001,
+    "node": "D61jenC5oBA_langgraph_react_1786907608396:api_call:2",
+    "deferred_prediction_gap": true,
     "pass": true
    },
    {
@@ -2893,7 +2947,8 @@
     "interval_delta": 6002.862,
     "expected_delta": 6002.862,
     "compute_ok": true,
-    "no_evict_before_start": true,
+    "evicted_before_start": [],
+    "evict_legal": true,
     "pass": true
    }
   ]
@@ -2961,7 +3016,7 @@
    {
     "episode": "train_000003",
     "now_ms": 1438657.9139999999,
-    "node": "UZvydHZKyww_langgraph_react_1786914941015:api_call:2",
+    "node": "8TNPeimqOO0_star_1786915388452:api_call:2",
     "z_total": 1.0,
     "load_seen": true,
     "load_ok": true,
@@ -3124,8 +3179,8 @@
  },
  "T10b": {
   "test": "T10b_replay",
-  "checked": 11,
-  "ok": 11,
+  "checked": 12,
+  "ok": 12,
   "pass": true,
   "details": [
    {
@@ -3209,6 +3264,13 @@
    },
    {
     "episode": "train_000011",
+    "now_ms": 535599.7580000001,
+    "plan_actions": 1,
+    "deferred_prediction_gap": true,
+    "pass": true
+   },
+   {
+    "episode": "train_000011",
     "now_ms": 535624.4138925782,
     "plan_actions": 1,
     "forced": 1,
@@ -3219,9 +3281,9 @@
  },
  "T10b_synth": {
   "test": "T10b_synth_full_plan",
-  "executed_total": 11,
-  "executed_pass": 11,
-  "fallback_expected": 28,
+  "executed_total": 12,
+  "executed_pass": 12,
+  "fallback_expected": 27,
   "pass": true,
   "details": [
    {
@@ -3477,8 +3539,12 @@
    {
     "episode": "train_000011",
     "now_ms": 535599.7580000001,
-    "fallback_expected": true,
-    "reason": "infeasible"
+    "plan_nodes": 6,
+    "forced": 6,
+    "waits": 0,
+    "order_ok": true,
+    "timing_ok": true,
+    "pass": true
    },
    {
     "episode": "train_000011",
