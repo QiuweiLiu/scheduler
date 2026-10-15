@@ -109,12 +109,17 @@ def _chain_steps_from_artifact(
             if isinstance(occurrence, (int, float)) and float(occurrence) >= 0.5
             else 0.0
         )
-        memory_value = estimate_lookup(model_id, str(step.get("role") or "other"), lane)
-        if memory_value is None:
-            missing.append(model_id)
+        if lane != "gpu":
+            # CPU-lane steps (incl. the 'finish_argument' terminal aggregation
+            # sentinel) never load GPU models: no profile lookup, no missing flag.
             memory = 0.0
         else:
-            memory = float(memory_value)
+            memory_value = estimate_lookup(model_id, str(step.get("role") or "other"), lane)
+            if memory_value is None:
+                missing.append(model_id)
+                memory = 0.0
+            else:
+                memory = float(memory_value)
         chain.append(
             ObsChainStep(
                 model_id=model_id,
