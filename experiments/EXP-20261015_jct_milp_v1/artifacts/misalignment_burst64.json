@@ -1,0 +1,38 @@
+{
+ "schema": "jct-milp-v1-misalignment-test-v1",
+ "source": "burst64_r110_b10",
+ "states": 3,
+ "budget_s": 1.0,
+ "mean_spearman": -1.0,
+ "plan_argmin_matches_true_frac": 0.0,
+ "mean_plan_argmin_regret_ms": 524.2,
+ "rows": [
+  {
+   "episode": "burst64_r110_b10_ep01",
+   "now_ms": 38910.844,
+   "actions": 2,
+   "spearman_plan_vs_true": -1.0,
+   "plan_argmin_is_true_argmin": false,
+   "plan_argmin_true_regret": 695.5,
+   "true_best_regret_of_worst": 695.5
+  },
+  {
+   "episode": "burst64_r110_b10_ep01",
+   "now_ms": 41514.119999999995,
+   "actions": 2,
+   "spearman_plan_vs_true": -1.0,
+   "plan_argmin_is_true_argmin": false,
+   "plan_argmin_true_regret": 626.2,
+   "true_best_regret_of_worst": 626.2
+  },
+  {
+   "episode": "burst64_r110_b10_ep02",
+   "now_ms": 32775.62500000001,
+   "actions": 2,
+   "spearman_plan_vs_true": -1.0,
+   "plan_argmin_is_true_argmin": false,
+   "plan_argmin_true_regret": 250.8,
+   "true_best_regret_of_worst": 250.8
+  }
+ ]
+}
