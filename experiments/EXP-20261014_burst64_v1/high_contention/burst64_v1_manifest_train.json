@@ -12,7 +12,7 @@
   "gap_split": "train",
   "gap_count": 631102
  },
- "episodes": 12,
+ "episodes": 20,
  "jobs_per_episode": 64,
  "stratification": {
   "keys": [
@@ -28,63 +28,103 @@
  "segments": [
   {
    "episode": 0,
-   "gap_start": 510050,
-   "gap_end": 510113
+   "gap_start": 552213,
+   "gap_end": 552276
   },
   {
    "episode": 1,
-   "gap_start": 375281,
-   "gap_end": 375344
+   "gap_start": 203948,
+   "gap_end": 204011
   },
   {
    "episode": 2,
-   "gap_start": 204254,
-   "gap_end": 204317
+   "gap_start": 65891,
+   "gap_end": 65954
   },
   {
    "episode": 3,
-   "gap_start": 607269,
-   "gap_end": 607332
+   "gap_start": 211957,
+   "gap_end": 212020
   },
   {
    "episode": 4,
-   "gap_start": 95041,
-   "gap_end": 95104
+   "gap_start": 296593,
+   "gap_end": 296656
   },
   {
    "episode": 5,
-   "gap_start": 202091,
-   "gap_end": 202154
+   "gap_start": 623426,
+   "gap_end": 623489
   },
   {
    "episode": 6,
-   "gap_start": 538524,
-   "gap_end": 538587
+   "gap_start": 135445,
+   "gap_end": 135508
   },
   {
    "episode": 7,
-   "gap_start": 344027,
-   "gap_end": 344090
+   "gap_start": 616527,
+   "gap_end": 616590
   },
   {
    "episode": 8,
-   "gap_start": 628195,
-   "gap_end": 628258
+   "gap_start": 371712,
+   "gap_end": 371775
   },
   {
    "episode": 9,
-   "gap_start": 490598,
-   "gap_end": 490661
+   "gap_start": 429975,
+   "gap_end": 430038
   },
   {
    "episode": 10,
-   "gap_start": 245561,
-   "gap_end": 245624
+   "gap_start": 528932,
+   "gap_end": 528995
   },
   {
    "episode": 11,
-   "gap_start": 463510,
-   "gap_end": 463573
+   "gap_start": 379480,
+   "gap_end": 379543
+  },
+  {
+   "episode": 12,
+   "gap_start": 218540,
+   "gap_end": 218603
+  },
+  {
+   "episode": 13,
+   "gap_start": 229674,
+   "gap_end": 229737
+  },
+  {
+   "episode": 14,
+   "gap_start": 298560,
+   "gap_end": 298623
+  },
+  {
+   "episode": 15,
+   "gap_start": 252825,
+   "gap_end": 252888
+  },
+  {
+   "episode": 16,
+   "gap_start": 155380,
+   "gap_end": 155443
+  },
+  {
+   "episode": 17,
+   "gap_start": 311814,
+   "gap_end": 311877
+  },
+  {
+   "episode": 18,
+   "gap_start": 301088,
+   "gap_end": 301151
+  },
+  {
+   "episode": 19,
+   "gap_start": 497174,
+   "gap_end": 497237
   }
  ],
  "conditions": [
@@ -103,7 +143,7 @@
  ],
  "priority_mode": "all_normal",
  "checks": {
-  "template_uniqueness": "480 unique templates across 12 episodes",
+  "template_uniqueness": "480 unique templates across 20 episodes",
   "monotone_arrivals_and_rho": "ok (tolerance 0.02)",
   "deadline_budget_preserved": "ok",
   "cross_condition_invariance": "ok (identities, budgets, segments)",
@@ -113,13 +153,13 @@
  "outputs": {
   "r130_b15": {
    "path": "experiments/EXP-20261014_burst64_v1/high_contention/workload_burst64_r130_b15_train.jsonl",
-   "sha256": "a516c47133c2605587d9b64c43021d7c31b3a1a1fb02cc1071b15960f1fb32cc",
+   "sha256": "7b4b108dcf8f94cb97169253bdb345219ed56e45ad768c031132447cc1373532",
    "rho": 1.3,
    "beta": 1.5
   },
   "r150_b15": {
    "path": "experiments/EXP-20261014_burst64_v1/high_contention/workload_burst64_r150_b15_train.jsonl",
-   "sha256": "7baeb84375a28fbd44d1593c9a491882a92fcb33923c94394b1cf7f1e91811cb",
+   "sha256": "d1f2aad246bac7190cfb79e9f6d2a99dda2aad0ecd20f9978a7611175ebaebda",
    "rho": 1.5,
    "beta": 1.5
   }

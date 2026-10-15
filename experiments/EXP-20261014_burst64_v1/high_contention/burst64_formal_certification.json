@@ -1,0 +1,35 @@
+{
+ "schema": "burst64-formal-certification-v1",
+ "timestamp": "2026-10-15T16:14:19+0800",
+ "conditions": {
+  "r150_b15|train": {
+   "episodes": 2,
+   "decisions": 1079,
+   "legal_actions_mean": 12.74,
+   "legal_actions_p50": 12,
+   "legal_actions_p90": 26,
+   "ge10_frac": 0.634,
+   "competing_frac": 0.926,
+   "gpu_util_mean": 1.006,
+   "all_completed": true
+  },
+  "r150_b15|validation": {
+   "episodes": 2,
+   "decisions": 1086,
+   "legal_actions_mean": 7.51,
+   "legal_actions_p50": 7.0,
+   "legal_actions_p90": 13,
+   "ge10_frac": 0.383,
+   "competing_frac": 0.89,
+   "gpu_util_mean": 1.031,
+   "all_completed": true
+  }
+ },
+ "headroom_r150_b15_train": {
+  "states": 12,
+  "pool_mean": 1.8,
+  "headroom_mean": 2941.7,
+  "headroom_zero_frac": 0.5,
+  "headroom_max": 10778.6
+ }
+}
