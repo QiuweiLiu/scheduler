@@ -303,7 +303,7 @@ def validate(episodes_by_tag, templates, estimates, stats):
 
 
 def main() -> int:
-    global EPISODES
+    global EPISODES, CONDITIONS
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
@@ -311,8 +311,12 @@ def main() -> int:
                     help="emit the legacy synthetic-priority sensitivity control instead of all-normal")
     ap.add_argument("--source", choices=("mixed", "train", "validation"), default="mixed")
     ap.add_argument("--episodes-per-source", type=int, default=EPISODES)
+    ap.add_argument("--condition-set", choices=("default", "high"), default="default",
+                    help="high: heavier sustained overload + burst (rho 1.30/1.50, beta 1.5)")
     args = ap.parse_args()
     args.out_dir = args.out_dir.resolve()
+    if args.condition_set == "high":
+        CONDITIONS = (("r130_b15", 1.30, 1.5), ("r150_b15", 1.50, 1.5))
 
     templates, stats = load_templates()
     meta = load_metadata()
