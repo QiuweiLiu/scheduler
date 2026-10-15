@@ -1,0 +1,31 @@
+{
+ "schema": "four-arm-paired-correction-v1",
+ "note": "ΔJ = J_MILP − J_PDRS (正值 = MILP 更差)。修正此前汇总脚本的符号标签错误(把 PDRS−arm 标成了 arm−PDRS)。顾问 2026-10-16 复核确认。",
+ "arms": {
+  "new_no_tail": {
+   "solvable": 19,
+   "delta_mean_ms": 396.3,
+   "improved": 6,
+   "worsened": 8,
+   "tied": 5
+  },
+  "new_tail": {
+   "solvable": 7,
+   "delta_mean_ms": 105.0,
+   "improved": 0,
+   "worsened": 4,
+   "tied": 3
+  },
+  "old_milp": {
+   "solvable": 3,
+   "delta_mean_ms": 56.9,
+   "improved": 0,
+   "worsened": 1,
+   "tied": 2
+  }
+ },
+ "pdrs": {
+  "covered": 23,
+  "mean_regret_ms": 912.3
+ }
+}
