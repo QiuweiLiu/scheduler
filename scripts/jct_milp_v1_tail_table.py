@@ -19,7 +19,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path("/Volumes/Lenovo/scheduler")
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 TEMPLATES = ROOT / "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl"
@@ -36,7 +36,7 @@ def main() -> int:
         meta[str(row["template_id"])] = str(row.get("model_stack_id") or "")
 
     # per (stack, position bucket): remaining beyond p+5
-    buckets: dict = defaultdict(lambda: {"gpu_ms": [], "cpu_ms": [], "terminated": 0, "total": 0, "nodes_left": []})
+    buckets: dict = defaultdict(lambda: {"gpu_ms": [], "load_ms": [], "cpu_ms": [], "terminated": 0, "total": 0, "nodes_left": []})
     for tid, template in templates.items():
         if template.split != "train":
             continue
@@ -56,9 +56,13 @@ def main() -> int:
             if not remaining:
                 b["terminated"] += 1
                 continue
-            gpu_ms = sum(r[2] + r[3] for r in remaining if r[1] == "gpu")
+            # simulator convention: runtime_p50 already includes the load;
+            # pure compute = runtime - load; conditional load reported separately
+            gpu_compute = sum(max(0.1, r[2] - r[3]) for r in remaining if r[1] == "gpu")
+            gpu_load = sum(r[3] for r in remaining if r[1] == "gpu")
             cpu_ms = sum(r[2] for r in remaining if r[1] != "gpu")
-            b["gpu_ms"].append(gpu_ms)
+            b["gpu_ms"].append(gpu_compute)
+            b["load_ms"].append(gpu_load)
             b["cpu_ms"].append(cpu_ms)
             b["nodes_left"].append(len(remaining))
 
@@ -66,13 +70,17 @@ def main() -> int:
     for key, b in sorted(buckets.items()):
         stack, pos = key
         n_cont = len(b["gpu_ms"])
+        MIN_CONTINUE = 30  # advisor P0-C: minimum continuation samples per bucket
+        reliable = n_cont >= MIN_CONTINUE
         table[f"{stack}|pos{pos}"] = {
             "anchors": b["total"],
             "terminated_within_h5_frac": round(b["terminated"] / max(1, b["total"]), 3),
             "continued": n_cont,
-            "remaining_gpu_ms_mean": round(statistics.fmean(b["gpu_ms"]), 1) if n_cont else None,
-            "remaining_gpu_ms_p50": round(statistics.median(b["gpu_ms"]), 1) if n_cont else None,
-            "remaining_gpu_ms_p90": round(sorted(b["gpu_ms"])[int(0.9 * (n_cont - 1))], 1) if n_cont else None,
+            "reliable": reliable,
+            "remaining_compute_ms_mean": round(statistics.fmean(b["gpu_ms"]), 1) if n_cont else None,
+            "remaining_compute_ms_p50": round(statistics.median(b["gpu_ms"]), 1) if n_cont else None,
+            "remaining_compute_ms_p90": round(sorted(b["gpu_ms"])[int(0.9 * (n_cont - 1))], 1) if n_cont else None,
+            "conditional_load_ms_mean": round(statistics.fmean(b["load_ms"]), 1) if n_cont else None,
             "remaining_cpu_ms_mean": round(statistics.fmean(b["cpu_ms"]), 1) if n_cont else None,
             "nodes_left_mean": round(statistics.fmean(b["nodes_left"]), 2) if n_cont else None,
         }
@@ -82,8 +90,9 @@ def main() -> int:
                                "table": table}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     # compact print
     for key, row in list(table.items())[:18]:
-        print(f"{key:28s} anchors={row['anchors']:4d} terminated={row['terminated_within_h5_frac']:.2f} "
-              f"gpu_mean={row['remaining_gpu_ms_mean']} p90={row['remaining_gpu_ms_p90']} cpu_mean={row['remaining_cpu_ms_mean']}")
+        print(f"{key:28s} anchors={row['anchors']:4d} cont={row['continued']:4d} reliable={row['reliable']} "
+              f"compute_mean={row['remaining_compute_ms_mean']} p90={row['remaining_compute_ms_p90']} "
+              f"load_mean={row['conditional_load_ms_mean']} cpu_mean={row['remaining_cpu_ms_mean']}")
     print(f"... total rows: {len(table)} | evidence: {out}")
     return 0
 

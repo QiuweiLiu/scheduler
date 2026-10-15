@@ -121,6 +121,15 @@ def build_assignment(groups, rng):
         for tid in members:
             episodes[cursor % EPISODES].append(tid)
             cursor += 1
+    # small source pools: top up episodes that are under 64 by re-sampling the
+    # pool (reuse across episodes allowed; uniqueness within an episode kept)
+    all_tids = sorted({t for members in groups.values() for t in members})
+    counts = [len(ep) for ep in episodes]
+    for i, count in enumerate(counts):
+        while len(episodes[i]) < JOBS_PER_EPISODE:
+            pick = all_tids[rng.randrange(len(all_tids))]
+            if pick not in episodes[i]:
+                episodes[i].append(pick)
     counts = [len(ep) for ep in episodes]
     over = [i for i, c in enumerate(counts) if c > JOBS_PER_EPISODE]
     under = [i for i, c in enumerate(counts) if c < JOBS_PER_EPISODE]
@@ -229,7 +238,7 @@ def build_episode(ep_index, tids, estimates, gaps, segment, rho, beta, tag, temp
     }
 
 
-def validate(episodes_by_tag, templates, estimates):
+def validate(episodes_by_tag, templates, estimates, stats):
     """Structural invariants; raises on failure. Returns a report dict."""
     report = {}
     all_tids = set()
@@ -238,8 +247,8 @@ def validate(episodes_by_tag, templates, estimates):
         assert len(ids) == JOBS_PER_EPISODE, f"episode {ep['episode_id']} has {len(ids)} jobs"
         assert len(set(ids)) == len(ids), f"duplicate jobs in {ep['episode_id']}"
         all_tids.update(ids)
-    assert len(all_tids) == len(templates) == 640, f"template coverage {len(all_tids)} != 640"
-    report["template_uniqueness"] = f"640 unique templates across {EPISODES} episodes"
+    assert len(all_tids) == len(templates), f"template coverage {len(all_tids)} != pool {len(templates)}"
+    report["template_uniqueness"] = f"{len(all_tids)} unique templates across {EPISODES} episodes"
 
     # per-condition checks
     for tag, rho, beta in CONDITIONS:
@@ -277,14 +286,14 @@ def validate(episodes_by_tag, templates, estimates):
     report["cross_condition_invariance"] = "ok (identities, budgets, segments)"
 
     # memory legality: every GPU node's estimated memory fits the largest GPU
-    from tracing.analysis.workload_v02_simulator import estimate as _est, train_resource_stats
+    from tracing.analysis.workload_v02_simulator import estimate as _est
     max_cap = max(GPU_TOPOLOGY)
     worst = 0.0
     for tid, template in templates.items():
         for node in template.nodes:
             if node.lane != "gpu":
                 continue
-            row = _est(node, train_resource_stats({k: v for k, v in templates.items() if v.split == "train"}))
+            row = _est(node, stats)
             need = float(row["memory_p95_mb"] or 0.0)
             worst = max(worst, need)
             assert need <= max_cap + 1e-6, f"node memory {need} exceeds capacity {max_cap}"
@@ -294,14 +303,23 @@ def validate(episodes_by_tag, templates, estimates):
 
 
 def main() -> int:
+    global EPISODES
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
     ap.add_argument("--priority-variant", action="store_true",
                     help="emit the legacy synthetic-priority sensitivity control instead of all-normal")
+    ap.add_argument("--source", choices=("mixed", "train", "validation"), default="mixed")
+    ap.add_argument("--episodes-per-source", type=int, default=EPISODES)
     args = ap.parse_args()
+    args.out_dir = args.out_dir.resolve()
 
     templates, stats = load_templates()
     meta = load_metadata()
+    if args.source != "mixed":
+        templates = {k: v for k, v in templates.items() if meta[k]["split"] == args.source}
+        print(f"source-isolated: {args.source} pool = {len(templates)} templates")
+    EPISODES = args.episodes_per_source
     estimates = template_estimates(templates, stats)
     gaps = _load_arrival_gaps(ALIBABA_CSV)[GAP_SPLIT]
     groups, terciles = stratify(templates, estimates, meta)
@@ -318,12 +336,12 @@ def main() -> int:
                                       args.priority_variant, meta))
         episodes_by_tag[tag] = rows
 
-    checks = validate(episodes_by_tag, templates, estimates)
+    checks = validate(episodes_by_tag, templates, estimates, stats)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     outputs = {}
     for tag, rho, beta in CONDITIONS:
-        suffix = "_priority" if args.priority_variant else ""
+        suffix = ("_priority" if args.priority_variant else "") + ("" if args.source == "mixed" else f"_{args.source}")
         path = args.out_dir / f"workload_burst64_{tag}{suffix}.jsonl"
         with path.open("w", encoding="utf-8") as handle:
             for row in episodes_by_tag[tag]:
@@ -345,7 +363,8 @@ def main() -> int:
         "checks": checks,
         "outputs": outputs,
     }
-    manifest_path = args.out_dir / ("burst64_v1_manifest_priority.json" if args.priority_variant else "burst64_v1_manifest.json")
+    suffix = ("_priority" if args.priority_variant else "") + ("" if args.source == "mixed" else f"_{args.source}")
+    manifest_path = args.out_dir / f"burst64_v1_manifest{suffix}.json"
     manifest_path.write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(manifest, indent=1, ensure_ascii=False))
     print("manifest:", manifest_path)

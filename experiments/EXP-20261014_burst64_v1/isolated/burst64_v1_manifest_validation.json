@@ -1,0 +1,151 @@
+{
+ "schema": "burst64-v1-manifest",
+ "purpose": "structural diagnostics only; not for predictor generalization",
+ "templates": {
+  "path": "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl",
+  "sha256": "15c62dafd99701b3883a3fe47034b5c7771f8fdcc8d6226fa73ff06fdca7f03b",
+  "count": 160
+ },
+ "alibaba": {
+  "path": "data/public/arrivals/alibaba_v2020/pai_job_table.csv",
+  "sha256": "379ecb3becaba347f44a53bf7eb53e54b185221b2a0338a3f828828d269ba96c",
+  "gap_split": "train",
+  "gap_count": 631102
+ },
+ "episodes": 12,
+ "jobs_per_episode": 64,
+ "stratification": {
+  "keys": [
+   "split",
+   "model_stack_id",
+   "gpu_cost_tercile"
+  ],
+  "terciles_ms": [
+   40533.81,
+   61713.514
+  ]
+ },
+ "segments": [
+  {
+   "episode": 0,
+   "gap_start": 410050,
+   "gap_end": 410113
+  },
+  {
+   "episode": 1,
+   "gap_start": 414643,
+   "gap_end": 414706
+  },
+  {
+   "episode": 2,
+   "gap_start": 378510,
+   "gap_end": 378573
+  },
+  {
+   "episode": 3,
+   "gap_start": 298070,
+   "gap_end": 298133
+  },
+  {
+   "episode": 4,
+   "gap_start": 216820,
+   "gap_end": 216883
+  },
+  {
+   "episode": 5,
+   "gap_start": 559446,
+   "gap_end": 559509
+  },
+  {
+   "episode": 6,
+   "gap_start": 618867,
+   "gap_end": 618930
+  },
+  {
+   "episode": 7,
+   "gap_start": 486286,
+   "gap_end": 486349
+  },
+  {
+   "episode": 8,
+   "gap_start": 214013,
+   "gap_end": 214076
+  },
+  {
+   "episode": 9,
+   "gap_start": 209299,
+   "gap_end": 209362
+  },
+  {
+   "episode": 10,
+   "gap_start": 70277,
+   "gap_end": 70340
+  },
+  {
+   "episode": 11,
+   "gap_start": 476722,
+   "gap_end": 476785
+  }
+ ],
+ "conditions": [
+  {
+   "tag": "r085_b10",
+   "rho": 0.85,
+   "beta": 1.0,
+   "beta_synthetic_burst": false
+  },
+  {
+   "tag": "r110_b10",
+   "rho": 1.1,
+   "beta": 1.0,
+   "beta_synthetic_burst": false
+  },
+  {
+   "tag": "r085_b15",
+   "rho": 0.85,
+   "beta": 1.5,
+   "beta_synthetic_burst": true
+  },
+  {
+   "tag": "r110_b15",
+   "rho": 1.1,
+   "beta": 1.5,
+   "beta_synthetic_burst": true
+  }
+ ],
+ "priority_mode": "all_normal",
+ "checks": {
+  "template_uniqueness": "160 unique templates across 12 episodes",
+  "monotone_arrivals_and_rho": "ok (tolerance 0.02)",
+  "deadline_budget_preserved": "ok",
+  "cross_condition_invariance": "ok (identities, budgets, segments)",
+  "memory_legality": "ok (max node memory 19502.0 <= 32760)",
+  "ground_truth_leakage": "none (only natural episode/job fields + burst metadata)"
+ },
+ "outputs": {
+  "r085_b10": {
+   "path": "experiments/EXP-20261014_burst64_v1/isolated/workload_burst64_r085_b10_validation.jsonl",
+   "sha256": "9381ad4fd9d084a805e07d95948a797aafbe432e8140d459dcca053dc2c082fd",
+   "rho": 0.85,
+   "beta": 1.0
+  },
+  "r110_b10": {
+   "path": "experiments/EXP-20261014_burst64_v1/isolated/workload_burst64_r110_b10_validation.jsonl",
+   "sha256": "d1c5133104565865d5df77001eab0a85740441c39c17074edbd6499fe642ace6",
+   "rho": 1.1,
+   "beta": 1.0
+  },
+  "r085_b15": {
+   "path": "experiments/EXP-20261014_burst64_v1/isolated/workload_burst64_r085_b15_validation.jsonl",
+   "sha256": "8ca4fc75e68bfb37be7fc6feafce785c8f2e389608e6c8d99db82f576fb67e63",
+   "rho": 0.85,
+   "beta": 1.5
+  },
+  "r110_b15": {
+   "path": "experiments/EXP-20261014_burst64_v1/isolated/workload_burst64_r110_b15_validation.jsonl",
+   "sha256": "2eefe3e2b107b052e7e17ea4438c04eff3b0e2c11621bf49e402736b34b90f0a",
+   "rho": 1.1,
+   "beta": 1.5
+  }
+ }
+}

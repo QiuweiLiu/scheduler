@@ -38,6 +38,7 @@ class ObsReadyNode:
     runtime_p50_ms: float
     load_p50_ms: float
     memory_p95_mb: float
+    sequence_index: int = 0  # v1: workflow position (visible current-node fact)
 
 
 @dataclass(frozen=True)
@@ -196,6 +197,7 @@ def build_milpo_observation(
                 runtime_p50_ms=float(row["runtime_p50_ms"]),
                 load_p50_ms=float(row["load_p50_ms"] or 0.0),
                 memory_p95_mb=float(row["memory_p95_mb"] or 0.0),
+                sequence_index=int(getattr(node, "sequence_index", 0) or 0),
             )
         )
 
@@ -320,6 +322,107 @@ def _build_nodes(obs: MILPObservation) -> list[PlanNode]:
                 )
             )
             previous_key = node_key
+    return nodes
+
+
+def _build_nodes_v1(
+    obs: MILPObservation,
+    *,
+    chain_depth: int,
+    k_chains: int,
+    tail: bool,
+    tail_table: Mapping[str, Any] | None,
+) -> list[PlanNode]:
+    """v1 planning nodes: anchors + depth-limited chains for the top-K anchors
+    (F0 key order) + one compute-type Tail per GPU anchor.
+
+    The Tail is a pure compute block (no model identity, no load, no memory):
+    it participates in assignment, GPU mutual exclusion and queueing but never
+    changes model residency (advisor P0-A).
+    """
+
+    gpu_anchors = [item for item in obs.ready if item.lane == "gpu"]
+    top_keys = {
+        item.node_id
+        for item in sorted(gpu_anchors, key=lambda a: (a.priority, a.ready_since_ms, a.node_id))[:max(1, k_chains)]
+    }
+    table = (tail_table or {}).get("table") or {}
+    model_to_stack = (tail_table or {}).get("model_to_stack") or {}
+
+    def tail_compute(item: ObsReadyNode) -> float:
+        stack = model_to_stack.get(str(item.model_id))
+        if not stack:
+            return 0.0
+        row = table.get(f"{stack}|pos{int(item.sequence_index) // 5 * 5}")
+        if row is None or row.get("remaining_compute_ms_mean") is None:
+            # coarse fallback: stack-level mean over reliable buckets
+            values = [r["remaining_compute_ms_mean"] for k, r in table.items()
+                      if k.startswith(f"{stack}|") and r.get("reliable") and r.get("remaining_compute_ms_mean")]
+            return float(sum(values) / len(values)) if values else 0.0
+        return float(row["remaining_compute_ms_mean"])
+
+    nodes: list[PlanNode] = []
+    for item in obs.ready:
+        compute = (max(0.1, item.runtime_p50_ms - item.load_p50_ms)
+                   if item.lane == "gpu" else item.runtime_p50_ms)
+        nodes.append(
+            PlanNode(
+                key=str(item.node_id),
+                job_index=item.job_index,
+                lane=item.lane,
+                model_id=item.model_id,
+                compute_ms=compute,
+                load_ms=item.load_p50_ms,
+                workspace_mb=item.memory_p95_mb,
+                anchor_key=None,
+                predecessor_key=None,
+                is_ready=True,
+                f0_key=(item.priority, item.ready_since_ms, item.node_id),
+            )
+        )
+        previous_key = str(item.node_id)
+        if str(item.node_id) in top_keys:
+            for step_index, step in enumerate(obs.chains.get(item.node_id, ())):
+                if step_index >= chain_depth:
+                    break
+                compute = (max(0.1, step.runtime_ms - step.load_ms)
+                           if step.lane == "gpu" else step.runtime_ms)
+                node_key = f"pred:{item.node_id}:{step_index + 1}"
+                nodes.append(
+                    PlanNode(
+                        key=node_key,
+                        job_index=item.job_index,
+                        lane=step.lane,
+                        model_id=step.model_id,
+                        compute_ms=compute,
+                        load_ms=step.load_ms,
+                        workspace_mb=step.memory_mb,
+                        anchor_key=str(item.node_id),
+                        predecessor_key=previous_key,
+                        is_ready=False,
+                        f0_key=(item.priority, item.ready_since_ms, node_key),
+                    )
+                )
+                previous_key = node_key
+        if tail and item.lane == "gpu":
+            remaining = tail_compute(item)
+            if remaining > 0.0:
+                tail_key = f"tail:{item.node_id}"
+                nodes.append(
+                    PlanNode(
+                        key=tail_key,
+                        job_index=item.job_index,
+                        lane="gpu",
+                        model_id="",
+                        compute_ms=remaining,
+                        load_ms=0.0,
+                        workspace_mb=0.0,
+                        anchor_key=str(item.node_id),
+                        predecessor_key=previous_key,
+                        is_ready=False,
+                        f0_key=(item.priority, item.ready_since_ms, tail_key),
+                    )
+                )
     return nodes
 
 
@@ -449,12 +552,44 @@ def solve_v0a(
     debug_families: frozenset | None = None,
     debug_dump: dict | None = None,
 ) -> MilpV0Result:
+    """Frozen v0a arm: nodes = ready anchors + full H5 chains."""
+    return _solve_core(obs, _build_nodes(obs), time_limit_s=time_limit_s,
+                       debug_families=debug_families, debug_dump=debug_dump)
+
+
+def solve_v1(
+    obs: MILPObservation,
+    *,
+    chain_depth: int = 3,
+    k_chains: int = 3,
+    tail: bool = True,
+    tail_table: Mapping[str, Any] | None = None,
+    time_limit_s: float = 0.5,
+    debug_families: frozenset | None = None,
+    debug_dump: dict | None = None,
+) -> MilpV0Result:
+    """JCT-MILP-v1 prototype: depth-limited chains for the top-K anchors plus a
+    compute-type Tail node per GPU anchor (terminal remaining work from the
+    train-only table).  Shares the constraint core with v0a."""
+    nodes = _build_nodes_v1(obs, chain_depth=chain_depth, k_chains=k_chains,
+                            tail=tail, tail_table=tail_table)
+    return _solve_core(obs, nodes, time_limit_s=time_limit_s,
+                       debug_families=debug_families, debug_dump=debug_dump)
+
+
+def _solve_core(
+    obs: MILPObservation,
+    nodes: list["PlanNode"],
+    *,
+    time_limit_s: float = 0.5,
+    debug_families: frozenset | None = None,
+    debug_dump: dict | None = None,
+) -> MilpV0Result:
     """``debug_families``: testing aid - when set, only the named constraint
     families are emitted (assign/chain/avail/closure/prec/h/z/q/cap)."""
 
     def fam(name: str) -> bool:
         return debug_families is None or name in debug_families
-    """Solve the v0a MILP.  Falls back (first_action=None) when not applicable."""
 
     started = time.perf_counter()
     if obs.resource_missing:
@@ -462,7 +597,6 @@ def solve_v0a(
     if obs.legal_first is not None and not obs.legal_first:
         # Advisor P1: no currently-legal immediate dispatch -> skip the solve.
         return _fallback_result(started, "no_legal_action_at_now")
-    nodes = _build_nodes(obs)
     if not nodes:
         return _fallback_result(started, "no_ready_nodes")
     reference_makespan = build_reference_schedule(obs, nodes)
