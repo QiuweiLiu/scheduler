@@ -761,7 +761,14 @@ def _solve_core(
         if n.lane == "gpu":
             if fam("avail"):
                 for g in range(gpu_count):
-                    add({A(i): 1.0, X(i, g): -(obs.gpu_available(g) - t0)}, 0.0, math.inf)
+                    avail_rel = obs.gpu_available(g) - t0
+                    if obs.legal_first is not None and (n.key, int(g)) in obs.legal_first:
+                        # 2026-10-15 semantic alignment (phase-1 audit): the DES
+                        # candidate pool guarantees CURRENT dispatchability; the
+                        # predicted availability must not contradict it for the
+                        # first action (previously caused INFEASIBLE fallbacks).
+                        avail_rel = min(avail_rel, 0.0)
+                    add({A(i): 1.0, X(i, g): -avail_rel}, 0.0, math.inf)
         else:
             add({A(i): 1.0}, 0.0, math.inf)  # CPU release at now (relative origin)
     # time closure: c_i = a_i + load*z_i + compute
@@ -801,7 +808,10 @@ def _solve_core(
                     # immediate dispatch; loose when x_ig=0 or D_ig=1:
                     #   a_i + shift*D_ig - shift*p >= avail(g) - U*(1 - x_ig)
                     row: dict[int, float] = {A(i): 1.0, X(i, g): -big_u, p0 + idx: -shift}
-                    lo = obs.gpu_available(g) - t0 - big_u
+                    avail_rel = obs.gpu_available(g) - t0
+                    if obs.legal_first is not None and (nodes[i].key, int(g)) in obs.legal_first:
+                        avail_rel = min(avail_rel, 0.0)
+                    lo = avail_rel - big_u
                     d_pos = next((pos for pos, (ii, gg) in enumerate(d_pairs)
                                   if ii == i and gg == g), None)
                     if d_pos is not None:
