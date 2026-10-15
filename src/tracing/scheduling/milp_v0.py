@@ -330,6 +330,79 @@ def _build_nodes(obs: MILPObservation) -> list[PlanNode]:
     return nodes
 
 
+def _same_chain(a: "PlanNode", b: "PlanNode") -> bool:
+    """True when a and b belong to the same planned chain (anchor/chain/tail).
+
+    Provable from the predecessor structure alone: chain nodes carry their
+    anchor's key in ``anchor_key`` and the anchor is the chain head."""
+    if a.anchor_key is not None and a.anchor_key == b.key:
+        return True
+    if b.anchor_key is not None and b.anchor_key == a.key:
+        return True
+    return a.anchor_key is not None and a.anchor_key == b.anchor_key
+
+
+def _screen_anchors(
+    obs: MILPObservation,
+    k_candidates: int,
+    required_node_ids: frozenset[str] | None,
+) -> set[str]:
+    """Deterministic multi-rule candidate screening (advisor ruling 2026-10-16).
+
+    Rules use scheduler-visible data only:
+      r1 required actions (e.g. the PDRS first action's anchor) are always kept;
+      r2 lowest fast first-action cost estimate (runtime + best-GPU queue);
+      r3 shortest remaining predicted chain work among the uncovered;
+      r4 different model locality than the first pick among the uncovered;
+      r5 fill by the frozen F0 key order.
+    """
+    anchors = [it for it in obs.ready if it.lane == "gpu"]
+    if len(anchors) <= k_candidates:
+        return {str(it.node_id) for it in anchors}
+    by_id = {str(it.node_id): it for it in anchors}
+    required = {str(x) for x in (required_node_ids or ())}
+    picked: list[str] = [nid for nid in sorted(required) if nid in by_id]
+
+    def fast_cost(it: ObsReadyNode) -> float:
+        best_queue = min(gpu.available_at_ms for gpu in obs.gpus) - obs.now_ms if obs.gpus else 0.0
+        return float(it.runtime_p50_ms) + max(0.0, best_queue)
+
+    def chain_work(it: ObsReadyNode) -> float:
+        return sum(max(0.1, s.runtime_ms - s.load_ms) for s in obs.chains.get(it.node_id, ()))
+
+    def f0(it: ObsReadyNode) -> tuple:
+        return (it.priority, it.ready_since_ms, it.node_id)
+
+    remaining = [it for it in sorted(anchors, key=f0) if str(it.node_id) not in picked]
+    # r2: two lowest fast-cost anchors
+    for it in sorted(remaining, key=lambda a: (fast_cost(a), f0(a)))[:2]:
+        if len(picked) < k_candidates:
+            picked.append(str(it.node_id))
+    # r3: shortest remaining chain work
+    for it in sorted(remaining, key=lambda a: (chain_work(a), f0(a))):
+        if len(picked) >= k_candidates:
+            break
+        if str(it.node_id) not in picked:
+            picked.append(str(it.node_id))
+            break
+    # r4: different model locality than the first pick
+    if picked:
+        ref_model = str(by_id[picked[0]].model_id) if picked[0] in by_id else ""
+        for it in sorted(remaining, key=f0):
+            if len(picked) >= k_candidates:
+                break
+            if str(it.node_id) not in picked and str(it.model_id) != ref_model:
+                picked.append(str(it.node_id))
+                break
+    # r5: fill by F0 order
+    for it in remaining:
+        if len(picked) >= k_candidates:
+            break
+        if str(it.node_id) not in picked:
+            picked.append(str(it.node_id))
+    return set(picked[:k_candidates])
+
+
 def _build_nodes_v1(
     obs: MILPObservation,
     *,
@@ -337,16 +410,22 @@ def _build_nodes_v1(
     k_chains: int,
     tail: bool,
     tail_table: Mapping[str, Any] | None,
+    k_candidates: int | None = None,
+    required_node_ids: frozenset[str] | None = None,
 ) -> list[PlanNode]:
-    """v1 planning nodes: anchors + depth-limited chains for the top-K anchors
-    (F0 key order) + one compute-type Tail per GPU anchor.
+    """v1 planning nodes: screened anchors + depth-limited chains for the top-K
+    anchors (F0 key order) + one compute-type Tail per GPU anchor.
 
-    The Tail is a pure compute block (no model identity, no load, no memory):
-    it participates in assignment, GPU mutual exclusion and queueing but never
-    changes model residency (advisor P0-A).
+    k_candidates screens how many ready GPU anchors enter the model at all
+    (advisor 2026-10-16); None keeps every anchor (pre-screening behavior).
+    The Tail always represents the remaining compute AFTER the last explicitly
+    planned node of its anchor (truncation-consistent; advisor 2026-10-16).
     """
 
-    gpu_anchors = [item for item in obs.ready if item.lane == "gpu"]
+    keep_ids = (_screen_anchors(obs, int(k_candidates), required_node_ids)
+                if k_candidates else None)
+    gpu_anchors = [item for item in obs.ready
+                   if item.lane == "gpu" and (keep_ids is None or str(item.node_id) in keep_ids)]
     top_keys = {
         item.node_id
         for item in sorted(gpu_anchors, key=lambda a: (a.priority, a.ready_since_ms, a.node_id))[:max(1, k_chains)]
@@ -354,20 +433,32 @@ def _build_nodes_v1(
     table = (tail_table or {}).get("table") or {}
     model_to_stack = (tail_table or {}).get("model_to_stack") or {}
 
-    def tail_compute(item: ObsReadyNode) -> float:
+    def tail_compute(item: ObsReadyNode, planned_depth: int) -> float:
         stack = model_to_stack.get(str(item.model_id))
         if not stack:
             return 0.0
+        chain = obs.chains.get(item.node_id, ())
+        if len(chain) <= planned_depth:
+            return 0.0  # predicted chain ends within the explicit horizon
+        d_key = str(min(int(planned_depth), 6))
         row = table.get(f"{stack}|pos{int(item.sequence_index) // 5 * 5}")
-        if row is None or row.get("remaining_compute_ms_mean") is None:
-            # coarse fallback: stack-level mean over reliable buckets
-            values = [r["remaining_compute_ms_mean"] for k, r in table.items()
-                      if k.startswith(f"{stack}|") and r.get("reliable") and r.get("remaining_compute_ms_mean")]
-            return float(sum(values) / len(values)) if values else 0.0
-        return float(row["remaining_compute_ms_mean"])
+        if row is not None:
+            value = (row.get("remaining_after_d") or {}).get(d_key)
+            if value is not None:
+                return float(value)
+        # coarse fallback: stack-level mean over reliable buckets
+        values = []
+        for key, candidate in table.items():
+            if key.startswith(f"{stack}|") and candidate.get("reliable"):
+                value = (candidate.get("remaining_after_d") or {}).get(d_key)
+                if value is not None:
+                    values.append(value)
+        return float(sum(values) / len(values)) if values else 0.0
 
     nodes: list[PlanNode] = []
     for item in obs.ready:
+        if item.lane == "gpu" and keep_ids is not None and str(item.node_id) not in keep_ids:
+            continue
         compute = (max(0.1, item.runtime_p50_ms - item.load_p50_ms)
                    if item.lane == "gpu" else item.runtime_p50_ms)
         nodes.append(
@@ -386,6 +477,7 @@ def _build_nodes_v1(
             )
         )
         previous_key = str(item.node_id)
+        planned_depth = 0
         if str(item.node_id) in top_keys:
             for step_index, step in enumerate(obs.chains.get(item.node_id, ())):
                 if step_index >= chain_depth:
@@ -409,8 +501,9 @@ def _build_nodes_v1(
                     )
                 )
                 previous_key = node_key
+                planned_depth = step_index + 1
         if tail and item.lane == "gpu":
-            remaining = tail_compute(item)
+            remaining = tail_compute(item, planned_depth)
             if remaining > 0.0:
                 tail_key = f"tail:{item.node_id}"
                 nodes.append(
@@ -572,12 +665,21 @@ def solve_v1(
     time_limit_s: float = 0.5,
     debug_families: frozenset | None = None,
     debug_dump: dict | None = None,
+    k_candidates: int | None = None,
+    required_node_ids: frozenset[str] | None = None,
 ) -> MilpV0Result:
     """JCT-MILP-v1 prototype: depth-limited chains for the top-K anchors plus a
     compute-type Tail node per GPU anchor (terminal remaining work from the
-    train-only table).  Shares the constraint core with v0a."""
+    train-only table).  Shares the constraint core with v0a.
+
+    ``k_candidates`` (advisor 2026-10-16): screen the ready GPU anchors down to
+    this many candidates before building the model; ``required_node_ids`` are
+    anchors that must survive screening (e.g. the PDRS first action's anchor).
+    None keeps the pre-screening behavior (every anchor enters the model)."""
     nodes = _build_nodes_v1(obs, chain_depth=chain_depth, k_chains=k_chains,
-                            tail=tail, tail_table=tail_table)
+                            tail=tail, tail_table=tail_table,
+                            k_candidates=k_candidates,
+                            required_node_ids=required_node_ids)
     return _solve_core(obs, nodes, time_limit_s=time_limit_s,
                        debug_families=debug_families, debug_dump=debug_dump)
 
@@ -667,12 +769,20 @@ def _solve_core(
     x0 = offset; offset += len(gpu_nodes) * gpu_count            # x[i,g]
     a0 = offset; offset += len(nodes)                            # a_i
     c0 = offset; offset += len(nodes)                            # c_i
+    # 2026-10-16 sparsification (advisor ruling): the y family stays complete
+    # (the h/z couplings still reference same-chain pairs), while the q family
+    # only covers pairs where at least one side can load a model (a compute-only
+    # tail has zero memory -> its q terms are never referenced by capacity rows).
     pairs = [(i, k) for i in gpu_nodes for k in gpu_nodes if i < k]
     pair_pos = {pair: k for k, pair in enumerate(pairs)}  # advisor P1: index memoization
     y0 = offset; offset += len(pairs) * 2 * gpu_count            # y[fwd], y[bwd] per g
     h0 = offset; offset += len(gpu_nodes) * gpu_count            # h[i,g]
     z0 = offset; offset += len(gpu_nodes) * gpu_count            # z[i,g]
-    q0 = offset; offset += len(pairs) * gpu_count * 2            # q[pair,g,dir]
+    q_pairs = [p for p in pairs
+               if (obs.resident_mb_by_model.get(nodes[p[0]].model_id, 0.0) > 0.0
+                   or obs.resident_mb_by_model.get(nodes[p[1]].model_id, 0.0) > 0.0)]
+    q_pos = {pair: k for k, pair in enumerate(q_pairs)}
+    q0 = offset; offset += len(q_pairs) * gpu_count * 2          # q[pair,g,dir]
     ready_gpu_nodes = [i for i in gpu_nodes if nodes[i].is_ready]
     # 2026-10-13 (advisor P0): immediate-dispatch bins are per (node, gpu) pair so
     # the legality mask d_ig <= A_ig^0 can be applied directly.
@@ -690,7 +800,10 @@ def _solve_core(
     def H(i, g): return h0 + gpu_pos[i] * gpu_count + g
     def Z(i, g): return z0 + gpu_pos[i] * gpu_count + g
     def Q(pair_idx, g, reverse):
-        return q0 + (pair_idx * gpu_count + g) * 2 + (1 if reverse else 0)
+        pos = q_pos.get(pair_idx)
+        if pos is None:
+            return None
+        return q0 + (pos * gpu_count + g) * 2 + (1 if reverse else 0)
     def D(pos): return d0 + pos
 
     objective = np.zeros(n_vars, dtype=float)
@@ -711,7 +824,7 @@ def _solve_core(
     for i in range(len(nodes)):
         upper[A(i)] = big_u
         upper[C(i)] = big_u
-    for pair_idx in range(len(pairs)):
+    for pair_idx in q_pairs:
         for g in range(gpu_count):
             for reverse in (False, True):
                 upper[Q(pair_idx, g, reverse)] = 1.0
@@ -910,9 +1023,12 @@ def _solve_core(
             for other in gpu_nodes:
                 if other == i:
                     continue
-                pidx = pair_pos[(min(i, other), max(i, other))]
+                mb_other = obs.resident_mb_by_model.get(nodes[other].model_id, 0.0)
+                if mb_other <= 0.0:
+                    continue  # sparsified: zero-coefficient q terms are dropped
+                pair = (min(i, other), max(i, other))
                 reverse = other > i  # q[...] direction: "other before i"
-                lhs[Q(pidx, g, reverse)] = obs.resident_mb_by_model.get(nodes[other].model_id, 0.0)
+                lhs[Q(pair, g, reverse)] = mb_other
             # conditional: lhs <= limit + M*(1 - x_ig); M must also cover a
             # negative limit (initial residents may already exceed cap - ws).
             # 2026-10-13 (P0/P1 memory-alignment fix): the limit uses THIS GPU's
@@ -922,14 +1038,16 @@ def _solve_core(
             lhs[X(i, g)] = m_cap
             add(lhs, -math.inf, (obs.gpus[g].capacity_mb - const - ws_i) + m_cap)
     # q = AND(z_other, y_other->i), two directions per pair/gpu
-    for pair_idx, (i, k) in enumerate(pairs):
+    for pair in q_pairs:
         if not fam("q"):
             break
+        i, k = pair
+        pidx = pair_pos[pair]
         for g in range(gpu_count):
-            qf = Q(pair_idx, g, False)  # AND(z_i, i before k)
-            qb = Q(pair_idx, g, True)   # AND(z_k, k before i)
-            yf = Y(pair_idx, g, False)
-            yb = Y(pair_idx, g, True)
+            qf = Q(pair, g, False)  # AND(z_i, i before k)
+            qb = Q(pair, g, True)   # AND(z_k, k before i)
+            yf = Y(pidx, g, False)
+            yb = Y(pidx, g, True)
             add({qf: 1.0, Z(i, g): -1.0}, -math.inf, 0.0)
             add({qf: 1.0, yf: -1.0}, -math.inf, 0.0)
             add({qf: 1.0, Z(i, g): -1.0, yf: -1.0}, -1.0, math.inf)

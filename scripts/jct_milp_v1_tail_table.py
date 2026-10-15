@@ -35,8 +35,12 @@ def main() -> int:
         row = json.loads(line)
         meta[str(row["template_id"])] = str(row.get("model_stack_id") or "")
 
-    # per (stack, position bucket): remaining beyond p+5
-    buckets: dict = defaultdict(lambda: {"gpu_ms": [], "load_ms": [], "cpu_ms": [], "terminated": 0, "total": 0, "nodes_left": []})
+    # per (stack, position bucket): remaining beyond p+5 (legacy) plus
+    # remaining-after-p+d for d in 0..6 (truncation-consistent tail lookup).
+    buckets: dict = defaultdict(lambda: {
+        "gpu_ms": [], "load_ms": [], "cpu_ms": [], "terminated": 0, "total": 0, "nodes_left": [],
+        "by_depth": {d: {"gpu_ms": [], "cpu_ms": []} for d in range(0, 7)},
+    })
     for tid, template in templates.items():
         if template.split != "train":
             continue
@@ -49,10 +53,19 @@ def main() -> int:
             if anchor.lane != "gpu":
                 continue
             p = anchor.sequence_index
-            remaining = [r for r in rows if r[0] > p + 5]
             key = (meta[str(tid)], p // 5 * 5)
             b = buckets[key]
             b["total"] += 1
+            # truncation-consistent slices: remaining after the last explicit node
+            for d in range(0, 7):
+                rem_d = [r for r in rows if r[0] > p + d]
+                if not rem_d:
+                    continue
+                b["by_depth"][d]["gpu_ms"].append(
+                    sum(max(0.1, r[2] - r[3]) for r in rem_d if r[1] == "gpu"))
+                b["by_depth"][d]["cpu_ms"].append(
+                    sum(r[2] for r in rem_d if r[1] != "gpu"))
+            remaining = [r for r in rows if r[0] > p + 5]
             if not remaining:
                 b["terminated"] += 1
                 continue
@@ -83,6 +96,12 @@ def main() -> int:
             "conditional_load_ms_mean": round(statistics.fmean(b["load_ms"]), 1) if n_cont else None,
             "remaining_cpu_ms_mean": round(statistics.fmean(b["cpu_ms"]), 1) if n_cont else None,
             "nodes_left_mean": round(statistics.fmean(b["nodes_left"]), 2) if n_cont else None,
+            "remaining_after_d": {
+                str(d): (round(statistics.fmean(b["by_depth"][d]["gpu_ms"]), 1)
+                         if b["by_depth"][d]["gpu_ms"] else None)
+                for d in range(0, 7)
+            },
+            "continued_after_d": {str(d): len(b["by_depth"][d]["gpu_ms"]) for d in range(0, 7)},
         }
     out = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/tail_estimator_train_table.json"
     out.parent.mkdir(parents=True, exist_ok=True)

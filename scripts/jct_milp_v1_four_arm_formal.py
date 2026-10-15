@@ -162,9 +162,11 @@ def main() -> int:
                 entry["legal"] = choice in set(pool)
             row["arms"][arm] = entry
         k3 = arm_choices.get("new_tail")
+        # advisor 2026-10-16: both-sides-no-action must NOT count as agreement
         row["k_truncation"] = {
-            "k2_same_as_k3": k_choices.get(2) == k3,
-            "k5_same_as_k3": k_choices.get(5) == k3,
+            "k3_available": k3 is not None,
+            "k2_same_as_k3": k3 is not None and k_choices.get(2) == k3,
+            "k5_same_as_k3": k3 is not None and k_choices.get(5) == k3,
         }
         rows.append(row)
 
@@ -198,8 +200,9 @@ def main() -> int:
                      "pool_ge10_frac": round(sum(1 for p in pools if p >= 10) / len(pools), 3) if pools else None},
         "arms": {arm: agg(arm) for arm in ("pdrs", "old_milp", "new_no_tail", "new_tail")},
         "k_truncation": {
-            "k2_same_frac": round(sum(1 for r in rows if r["k_truncation"]["k2_same_as_k3"]) / max(1, len(rows)), 3),
-            "k5_same_frac": round(sum(1 for r in rows if r["k_truncation"]["k5_same_as_k3"]) / max(1, len(rows)), 3),
+            "k2_same_frac": round(sum(1 for r in rows if r["k_truncation"]["k2_same_as_k3"]) / max(1, sum(1 for r in rows if r["k_truncation"]["k3_available"])), 3),
+            "k5_same_frac": round(sum(1 for r in rows if r["k_truncation"]["k5_same_as_k3"]) / max(1, sum(1 for r in rows if r["k_truncation"]["k3_available"])), 3),
+            "k3_available": sum(1 for r in rows if r["k_truncation"]["k3_available"]),
         },
         "rows": rows,
     }
