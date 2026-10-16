@@ -9371,46 +9371,6 @@ def simulate_episode(
 
     _des_capture = (policy_context or {}).get("des_capture") if policy_context else None
     while arrival_heap or finish_heap or ready or any(gpu.prefetch_pending for gpu in gpus):
-        if _des_capture is not None and not _des_capture.get("done"):
-            from tracing.analysis.des_rollout import serialize_des_state
-
-            _pending_times = _des_capture.get("at_ms_list")
-            _due = None
-            if _des_capture.get("at_ready"):
-                # decision-moment capture: only when a ready item exists
-                _cap = int(_des_capture.get("cap", 8))
-                _done_list = _des_capture.setdefault("snapshots", [])
-                if len(_done_list) >= _cap:
-                    _des_capture["done"] = True
-                elif ready:
-                    _due = float(now)
-            elif _pending_times:
-                if _pending_times and now >= float(_pending_times[0]):
-                    _due = float(_pending_times.pop(0))
-            elif now >= float(_des_capture.get("at_ms") or 0.0):
-                _due = float(_des_capture.get("at_ms") or 0.0)
-            if _due is not None:
-                _snapshot = serialize_des_state(
-                    episode_id=str(episode.get("episode_id")),
-                    now=float(now),
-                    jobs=jobs,
-                    gpus=gpus,
-                    finish_heap=finish_heap,
-                    ready=ready,
-                    arrival_heap=arrival_heap,
-                    active_jobs=active_jobs,
-                    wait_logged=wait_logged,
-                    sequence=int(sequence),
-                    rr_cursor=int(rr_cursor),
-                )
-                if _pending_times is not None or _des_capture.get("at_ready"):
-                    _des_capture.setdefault("snapshots", []).append(_snapshot)
-                    if _pending_times is not None and not _pending_times:
-                        _des_capture["done"] = True
-                else:
-                    _des_capture["snapshot"] = _snapshot
-                    _des_capture["event_index"] = len(events)
-                    _des_capture["done"] = True
         process_prefetch_finish()
         if not ready and not finish_heap and arrival_heap:
             next_prefetch = min(
@@ -9461,6 +9421,51 @@ def simulate_episode(
                 made_progress = True
             for item in deferred:
                 heapq.heappush(ready, item)
+
+            # 2026-10-16 P0 fix (advisor): capture at the dispatch decision moment
+            # (after same-timestamp events) so the snapshot matches the probe state.
+            if (_des_capture is not None and not _des_capture.get("done")
+                    and _des_capture.get("last_captured_now") != now):
+                from tracing.analysis.des_rollout import serialize_des_state
+
+                _pending_times = _des_capture.get("at_ms_list")
+                _due = None
+                if _des_capture.get("at_ready"):
+                    # decision-moment capture: only when a ready item exists
+                    _cap = int(_des_capture.get("cap", 8))
+                    _done_list = _des_capture.setdefault("snapshots", [])
+                    if len(_done_list) >= _cap:
+                        _des_capture["done"] = True
+                    elif ready:
+                        _due = float(now)
+                elif _pending_times:
+                    if _pending_times and now >= float(_pending_times[0]):
+                        _due = float(_pending_times.pop(0))
+                elif now >= float(_des_capture.get("at_ms") or 0.0):
+                    _due = float(_des_capture.get("at_ms") or 0.0)
+                if _due is not None:
+                    _snapshot = serialize_des_state(
+                        episode_id=str(episode.get("episode_id")),
+                        now=float(now),
+                        jobs=jobs,
+                        gpus=gpus,
+                        finish_heap=finish_heap,
+                        ready=ready,
+                        arrival_heap=arrival_heap,
+                        active_jobs=active_jobs,
+                        wait_logged=wait_logged,
+                        sequence=int(sequence),
+                        rr_cursor=int(rr_cursor),
+                    )
+                    _des_capture["last_captured_now"] = now
+                    if _pending_times is not None or _des_capture.get("at_ready"):
+                        _des_capture.setdefault("snapshots", []).append(_snapshot)
+                        if _pending_times is not None and not _pending_times:
+                            _des_capture["done"] = True
+                    else:
+                        _des_capture["snapshot"] = _snapshot
+                        _des_capture["event_index"] = len(events)
+                        _des_capture["done"] = True
 
             free_gpu = dispatchable_gpus(ready)
             if not free_gpu and maybe_preempt():

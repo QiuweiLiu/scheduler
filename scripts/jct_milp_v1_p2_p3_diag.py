@@ -163,6 +163,12 @@ def main() -> int:
 
             best = min(rollout_cost.values())
             pdrs_cost = rollout_cost.get(baseline)
+            # advisor P0 assertions (2026-10-16): PDRS must survive screening and
+            # the candidate-set ceiling can never be worse than PDRS.
+            assert baseline is None or baseline in screened_costs, \
+                "PDRS action missing from screened set (capture/probe state mismatch?)"
+            assert pdrs_cost is None or min(screened_costs.values()) <= pdrs_cost + 1e-6, \
+                "candidate-set ceiling worse than PDRS (label/ceiling bug)"
             entry = {"episode": ep["episode_id"], "fraction": frac, "pool": len(pool),
                      "screened": len(screened), "pdrs_action": list(baseline) if baseline else None,
                      "candidates": {f"{a[0]}|{a[1]}": {
