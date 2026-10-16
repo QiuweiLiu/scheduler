@@ -155,7 +155,7 @@ def collect_partition(episodes, partition, tm, stats, artifacts, config, tail_ta
                     "h5_load_sum_ms": float(h5_load),
                 }
                 rows.append({
-                    "partition": partition, "episode": ep["episode_id"], "state": f"{ep['episode_id']}@{frac}",
+                    "partition": partition, "episode": ep["episode_id"], "state": f"{partition}:{ep['episode_id']}@{frac}",
                     "now_ms": snap["now_ms"], "action": [node, int(gpu)], "is_pdrs": (node, int(gpu)) == baseline,
                     "in_top5": node in screened,
                     "label_dj": round(costs[(node, gpu)] - pdrs_cost, 3),
@@ -173,8 +173,8 @@ H5_COLS = ["h5_chain_compute_ms", "h5_chain_len", "h5_model_switches", "h5_load_
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--train-episodes", type=int, default=8)
-    ap.add_argument("--dev-episodes", type=int, default=4)
+    ap.add_argument("--train-episodes", type=int, default=16)
+    ap.add_argument("--dev-episodes", type=int, default=10)
     ap.add_argument("--out", type=Path,
                     default=ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/av_v0_report.json")
     ap.add_argument("--dataset", type=Path,
