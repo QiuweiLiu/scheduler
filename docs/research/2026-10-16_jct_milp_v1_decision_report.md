@@ -37,6 +37,10 @@
 - 标签口径:强制首动作+PDRS 续跑的计划 DES(预测工件);与真实执行注入反事实(injected_state/des_seq)的差异未在本次量化;
 - 筛选损失(recall 41.7%)独立于 MILP 存在,不能全部归因于求解。
 
+## 4b. P0 审计发现(2026-10-16 晚,顾问指出后核查)
+
+**ep02@0.75 ceiling(+551ms)矛盾根因已定位**:`des_capture` 快照与 `des_probe_pool` 探测在同一时间戳上状态不一致——快照在循环中较早的位置序列化,**未包含同一时间戳内刚完成事件所唤醒的节点**;该缺失节点恰好是 PDRS 首动作(`hjNX33W-99I...:api_call:3`,池中有、快照 ready_items 无)。后果:①筛选器无法保留"必须保留的 PDRS 锚点"(它不在 MILP 观测的 ready 集里);②ceiling 计算把 PDRS 排除在外→出现"完美评估器比 PDRS 差"的矛盾。**影响范围**:所有用 des_capture(at_ms_list) + 独立 probe 的诊断(four_arm_formal、cost_check、screened_diag、p2_p3_diag)在"快照缺节点"的状态上,其 legal_first 掩码包含模型不认识的节点、基线保留失效。**修复方向**(下一轮 P0):①把快照捕获点对齐到决策时刻(处理完同时间戳事件后),或直接在探测 rollout 内捕获;②加自动断言:候选集含 PDRS 时 ceiling ≤ PDRS 成本;③审计通过前不引用 −313.2ms 为可靠上界(顾问指令)。
+
 ## 5. 证据
 
 - `artifacts/p2_p3_diag.json`(12 状态逐候选:rollout 成本、MILP obj/bound/gap、四规则结果);
