@@ -77,8 +77,10 @@ def agg_decisions(decisions):
         "worsened": sum(1 for d in djs if d > 1e-9),
         "tied": sum(1 for d in djs if abs(d) <= 1e-9),
         "actual_switches": sum(1 for d in decisions if d["switched"]),
-        "worst_dj_ms": round(min(djs), 1) if djs else None,
-        "best_dj_ms": round(max(djs), 1) if djs else None,
+        "worst_deterioration_ms": round(max(djs), 1) if djs else None,
+        "best_improvement_ms": round(min(djs), 1) if djs else None,
+        "mean_deterioration_ms": round(statistics.fmean([d for d in djs if d > 1e-9]), 1) if any(d > 1e-9 for d in djs) else 0.0,
+        "worst_decile_mean_ms": (round(statistics.fmean(sorted(djs)[-max(1, len(djs) // 10):]), 1) if djs else None),
     }
 
 
@@ -123,18 +125,24 @@ def main() -> int:
             # P3: train-side OOF theta calibration (GroupKFold by episode)
             oof = np.zeros(len(train))
             gkf = GroupKFold(n_splits=4)
-            for tr_idx, te_idx in gkf.split(Xtr, ytr, groups):
+            for tr_idx, te_idx in gkf.split(Xtr_raw, ytr, groups):
+                sc = StandardScaler().fit(Xtr_raw[tr_idx])
                 m = ctor()
-                m.fit(Xtr[tr_idx], ytr[tr_idx])
-                oof[te_idx] = m.predict(Xtr[te_idx])
+                m.fit(sc.transform(Xtr_raw[tr_idx]), ytr[tr_idx])
+                oof[te_idx] = m.predict(sc.transform(Xtr_raw[te_idx]))
             theta_curve = {}
             for th in THETA_GRID:
                 dec = simulate_decisions(train, oof, th)
                 a = agg_decisions(dec)
                 theta_curve[th] = {"mean_dj_ms": a["mean_dj_ms"], "actual_switches": a["actual_switches"],
-                                   "worsened": a["worsened"], "worst_dj_ms": a["worst_dj_ms"]}
-            best_theta = max(THETA_GRID, key=lambda th: (theta_curve[th]["mean_dj_ms"]
-                                                         if theta_curve[th]["mean_dj_ms"] is not None else -1e18))
+                                   "worsened": a["worsened"], "worst_deterioration_ms": a["worst_deterioration_ms"]}
+            # P0 fix (advisor): negative dJ = improvement -> choose the MINIMUM
+            # OOF mean; "always PDRS" (never switch, mean 0) is a candidate too.
+            candidates = {th: theta_curve[th]["mean_dj_ms"] for th in THETA_GRID
+                          if theta_curve[th]["mean_dj_ms"] is not None}
+            candidates["always_pdrs"] = 0.0
+            best_key = min(candidates, key=lambda k: candidates[k])
+            best_theta = float("inf") if best_key == "always_pdrs" else float(best_key)
             # final model on all train, evaluate on dev with the selected theta
             model = ctor()
             model.fit(Xtr, ytr)
@@ -147,13 +155,14 @@ def main() -> int:
             for d in dec:
                 per_ep.setdefault(d["episode"], []).append(d["dj"])
             a["per_episode_mean_dj"] = {k: round(statistics.fmean(v), 1) for k, v in sorted(per_ep.items())}
-            a["theta"] = best_theta
+            a["theta"] = ("always_pdrs" if best_theta == float("inf") else best_theta)
+            a["theta_selection_oof"] = {str(k): v for k, v in candidates.items()}
             a["theta_curve_train_oof"] = theta_curve
             a["inference_ms_per_state"] = round(inf_ms, 3)
             results[f"{vname}|{mname}"] = a
             print(f"{vname}|{mname}: theta*={best_theta:.0f} dev Δmean={a['mean_dj_ms']}ms "
                   f"({a['improved']}/{a['worsened']}/{a['tied']}) switches={a['actual_switches']}/{a['states']} "
-                  f"worst={a['worst_dj_ms']} inf={inf_ms:.2f}ms")
+                  f"worst={a['worst_deterioration_ms']} inf={inf_ms:.2f}ms")
 
     # reference: ceiling on dev states
     ceilings = []
