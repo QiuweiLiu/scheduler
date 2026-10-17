@@ -1,0 +1,66 @@
+{
+ "schema": "voi-smoke-v0",
+ "timestamp": "2026-10-17T15:59:45+0800",
+ "state": "burst64_r150_b15_ep00@0.6",
+ "now_ms": 930216.0,
+ "prefix_jobs": 55,
+ "scenarios": {
+  "orig": {
+   "n_jobs": 64
+  },
+  "donor1": {
+   "n_jobs": 67
+  },
+  "donor2": {
+   "n_jobs": 64
+  }
+ },
+ "actions": [
+  [
+   "IN8t1d3pRMY_langgraph_react_1786922795671:action:3",
+   0
+  ],
+  [
+   "5i5Be73ESUc_langgraph_react_1786916309420:api_call:2",
+   0
+  ],
+  [
+   "I0xrbzYT4Sc_star_1786906471471:api_call:6",
+   0
+  ],
+  [
+   "I5cFBi02O34_langgraph_react_1786909449971:api_call:2",
+   0
+  ]
+ ],
+ "cost_table": {
+  "orig": {
+   "IN8t1d3pRMY_langgraph_reac|0": 252051.0,
+   "5i5Be73ESUc_langgraph_reac|0": 255048.0,
+   "I0xrbzYT4Sc_star_178690647|0": 251756.2,
+   "I5cFBi02O34_langgraph_reac|0": 256585.2
+  },
+  "donor1": {
+   "IN8t1d3pRMY_langgraph_reac|0": 257465.5,
+   "5i5Be73ESUc_langgraph_reac|0": 261020.5,
+   "I0xrbzYT4Sc_star_178690647|0": 257392.1,
+   "I5cFBi02O34_langgraph_reac|0": 260725.4
+  },
+  "donor2": {
+   "IN8t1d3pRMY_langgraph_reac|0": 247724.2,
+   "5i5Be73ESUc_langgraph_reac|0": 249548.6,
+   "I0xrbzYT4Sc_star_178690647|0": 247220.2,
+   "I5cFBi02O34_langgraph_reac|0": 249426.6
+  }
+ },
+ "reproducible": true,
+ "rerun_value": 252051.0,
+ "first_value": 252051.0,
+ "demo_voi": {
+  "i0_best_action": "I0xrbzYT4Sc_star_178690647|0",
+  "i0_value_ms": 252122.8,
+  "full_info_value_ms": 252122.8,
+  "voi_full_ms": 0.0
+ },
+ "wall_s": 38.3
+}
