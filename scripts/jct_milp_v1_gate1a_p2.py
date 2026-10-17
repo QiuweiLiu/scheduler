@@ -216,7 +216,7 @@ def main() -> int:
         pool = sorted({(str(r[1]), int(r[2])) for r in (pctx.get("des_first_pool") or [])})
         baseline = tuple(pctx.get("des_first_baseline") or ())
         hard = []
-        table, pdrs_cost = {}, {}
+        table, pdrs_cost, scen_fp = {}, {}, {}
         for sname, (sc_ep, sc_snap, _nj) in scenarios.items():
             plan_ep = build_planning_episode(sc_ep, sc_snap, include_arrivals=True)
             _ps, _pe, ppctx = run_planning(plan_ep, tm, future_artifacts=artifacts, train_stats=stats,
@@ -228,6 +228,14 @@ def main() -> int:
                 hard.append(f"A3_now {sname} {p_now} vs {orig_now}")
             if scen_pool != pool:
                 hard.append(f"A3_pool {sname} n={len(scen_pool)} vs {len(pool)}")
+            gp = (ppctx.get("des_first_state") or {}).get("gpus") or []
+            fp = json.dumps({"pool": scen_pool,
+                             "baseline": list(ppctx.get("des_first_baseline") or ()),
+                             "gpus": [{"i": g.get("index"),
+                                       "busy": round(float(g.get("busy_until") or 0), 1),
+                                       "res": sorted((g.get("resident") or {}).keys())} for g in gp]},
+                            sort_keys=True)
+            scen_fp[sname] = hashlib.sha256(fp.encode()).hexdigest()[:16]
             table[sname] = {}
             for a in pool:
                 s2, ev2, pctx2 = run_planning(plan_ep, tm, future_artifacts=artifacts, train_stats=stats,
@@ -247,8 +255,9 @@ def main() -> int:
                 for nj in _nj:
                     jid = str(nj["job_instance_id"])
                     exp = float(nj["arrival_ms"])
-                    if not any(j == jid and abs(x - exp) <= 1.0 for j, x in arrivals):
-                        hard.append(f"A1_arr {sname} {jid[-12:]}")
+                    hits = [x for j, x in arrivals if j == jid and abs(x - exp) <= 1.0]
+                    if len(hits) != 1:
+                        hard.append(f"A1_arr_unique {sname} {jid[-12:]} hits={len(hits)}")
             pdrs_cost[sname] = table[sname].get(f"{baseline[0]}|{baseline[1]}")
         if hard:
             report["hard_failures"].append({"state": f"{base['episode_id']}@{c['frac']}", "fails": hard[:8]})
@@ -271,7 +280,43 @@ def main() -> int:
             bf2 = min(m2, key=lambda a: m2[a])
             loo[drop] = round(m2[bf2] - statistics.fmean([paired[s][per_best[s]] for s in rest]), 1)
         adv = [paired[s][best_fixed] for s in paired]
+        # Top-K analysis with a FROZEN decision-time-visible score (runtime + best-GPU queue)
+        obs = T.obs_from_snapshot(snap, [{"job_instance_id": j["job_instance_id"],
+                                          "template_id": j["template_id"]} for j in base["jobs"]],
+                                  tm, stats, artifacts)
+        by_id = {str(x.node_id): x for x in obs.ready}
+        def vis_score(a):
+            it = by_id.get(a.split("|")[0])
+            if it is None:
+                return 1e18
+            queue = min(g.available_at_ms for g in obs.gpus) - obs.now_ms if obs.gpus else 0.0
+            return float(it.runtime_p50_ms) + max(0.0, queue)
+        ranked = sorted(act_names, key=lambda a: (vis_score(a), a))
+        if f"{baseline[0]}|{baseline[1]}" in ranked:
+            ranked.remove(f"{baseline[0]}|{baseline[1]}")
+        topk = {}
+        for k in (2, 4, 8, None):
+            keep = set(ranked[:k] if k else ranked) | {f"{baseline[0]}|{baseline[1]}"}
+            sub = {a: statistics.fmean(paired[s2][a] for s2 in paired) for a in keep}
+            bf = min(sub, key=lambda a: sub[a])
+            i0k = sub[bf]
+            fullk = statistics.fmean([min(paired[s2][a] for a in keep) for s2 in paired])
+            topk[str(k)] = {"pool_size": len(keep), "best_fixed": bf,
+                            "voi_ms": round(i0k - fullk, 1)}
+        donor_meta = {}
+        for sname, (sc_ep, sc_snap, nj) in scenarios.items():
+            if nj:
+                gaps = [round(float(nj[0]["arrival_ms"]) - orig_now, 1)]
+                models = {}
+                for j in nj:
+                    tpl_id = str(j["template_id"])
+                    models[tpl_id] = models.get(tpl_id, 0) + 1
+                donor_meta[sname] = {"n_new_jobs": len(nj), "first_gap_ms": gaps[0],
+                                     "n_distinct_templates": len(models)}
         entry = {"state": f"{base['episode_id']}@{c['frac']}", "stratum": stratum,
+                 "table": table, "paired_deltas": paired, "pdrs_cost": pdrs_cost,
+                 "per_scenario_best": per_best, "scenario_fingerprints": scen_fp,
+                 "donor_meta": donor_meta, "topk_voi": topk,
                  "now_ms": orig_now, "arrived": c["arrived"], "future": c["future"],
                  "pool": len(pool), "common_pool": len(common), "n_scenarios": len(scenarios),
                  "best_fixed_action": best_fixed,
@@ -290,7 +335,7 @@ def main() -> int:
     report["wall_s"] = round(time.perf_counter() - t0, 1)
     OUT.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wall={report['wall_s']}s hard_failures={len(report['hard_failures'])} evidence: {OUT}")
-    return 0
+    return 1 if report["hard_failures"] else 0
 
 
 if __name__ == "__main__":
