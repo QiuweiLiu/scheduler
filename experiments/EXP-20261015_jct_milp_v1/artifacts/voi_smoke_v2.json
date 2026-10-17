@@ -1,0 +1,107 @@
+{
+ "schema": "voi-smoke-v2-gate1a",
+ "timestamp": "2026-10-17T17:01:07+0800",
+ "state": "burst64_r150_b15_ep00@0.6",
+ "pool": 17,
+ "scenario_meta": {
+  "donor1": {
+   "k_arrived_anchor": 55,
+   "n_new_jobs": 9,
+   "donor_t": 997288.533
+  },
+  "donor2": {
+   "k_arrived_anchor": 55,
+   "n_new_jobs": 9,
+   "donor_t": 878233.292
+  }
+ },
+ "asserts": {
+  "orig": [
+   "forced_action_ok",
+   "n_jobs=64"
+  ],
+  "donor1": [
+   "forced_action_ok",
+   "n_jobs=64"
+  ],
+  "donor2": [
+   "forced_action_ok",
+   "n_jobs=64"
+  ]
+ },
+ "pdrs_cost": {
+  "orig": 252051.0,
+  "donor1": 264260.4,
+  "donor2": 253467.5
+ },
+ "best_action_per_scenario": {
+  "orig": "lmlw4NNZBbw_star_1786929335314:api_call:6|0",
+  "donor1": "lmlw4NNZBbw_star_1786929335314:api_call:6|0",
+  "donor2": "URUJD5NEXC8_langgraph_react_1786931560939:api_call:2|0"
+ },
+ "best_action_flips": 2,
+ "best_fixed_action": "lmlw4NNZBbw_star_1786929335314:api_call:6|0",
+ "voi_full_ms": 285.1,
+ "i0_value_ms": -990.6,
+ "full_info_value_ms": -1275.8,
+ "paired_deltas": {
+  "orig": {
+   "5i5Be73ESUc_langgraph_react_1786916309420:api_call:2|0": 2997.0,
+   "I0xrbzYT4Sc_star_1786906471471:api_call:6|0": -294.8,
+   "I5cFBi02O34_langgraph_react_1786909449971:api_call:2|0": 4534.2,
+   "IN8t1d3pRMY_langgraph_react_1786922795671:action:3|0": 0.0,
+   "K64wRD8eaus_langgraph_react_1786913967675:api_call:4|0": 51.3,
+   "K7YNoRZMv2k_langgraph_react_1786916757116:api_call:2|0": 3234.7,
+   "MZEdnBcLcfg_langgraph_react_1786917680878:api_call:2|0": 4672.5,
+   "MrRvX5I8PyY_langgraph_react_1786912966894:api_call:2|0": 2603.0,
+   "PSC_HUeqaUk_langgraph_react_1786926417369:api_call:2|0": 5188.7,
+   "QGHVpr8FIN8_langgraph_react_1786908342134:api_call:10|0": 245.1,
+   "RvnC--JjDBw_langgraph_react_1786931925922:api_call:2|0": 5025.9,
+   "URUJD5NEXC8_langgraph_react_1786931560939:api_call:2|0": -241.0,
+   "UTzl0lLoAJE_langgraph_react_1786925803810:api_call:2|0": 4451.2,
+   "UZvydHZKyww_langgraph_react_1786914941015:api_call:2|0": 2937.6,
+   "XoaWHHNiw1w_langgraph_react_1786907385939:api_call:4|0": 551.2,
+   "c0siCya457M_langgraph_react_1786911212022:api_call:2|0": 4065.4,
+   "lmlw4NNZBbw_star_1786929335314:api_call:6|0": -719.5
+  },
+  "donor1": {
+   "5i5Be73ESUc_langgraph_react_1786916309420:api_call:2|0": 2174.6,
+   "I0xrbzYT4Sc_star_1786906471471:api_call:6|0": -1252.1,
+   "I5cFBi02O34_langgraph_react_1786909449971:api_call:2|0": 4504.1,
+   "IN8t1d3pRMY_langgraph_react_1786922795671:action:3|0": 0.0,
+   "K64wRD8eaus_langgraph_react_1786913967675:api_call:4|0": 119.3,
+   "K7YNoRZMv2k_langgraph_react_1786916757116:api_call:2|0": 3021.7,
+   "MZEdnBcLcfg_langgraph_react_1786917680878:api_call:2|0": 3580.0,
+   "MrRvX5I8PyY_langgraph_react_1786912966894:api_call:2|0": 3202.6,
+   "PSC_HUeqaUk_langgraph_react_1786926417369:api_call:2|0": 3567.0,
+   "QGHVpr8FIN8_langgraph_react_1786908342134:api_call:10|0": -150.1,
+   "RvnC--JjDBw_langgraph_react_1786931925922:api_call:2|0": 4458.3,
+   "URUJD5NEXC8_langgraph_react_1786931560939:api_call:2|0": 534.5,
+   "UTzl0lLoAJE_langgraph_react_1786925803810:api_call:2|0": 2940.9,
+   "UZvydHZKyww_langgraph_react_1786914941015:api_call:2|0": 942.5,
+   "XoaWHHNiw1w_langgraph_react_1786907385939:api_call:4|0": -25.5,
+   "c0siCya457M_langgraph_react_1786911212022:api_call:2|0": 3554.1,
+   "lmlw4NNZBbw_star_1786929335314:api_call:6|0": -1421.8
+  },
+  "donor2": {
+   "5i5Be73ESUc_langgraph_react_1786916309420:api_call:2|0": 956.6,
+   "I0xrbzYT4Sc_star_1786906471471:api_call:6|0": -699.4,
+   "I5cFBi02O34_langgraph_react_1786909449971:api_call:2|0": 1390.2,
+   "IN8t1d3pRMY_langgraph_react_1786922795671:action:3|0": 0.0,
+   "K64wRD8eaus_langgraph_react_1786913967675:api_call:4|0": -1483.1,
+   "K7YNoRZMv2k_langgraph_react_1786916757116:api_call:2|0": 2270.9,
+   "MZEdnBcLcfg_langgraph_react_1786917680878:api_call:2|0": 1797.8,
+   "MrRvX5I8PyY_langgraph_react_1786912966894:api_call:2|0": 1623.5,
+   "PSC_HUeqaUk_langgraph_react_1786926417369:api_call:2|0": 2157.1,
+   "QGHVpr8FIN8_langgraph_react_1786908342134:api_call:10|0": -939.2,
+   "RvnC--JjDBw_langgraph_react_1786931925922:api_call:2|0": 3800.2,
+   "URUJD5NEXC8_langgraph_react_1786931560939:api_call:2|0": -1686.0,
+   "UTzl0lLoAJE_langgraph_react_1786925803810:api_call:2|0": 1542.1,
+   "UZvydHZKyww_langgraph_react_1786914941015:api_call:2|0": 46.8,
+   "XoaWHHNiw1w_langgraph_react_1786907385939:api_call:4|0": -616.7,
+   "c0siCya457M_langgraph_react_1786911212022:api_call:2|0": 1423.6,
+   "lmlw4NNZBbw_star_1786929335314:api_call:6|0": -830.6
+  }
+ },
+ "wall_s": 90.8
+}
