@@ -1,6 +1,6 @@
 {
  "schema": "fast-action-value-v3-trueh5",
- "timestamp": "2026-10-17T11:33:14+0800",
+ "timestamp": "2026-10-17T15:52:13+0800",
  "train_states": 70,
  "dev_states": 43,
  "results": {
@@ -32,17 +32,17 @@
   },
   "Prior+PredH5": {
    "n_features": 19,
-   "dev_rank_corr_mean": 0.3,
+   "dev_rank_corr_mean": 0.378,
    "lambda_0.0": {
     "states": 43,
-    "mean_dj_ms": 24.6,
-    "improved": 2,
-    "worsened": 3,
-    "tied": 38,
-    "actual_switches": 5,
-    "worst_deterioration_ms": 1192.0,
-    "worst_decile_loss_ms": 523.3,
-    "theta": 500.0
+    "mean_dj_ms": 0.0,
+    "improved": 0,
+    "worsened": 0,
+    "tied": 43,
+    "actual_switches": 0,
+    "worst_deterioration_ms": 0.0,
+    "worst_decile_loss_ms": 0.0,
+    "theta": "always_pdrs"
    },
    "lambda_0.5": {
     "states": 43,
@@ -58,7 +58,7 @@
   },
   "Prior+TrueH5": {
    "n_features": 19,
-   "dev_rank_corr_mean": 0.353,
+   "dev_rank_corr_mean": 0.374,
    "lambda_0.0": {
     "states": 43,
     "mean_dj_ms": 0.0,
@@ -91,15 +91,15 @@
     5
    ],
    "lambda0_dev_mean_dj": [
-    38.4,
     0.0,
+    31.8,
     0.0,
-    -119.8,
-    -100.0
+    -158.4,
+    0.0
    ],
-   "mean": -36.3,
-   "min": -119.8,
-   "max": 38.4
+   "mean": -25.3,
+   "min": -158.4,
+   "max": 31.8
   }
  }
 }

@@ -39,10 +39,12 @@ SEEDS = [1, 2, 3, 4, 5]
 
 
 def cvar90_pos(djs):
-    pos = sorted([d for d in djs if d > 1e-9], reverse=True)
-    if not pos:
+    # advisor fix: worst 10% of ALL states (zero losses included as zeros)
+    if not djs:
         return 0.0
-    return float(np.mean(pos[: max(1, int(np.ceil(0.1 * len(djs))))]))
+    k = max(1, int(np.ceil(0.1 * len(djs))))
+    worst = sorted([max(d, 0.0) for d in djs], reverse=True)[:k]
+    return float(np.mean(worst))
 
 
 def decisions(rows, preds, theta):

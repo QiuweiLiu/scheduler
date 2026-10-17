@@ -107,19 +107,8 @@ def main() -> int:
             if it.lane == "gpu":
                 true_chains[str(it.node_id)] = true_next(it)
 
-        # competitor sets EXCLUDING the candidate (fix from advisor review)
-        others_true: set[str] = set()
-        others_pred: set[str] = set()
-        for it in obs.ready:
-            if it.lane != "gpu":
-                continue
-            nxt_t, _ = true_chains[str(it.node_id)]
-            for nd in nxt_t:
-                if nd.model_id:
-                    others_true.add(str(nd.model_id))
-            for s in obs.chains.get(it.node_id, ())[:3]:
-                if s.model_id:
-                    others_pred.add(str(s.model_id))
+        # competitor sets are computed PER CANDIDATE below (excluding self first,
+        # then aggregating others, then intersecting -- advisor fix 2026-10-16).
 
         # per-state improvable flag (cached labels)
         top5 = [r["label_dj"] for r in srows if r.get("in_top5")]
@@ -142,8 +131,20 @@ def main() -> int:
             chain = obs.chains.get(node, ())
             p_models = [str(s.model_id) for s in chain[:3] if s.model_id]
             p_compute = sum(max(0.1, s.runtime_ms - s.load_ms) for s in chain[:3] if s.lane == "gpu")
-            others_pred_wo_self = others_pred - set(p_models)  # exclude candidate's own models too (cache view)
-            others_true_wo_self = others_true - set(t_models)
+            comp_true: set[str] = set()
+            comp_pred: set[str] = set()
+            for other in obs.ready:
+                if other.lane != "gpu" or str(other.node_id) == node:
+                    continue
+                nxt_o, _ = true_chains[str(other.node_id)]
+                for nd in nxt_o:
+                    if nd.model_id:
+                        comp_true.add(str(nd.model_id))
+                for stp in obs.chains.get(other.node_id, ())[:3]:
+                    if stp.model_id:
+                        comp_pred.add(str(stp.model_id))
+            others_pred_wo_self = comp_pred
+            others_true_wo_self = comp_true
             feat = {
                 "t_next3_not_resident": float(len(set(t_not_res))),
                 "t_next3_coldload_ms": float(sum(model_load.get(m, 0.0) for m in set(t_not_res))),
