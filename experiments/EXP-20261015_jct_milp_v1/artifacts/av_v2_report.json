@@ -1,0 +1,266 @@
+{
+ "schema": "fast-action-value-v2-risk-h5v1",
+ "timestamp": "2026-10-17T10:11:20+0800",
+ "train_states": 70,
+ "dev_states": 43,
+ "primary_lambda": 0.5,
+ "shuffle_seed": 7,
+ "results": {
+  "Prior|lam0.0": {
+   "states": 43,
+   "mean_dj_ms": 0.0,
+   "improved": 0,
+   "worsened": 0,
+   "tied": 43,
+   "actual_switches": 0,
+   "worst_deterioration_ms": 0.0,
+   "worst_decile_loss_ms": 0.0,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 0.0,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": 0.0,
+    "burst64_r150_b15_ep03": 0.0,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 0.0,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": 0.0,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": 0.0
+   },
+   "theta": "always_pdrs",
+   "lambda": 0.0,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 80.5,
+    "100.0": 63.7,
+    "250.0": 9.8,
+    "500.0": 22.4,
+    "1000.0": 8.5
+   }
+  },
+  "Prior|lam0.5": {
+   "states": 43,
+   "mean_dj_ms": 0.0,
+   "improved": 0,
+   "worsened": 0,
+   "tied": 43,
+   "actual_switches": 0,
+   "worst_deterioration_ms": 0.0,
+   "worst_decile_loss_ms": 0.0,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 0.0,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": 0.0,
+    "burst64_r150_b15_ep03": 0.0,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 0.0,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": 0.0,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": 0.0
+   },
+   "theta": "always_pdrs",
+   "lambda": 0.5,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 728.6,
+    "100.0": 686.9,
+    "250.0": 271.4,
+    "500.0": 283.4,
+    "1000.0": 156.9
+   }
+  },
+  "Prior+H5v0|lam0.0": {
+   "states": 43,
+   "mean_dj_ms": -51.9,
+   "improved": 4,
+   "worsened": 4,
+   "tied": 35,
+   "actual_switches": 8,
+   "worst_deterioration_ms": 918.4,
+   "worst_decile_loss_ms": 503.8,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 43.1,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": -37.8,
+    "burst64_r150_b15_ep03": 143.8,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 140.8,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": -193.6,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": -902.3
+   },
+   "theta": 250.0,
+   "lambda": 0.0,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 50.6,
+    "100.0": 47.7,
+    "250.0": -7.8,
+    "500.0": 8.5,
+    "1000.0": 8.5
+   }
+  },
+  "Prior+H5v0|lam0.5": {
+   "states": 43,
+   "mean_dj_ms": 0.0,
+   "improved": 0,
+   "worsened": 0,
+   "tied": 43,
+   "actual_switches": 0,
+   "worst_deterioration_ms": 0.0,
+   "worst_decile_loss_ms": 0.0,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 0.0,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": 0.0,
+    "burst64_r150_b15_ep03": 0.0,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 0.0,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": 0.0,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": 0.0
+   },
+   "theta": "always_pdrs",
+   "lambda": 0.5,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 613.9,
+    "100.0": 607.2,
+    "250.0": 240.0,
+    "500.0": 156.9,
+    "1000.0": 156.9
+   }
+  },
+  "Prior+H5v1|lam0.0": {
+   "states": 43,
+   "mean_dj_ms": 0.0,
+   "improved": 0,
+   "worsened": 0,
+   "tied": 43,
+   "actual_switches": 0,
+   "worst_deterioration_ms": 0.0,
+   "worst_decile_loss_ms": 0.0,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 0.0,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": 0.0,
+    "burst64_r150_b15_ep03": 0.0,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 0.0,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": 0.0,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": 0.0
+   },
+   "theta": "always_pdrs",
+   "lambda": 0.0,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 120.4,
+    "100.0": 74.9,
+    "250.0": 16.6,
+    "500.0": 35.6,
+    "1000.0": 0.0
+   }
+  },
+  "Prior+H5v1|lam0.5": {
+   "states": 43,
+   "mean_dj_ms": 0.0,
+   "improved": 0,
+   "worsened": 0,
+   "tied": 43,
+   "actual_switches": 0,
+   "worst_deterioration_ms": 0.0,
+   "worst_decile_loss_ms": 0.0,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 0.0,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": 0.0,
+    "burst64_r150_b15_ep03": 0.0,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 0.0,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": 0.0,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": 0.0
+   },
+   "theta": "always_pdrs",
+   "lambda": 0.5,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 898.1,
+    "100.0": 761.6,
+    "250.0": 361.2,
+    "500.0": 605.1,
+    "1000.0": 0.0
+   }
+  },
+  "Prior+H5shuf|lam0.0": {
+   "states": 43,
+   "mean_dj_ms": -142.4,
+   "improved": 8,
+   "worsened": 8,
+   "tied": 27,
+   "actual_switches": 16,
+   "worst_deterioration_ms": 918.4,
+   "worst_decile_loss_ms": 464.4,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": -107.2,
+    "burst64_r150_b15_ep01": -67.4,
+    "burst64_r150_b15_ep02": 51.4,
+    "burst64_r150_b15_ep03": -636.6,
+    "burst64_r150_b15_ep04": 9.0,
+    "burst64_r150_b15_ep05": 172.2,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": -97.7,
+    "burst64_r150_b15_ep08": -30.2,
+    "burst64_r150_b15_ep09": -902.3
+   },
+   "theta": 100.0,
+   "lambda": 0.0,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": -0.5,
+    "100.0": -32.3,
+    "250.0": 23.9,
+    "500.0": 0.9,
+    "1000.0": 8.5
+   }
+  },
+  "Prior+H5shuf|lam0.5": {
+   "states": 43,
+   "mean_dj_ms": 0.0,
+   "improved": 0,
+   "worsened": 0,
+   "tied": 43,
+   "actual_switches": 0,
+   "worst_deterioration_ms": 0.0,
+   "worst_decile_loss_ms": 0.0,
+   "per_episode_mean_dj": {
+    "burst64_r150_b15_ep00": 0.0,
+    "burst64_r150_b15_ep01": 0.0,
+    "burst64_r150_b15_ep02": 0.0,
+    "burst64_r150_b15_ep03": 0.0,
+    "burst64_r150_b15_ep04": 0.0,
+    "burst64_r150_b15_ep05": 0.0,
+    "burst64_r150_b15_ep06": 0.0,
+    "burst64_r150_b15_ep07": 0.0,
+    "burst64_r150_b15_ep08": 0.0,
+    "burst64_r150_b15_ep09": 0.0
+   },
+   "theta": "always_pdrs",
+   "lambda": 0.5,
+   "train_oof_objective": {
+    "always_pdrs": 0.0,
+    "0.0": 503.4,
+    "100.0": 339.3,
+    "250.0": 321.8,
+    "500.0": 124.2,
+    "1000.0": 156.9
+   }
+  }
+ }
+}
