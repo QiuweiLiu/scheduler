@@ -1,0 +1,421 @@
+{
+ "schema": "gate1a-p2",
+ "timestamp": "2026-10-17T21:43:08+0800",
+ "des_fingerprint": "280c3dbbbc25",
+ "donors": [
+  4,
+  5,
+  6,
+  15,
+  16,
+  17,
+  18
+ ],
+ "states": [
+  {
+   "state": "burst64_r150_b15_ep12@0.25",
+   "stratum": "many",
+   "now_ms": 519226.429,
+   "arrived": 8,
+   "future": 56,
+   "pool": 1,
+   "common_pool": 1,
+   "n_scenarios": 8,
+   "best_fixed_action": "56yT3H_DjVE_langgraph_react_1786911592293:action:9|1",
+   "best_fixed_improvement_ms": -0.0,
+   "perfect_info_improvement_ms": -0.0,
+   "voi_ms": 0.0,
+   "n_distinct_best": 1,
+   "per_scenario_voi_contribution": {
+    "orig": 0.0,
+    "d4": 0.0,
+    "d5": 0.0,
+    "d6": 0.0,
+    "d15": 0.0,
+    "d16": 0.0,
+    "d17": 0.0,
+    "d18": 0.0
+   },
+   "loo_voi": {
+    "orig": 0.0,
+    "d4": 0.0,
+    "d5": 0.0,
+    "d6": 0.0,
+    "d15": 0.0,
+    "d16": 0.0,
+    "d17": 0.0,
+    "d18": 0.0
+   },
+   "advantage_stability": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "pdrs_action": [
+    "56yT3H_DjVE_langgraph_react_1786911592293:action:9",
+    1
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep12@0.35",
+   "stratum": "many",
+   "now_ms": 735397.917,
+   "arrived": 11,
+   "future": 53,
+   "pool": 2,
+   "common_pool": 2,
+   "n_scenarios": 8,
+   "best_fixed_action": "DK6bKtXUE1c_langgraph_react_1786923721898:api_call:2|0",
+   "best_fixed_improvement_ms": -0.0,
+   "perfect_info_improvement_ms": 189.3,
+   "voi_ms": 189.3,
+   "n_distinct_best": 2,
+   "per_scenario_voi_contribution": {
+    "orig": 0.0,
+    "d4": 238.7,
+    "d5": 0.0,
+    "d6": 1275.8,
+    "d15": 0.0,
+    "d16": 0.0,
+    "d17": 0.0,
+    "d18": 0.0
+   },
+   "loo_voi": {
+    "orig": 216.4,
+    "d4": 182.3,
+    "d5": 216.4,
+    "d6": 34.1,
+    "d15": 216.4,
+    "d16": 216.4,
+    "d17": 37.7,
+    "d18": 216.4
+   },
+   "advantage_stability": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "pdrs_action": [
+    "DK6bKtXUE1c_langgraph_react_1786923721898:api_call:2",
+    0
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep13@0.25",
+   "stratum": "many",
+   "now_ms": 389926.18399999995,
+   "arrived": 19,
+   "future": 45,
+   "pool": 4,
+   "common_pool": 4,
+   "n_scenarios": 8,
+   "best_fixed_action": "Fqptx5fNXR4_star_1786905929130:api_call:2|0",
+   "best_fixed_improvement_ms": 305.6,
+   "perfect_info_improvement_ms": 1109.5,
+   "voi_ms": 803.9,
+   "n_distinct_best": 2,
+   "per_scenario_voi_contribution": {
+    "orig": 0.0,
+    "d4": 192.4,
+    "d5": 0.0,
+    "d6": 41.9,
+    "d15": 361.0,
+    "d16": 5084.8,
+    "d17": 0.0,
+    "d18": 750.8
+   },
+   "loo_voi": {
+    "orig": 918.7,
+    "d4": 891.2,
+    "d5": 869.7,
+    "d6": 912.7,
+    "d15": 867.1,
+    "d16": 192.3,
+    "d17": 492.7,
+    "d18": 811.4
+   },
+   "advantage_stability": {
+    "mean": -305.6,
+    "std": 2817.3
+   },
+   "pdrs_action": [
+    "UeOy1WKeTRY_star_1786906350729:api_call:8",
+    0
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep09@0.35",
+   "stratum": "medium",
+   "now_ms": 493854.76899999985,
+   "arrived": 39,
+   "future": 25,
+   "pool": 16,
+   "common_pool": 16,
+   "n_scenarios": 8,
+   "best_fixed_action": "G267g0DpCVg_star_1786929533315:api_call:6|1",
+   "best_fixed_improvement_ms": 8.2,
+   "perfect_info_improvement_ms": 667.9,
+   "voi_ms": 659.7,
+   "n_distinct_best": 6,
+   "per_scenario_voi_contribution": {
+    "orig": 1020.6,
+    "d4": 321.4,
+    "d5": 267.8,
+    "d6": 0.0,
+    "d15": 89.3,
+    "d16": 151.0,
+    "d17": 1196.5,
+    "d18": 2230.9
+   },
+   "loo_voi": {
+    "orig": 535.0,
+    "d4": 672.3,
+    "d5": 711.0,
+    "d6": 642.9,
+    "d15": 623.3,
+    "d16": 706.7,
+    "d17": 514.5,
+    "d18": 435.2
+   },
+   "advantage_stability": {
+    "mean": -8.2,
+    "std": 898.0
+   },
+   "pdrs_action": [
+    "iC54QQSe4_I_star_1786928149769:api_call:6",
+    1
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep14@0.55",
+   "stratum": "medium",
+   "now_ms": 811720.722826172,
+   "arrived": 41,
+   "future": 23,
+   "pool": 6,
+   "common_pool": 6,
+   "n_scenarios": 8,
+   "best_fixed_action": "MZEdnBcLcfg_star_1786917622972:api_call:5|0",
+   "best_fixed_improvement_ms": 280.1,
+   "perfect_info_improvement_ms": 1602.2,
+   "voi_ms": 1322.1,
+   "n_distinct_best": 4,
+   "per_scenario_voi_contribution": {
+    "orig": 1274.6,
+    "d4": 0.0,
+    "d5": 869.0,
+    "d6": 0.0,
+    "d15": 419.5,
+    "d16": 659.6,
+    "d17": 0.0,
+    "d18": 7354.2
+   },
+   "loo_voi": {
+    "orig": 1328.9,
+    "d4": 1511.0,
+    "d5": 1386.8,
+    "d6": 1511.0,
+    "d15": 1451.1,
+    "d16": 1416.8,
+    "d17": 1311.6,
+    "d18": 460.4
+   },
+   "advantage_stability": {
+    "mean": -280.1,
+    "std": 1421.4
+   },
+   "pdrs_action": [
+    "V5M_grieetw_langgraph_react_1786931094741:api_call:11",
+    0
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep08@0.45",
+   "stratum": "medium",
+   "now_ms": 665695.3931816405,
+   "arrived": 43,
+   "future": 21,
+   "pool": 11,
+   "common_pool": 11,
+   "n_scenarios": 8,
+   "best_fixed_action": "YPvxuoNLgPE_langgraph_react_1786922564799:action:13|1",
+   "best_fixed_improvement_ms": -0.0,
+   "perfect_info_improvement_ms": 944.8,
+   "voi_ms": 944.8,
+   "n_distinct_best": 5,
+   "per_scenario_voi_contribution": {
+    "orig": 1594.7,
+    "d4": 0.0,
+    "d5": 1030.9,
+    "d6": 3407.0,
+    "d15": 0.0,
+    "d16": 1289.5,
+    "d17": 236.3,
+    "d18": 0.0
+   },
+   "loo_voi": {
+    "orig": 852.0,
+    "d4": 1079.8,
+    "d5": 932.5,
+    "d6": 593.1,
+    "d15": 1079.8,
+    "d16": 895.6,
+    "d17": 1046.0,
+    "d18": 919.5
+   },
+   "advantage_stability": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "pdrs_action": [
+    "YPvxuoNLgPE_langgraph_react_1786922564799:action:13",
+    1
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep07@0.65",
+   "stratum": "few",
+   "now_ms": 996095.7502519537,
+   "arrived": 62,
+   "future": 2,
+   "pool": 17,
+   "common_pool": 17,
+   "n_scenarios": 8,
+   "best_fixed_action": "KlbDo9o5SC8_langgraph_react_1786922355235:api_call:4|1",
+   "best_fixed_improvement_ms": -0.0,
+   "perfect_info_improvement_ms": 189.9,
+   "voi_ms": 189.9,
+   "n_distinct_best": 4,
+   "per_scenario_voi_contribution": {
+    "orig": 315.3,
+    "d4": 649.5,
+    "d5": 36.6,
+    "d6": 121.5,
+    "d15": 0.0,
+    "d16": 0.0,
+    "d17": 0.0,
+    "d18": 396.1
+   },
+   "loo_voi": {
+    "orig": 172.0,
+    "d4": 124.2,
+    "d5": 211.8,
+    "d6": 199.6,
+    "d15": 217.0,
+    "d16": 217.0,
+    "d17": 217.0,
+    "d18": 160.4
+   },
+   "advantage_stability": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "pdrs_action": [
+    "KlbDo9o5SC8_langgraph_react_1786922355235:api_call:4",
+    1
+   ]
+  },
+  {
+   "state": "burst64_r150_b15_ep12@0.55",
+   "stratum": "few",
+   "now_ms": 1141746.2121289065,
+   "arrived": 63,
+   "future": 1,
+   "pool": 37,
+   "common_pool": 37,
+   "n_scenarios": 8,
+   "best_fixed_action": "KlbDo9o5SC8_langgraph_react_1786922355235:api_call:6|0",
+   "best_fixed_improvement_ms": 872.2,
+   "perfect_info_improvement_ms": 1134.1,
+   "voi_ms": 261.8,
+   "n_distinct_best": 4,
+   "per_scenario_voi_contribution": {
+    "orig": 342.4,
+    "d4": 483.1,
+    "d5": 0.0,
+    "d6": 166.3,
+    "d15": 179.1,
+    "d16": 262.4,
+    "d17": 151.6,
+    "d18": 509.9
+   },
+   "loo_voi": {
+    "orig": 250.3,
+    "d4": 230.2,
+    "d5": 299.3,
+    "d6": 275.5,
+    "d15": 265.0,
+    "d16": 261.8,
+    "d17": 129.8,
+    "d18": 226.4
+   },
+   "advantage_stability": {
+    "mean": -872.2,
+    "std": 413.6
+   },
+   "pdrs_action": [
+    "I2dv1jNM7gM_star_1786908639862:api_call:8",
+    0
+   ]
+  }
+ ],
+ "hard_failures": [],
+ "selection_rule": "frozen: sort candidate states (eps 7-14 x fracs) by remaining future arrivals; top3=many, middle3=medium, last2=few",
+ "selected": [
+  {
+   "stratum": "many",
+   "episode": "burst64_r150_b15_ep12",
+   "frac": 0.25,
+   "arrived": 8,
+   "future": 56
+  },
+  {
+   "stratum": "many",
+   "episode": "burst64_r150_b15_ep12",
+   "frac": 0.35,
+   "arrived": 11,
+   "future": 53
+  },
+  {
+   "stratum": "many",
+   "episode": "burst64_r150_b15_ep13",
+   "frac": 0.25,
+   "arrived": 19,
+   "future": 45
+  },
+  {
+   "stratum": "medium",
+   "episode": "burst64_r150_b15_ep09",
+   "frac": 0.35,
+   "arrived": 39,
+   "future": 25
+  },
+  {
+   "stratum": "medium",
+   "episode": "burst64_r150_b15_ep14",
+   "frac": 0.55,
+   "arrived": 41,
+   "future": 23
+  },
+  {
+   "stratum": "medium",
+   "episode": "burst64_r150_b15_ep08",
+   "frac": 0.45,
+   "arrived": 43,
+   "future": 21
+  },
+  {
+   "stratum": "few",
+   "episode": "burst64_r150_b15_ep07",
+   "frac": 0.65,
+   "arrived": 62,
+   "future": 2
+  },
+  {
+   "stratum": "few",
+   "episode": "burst64_r150_b15_ep12",
+   "frac": 0.55,
+   "arrived": 63,
+   "future": 1
+  }
+ ],
+ "wall_s": 2339.4
+}
