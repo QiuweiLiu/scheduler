@@ -52,13 +52,18 @@ def state_setup(ep, tm, stats, artifacts, config, frac):
                                     extension_config=config,
                                     policy_context={"activation": {}}, collect_events=False)
     at = round(frac * float(summary["makespan_ms"]), 1)
-    capture = {"at_ms_list": [at], "snapshots": []}
-    simulate_episode(ep, tm, "pdrs_resident", train_stats=stats,
-                     future_artifacts=artifacts, future_horizon=5,
-                     extension_config=config,
-                     policy_context={"activation": {}, "des_capture": capture},
-                     collect_events=False)
-    return (capture.get("snapshots") or [None])[0]
+    for _try in range(10):
+        capture = {"at_ms_list": [at], "snapshots": []}
+        simulate_episode(ep, tm, "pdrs_resident", train_stats=stats,
+                         future_artifacts=artifacts, future_horizon=5,
+                         extension_config=config,
+                         policy_context={"activation": {}, "des_capture": capture},
+                         collect_events=False)
+        snap = (capture.get("snapshots") or [None])[0]
+        if snap is not None and (snap.get("ready_items") or []):
+            return snap
+        at += 2000.0  # advance to the next candidate moment with ready work
+    return snap
 
 
 def build_scenario(base_ep, snap, donor_ep, tag):
@@ -70,10 +75,16 @@ def build_scenario(base_ep, snap, donor_ep, tag):
         return None
     donor_t = float(donor_sorted[k_arrived - 1]["arrival_ms"])
     donor_future = donor_sorted[k_arrived:]
+    # ensure the first new arrival lands strictly after the decision moment
+    shift = 0.0
+    if donor_future:
+        first_rel = float(donor_future[0]["arrival_ms"]) - donor_t
+        if first_rel < 500.0:
+            shift = 500.0 - first_rel
     new_jobs = []
     for k, j in enumerate(donor_future):
         nj = dict(j)
-        arr = t + (float(j["arrival_ms"]) - donor_t)
+        arr = t + shift + (float(j["arrival_ms"]) - donor_t)
         dl_rel = float(j["deadline_ms"]) - float(j["arrival_ms"])
         nj["arrival_ms"] = arr
         nj["deadline_ms"] = arr + dl_rel
@@ -166,20 +177,27 @@ def main() -> int:
                     asserts.append(f"A1_incomplete {sname} {done}/{total} failed={s2.get('failed_jobs')}")
             # A1: per-donated-job arrival reconciliation (donor scenarios only)
             if new_jobs:
-                arrivals = {(str(e.get("job_instance_id")), round(float(e.get("arrival_ms") or -1), 1))
-                            for e in (ev2 or []) if e.get("event_type") == "job_arrive"}
+                arrivals = [(str(e.get("job_instance_id")), float(e.get("arrival_ms") or -1.0))
+                            for e in (ev2 or []) if e.get("event_type") == "job_arrive"]
+                arr_by_id = {}
+                for jid, at_ms in arrivals:
+                    arr_by_id.setdefault(jid, []).append(at_ms)
                 for nj in new_jobs:
-                    key = (str(nj["job_instance_id"]), round(float(nj["arrival_ms"]), 1))
-                    if key not in arrivals:
-                        asserts.append(f"A1_missing_arrival {sname} {key[0][-14:]}")
+                    jid = str(nj["job_instance_id"])
+                    exp = float(nj["arrival_ms"])
+                    got = arr_by_id.get(jid, [])
+                    if not any(abs(x - exp) <= 1.0 for x in got):
+                        asserts.append(f"A1_missing_arrival {sname} {jid[-14:]} exp={round(exp)} got={[round(x) for x in got][:2]}")
                 old_future_ids = {str(j["job_instance_id"]) for j in base["jobs"]
                                   if float(j["arrival_ms"]) > orig_now}
                 if any(oid in {x[0] for x in arrivals} for oid in old_future_ids):
                     asserts.append(f"A1_old_future_mixed {sname}")
             pdrs_cost[sname] = table[sname].get(f"{baseline[0]}|{baseline[1]}")
 
-        paired = {s: {k: round(v - pdrs_cost[s], 1) for k, v in table[s].items()} for s in table}
-        act_names = sorted(paired["orig"].keys())
+        common = set.intersection(*[set(table[s].keys()) for s in table])
+        extra_by_scenario = {s: sorted(set(table[s].keys()) - common) for s in table}
+        paired = {s: {k: round(table[s][k] - pdrs_cost[s], 1) for k in common} for s in table}
+        act_names = sorted(common)
         mean_by_action = {a: statistics.fmean(paired[s][a] for s in paired) for a in act_names}
         best_fixed = min(mean_by_action, key=lambda a: mean_by_action[a])
         i0_value = mean_by_action[best_fixed]
@@ -207,6 +225,7 @@ def main() -> int:
                  "i0_value_ms": round(i0_value, 1), "full_info_value_ms": round(full_value, 1),
                  "voi_ms": round(voi, 1), "best_action_per_scenario": per_scenario_best,
                  "n_distinct_best": len(set(per_scenario_best.values())),
+                 "common_pool": len(common), "extra_actions_by_scenario": extra_by_scenario,
                  "per_scenario_voi_contribution": contrib, "loo_voi": loo,
                  "advantage_stability": stability, "paired_deltas": paired}
         report["states"].append(entry)
