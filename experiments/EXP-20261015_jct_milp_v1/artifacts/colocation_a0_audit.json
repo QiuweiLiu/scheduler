@@ -1,0 +1,47 @@
+{
+ "schema": "colocation-a0-audit",
+ "files": {
+  "colocation_table": {
+   "path": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_colocation_table_v1.json",
+   "exists": true,
+   "sha256": "0ada4da24336f8d41ad57873fa5c499fcb7d16ce39eb8ea35b12d925325fa70f",
+   "size": 5716
+  },
+  "interference_additive": {
+   "path": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_interference_additive_v1.json",
+   "exists": true,
+   "sha256": "2c0e4330acc16f4efa9ac162c8da05fc49645718ad8193718e007a80dc8da822",
+   "size": 5568
+  },
+  "calibration": {
+   "path": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_calibration.json",
+   "exists": true,
+   "sha256": "75c113622af696928e4a46383be2ba0fa4d1b2f6dfc7919bf999d261db3ba3b1",
+   "size": 14578
+  },
+  "v7_config": {
+   "path": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/substrate_extension_v7.json",
+   "exists": true,
+   "sha256": "165d7631da59577280915b2274e59cfb3c8c3269353bdcbaeabc77638d86ed76",
+   "size": 16926
+  }
+ },
+ "checks": {
+  "gpu_identity": "NVIDIA GeForce RTX 4080",
+  "deployment": "multi_process",
+  "probe_rounds": 3,
+  "v7_colocation_enabled": true,
+  "v7_source_artifact": "experiments/EXP-20261004_real_strata_calibration_v1/artifacts/real_strata_colocation_table_v1.json",
+  "n_cells_original": 11,
+  "n_cells_v7": 11,
+  "colocation_cell_mismatches": [],
+  "colocation_cells_match": true,
+  "v7_interference_section": "prefetch_interference",
+  "interference_cells_original": 12,
+  "interference_cells_v7": 12,
+  "interference_mismatches": [],
+  "interference_cells_match": true
+ },
+ "failures": [],
+ "A0_status": "PASS"
+}
