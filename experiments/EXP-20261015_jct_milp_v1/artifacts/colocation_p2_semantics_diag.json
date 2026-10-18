@@ -1,0 +1,198 @@
+{
+ "schema": "colocation-p2-semantics-diag",
+ "sync_start": [
+  {
+   "cell_id": "A_8B[answer_generation]|4B[planner]",
+   "short_side": "a",
+   "piecewise_long_finish": 1526.3,
+   "sticky_long_finish": 1629.3,
+   "measured_long_median": 1629.3,
+   "piecewise_dev": -103.0,
+   "sticky_dev": -0.0
+  },
+  {
+   "cell_id": "A_8B[planner]|4B[planner]",
+   "short_side": "b",
+   "piecewise_long_finish": 2424.3,
+   "sticky_long_finish": 2537.3,
+   "measured_long_median": 2537.3,
+   "piecewise_dev": -113.0,
+   "sticky_dev": 0.0
+  },
+  {
+   "cell_id": "A_8B[videotool_spatial]|4B[planner]",
+   "short_side": "b",
+   "piecewise_long_finish": 2425.5,
+   "sticky_long_finish": 2524.9,
+   "measured_long_median": 2525.0,
+   "piecewise_dev": -99.5,
+   "sticky_dev": -0.1
+  },
+  {
+   "cell_id": "A_8B[answer_generation]|3B[answer_generation]",
+   "short_side": "b",
+   "piecewise_long_finish": 225.4,
+   "sticky_long_finish": 247.1,
+   "measured_long_median": 247.1,
+   "piecewise_dev": -21.7,
+   "sticky_dev": 0.0
+  },
+  {
+   "cell_id": "A_8B[answer_generation]|3B[videotool_spatial]",
+   "short_side": "a",
+   "piecewise_long_finish": 1286.3,
+   "sticky_long_finish": 1361.9,
+   "measured_long_median": 1362.0,
+   "piecewise_dev": -75.7,
+   "sticky_dev": -0.1
+  },
+  {
+   "cell_id": "A_8B[planner]|3B[answer_generation]",
+   "short_side": "b",
+   "piecewise_long_finish": 2161.8,
+   "sticky_long_finish": 2217.4,
+   "measured_long_median": 2217.3,
+   "piecewise_dev": -55.5,
+   "sticky_dev": 0.1
+  },
+  {
+   "cell_id": "A_8B[planner]|3B[videotool_spatial]",
+   "short_side": "b",
+   "piecewise_long_finish": 2272.0,
+   "sticky_long_finish": 2343.0,
+   "measured_long_median": 2343.1,
+   "piecewise_dev": -71.1,
+   "sticky_dev": -0.1
+  },
+  {
+   "cell_id": "A_8B[videotool_spatial]|3B[answer_generation]",
+   "short_side": "b",
+   "piecewise_long_finish": 2163.9,
+   "sticky_long_finish": 2242.2,
+   "measured_long_median": 2242.2,
+   "piecewise_dev": -78.3,
+   "sticky_dev": 0.0
+  },
+  {
+   "cell_id": "A_8B[videotool_spatial]|3B[videotool_spatial]",
+   "short_side": "b",
+   "piecewise_long_finish": 2275.0,
+   "sticky_long_finish": 2328.3,
+   "measured_long_median": 2328.2,
+   "piecewise_dev": -53.2,
+   "sticky_dev": 0.1
+  },
+  {
+   "cell_id": "A_4B[planner]|3B[answer_generation]",
+   "short_side": "b",
+   "piecewise_long_finish": 1548.6,
+   "sticky_long_finish": 1611.2,
+   "measured_long_median": 1611.1,
+   "piecewise_dev": -62.5,
+   "sticky_dev": 0.1
+  },
+  {
+   "cell_id": "A_4B[planner]|3B[videotool_spatial]",
+   "short_side": "b",
+   "piecewise_long_finish": 1590.3,
+   "sticky_long_finish": 1599.0,
+   "measured_long_median": 1599.0,
+   "piecewise_dev": -8.7,
+   "sticky_dev": 0.0
+  }
+ ],
+ "late_join_grid": [
+  {
+   "cell_id": "A_8B[answer_generation]|4B[planner]",
+   "rows": [
+    {
+     "join_ms": 0,
+     "piecewise_long_finish": 1526.3,
+     "sticky_long_finish": 1629.3,
+     "divergence_ms": 103.0
+    },
+    {
+     "join_ms": 50,
+     "piecewise_long_finish": 1526.3,
+     "sticky_long_finish": 1625.0,
+     "divergence_ms": 98.8
+    },
+    {
+     "join_ms": 100,
+     "piecewise_long_finish": 1526.3,
+     "sticky_long_finish": 1620.8,
+     "divergence_ms": 94.5
+    },
+    {
+     "join_ms": 200,
+     "piecewise_long_finish": 1526.3,
+     "sticky_long_finish": 1612.2,
+     "divergence_ms": 85.9
+    },
+    {
+     "join_ms": 400,
+     "piecewise_long_finish": 1526.3,
+     "sticky_long_finish": 1595.1,
+     "divergence_ms": 68.9
+    },
+    {
+     "join_ms": 800,
+     "piecewise_long_finish": 1526.3,
+     "sticky_long_finish": 1561.0,
+     "divergence_ms": 34.7
+    },
+    {
+     "join_ms": 1400,
+     "piecewise_long_finish": 1509.7,
+     "sticky_long_finish": 1509.7,
+     "divergence_ms": 0.0
+    }
+   ]
+  },
+  {
+   "cell_id": "A_8B[planner]|4B[planner]",
+   "rows": [
+    {
+     "join_ms": 0,
+     "piecewise_long_finish": 2424.3,
+     "sticky_long_finish": 2537.3,
+     "divergence_ms": 113.0
+    },
+    {
+     "join_ms": 200,
+     "piecewise_long_finish": 2424.3,
+     "sticky_long_finish": 2504.6,
+     "divergence_ms": 80.3
+    },
+    {
+     "join_ms": 600,
+     "piecewise_long_finish": 2439.2,
+     "sticky_long_finish": 2439.2,
+     "divergence_ms": 0.0
+    },
+    {
+     "join_ms": 1200,
+     "piecewise_long_finish": 2341.0,
+     "sticky_long_finish": 2341.0,
+     "divergence_ms": 0.0
+    },
+    {
+     "join_ms": 1800,
+     "piecewise_long_finish": 2242.9,
+     "sticky_long_finish": 2242.9,
+     "divergence_ms": 0.0
+    },
+    {
+     "join_ms": 2200,
+     "piecewise_long_finish": null,
+     "sticky_long_finish": null,
+     "divergence_ms": null
+    }
+   ]
+  }
+ ],
+ "notes": {
+  "sticky_identity": "sticky long-side finish = solo*slowdown = the frozen median coloc value by definition; zero deviation is an identity, not calibration evidence.",
+  "sequential_peers": "sticky-rate has NO measured rule for a task meeting two different peers in sequence (A+B then A+C): the 11-cell table contains no chained co-location or start-offset data."
+ }
+}
