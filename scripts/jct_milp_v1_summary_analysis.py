@@ -25,11 +25,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-P2 = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/gate1a_p2.json"
+P2 = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/gate1a_p2_expanded.json"
 WORKLOAD = ROOT / "experiments/EXP-20261014_burst64_v1/high_contention/workload_burst64_r150_b15_train.jsonl"
 TEMPLATES = ROOT / "results/processed/r7_workload_v041_ontology_no_run_container/job_templates_r7_v041.jsonl"
-OUT = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/arrival_summary_analysis.json"
-DONORS = [4, 5, 6, 15, 16, 17, 18]
+OUT = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/arrival_summary_analysis_expanded.json"
+DONORS = [0, 1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19]
 WINDOWS = [10000.0, 30000.0, 60000.0]
 
 

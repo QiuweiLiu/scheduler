@@ -40,9 +40,9 @@ from tracing.analysis.profile_contract import apply_real_workload_profile_contra
 from tracing.analysis.workload_v02_simulator import read_jsonl, simulate_episode  # noqa: E402
 
 FORMAL = ROOT / "experiments/EXP-20261014_burst64_v1/high_contention"
-OUT = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/gate1a_p2.json"
+OUT = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/gate1a_p2_expanded.json"
 AUDIT_OUT = ROOT / "experiments/EXP-20261015_jct_milp_v1/artifacts/gate1a_ep03_audit.json"
-DONORS = [4, 5, 6, 15, 16, 17, 18]
+DONORS = [0, 1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19]  # expanded pool (12 donors + orig = 13 scenarios/state)
 CAND_EPISODES = [7, 8, 9, 10, 11, 12, 13, 14]
 CAND_FRACTIONS = [0.25, 0.35, 0.45, 0.55, 0.65]
 BUDGET_S = 6600

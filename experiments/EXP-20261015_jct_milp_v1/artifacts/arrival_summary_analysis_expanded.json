@@ -1,0 +1,1799 @@
+{
+ "schema": "arrival-summary-analysis-v1",
+ "states": [
+  {
+   "state": "burst64_r150_b15_ep12@0.25",
+   "stratum": "many",
+   "voi_full_ms": 0.0,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 4,
+     "sizes": [
+      6,
+      5,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.85,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_10s": {
+     "n_groups": 4,
+     "sizes": [
+      7,
+      4,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.85,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_30s": {
+     "n_groups": 6,
+     "sizes": [
+      5,
+      2,
+      2,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.38,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_60s": {
+     "n_groups": 8,
+     "sizes": [
+      3,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.23,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_10s": {
+     "n_groups": 6,
+     "sizes": [
+      7,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.54,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_30s": {
+     "n_groups": 10,
+     "sizes": [
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 7,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_60s": {
+     "n_groups": 12,
+     "sizes": [
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 11,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_10s": {
+     "n_groups": 5,
+     "sizes": [
+      7,
+      3,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.77,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_30s": {
+     "n_groups": 6,
+     "sizes": [
+      3,
+      3,
+      3,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.69,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_60s": {
+     "n_groups": 5,
+     "sizes": [
+      7,
+      3,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.77,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S3_buckets_60s": {
+     "n_groups": 11,
+     "sizes": [
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 9,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "coverage_60s": {
+     "n_groups": 8,
+     "sizes": [
+      3,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 0.0,
+     "retention": null,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.23,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep12@0.35",
+   "stratum": "many",
+   "voi_full_ms": 601.1,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 2,
+     "sizes": [
+      7,
+      6
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 282.6,
+     "retention": 0.47,
+     "loo_mean_gain_ms": 134.2,
+     "loo_coverage": 1.0,
+     "loo_switches": 5,
+     "loo_worst_ms": -196.8
+    },
+    "S1_exact_10s": {
+     "n_groups": 6,
+     "sizes": [
+      6,
+      2,
+      2,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 577.9,
+     "retention": 0.961,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.46,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_30s": {
+     "n_groups": 6,
+     "sizes": [
+      4,
+      3,
+      3,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 581.1,
+     "retention": 0.967,
+     "loo_mean_gain_ms": 711.9,
+     "loo_coverage": 0.77,
+     "loo_switches": 4,
+     "loo_worst_ms": -196.8
+    },
+    "S1_exact_60s": {
+     "n_groups": 8,
+     "sizes": [
+      3,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 582.7,
+     "retention": 0.969,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.46,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_10s": {
+     "n_groups": 8,
+     "sizes": [
+      4,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 577.9,
+     "retention": 0.961,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.31,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_30s": {
+     "n_groups": 10,
+     "sizes": [
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 8,
+     "in_sample_voi_ms": 581.1,
+     "retention": 0.967,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.23,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_60s": {
+     "n_groups": 10,
+     "sizes": [
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 8,
+     "in_sample_voi_ms": 582.7,
+     "retention": 0.969,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.23,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_10s": {
+     "n_groups": 6,
+     "sizes": [
+      4,
+      4,
+      2,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 282.6,
+     "retention": 0.47,
+     "loo_mean_gain_ms": 83.0,
+     "loo_coverage": 0.62,
+     "loo_switches": 2,
+     "loo_worst_ms": -196.8
+    },
+    "S2_mask_30s": {
+     "n_groups": 6,
+     "sizes": [
+      5,
+      4,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 301.0,
+     "retention": 0.501,
+     "loo_mean_gain_ms": 101.4,
+     "loo_coverage": 0.69,
+     "loo_switches": 3,
+     "loo_worst_ms": -196.8
+    },
+    "S2_mask_60s": {
+     "n_groups": 4,
+     "sizes": [
+      7,
+      3,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 56.0,
+     "retention": 0.093,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.77,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    },
+    "S3_buckets_60s": {
+     "n_groups": 11,
+     "sizes": [
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 9,
+     "in_sample_voi_ms": 321.0,
+     "retention": 0.534,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "coverage_60s": {
+     "n_groups": 8,
+     "sizes": [
+      3,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 582.7,
+     "retention": 0.969,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.46,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep13@0.25",
+   "stratum": "many",
+   "voi_full_ms": 874.3,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 4,
+     "sizes": [
+      6,
+      4,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 31.6,
+     "retention": 0.036,
+     "loo_mean_gain_ms": -487.8,
+     "loo_coverage": 0.77,
+     "loo_switches": 2,
+     "loo_worst_ms": -4807.7
+    },
+    "S1_exact_10s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      4,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 198.4,
+     "retention": 0.227,
+     "loo_mean_gain_ms": -458.5,
+     "loo_coverage": 0.69,
+     "loo_switches": 4,
+     "loo_worst_ms": -3474.9
+    },
+    "S1_exact_30s": {
+     "n_groups": 8,
+     "sizes": [
+      3,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 390.2,
+     "retention": 0.446,
+     "loo_mean_gain_ms": 19.0,
+     "loo_coverage": 0.23,
+     "loo_switches": 3,
+     "loo_worst_ms": -1117.4
+    },
+    "S1_exact_60s": {
+     "n_groups": 8,
+     "sizes": [
+      4,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 233.1,
+     "retention": 0.267,
+     "loo_mean_gain_ms": -487.8,
+     "loo_coverage": 0.31,
+     "loo_switches": 2,
+     "loo_worst_ms": -4807.7
+    },
+    "S2_counts_10s": {
+     "n_groups": 7,
+     "sizes": [
+      5,
+      3,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 485.6,
+     "retention": 0.555,
+     "loo_mean_gain_ms": 199.9,
+     "loo_coverage": 0.62,
+     "loo_switches": 4,
+     "loo_worst_ms": -2704.7
+    },
+    "S2_counts_30s": {
+     "n_groups": 9,
+     "sizes": [
+      3,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 6,
+     "in_sample_voi_ms": 441.0,
+     "retention": 0.504,
+     "loo_mean_gain_ms": 19.0,
+     "loo_coverage": 0.23,
+     "loo_switches": 3,
+     "loo_worst_ms": -1117.4
+    },
+    "S2_counts_60s": {
+     "n_groups": 10,
+     "sizes": [
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 8,
+     "in_sample_voi_ms": 576.0,
+     "retention": 0.659,
+     "loo_mean_gain_ms": -208.1,
+     "loo_coverage": 0.23,
+     "loo_switches": 1,
+     "loo_worst_ms": -2704.7
+    },
+    "S2_mask_10s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      3,
+      3,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 407.9,
+     "retention": 0.467,
+     "loo_mean_gain_ms": -217.5,
+     "loo_coverage": 0.85,
+     "loo_switches": 5,
+     "loo_worst_ms": -5426.6
+    },
+    "S2_mask_30s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      3,
+      2,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 239.5,
+     "retention": 0.274,
+     "loo_mean_gain_ms": -895.3,
+     "loo_coverage": 0.62,
+     "loo_switches": 5,
+     "loo_worst_ms": -6459.3
+    },
+    "S2_mask_60s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      3,
+      3,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 306.8,
+     "retention": 0.351,
+     "loo_mean_gain_ms": -1336.8,
+     "loo_coverage": 0.85,
+     "loo_switches": 4,
+     "loo_worst_ms": -6459.3
+    },
+    "S3_buckets_60s": {
+     "n_groups": 9,
+     "sizes": [
+      4,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 7,
+     "in_sample_voi_ms": 455.4,
+     "retention": 0.521,
+     "loo_mean_gain_ms": -914.3,
+     "loo_coverage": 0.31,
+     "loo_switches": 2,
+     "loo_worst_ms": -6459.3
+    },
+    "coverage_60s": {
+     "n_groups": 8,
+     "sizes": [
+      4,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 233.1,
+     "retention": 0.267,
+     "loo_mean_gain_ms": -487.8,
+     "loo_coverage": 0.31,
+     "loo_switches": 2,
+     "loo_worst_ms": -4807.7
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep09@0.35",
+   "stratum": "medium",
+   "voi_full_ms": 473.8,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 4,
+     "sizes": [
+      7,
+      3,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 159.8,
+     "retention": 0.337,
+     "loo_mean_gain_ms": -315.8,
+     "loo_coverage": 0.77,
+     "loo_switches": 5,
+     "loo_worst_ms": -1468.1
+    },
+    "S1_exact_10s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      3,
+      2,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 211.6,
+     "retention": 0.447,
+     "loo_mean_gain_ms": -150.4,
+     "loo_coverage": 0.62,
+     "loo_switches": 3,
+     "loo_worst_ms": -1417.8
+    },
+    "S1_exact_30s": {
+     "n_groups": 7,
+     "sizes": [
+      4,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 249.3,
+     "retention": 0.526,
+     "loo_mean_gain_ms": -150.4,
+     "loo_coverage": 0.54,
+     "loo_switches": 3,
+     "loo_worst_ms": -1417.8
+    },
+    "S1_exact_60s": {
+     "n_groups": 9,
+     "sizes": [
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 351.0,
+     "retention": 0.741,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_10s": {
+     "n_groups": 8,
+     "sizes": [
+      3,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 271.8,
+     "retention": 0.574,
+     "loo_mean_gain_ms": -150.4,
+     "loo_coverage": 0.46,
+     "loo_switches": 3,
+     "loo_worst_ms": -1417.8
+    },
+    "S2_counts_30s": {
+     "n_groups": 8,
+     "sizes": [
+      4,
+      3,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 6,
+     "in_sample_voi_ms": 260.5,
+     "retention": 0.55,
+     "loo_mean_gain_ms": -150.4,
+     "loo_coverage": 0.54,
+     "loo_switches": 3,
+     "loo_worst_ms": -1417.8
+    },
+    "S2_counts_60s": {
+     "n_groups": 12,
+     "sizes": [
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 11,
+     "in_sample_voi_ms": 460.0,
+     "retention": 0.971,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_10s": {
+     "n_groups": 5,
+     "sizes": [
+      4,
+      3,
+      2,
+      2,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 196.0,
+     "retention": 0.414,
+     "loo_mean_gain_ms": -150.4,
+     "loo_coverage": 0.54,
+     "loo_switches": 3,
+     "loo_worst_ms": -1417.8
+    },
+    "S2_mask_30s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      3,
+      2,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 124.3,
+     "retention": 0.262,
+     "loo_mean_gain_ms": -150.4,
+     "loo_coverage": 0.62,
+     "loo_switches": 3,
+     "loo_worst_ms": -1417.8
+    },
+    "S2_mask_60s": {
+     "n_groups": 5,
+     "sizes": [
+      6,
+      3,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 188.6,
+     "retention": 0.398,
+     "loo_mean_gain_ms": -215.8,
+     "loo_coverage": 0.69,
+     "loo_switches": 2,
+     "loo_worst_ms": -1900.5
+    },
+    "S3_buckets_60s": {
+     "n_groups": 10,
+     "sizes": [
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 7,
+     "in_sample_voi_ms": 418.0,
+     "retention": 0.882,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "coverage_60s": {
+     "n_groups": 9,
+     "sizes": [
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 351.0,
+     "retention": 0.741,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep14@0.55",
+   "stratum": "medium",
+   "voi_full_ms": 1344.9,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 3,
+     "sizes": [
+      9,
+      3,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 706.8,
+     "retention": 0.526,
+     "loo_mean_gain_ms": 43.0,
+     "loo_coverage": 0.92,
+     "loo_switches": 3,
+     "loo_worst_ms": -684.9
+    },
+    "S1_exact_10s": {
+     "n_groups": 3,
+     "sizes": [
+      8,
+      3,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 295.9,
+     "retention": 0.22,
+     "loo_mean_gain_ms": -104.7,
+     "loo_coverage": 0.85,
+     "loo_switches": 10,
+     "loo_worst_ms": -1827.9
+    },
+    "S1_exact_30s": {
+     "n_groups": 7,
+     "sizes": [
+      4,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 865.4,
+     "retention": 0.643,
+     "loo_mean_gain_ms": -282.7,
+     "loo_coverage": 0.54,
+     "loo_switches": 7,
+     "loo_worst_ms": -1827.9
+    },
+    "S1_exact_60s": {
+     "n_groups": 9,
+     "sizes": [
+      3,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 6,
+     "in_sample_voi_ms": 1005.3,
+     "retention": 0.747,
+     "loo_mean_gain_ms": -240.8,
+     "loo_coverage": 0.23,
+     "loo_switches": 3,
+     "loo_worst_ms": -3198.4
+    },
+    "S2_counts_10s": {
+     "n_groups": 6,
+     "sizes": [
+      8,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 411.5,
+     "retention": 0.306,
+     "loo_mean_gain_ms": -100.6,
+     "loo_coverage": 0.62,
+     "loo_switches": 8,
+     "loo_worst_ms": -1827.9
+    },
+    "S2_counts_30s": {
+     "n_groups": 9,
+     "sizes": [
+      3,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 6,
+     "in_sample_voi_ms": 1092.7,
+     "retention": 0.812,
+     "loo_mean_gain_ms": -56.9,
+     "loo_coverage": 0.23,
+     "loo_switches": 3,
+     "loo_worst_ms": -338.2
+    },
+    "S2_counts_60s": {
+     "n_groups": 13,
+     "sizes": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 13,
+     "in_sample_voi_ms": 1344.9,
+     "retention": 1.0,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_10s": {
+     "n_groups": 4,
+     "sizes": [
+      8,
+      3,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 360.8,
+     "retention": 0.268,
+     "loo_mean_gain_ms": -159.5,
+     "loo_coverage": 0.85,
+     "loo_switches": 10,
+     "loo_worst_ms": -1827.9
+    },
+    "S2_mask_30s": {
+     "n_groups": 3,
+     "sizes": [
+      7,
+      3,
+      3
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 610.1,
+     "retention": 0.454,
+     "loo_mean_gain_ms": 6.4,
+     "loo_coverage": 1.0,
+     "loo_switches": 7,
+     "loo_worst_ms": -1634.6
+    },
+    "S2_mask_60s": {
+     "n_groups": 3,
+     "sizes": [
+      9,
+      2,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 314.7,
+     "retention": 0.234,
+     "loo_mean_gain_ms": 279.7,
+     "loo_coverage": 0.69,
+     "loo_switches": 1,
+     "loo_worst_ms": 0.0
+    },
+    "S3_buckets_60s": {
+     "n_groups": 7,
+     "sizes": [
+      3,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 962.3,
+     "retention": 0.715,
+     "loo_mean_gain_ms": 279.7,
+     "loo_coverage": 0.23,
+     "loo_switches": 1,
+     "loo_worst_ms": 0.0
+    },
+    "coverage_60s": {
+     "n_groups": 9,
+     "sizes": [
+      3,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 6,
+     "in_sample_voi_ms": 1005.3,
+     "retention": 0.747,
+     "loo_mean_gain_ms": -240.8,
+     "loo_coverage": 0.23,
+     "loo_switches": 3,
+     "loo_worst_ms": -3198.4
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep08@0.45",
+   "stratum": "medium",
+   "voi_full_ms": 1273.2,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 4,
+     "sizes": [
+      6,
+      4,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 507.9,
+     "retention": 0.399,
+     "loo_mean_gain_ms": -38.8,
+     "loo_coverage": 0.77,
+     "loo_switches": 10,
+     "loo_worst_ms": -2402.1
+    },
+    "S1_exact_10s": {
+     "n_groups": 4,
+     "sizes": [
+      5,
+      5,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 512.9,
+     "retention": 0.403,
+     "loo_mean_gain_ms": -163.9,
+     "loo_coverage": 0.77,
+     "loo_switches": 9,
+     "loo_worst_ms": -4866.2
+    },
+    "S1_exact_30s": {
+     "n_groups": 6,
+     "sizes": [
+      4,
+      3,
+      3,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 884.4,
+     "retention": 0.695,
+     "loo_mean_gain_ms": -398.7,
+     "loo_coverage": 0.77,
+     "loo_switches": 5,
+     "loo_worst_ms": -7697.9
+    },
+    "S1_exact_60s": {
+     "n_groups": 9,
+     "sizes": [
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 851.5,
+     "retention": 0.669,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_10s": {
+     "n_groups": 5,
+     "sizes": [
+      5,
+      3,
+      2,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 512.9,
+     "retention": 0.403,
+     "loo_mean_gain_ms": -413.6,
+     "loo_coverage": 0.62,
+     "loo_switches": 7,
+     "loo_worst_ms": -4866.2
+    },
+    "S2_counts_30s": {
+     "n_groups": 7,
+     "sizes": [
+      4,
+      3,
+      2,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 4,
+     "in_sample_voi_ms": 983.6,
+     "retention": 0.773,
+     "loo_mean_gain_ms": 12.0,
+     "loo_coverage": 0.54,
+     "loo_switches": 4,
+     "loo_worst_ms": -7697.9
+    },
+    "S2_counts_60s": {
+     "n_groups": 11,
+     "sizes": [
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 9,
+     "in_sample_voi_ms": 1002.2,
+     "retention": 0.787,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_10s": {
+     "n_groups": 4,
+     "sizes": [
+      5,
+      3,
+      3,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 494.7,
+     "retention": 0.389,
+     "loo_mean_gain_ms": -413.6,
+     "loo_coverage": 0.85,
+     "loo_switches": 7,
+     "loo_worst_ms": -4866.2
+    },
+    "S2_mask_30s": {
+     "n_groups": 4,
+     "sizes": [
+      5,
+      4,
+      3,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 703.3,
+     "retention": 0.552,
+     "loo_mean_gain_ms": -659.5,
+     "loo_coverage": 0.92,
+     "loo_switches": 8,
+     "loo_worst_ms": -7697.9
+    },
+    "S2_mask_60s": {
+     "n_groups": 4,
+     "sizes": [
+      7,
+      4,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 373.7,
+     "retention": 0.294,
+     "loo_mean_gain_ms": -953.4,
+     "loo_coverage": 0.85,
+     "loo_switches": 8,
+     "loo_worst_ms": -5338.7
+    },
+    "S3_buckets_60s": {
+     "n_groups": 11,
+     "sizes": [
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 9,
+     "in_sample_voi_ms": 1200.8,
+     "retention": 0.943,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "coverage_60s": {
+     "n_groups": 9,
+     "sizes": [
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1
+     ],
+     "singletons": 5,
+     "in_sample_voi_ms": 851.5,
+     "retention": 0.669,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.0,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep07@0.65",
+   "stratum": "few",
+   "voi_full_ms": 162.9,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 2,
+     "sizes": [
+      11,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 74.2,
+     "retention": 0.456,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.85,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_10s": {
+     "n_groups": 3,
+     "sizes": [
+      7,
+      4,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 0.0,
+     "retention": 0.0,
+     "loo_mean_gain_ms": -36.0,
+     "loo_coverage": 0.85,
+     "loo_switches": 1,
+     "loo_worst_ms": -467.7
+    },
+    "S1_exact_30s": {
+     "n_groups": 3,
+     "sizes": [
+      9,
+      2,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 83.6,
+     "retention": 0.513,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.69,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_60s": {
+     "n_groups": 2,
+     "sizes": [
+      11,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 74.2,
+     "retention": 0.456,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.85,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_10s": {
+     "n_groups": 5,
+     "sizes": [
+      7,
+      3,
+      1,
+      1,
+      1
+     ],
+     "singletons": 3,
+     "in_sample_voi_ms": 30.5,
+     "retention": 0.187,
+     "loo_mean_gain_ms": -50.1,
+     "loo_coverage": 0.77,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "S2_counts_30s": {
+     "n_groups": 6,
+     "sizes": [
+      3,
+      3,
+      3,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 109.1,
+     "retention": 0.67,
+     "loo_mean_gain_ms": -11.2,
+     "loo_coverage": 0.69,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "S2_counts_60s": {
+     "n_groups": 4,
+     "sizes": [
+      4,
+      4,
+      3,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 99.7,
+     "retention": 0.612,
+     "loo_mean_gain_ms": -11.2,
+     "loo_coverage": 0.85,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "S2_mask_10s": {
+     "n_groups": 4,
+     "sizes": [
+      7,
+      3,
+      2,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 30.5,
+     "retention": 0.187,
+     "loo_mean_gain_ms": -50.1,
+     "loo_coverage": 0.77,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "S2_mask_30s": {
+     "n_groups": 4,
+     "sizes": [
+      4,
+      4,
+      3,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 99.7,
+     "retention": 0.612,
+     "loo_mean_gain_ms": -11.2,
+     "loo_coverage": 0.85,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "S2_mask_60s": {
+     "n_groups": 4,
+     "sizes": [
+      4,
+      4,
+      3,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 99.7,
+     "retention": 0.612,
+     "loo_mean_gain_ms": -11.2,
+     "loo_coverage": 0.85,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "S3_buckets_60s": {
+     "n_groups": 6,
+     "sizes": [
+      3,
+      3,
+      3,
+      2,
+      1,
+      1
+     ],
+     "singletons": 2,
+     "in_sample_voi_ms": 109.1,
+     "retention": 0.67,
+     "loo_mean_gain_ms": -11.2,
+     "loo_coverage": 0.69,
+     "loo_switches": 2,
+     "loo_worst_ms": -467.7
+    },
+    "coverage_60s": {
+     "n_groups": 2,
+     "sizes": [
+      11,
+      2
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 74.2,
+     "retention": 0.456,
+     "loo_mean_gain_ms": 0.0,
+     "loo_coverage": 0.85,
+     "loo_switches": 0,
+     "loo_worst_ms": 0.0
+    }
+   }
+  },
+  {
+   "state": "burst64_r150_b15_ep12@0.55",
+   "stratum": "few",
+   "voi_full_ms": 259.0,
+   "n_scenarios": 13,
+   "reconcile_issues": [],
+   "summaries": {
+    "S1_coarse_60s": {
+     "n_groups": 2,
+     "sizes": [
+      12,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 37.2,
+     "retention": 0.143,
+     "loo_mean_gain_ms": 89.8,
+     "loo_coverage": 0.92,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_10s": {
+     "n_groups": 2,
+     "sizes": [
+      7,
+      6
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 0.0,
+     "retention": 0.0,
+     "loo_mean_gain_ms": -30.6,
+     "loo_coverage": 1.0,
+     "loo_switches": 2,
+     "loo_worst_ms": -294.7
+    },
+    "S1_exact_30s": {
+     "n_groups": 2,
+     "sizes": [
+      12,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 37.2,
+     "retention": 0.143,
+     "loo_mean_gain_ms": 89.8,
+     "loo_coverage": 0.92,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    },
+    "S1_exact_60s": {
+     "n_groups": 2,
+     "sizes": [
+      12,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 37.2,
+     "retention": 0.143,
+     "loo_mean_gain_ms": 89.8,
+     "loo_coverage": 0.92,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_10s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      4,
+      3
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 98.5,
+     "retention": 0.38,
+     "loo_mean_gain_ms": 239.3,
+     "loo_coverage": 1.0,
+     "loo_switches": 8,
+     "loo_worst_ms": -294.7
+    },
+    "S2_counts_30s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      6,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 169.3,
+     "retention": 0.654,
+     "loo_mean_gain_ms": 345.1,
+     "loo_coverage": 0.92,
+     "loo_switches": 9,
+     "loo_worst_ms": 0.0
+    },
+    "S2_counts_60s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      6,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 169.3,
+     "retention": 0.654,
+     "loo_mean_gain_ms": 345.1,
+     "loo_coverage": 0.92,
+     "loo_switches": 9,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_10s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      4,
+      3
+     ],
+     "singletons": 0,
+     "in_sample_voi_ms": 98.5,
+     "retention": 0.38,
+     "loo_mean_gain_ms": 239.3,
+     "loo_coverage": 1.0,
+     "loo_switches": 8,
+     "loo_worst_ms": -294.7
+    },
+    "S2_mask_30s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      6,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 169.3,
+     "retention": 0.654,
+     "loo_mean_gain_ms": 345.1,
+     "loo_coverage": 0.92,
+     "loo_switches": 9,
+     "loo_worst_ms": 0.0
+    },
+    "S2_mask_60s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      6,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 169.3,
+     "retention": 0.654,
+     "loo_mean_gain_ms": 345.1,
+     "loo_coverage": 0.92,
+     "loo_switches": 9,
+     "loo_worst_ms": 0.0
+    },
+    "S3_buckets_60s": {
+     "n_groups": 3,
+     "sizes": [
+      6,
+      6,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 169.3,
+     "retention": 0.654,
+     "loo_mean_gain_ms": 345.1,
+     "loo_coverage": 0.92,
+     "loo_switches": 9,
+     "loo_worst_ms": 0.0
+    },
+    "coverage_60s": {
+     "n_groups": 2,
+     "sizes": [
+      12,
+      1
+     ],
+     "singletons": 1,
+     "in_sample_voi_ms": 37.2,
+     "retention": 0.143,
+     "loo_mean_gain_ms": 89.8,
+     "loo_coverage": 0.92,
+     "loo_switches": 2,
+     "loo_worst_ms": 0.0
+    }
+   }
+  }
+ ]
+}
