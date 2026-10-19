@@ -1,0 +1,454 @@
+{
+ "schema": "histres-split-predictions",
+ "arms": [
+  "F0",
+  "F1"
+ ],
+ "seeds": [
+  11,
+  22,
+  33
+ ],
+ "per_seed": {
+  "11": {
+   "F0": {
+    "train": {
+     "n_rows": 13754,
+     "metrics": {
+      "runtime_qscore": 488.117253055639,
+      "length_mae": 0.05307546895448597,
+      "termination_bce": 0.0794401483037349,
+      "content_accuracy": 0.9181282309623067,
+      "next_role_acc": 0.9665924276169265,
+      "next_family_acc": 0.8898406715778654,
+      "load_brier": 0.013104009325929967,
+      "load_dur_qscore": 210.29446787379652
+     }
+    },
+    "validation": {
+     "n_rows": 2029,
+     "metrics": {
+      "runtime_qscore": 605.9236325145968,
+      "length_mae": 0.051256776737309016,
+      "termination_bce": 0.08809843681628284,
+      "content_accuracy": 0.8993288205071645,
+      "next_role_acc": 0.9432541980312681,
+      "next_family_acc": 0.8436595251881877,
+      "load_brier": 0.010809824491302817,
+      "load_dur_qscore": 230.66979943260964
+     }
+    }
+   },
+   "F1": {
+    "train": {
+     "n_rows": 13754,
+     "metrics": {
+      "runtime_qscore": 488.2428196518798,
+      "length_mae": 0.05300276283263051,
+      "termination_bce": 0.07952650805978945,
+      "content_accuracy": 0.9181175913915335,
+      "next_role_acc": 0.9666780880589344,
+      "next_family_acc": 0.8896693506938496,
+      "load_brier": 0.013092126074510919,
+      "load_dur_qscore": 210.29588636369934
+     }
+    },
+    "validation": {
+     "n_rows": 2029,
+     "metrics": {
+      "runtime_qscore": 605.7645554251226,
+      "length_mae": 0.04928536224741252,
+      "termination_bce": 0.08816712706544762,
+      "content_accuracy": 0.8992518451117177,
+      "next_role_acc": 0.9432541980312681,
+      "next_family_acc": 0.842501447596989,
+      "load_brier": 0.010807176853902024,
+      "load_dur_qscore": 229.86391323123908
+     }
+    }
+   }
+  },
+  "22": {
+   "F0": {
+    "train": {
+     "n_rows": 13754,
+     "metrics": {
+      "runtime_qscore": 508.3907891150811,
+      "length_mae": 0.055329358732005236,
+      "termination_bce": 0.08119060790021172,
+      "content_accuracy": 0.915714646032018,
+      "next_role_acc": 0.9658214836388556,
+      "next_family_acc": 0.8868425561075896,
+      "load_brier": 0.014411070361026916,
+      "load_dur_qscore": 236.07407769049658
+     }
+    },
+    "validation": {
+     "n_rows": 2029,
+     "metrics": {
+      "runtime_qscore": 602.5945883304447,
+      "length_mae": 0.05224248398225727,
+      "termination_bce": 0.08071717117086759,
+      "content_accuracy": 0.8988400841904026,
+      "next_role_acc": 0.9432541980312681,
+      "next_family_acc": 0.8453966415749855,
+      "load_brier": 0.011337655931954054,
+      "load_dur_qscore": 255.31777712528518
+     }
+    }
+   },
+   "F1": {
+    "train": {
+     "n_rows": 13754,
+     "metrics": {
+      "runtime_qscore": 508.4011881581069,
+      "length_mae": 0.055038534244583395,
+      "termination_bce": 0.0811832815834114,
+      "content_accuracy": 0.9156816395680538,
+      "next_role_acc": 0.9659071440808634,
+      "next_family_acc": 0.8867568956655816,
+      "load_brier": 0.014410138932441956,
+      "load_dur_qscore": 235.82196703008847
+     }
+    },
+    "validation": {
+     "n_rows": 2029,
+     "metrics": {
+      "runtime_qscore": 602.3148460859123,
+      "length_mae": 0.05224248398225727,
+      "termination_bce": 0.08076739219132366,
+      "content_accuracy": 0.8988593854835895,
+      "next_role_acc": 0.9432541980312681,
+      "next_family_acc": 0.8453966415749855,
+      "load_brier": 0.01132817653859348,
+      "load_dur_qscore": 254.7695125910323
+     }
+    }
+   }
+  },
+  "33": {
+   "F0": {
+    "train": {
+     "n_rows": 13754,
+     "metrics": {
+      "runtime_qscore": 500.24059353279074,
+      "length_mae": 0.052930056710775046,
+      "termination_bce": 0.08310635956676228,
+      "content_accuracy": 0.9167082391748316,
+      "next_role_acc": 0.9664211067329107,
+      "next_family_acc": 0.887270858317629,
+      "load_brier": 0.013980575019333915,
+      "load_dur_qscore": 232.98150571082206
+     }
+    },
+    "validation": {
+     "n_rows": 2029,
+     "metrics": {
+      "runtime_qscore": 599.044776578163,
+      "length_mae": 0.05717102020699852,
+      "termination_bce": 0.09179617902545148,
+      "content_accuracy": 0.8979598073547118,
+      "next_role_acc": 0.9438332368268674,
+      "next_family_acc": 0.842501447596989,
+      "load_brier": 0.011394762108868084,
+      "load_dur_qscore": 253.11859433792475
+     }
+    }
+   },
+   "F1": {
+    "train": {
+     "n_rows": 13754,
+     "metrics": {
+      "runtime_qscore": 500.02162261313964,
+      "length_mae": 0.05278464446706413,
+      "termination_bce": 0.08308961626112231,
+      "content_accuracy": 0.9167570520298806,
+      "next_role_acc": 0.9664211067329107,
+      "next_family_acc": 0.887185197875621,
+      "load_brier": 0.013973771962379228,
+      "load_dur_qscore": 233.28567515194587
+     }
+    },
+    "validation": {
+     "n_rows": 2029,
+     "metrics": {
+      "runtime_qscore": 599.7654021171218,
+      "length_mae": 0.05717102020699852,
+      "termination_bce": 0.09190335514874667,
+      "content_accuracy": 0.8979570500271138,
+      "next_role_acc": 0.9438332368268674,
+      "next_family_acc": 0.842501447596989,
+      "load_brier": 0.011399916441825262,
+      "load_dur_qscore": 253.24495398245725
+     }
+    }
+   }
+  }
+ },
+ "vocab": {
+  "history": {
+   "event_type": {
+    "size": 5,
+    "values": [
+     "action",
+     "api_call",
+     "run"
+    ]
+   },
+   "node_type": {
+    "size": 8,
+    "values": [
+     "answer_generation",
+     "planner",
+     "run_control",
+     "videotool_generalist",
+     "videotool_spatial",
+     "videotool_temporal"
+    ]
+   },
+   "role": {
+    "size": 6,
+    "values": [
+     "aggregate",
+     "execute",
+     "init",
+     "plan"
+    ]
+   },
+   "raw_action": {
+    "size": 15,
+    "values": [
+     "answer",
+     "baseline_start",
+     "frame-selector",
+     "generalist.generate",
+     "image-grid-qa",
+     "image-grid-selector",
+     "image-qa",
+     "patch-zoomer",
+     "planner.generate",
+     "summarization-tool",
+     "temporal-grounding",
+     "temporal-qa",
+     "yolo-tracker"
+    ]
+   },
+   "action_family": {
+    "size": 8,
+    "values": [
+     "detect",
+     "other",
+     "select_frames",
+     "summarize",
+     "temporal_ops",
+     "visual_qa"
+    ]
+   },
+   "model_id": {
+    "size": 11,
+    "values": [
+     "Qwen2.5-VL-3B-Instruct",
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct",
+     "cpu-metadata-adapter-v1",
+     "finish_argument",
+     "stack_a_qwen3_vl8b",
+     "stack_b_qwen3_4b_qwen25vl3b_yolo11x",
+     "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+     "yolo11x.pt"
+    ]
+   }
+  },
+  "context": {
+   "answer_type": {
+    "size": 4,
+    "values": [
+     "multiple_choice",
+     "unknown"
+    ]
+   },
+   "domain": {
+    "size": 9,
+    "values": [
+     "Artistic Performance",
+     "Film & Television",
+     "Knowledge",
+     "Life Record",
+     "Multilingual",
+     "Sports Competition",
+     "unknown"
+    ]
+   },
+   "official_task_type": {
+    "size": 15,
+    "values": [
+     "Action Reasoning",
+     "Action Recognition",
+     "Attribute Perception",
+     "Counting Problem",
+     "Information Synopsis",
+     "OCR Problems",
+     "Object Reasoning",
+     "Object Recognition",
+     "Spatial Perception",
+     "Spatial Reasoning",
+     "Temporal Perception",
+     "Temporal Reasoning",
+     "unknown"
+    ]
+   },
+   "question_type": {
+    "size": 10,
+    "values": [
+     "causal",
+     "comparison",
+     "count",
+     "identification",
+     "spatial",
+     "summary",
+     "temporal",
+     "unknown"
+    ]
+   },
+   "sub_category": {
+    "size": 33,
+    "values": [
+     "Acrobatics",
+     "Animation",
+     "Astronomy",
+     "Athletics",
+     "Basketball",
+     "Biology & Medicine",
+     "Daily Life",
+     "Documentary",
+     "Esports",
+     "Exercise",
+     "Fashion",
+     "Finance & Commerce",
+     "Food",
+     "Football",
+     "Geography",
+     "Handicraft",
+     "Humanity & History",
+     "Law",
+     "Life Tip",
+     "Literature & Art",
+     "Magic Show",
+     "Movie & TV Show",
+     "Multilingual",
+     "News Report",
+     "Other Sports",
+     "Pet & Animal",
+     "Stage Play",
+     "Technology",
+     "Travel",
+     "Variety Show",
+     "unknown"
+    ]
+   },
+   "temporal_scope": {
+    "size": 6,
+    "values": [
+     "duration",
+     "global",
+     "ordered_events",
+     "unspecified"
+    ]
+   },
+   "baseline": {
+    "size": 5,
+    "values": [
+     "langgraph_react",
+     "st_fixed",
+     "star"
+    ]
+   },
+   "model_stack_id": {
+    "size": 11,
+    "values": [
+     "Qwen2.5-VL-3B-Instruct",
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct",
+     "cpu-metadata-adapter-v1",
+     "finish_argument",
+     "stack_a_qwen3_vl8b",
+     "stack_b_qwen3_4b_qwen25vl3b_yolo11x",
+     "stack_b_qwen3_4b_qwen25vl3b_yolo26n",
+     "yolo11x.pt"
+    ]
+   },
+   "planner_model_id": {
+    "size": 3,
+    "values": [
+     "unknown"
+    ]
+   }
+  },
+  "modalities": {
+   "size": 12,
+   "values": [
+    "k",
+    "n",
+    "o",
+    "object",
+    "scene",
+    "temporal",
+    "text",
+    "u",
+    "unknown",
+    "w"
+   ]
+  },
+  "slot": {
+   "node_type": {
+    "size": 7,
+    "values": [
+     "answer_generation",
+     "planner",
+     "videotool_generalist",
+     "videotool_spatial",
+     "videotool_temporal"
+    ]
+   },
+   "role": {
+    "size": 5,
+    "values": [
+     "aggregate",
+     "execute",
+     "plan"
+    ]
+   },
+   "action_family": {
+    "size": 8,
+    "values": [
+     "detect",
+     "other",
+     "select_frames",
+     "summarize",
+     "temporal_ops",
+     "visual_qa"
+    ]
+   },
+   "model_class": {
+    "size": 8,
+    "values": [
+     "Qwen2.5-VL-3B-Instruct",
+     "Qwen3-4B",
+     "Qwen3-VL-8B-Instruct",
+     "cpu-metadata-adapter-v1",
+     "finish_argument",
+     "yolo11x.pt"
+    ]
+   }
+  },
+  "nested": {
+   "size": 6,
+   "values": [
+    "Qwen2.5-VL-3B-Instruct",
+    "Qwen3-VL-8B-Instruct",
+    "__NONE__",
+    "finish_argument"
+   ]
+  }
+ }
+}
