@@ -1,0 +1,102 @@
+{
+ "schema": "colocation-p3-rounds",
+ "mode": "gpu",
+ "n_rounds": 153,
+ "failures": [],
+ "envs": {
+  "P-1": {
+   "pair": "P-1",
+   "a": {
+    "model": "4B",
+    "tier": "planner"
+   },
+   "b": {
+    "model": "8B",
+    "tier": "answer_generation"
+   },
+   "worker_a": {
+    "ready": true,
+    "model": "4B",
+    "path": "/root/autodl-tmp/scheduler/Qwen3-4B",
+    "device": "NVIDIA GeForce RTX 4080 SUPER",
+    "total_mb": 32230.8,
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0",
+    "vision": false
+   },
+   "worker_b": {
+    "ready": true,
+    "model": "8B",
+    "path": "/root/autodl-tmp/Qwen3-VL-8B-Instruct",
+    "device": "NVIDIA GeForce RTX 4080 SUPER",
+    "total_mb": 32230.8,
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0",
+    "vision": true
+   }
+  },
+  "P-2": {
+   "pair": "P-2",
+   "a": {
+    "model": "8B",
+    "tier": "planner"
+   },
+   "b": {
+    "model": "4B",
+    "tier": "planner"
+   },
+   "worker_a": {
+    "ready": true,
+    "model": "8B",
+    "path": "/root/autodl-tmp/Qwen3-VL-8B-Instruct",
+    "device": "NVIDIA GeForce RTX 4080 SUPER",
+    "total_mb": 32230.8,
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0",
+    "vision": true
+   },
+   "worker_b": {
+    "ready": true,
+    "model": "4B",
+    "path": "/root/autodl-tmp/scheduler/Qwen3-4B",
+    "device": "NVIDIA GeForce RTX 4080 SUPER",
+    "total_mb": 32230.8,
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0",
+    "vision": false
+   }
+  },
+  "P-3": {
+   "pair": "P-3",
+   "a": {
+    "model": "8B",
+    "tier": "planner"
+   },
+   "b": {
+    "model": "3B",
+    "tier": "videotool_spatial"
+   },
+   "worker_a": {
+    "ready": true,
+    "model": "8B",
+    "path": "/root/autodl-tmp/Qwen3-VL-8B-Instruct",
+    "device": "NVIDIA GeForce RTX 4080 SUPER",
+    "total_mb": 32230.8,
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0",
+    "vision": true
+   },
+   "worker_b": {
+    "ready": true,
+    "model": "3B",
+    "path": "/root/autodl-tmp/scheduler/Qwen2.5-VL-3B-Instruct",
+    "device": "NVIDIA GeForce RTX 4080 SUPER",
+    "total_mb": 32230.8,
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0",
+    "vision": true
+   }
+  }
+ },
+ "elapsed_s": 428.4
+}
