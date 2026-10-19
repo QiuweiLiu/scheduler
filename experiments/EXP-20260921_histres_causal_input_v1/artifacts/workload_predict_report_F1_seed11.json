@@ -1,0 +1,36 @@
+{
+ "schema": "workload-histres-predict",
+ "variant": "F1",
+ "seed": 11,
+ "n_anchors": 8126,
+ "n_with_actual_next": 7486,
+ "slot0_node_type_acc": 0.7795,
+ "slot0_model_class_acc": 0.7999,
+ "per_actual_type": {
+  "answer_generation": {
+   "n": 640,
+   "nt_acc": 0.917,
+   "mc_acc": 0.964
+  },
+  "planner": {
+   "n": 3239,
+   "nt_acc": 0.805,
+   "mc_acc": 0.885
+  },
+  "videotool_generalist": {
+   "n": 169,
+   "nt_acc": 0.0,
+   "mc_acc": 0.367
+  },
+  "videotool_spatial": {
+   "n": 930,
+   "nt_acc": 0.223,
+   "mc_acc": 0.925
+  },
+  "videotool_temporal": {
+   "n": 2508,
+   "nt_acc": 0.97,
+   "mc_acc": 0.631
+  }
+ }
+}
