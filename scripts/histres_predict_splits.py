@@ -124,6 +124,8 @@ def main() -> int:
     ap.add_argument("--arms", nargs="+", default=["F0", "F1"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[11, 22, 33])
     ap.add_argument("--splits", nargs="+", default=["train", "validation"])
+    ap.add_argument("--allow-test", action="store_true",
+                    help="explicitly open the sealed J test split for data production")
     args = ap.parse_args()
 
     config = json.loads(H.CONFIG.read_text(encoding="utf-8"))
@@ -134,8 +136,16 @@ def main() -> int:
     config["training"]["max_epochs"] = 30
     config["training"]["seeds"] = [11, 22, 33]
     ctx = H.build_ctx(config)
+    if "test" in args.splits:
+        if not args.allow_test:
+            print("refusing: --splits includes test but --allow-test was not passed (sealed split)")
+            return 2
+        test_rows = list(common.read_jsonl_gz(H.HISTRES / "histres_test.jsonl.gz"))
+        test = common.encode_rows(test_rows, ctx.vocabs, ctx.horizon)
+        test["video_code"] = np.asarray([te.stable_video_code(r["video_id"]) for r in test_rows], dtype=np.int64)
+        ctx.test = test
     print("device:", ctx.device, "| train", len(ctx.train["length"]), "| validation", len(ctx.validation["length"]),
-          "| j test loaded:", bool(ctx.test), flush=True)
+          "| test", len(ctx.test["length"]) if ctx.test else 0, flush=True)
 
     args.out.mkdir(parents=True, exist_ok=True)
     report = {"schema": "histres-split-predictions", "arms": args.arms, "seeds": args.seeds,

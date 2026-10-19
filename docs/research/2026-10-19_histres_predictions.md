@@ -31,3 +31,21 @@
 - `artifacts/predict_splits_report.json`:全指标(每 arm × seed × split)+ 词表;
 - `artifacts/predict_splits_jsonl.tgz`:12 个逐行预测 JSONL(39MB 原始 / 2.4MB 压缩)——即"更新后的数据集"组件(可直接 join 回 histres 数据集行);
 - 备注:如需把逐行预测 join 回正式工作负载的 future_h5 产物(Burst64),需下一步的格式转换(另议)。
+
+## 追加:调度数据集 train + **test** 预测(2026-10-19 晚,用户要求)
+
+- **口径**:histres F0/F1 × seeds {11,22,33} × {train(13754), **test(1520)**} → 12 个逐行预测 JSONL + 报告;
+- **封存声明**:这是 histres 线 **j_test 的首次打开**(此前 f0f1 报告声明 "J test remains sealed";本产物用途 = 数据生产,按用户指令执行;后续若要用 test 做确证性 claim,须单独申请裁定);
+- 脚本新增显式开关 `--allow-test`(不传则拒绝读取 test)。
+
+**test 指标(n=1520)**:
+
+| 指标 | F0(3 种子) | F1(3 种子) |
+|---|---|---|
+| next_role_acc | 0.9335~0.9351 | 0.9335~0.9351 |
+| next_family_acc | 0.8570~0.8578 | 0.8570~0.8578 |
+| content_accuracy | 0.8815~0.8821 | 0.8815~0.8820 |
+| runtime_qscore | 667.3~672.1 | 667.4~672.1 |
+
+- train 指标与之前一致(role ≈ 0.966,fam ≈ 0.887~0.890);F1−F0 ≈ 0(与 validation 结论一致);
+- 产物:`artifacts/predict_splits_train_test_report.json`、`artifacts/predict_splits_train_test_jsonl.tgz`(12 JSONL,2.4MB 压缩)。
