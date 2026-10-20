@@ -1,0 +1,48 @@
+{
+ "schema": "workload-histres-predict-v2",
+ "variant": "F1",
+ "seed": 11,
+ "n_anchors": 8126,
+ "slot_stats": {
+  "depth1": {
+   "n": 7486,
+   "nt_acc": 0.7795,
+   "role_acc": 0.904,
+   "family_acc": 0.766,
+   "model_class_acc": 0.7999
+  },
+  "depth2": {
+   "n": 6846,
+   "nt_acc": 0.7121,
+   "role_acc": 0.8238,
+   "family_acc": 0.7527,
+   "model_class_acc": 0.7962
+  },
+  "depth3": {
+   "n": 6206,
+   "nt_acc": 0.6642,
+   "role_acc": 0.807,
+   "family_acc": 0.6684,
+   "model_class_acc": 0.7203
+  },
+  "depth4": {
+   "n": 5572,
+   "nt_acc": 0.6744,
+   "role_acc": 0.8019,
+   "family_acc": 0.7019,
+   "model_class_acc": 0.7592
+  },
+  "depth5": {
+   "n": 4938,
+   "nt_acc": 0.5921,
+   "role_acc": 0.7446,
+   "family_acc": 0.6691,
+   "model_class_acc": 0.664
+  }
+ },
+ "joint": {
+  "n": 7486,
+  "all_depths_model_correct": 0.4365,
+  "model_set_match": 0.5088
+ }
+}
